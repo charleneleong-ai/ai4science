@@ -51,3 +51,9 @@ Negatives (non-binders / decoys) come from existing data + physics scores — so
 ## Sources
 - Event: [materialhack.co.uk](https://www.materialhack.co.uk/) · Nucleate UK · ARIA.
 - Tooling (illustrative, ground versions before use): AlphaFold3 / Boltz-2 (co-fold + affinity), RFdiffusionAA & ProteinMPNN (Baker lab, design), MetalPDB / BioLiP (curated metal-binding data).
+
+## Learnings
+- **"Verifier" ≠ "wet lab."** My first instinct framed the test around a wet-lab assay — impossible in a 48h in-silico hackathon. The fix: a verifier only has to be *independent of the generator*, and that can be a physics oracle (Boltz-2 co-fold) or the existing experimental record (MetalPDB/BioLiP), no pipetting. Reframing "reality" as *any independent ground truth* is the reusable move.
+- **Read the track's own questions before pitching.** The three guiding questions made Q2 ("behaviour in extreme environments") the unlock — extreme leachate = OOD = my wheelhouse — which is sharper than the generic "design a binder" angle most teams take. The brief tells you the angle; use it.
+- **Even the verifier needs verifying.** Grounding Boltz-2 ([log entry](../learning-log.md)) surfaced a 2026 reliability study: its affinities aren't trustworthy *quantitatively*. So the plan shifted to using it as a *ranking* signal with held-out data + physics as meta-verifier — a correction recall alone would have missed.
+- **Char limits force the idea to its core.** Compressing to 300 chars killed the hedging and exposed the single claim (selectivity-from-failures / OOD-flag). A good idea survives the squeeze; a vague one doesn't.
