@@ -63,9 +63,3 @@ Concrete mechanisms to reference: deep ensembles / **Bayesian-by-disagreement** 
 
 ## Backup paper (if "this month" is read strictly)
 *Fine-tuning MLIP foundation models: strategies for accuracy and transferability* — Csányi/Batatia group, [2606.12704](https://hf.co/papers/2606.12704) (Jun 10 2026). On-domain + unimpeachably recent; counterintuitive result (initialisation/hparams > method; multihead replay > LoRA for OOD).
-
-## Learnings
-- **Ground the company, not just the field.** "Orbital" first resolved to *Orbital Robotics* (space arms) in web search — wrong company. The materials *Orbital Industries* (Orb) is a different entity. A whole paper answer was built on the wrong domain before the [ai-research page](https://www.orbitalindustries.com/ai-research) corrected it. Always confirm the specific org from its own site before tailoring.
-- **The outsider angle is the pitch.** I'm not a comp-chemist; leading with that (RL/verifier person who sees Orb's OOD-trust gap) is *more* differentiated than faking domain depth. Frame the gap as where I add value, not where Orb is weak.
-- **Story vs. recency is a real trade-off.** *When to Trust Imagination* (robot manipulation) is off-domain but a perfect thesis vehicle; the MLIP fine-tuning paper is on-domain + unimpeachably recent but less punchy. Knowing which axis to optimise per audience is the skill — kept the bridge explicit so the off-domain pick reads as deliberate.
-- **Physics fluency is the credibility gate.** Conservative vs. non-conservative forces + why energy conservation matters for MD stability is the one thing that signals "understands the substrate, not just the ML." Worth over-preparing.
