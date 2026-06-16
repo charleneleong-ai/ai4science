@@ -29,6 +29,8 @@ The one-line pitch that ties it all together:
 
 A long-living learning log. I come from the RL / verifier / world-model side, not classical computational chemistry or biology, so these are my notes-to-self on how the field is shaped and where my existing skills transfer. I'll keep adding to it.
 
+This section is the evergreen overview; **dated, distilled entries live in [`learning-log.md`](learning-log.md)** (maintained by the `ai4science-log` skill — ground-first, then distil what transfers).
+
 ### The one pattern under all of it
 AI4Science keeps doing the same move: **replace an expensive physical ground truth with a fast learned surrogate, then use it in a loop.**
 
