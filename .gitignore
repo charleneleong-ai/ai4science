@@ -1,0 +1,19 @@
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Data / model artefacts (regenerable)
+*.parquet
+*.ckpt
+*.pt
+.cache/
+data/
