@@ -1,26 +1,28 @@
-"""Rank REAL RFdiffusionAA nickel designs with the geometry verifier.
+"""Rank real designed nickel structures with the geometry verifier.
 
-RFdiffusionAA is run on a GPU box via apptainer (see materialhack/run_nickel.sh on
-pi-a100-80gb). Point this at the directory of its output PDBs:
+The adapter is source-agnostic: point it at a directory of RFdiffusionAA backbones
+(materialhack/run_nickel.sh on pi-a100-80gb) or of LigandMPNN-packed full-atom designs
+(run_ligmpnn.sh) — it parses the metal site either way.
 
-    python examples/materialhack/run_rfaa.py <rfaa_output_dir>
+    python examples/materialhack/run_rfaa.py <design_pdb_dir>
 
-Raw RFdiffusionAA output is backbone-only — no sequence/sidechain design yet — so the
-verifier should correctly DEFER on it: proper metal coordination needs the rest of the
-pipeline (LigandMPNN sidechains). That deferral is the whole point — the verifier knows
-the generator's output isn't a trustworthy metal site until it actually is.
+Judged against the real PDB reference (PDBReference). Bare RFdiffusionAA backbones DEFER —
+no sidechains, so no real coordination. After LigandMPNN packs His/Asp/Cys sidechains the
+designs gain real donors and the scores climb; full trust still needs clean geometry
+(relaxation). That progression is the point — the verifier tracks how real the site is.
 """
 
 import sys
 
-from touchstone import GeometryVerifier, RFdiffusionAdapter, rank
+from touchstone import GeometryVerifier, PDBReference, RFdiffusionAdapter, rank
 
 
 def main(output_dir: str) -> None:
+    verifier = GeometryVerifier(PDBReference())
     designs = RFdiffusionAdapter(output_dir, pdb_element="NI", metal_label="Ni2+").design("Ni2+")
     print(f"# RFdiffusionAA → touchstone — {len(designs)} nickel designs\n")
     print(f"{'design':12} {'CN':>3} {'score':>9}  verdict")
-    for d, v in rank(designs, GeometryVerifier()):
+    for d, v in rank(designs, verifier):
         flag = "DEFER" if v.ood else ("trust" if v.trust else "weak")
         print(f"{d.sequence:12} {d.site.coordination_number:>3} {v.score:9.2e}  {flag:6} {v.reason}")
 

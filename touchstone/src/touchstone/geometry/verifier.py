@@ -34,22 +34,22 @@ class GeometryVerifier:
 
         z = (bonds - ref.bond_length_mean) / ref.bond_length_std
         strain = float(np.sqrt(np.mean(z**2)))  # RMS bond-length deviation, in std units
-        cn_gap = abs(site.coordination_number - ref.coordination_number)
+        cn_gap = abs(site.coordination_number - ref.coordination_number)  # vs modal, for the score
+        cn_ok = ref.cn_range[0] <= site.coordination_number <= ref.cn_range[1]
 
         # Higher score = more plausible. Gaussian in geometric strain, penalised for
-        # the wrong number of coordinating atoms.
+        # the distance from the modal coordination number.
         score = float(np.exp(-0.5 * strain**2) * np.exp(-cn_gap))
         ood = strain > self.ood_z
-        trust = strain <= self.trust_z and cn_gap == 0 and not ood
+        trust = strain <= self.trust_z and cn_ok and not ood
 
-        return Verdict(score=score, trust=trust, ood=ood, reason=self._reason(strain, cn_gap, ood))
+        return Verdict(score=score, trust=trust, ood=ood, reason=self._reason(strain, cn_ok, ood))
 
-    @staticmethod
-    def _reason(strain: float, cn_gap: int, ood: bool) -> str:
+    def _reason(self, strain: float, cn_ok: bool, ood: bool) -> str:
         if ood:
             return f"off-manifold (bond strain {strain:.1f}σ) — defer"
-        if cn_gap:
-            return f"coordination number off by {cn_gap}"
-        if strain > 2.0:
+        if not cn_ok:
+            return "coordination number outside observed range"
+        if strain > self.trust_z:
             return f"strained geometry ({strain:.1f}σ)"
-        return f"plausible ({strain:.1f}σ, correct coordination)"
+        return f"plausible ({strain:.1f}σ, coordination in range)"

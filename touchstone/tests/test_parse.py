@@ -6,6 +6,7 @@ import pytest
 from touchstone import coordination_site_from_pdb
 
 FIXTURE = Path(__file__).parent / "fixtures" / "rfaa_nickel_sample_0.pdb"
+FIXTURE_PACKED = Path(__file__).parent / "fixtures" / "ligmpnn_nickel_packed.pdb"
 
 
 def _atom(serial, name, resname, x, y, z, element, rec="HETATM"):
@@ -85,3 +86,12 @@ class TestRealRFdiffusionOutput:
         assert site.coordination_number == 2  # two backbone N donors near the Ni
         assert set(site.ligand_elems) == {"N"}
         assert (site.bond_lengths() > 1.0).all()  # placeholders at the origin excluded
+
+    def test_ligandmpnn_packing_adds_real_donors(self):
+        """After LigandMPNN designs + packs sidechains, the Ni gains real N/O donors —
+        a richer first shell than the bare backbone above."""
+        bare = coordination_site_from_pdb(FIXTURE, "NI", "Ni2+")
+        packed = coordination_site_from_pdb(FIXTURE_PACKED, "NI", "Ni2+")
+        assert packed.coordination_number > bare.coordination_number
+        assert {"N", "O"} <= set(packed.ligand_elems)  # sidechain His/Asp/Glu coordination
+        assert (packed.bond_lengths() > 1.0).all()

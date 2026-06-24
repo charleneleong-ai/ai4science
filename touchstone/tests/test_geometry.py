@@ -6,6 +6,7 @@ from touchstone import (
     GeometryVerifier,
     MockGenerator,
     MockReference,
+    PDBReference,
     octahedral_site,
     rank,
     under_leachate,
@@ -84,6 +85,37 @@ class TestReferencePluggability:
     def test_unknown_metal_raises(self, verifier):
         with pytest.raises(KeyError):
             verifier.verify(_design(octahedral_site("Au3+")))
+
+
+class TestPDBReference:
+    """The real reference, loaded from the cached PDB pull."""
+
+    @pytest.mark.parametrize("metal", ["Ni2+", "Cu2+"])
+    def test_geometry_is_physically_sane(self, metal):
+        g = PDBReference().geometry(metal)
+        assert 1.8 <= g.bond_length_mean <= 2.6  # metal–donor bonds live here
+        assert g.bond_length_std > 0 and g.coordination_number >= 3
+
+    def test_plugs_into_verifier_unchanged(self):
+        # same verifier API, real reference — an ideal-mock site verifies without error
+        v = GeometryVerifier(PDBReference()).verify(GOOD)
+        assert isinstance(v.score, float)
+
+    def test_unknown_metal_raises(self):
+        with pytest.raises(KeyError):
+            PDBReference().geometry("Au3+")
+
+    def test_clean_site_at_empirical_geometry_trusts(self):
+        """A site matching the real PDB geometry (modal CN, mean bond) trusts."""
+        g = PDBReference().geometry("Ni2+")
+        dirs = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [-1, -1, -1] / np.sqrt(3),
+                         [1, 1, 0] / np.sqrt(2), [0, -1, 1] / np.sqrt(2)])
+        site = CoordinationSite(
+            "Ni2+", np.zeros(3), dirs[: g.coordination_number] * g.bond_length_mean,
+            ("N",) * g.coordination_number,
+        )
+        v = GeometryVerifier(PDBReference()).verify(_design(site))
+        assert v.trust and not v.ood
 
 
 class TestEmptySite:
