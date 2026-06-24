@@ -8,9 +8,13 @@ machine, so they raise until wired during the A100 setup step (see docs/specs).
 
 from __future__ import annotations
 
+from dataclasses import replace
+from pathlib import Path
+
 import numpy as np
 
 from .core import BinderDesign, CoordinationSite
+from .geometry.parse import coordination_site_from_pdb
 
 # Idealised octahedral ligand directions (unit vectors along ±x, ±y, ±z).
 _OCTAHEDRON = np.array(
@@ -39,12 +43,7 @@ class MockGenerator:
         designs = []
         for i in range(n):
             base = octahedral_site(target)
-            jittered = CoordinationSite(
-                metal=base.metal,
-                metal_xyz=base.metal_xyz,
-                ligand_xyz=base.ligand_xyz + rng.normal(0, 0.05, size=base.ligand_xyz.shape),
-                ligand_elems=base.ligand_elems,
-            )
+            jittered = replace(base, ligand_xyz=base.ligand_xyz + rng.normal(0, 0.05, size=base.ligand_xyz.shape))
             designs.append(
                 BinderDesign(
                     sequence=f"MOCK{i}",
@@ -57,10 +56,43 @@ class MockGenerator:
 
 
 class RFdiffusionAdapter:
-    """Primary POC generator: RFdiffusionAA on the A100, output PDB → CoordinationSite."""
+    """Primary POC generator — ingests RFdiffusionAA output PDBs into BinderDesigns.
 
-    def design(self, target: str, n: int = 5) -> list[BinderDesign]:
-        raise NotImplementedError("RFdiffusionAA runs on pi-a100-80gb; wired during A100 setup")
+    RFdiffusionAA is launched out-of-band on a GPU box (apptainer; see
+    materialhack/run_nickel.sh on pi-a100-80gb); this adapter parses the resulting
+    design PDBs into CoordinationSites. Like every adapter it is generator-blind on
+    the far side — the verifier only ever sees the site.
+    """
+
+    def __init__(
+        self,
+        output_dir: str | Path,
+        pdb_element: str = "NI",
+        metal_label: str = "Ni2+",
+        cutoff: float = 2.8,
+    ):
+        self.output_dir = Path(output_dir)
+        self.pdb_element = pdb_element
+        self.metal_label = metal_label
+        self.cutoff = cutoff
+
+    def design(self, target: str | None = None, n: int | None = None) -> list[BinderDesign]:
+        label = target or self.metal_label
+        pdbs = sorted(self.output_dir.glob("*.pdb"))
+        if not pdbs:
+            raise FileNotFoundError(f"no design PDBs in {self.output_dir}")
+        designs = []
+        for pdb in pdbs[:n]:
+            site = coordination_site_from_pdb(pdb, self.pdb_element, label, self.cutoff)
+            designs.append(
+                BinderDesign(
+                    sequence=pdb.stem,
+                    site=site,
+                    generator="rfdiffusion_aa",
+                    generator_confidence=float("nan"),  # RFAA gives no binding score here
+                )
+            )
+        return designs
 
 
 class BoltzGenAdapter:

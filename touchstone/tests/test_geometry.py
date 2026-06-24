@@ -84,3 +84,12 @@ class TestReferencePluggability:
     def test_unknown_metal_raises(self, verifier):
         with pytest.raises(KeyError):
             verifier.verify(_design(octahedral_site("Au3+")))
+
+
+class TestEmptySite:
+    def test_no_donors_defers_with_finite_score(self, verifier):
+        """A site with no coordinating atoms (CN=0) is the worst case, not NaN."""
+        empty = _design(CoordinationSite("Ni2+", np.zeros(3), np.empty((0, 3)), ()))
+        v = verifier.verify(empty)
+        assert v.score == 0.0 and not v.trust and v.ood
+        assert rank([empty, GOOD], verifier)[0][0] is GOOD  # NaN would break this sort

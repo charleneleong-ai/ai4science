@@ -7,6 +7,7 @@ reference standard against which a sample is judged. Same job here.
 from .core import BinderDesign, CoordinationSite, Generator, Verdict, Verifier
 from .generators import BoltzGenAdapter, MockGenerator, RFdiffusionAdapter, octahedral_site
 from .geometry.ood import under_leachate
+from .geometry.parse import coordination_site_from_pdb
 from .geometry.reference import MetalGeometry, MockReference, PDBReference, ReferenceDistribution
 from .geometry.verifier import GeometryVerifier
 from .pipeline import design_and_rank, rank
@@ -22,6 +23,7 @@ __all__ = [
     "BoltzGenAdapter",
     "octahedral_site",
     "under_leachate",
+    "coordination_site_from_pdb",
     "MetalGeometry",
     "MockReference",
     "PDBReference",

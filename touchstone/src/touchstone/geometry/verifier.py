@@ -28,7 +28,11 @@ class GeometryVerifier:
         site = design.site
         ref = self.reference.geometry(site.metal)
 
-        z = (site.bond_lengths() - ref.bond_length_mean) / ref.bond_length_std
+        bonds = site.bond_lengths()
+        if len(bonds) == 0:  # no coordinating atoms found — the worst case, not undefined
+            return Verdict(0.0, trust=False, ood=True, reason="no coordinating atoms within cutoff — defer")
+
+        z = (bonds - ref.bond_length_mean) / ref.bond_length_std
         strain = float(np.sqrt(np.mean(z**2)))  # RMS bond-length deviation, in std units
         cn_gap = abs(site.coordination_number - ref.coordination_number)
 
