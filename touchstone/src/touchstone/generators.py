@@ -58,10 +58,9 @@ class MockGenerator:
 class RFdiffusionAdapter:
     """Primary POC generator — ingests RFdiffusionAA output PDBs into BinderDesigns.
 
-    RFdiffusionAA is launched out-of-band on a GPU box (apptainer; see
-    materialhack/run_nickel.sh on pi-a100-80gb); this adapter parses the resulting
-    design PDBs into CoordinationSites. Like every adapter it is generator-blind on
-    the far side — the verifier only ever sees the site.
+    RFdiffusionAA is launched out-of-band on a GPU box via apptainer; this adapter
+    parses the resulting design PDBs into CoordinationSites. Like every adapter it is
+    generator-blind on the far side — the verifier only ever sees the site.
     """
 
     def __init__(
@@ -96,7 +95,7 @@ class RFdiffusionAdapter:
 
 
 class BoltzGenAdapter:
-    """Second real generator + on-site sponsor tool — proves verifier generator-blindness."""
+    """Second real generator — proves the verifier is generator-blind."""
 
     def design(self, target: str, n: int = 5) -> list[BinderDesign]:
-        raise NotImplementedError("BoltzGen wired at the event / later A100 step")
+        raise NotImplementedError("BoltzGen wired in a later A100 step")

@@ -1,11 +1,13 @@
-"""MaterialHack POC: generator → geometry verifier → ranked trust/defer.
+"""POC: generator → geometry verifier → ranked trust/defer.
 
-Pre-event this runs the MockGenerator + MockReference end-to-end. At the event,
-swap MockGenerator → RFdiffusionAdapter and MockReference → CSD/Mogul — the loop
-below does not change.
+Runs MockGenerator + MockReference end-to-end and shows the extreme-condition
+(acidic-leachate) angle. Swap MockGenerator → RFdiffusionAdapter and MockReference →
+PDBReference / CSD-Mogul and the loop below does not change.
 
-    python examples/materialhack/run_poc.py
+    python examples/run_poc.py
 """
+
+import typer
 
 from touchstone import GeometryVerifier, MockGenerator, design_and_rank, under_leachate
 
@@ -15,7 +17,6 @@ TARGET = "Ni2+"
 def main() -> None:
     generator = MockGenerator(seed=0)
     verifier = GeometryVerifier()  # MockReference by default
-
     ranked = design_and_rank(generator, verifier, TARGET, n=5)
 
     print(f"# touchstone POC — {TARGET}\n")
@@ -32,4 +33,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)

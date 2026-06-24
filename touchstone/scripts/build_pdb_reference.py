@@ -2,10 +2,11 @@
 
 Pulls high-resolution structures containing each metal from RCSB, measures every
 first-shell metal–donor (N/O/S) bond, and writes the empirical mean/std + modal
-coordination number to src/touchstone/data/pdb_reference.json — which PDBReference
-loads. Reproducible: re-run to refresh.
+coordination number + observed CN range to src/touchstone/data/pdb_reference.json —
+which PDBReference loads. Reproducible: re-run to refresh.
 
     uv run python scripts/build_pdb_reference.py
+    uv run python scripts/build_pdb_reference.py --n-structures 60 --max-res 1.5
 """
 
 from __future__ import annotations
@@ -19,17 +20,16 @@ from datetime import date
 from pathlib import Path
 
 import numpy as np
+import typer
 
 OUT = Path(__file__).parent.parent / "src" / "touchstone" / "data" / "pdb_reference.json"
 METALS = {"NI": "Ni2+", "CU": "Cu2+"}  # PDB comp_id → verifier label
-N_STRUCTURES = 40
-MAX_RES = 1.8  # Angstrom
 SHELL = (1.0, 2.8)  # first-shell distance window
 MIN_CN = 3  # ignore adventitious ions with < 3 contacts
 DONORS = frozenset({"N", "O", "S"})
 
 
-def _search(comp_id: str) -> list[str]:
+def _search(comp_id: str, n_structures: int, max_res: float) -> list[str]:
     query = {
         "query": {
             "type": "group",
@@ -40,11 +40,11 @@ def _search(comp_id: str) -> list[str]:
                     "operator": "exact_match", "value": comp_id}},
                 {"type": "terminal", "service": "text", "parameters": {
                     "attribute": "rcsb_entry_info.resolution_combined",
-                    "operator": "less", "value": MAX_RES}},
+                    "operator": "less", "value": max_res}},
             ],
         },
         "return_type": "entry",
-        "request_options": {"paginate": {"start": 0, "rows": N_STRUCTURES},
+        "request_options": {"paginate": {"start": 0, "rows": n_structures},
                             "results_content_type": ["experimental"]},
     }
     url = "https://search.rcsb.org/rcsbsearch/v2/query?json=" + urllib.parse.quote(json.dumps(query))
@@ -74,10 +74,10 @@ def _sites(pdb_text: str, comp_id: str):
             yield shell
 
 
-def build_metal(comp_id: str, label: str) -> dict:
+def build_metal(comp_id: str, label: str, n_structures: int, max_res: float) -> dict:
     bonds: list[float] = []
     counts: list[int] = []
-    ids = _search(comp_id)
+    ids = _search(comp_id, n_structures, max_res)
     for pid in ids:
         try:
             text = urllib.request.urlopen(
@@ -94,20 +94,20 @@ def build_metal(comp_id: str, label: str) -> dict:
         "cn_range": [int(np.percentile(counts, 10)), int(np.percentile(counts, 90))],
         "bond_length_mean": round(statistics.fmean(bonds), 3),
         "bond_length_std": round(statistics.pstdev(bonds), 3),
-        "source": f"RCSB PDB ≤{MAX_RES}Å, {len(ids)} structures, "
+        "source": f"RCSB PDB ≤{max_res}Å, {len(ids)} structures, "
                   f"{len(counts)} sites / {len(bonds)} bonds, pulled {date.today()}",
     }
 
 
-def main() -> None:
+def main(n_structures: int = 40, max_res: float = 1.8) -> None:
     table = {}
     for comp_id, label in METALS.items():
         print(f"building {label} from PDB comp {comp_id} ...", flush=True)
-        table[label] = build_metal(comp_id, label)
+        table[label] = build_metal(comp_id, label, n_structures, max_res)
         print(f"  {table[label]}", flush=True)
     OUT.write_text(json.dumps(table, indent=2) + "\n")
     print(f"wrote {OUT}")
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)

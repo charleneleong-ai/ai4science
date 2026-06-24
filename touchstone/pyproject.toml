@@ -3,10 +3,11 @@ name = "touchstone"
 version = "0.0.1"
 description = "Generator-agnostic geometry verifier for designed metal-binding proteins"
 requires-python = ">=3.11"
-dependencies = ["numpy>=1.26"]
+dependencies = ["numpy>=1.26", "typer>=0.12"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+viz = ["wandb>=0.17", "python-dotenv>=1.0"]
 
 [build-system]
 requires = ["hatchling"]

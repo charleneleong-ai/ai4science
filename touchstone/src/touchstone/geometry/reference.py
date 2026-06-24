@@ -1,7 +1,7 @@
 """Reference coordination geometry — the pluggable oracle.
 
 `MockReference` carries hand-set values (a stand-in for the pre-event PDB pull).
-`PDBReference` / a CSD-Mogul provider drop in at the event behind the same
+`PDBReference` / a CSD-Mogul provider drop in behind the same
 `ReferenceDistribution` interface — the verifier never changes.
 """
 
@@ -39,7 +39,7 @@ class MockReference:
     """Hand-set reference values — the stand-in for the PDB/CSD pull.
 
     Ni2+: octahedral, CN6, Ni–(N/O) ≈ 2.09 Å; Cu2+: ~5-coordinate, ≈ 2.00 Å.
-    Swapped for `PDBReference` (pre-event) then CSD/Mogul (at the event).
+    Swapped for `PDBReference`, then CSD/Mogul, behind the same interface.
     """
 
     _TABLE = {

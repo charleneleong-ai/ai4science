@@ -12,15 +12,14 @@ produces a candidate binder; an independent `GeometryVerifier` scores its metal-
 geometry against a reference distribution, flags out-of-distribution (extreme-leachate)
 inputs, and returns a ranked list with a **trust / defer** verdict per design.
 
-First application: the **MaterialHack** AI track (Nucleate UK × ARIA, London, Jun 26–28 2026) —
-protein–metal binders for critical-mineral recovery. Positioned as a standalone pet project
+Domain: protein–metal binders for **critical-mineral recovery**. A standalone pet project
 that makes the verifier-first thesis (see [`../../README.md`](../../README.md)) concrete.
 
 ## Motivation
 
-When the hackathon hands every team the same generator (**BoltzGen**), the generator is —
-by construction — commoditised. The only axis left to differentiate on is the **verifier**.
-Most teams will read the generator's own confidence; the contrarian, defensible move is an
+When the generator is commoditised — every effort can reach for the same de-novo binder
+model (RFdiffusionAA, BoltzGen) — the only axis left to differentiate on is the **verifier**.
+The easy move is to read the generator's own confidence; the contrarian, defensible move is an
 *independent* geometry oracle that knows when a designed site is physically implausible or
 when the input has gone out-of-distribution (hot, acidic, saline leachate). That is the whole
 thesis of this repo, reduced to one shippable component.
@@ -60,8 +59,8 @@ Protocol: `design(target) -> list[BinderDesign]`. Three implementations:
 - `RFdiffusionAdapter` — **primary POC generator**, runs on the A100. Purpose-built for
   metal-coordination design: it places the metal atom explicitly (exactly what the verifier
   needs to score a site) and ships a bundled nickel example for an instant first run.
-- `BoltzGenAdapter` — the second real generator + the on-site sponsor tool. Swapping it in
-  *proves* the verifier is generator-blind (nothing downstream changes) and covers the event.
+- `BoltzGenAdapter` — a second real generator. Swapping it in *proves* the verifier is
+  generator-blind (nothing downstream changes).
 - `MockGenerator` — instant, deterministic; lets the verifier be built/tested without GPU.
 
 ### `GeometryVerifier` (the asset)
@@ -69,8 +68,8 @@ Protocol: `design(target) -> list[BinderDesign]`. Three implementations:
 1. **Extract the coordination site** — metal centre, coordinating atoms, bond lengths, angles,
    coordination number.
 2. **Score vs reference distribution** — how typical is this geometry for `target_metal`?
-   Reference is *pluggable*: a public PDB stand-in pre-event, swapped for **CSD/Mogul** at the
-   event (real empirical bond-length/angle distributions). Same interface either way.
+   Reference is *pluggable*: a public PDB pull now, swappable for **CSD/Mogul**
+   (real empirical bond-length/angle distributions). Same interface either way.
 3. **OOD flag** — perturb the input toward extreme leachate (pH / temperature / salinity proxy)
    and measure how far the site moves off the reference manifold. Large shift ⇒ defer.
 
@@ -79,11 +78,10 @@ designs ranked by `score`, each with its verdict.
 
 ## Reference data (pluggable oracle)
 
-- **Pre-event stand-in:** scripted pull of **Cu²⁺** coordination sites from the public PDB →
-  empirical bond-length/angle/coordination-number distributions. Real logic, no license needed.
-- **At the event:** swap the reference provider for the **CSD Python API + Mogul** (license
-  provided on-site). The `GeometryVerifier` does not change — only the `ReferenceDistribution`
-  implementation behind it.
+- **PDB pull:** scripted pull of **Ni²⁺/Cu²⁺** coordination sites from the public PDB →
+  empirical bond-length/coordination-number distributions. Real logic, no license needed.
+- **CSD/Mogul:** swap the reference provider for the **CSD Python API + Mogul**. The
+  `GeometryVerifier` does not change — only the `ReferenceDistribution` implementation behind it.
 
 **Metal:** `Ni2+` for the **POC** — RFdiffusion ships a nickel design example, so the generator
 runs end-to-end with zero config. `Cu2+` stays an option for the verifier's reference data
@@ -95,15 +93,15 @@ runs end-to-end with zero config. `Cu2+` stays an option for the verifier's refe
   (~80 GB free)** — watch it when pulling BoltzGen weights.
 - Python 3.11+, `uv` for the `touchstone` package; conda env for the GPU/BoltzGen side.
 
-## Weekend setup sequence (learn-the-stack + run-for-real)
+## Setup sequence (run-for-real)
 
 1. **A100 env + run RFdiffusionAA's bundled nickel example end-to-end** — confirms GPU + I/O,
    produces a real Ni²⁺-coordinating binder with the metal atom placed (drives what
-   `RFdiffusionAdapter` emits). BoltzGen env is a later step / done at the event.
+   `RFdiffusionAdapter` emits). BoltzGen env is a later step.
 2. **`Generator` interface + `RFdiffusionAdapter` + `MockGenerator`.**
 3. **`GeometryVerifier` + the PDB-Cu²⁺ `ReferenceDistribution` stand-in + OOD flag.**
 4. **One toy target end-to-end** — generator → verifier → ranked list with trust verdicts.
-   Friday: swap mock→real CSD reference and toy→real target.
+   Then: swap mock→real CSD reference and toy→real target.
 
 ## Testing
 
@@ -118,8 +116,7 @@ runs end-to-end with zero config. `Cu2+` stays an option for the verifier's refe
 
 ## Success criteria
 
-- BoltzGen runs on the A100 and I understand its I/O (learn-the-stack goal: met).
+- The generator (RFdiffusionAA) runs on the A100 and its I/O is understood.
 - `generator → BinderDesign → GeometryVerifier → ranked trust/defer` runs end-to-end on the
-  PDB stand-in, generator-agnostic, with the four tests green.
-- Friday at the event: swapping in the real CSD/Mogul reference and a real target is a
-  config change, not a rewrite.
+  PDB pull, generator-agnostic, with the tests green.
+- Swapping in the real CSD/Mogul reference and a real target is a config change, not a rewrite.
