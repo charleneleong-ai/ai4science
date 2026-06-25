@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from .core import BinderDesign, CoordinationSite
-from .geometry.parse import coordination_site_from_pdb
+from .geometry.parse import coordination_site
 
 
 def load_designs(
@@ -29,12 +29,12 @@ def load_designs(
     path and skipping any file with no metal site. The shared ingestion any generator
     adapter or analysis script uses."""
     designs = []
-    for pdb in sorted(glob.glob(glob_pattern, recursive=True)):
+    for path in sorted(glob.glob(glob_pattern, recursive=True)):
         try:
-            site = coordination_site_from_pdb(pdb, pdb_element, metal_label, cutoff)
+            site = coordination_site(path, pdb_element, metal_label, cutoff)
         except ValueError:
             continue
-        designs.append(BinderDesign(Path(pdb).stem, site, generator, float("nan"), source=pdb))
+        designs.append(BinderDesign(Path(path).stem, site, generator, float("nan"), source=path))
     return designs
 
 # Idealised octahedral ligand directions (unit vectors along ±x, ±y, ±z).
@@ -105,7 +105,23 @@ class RFdiffusionAdapter:
 
 
 class BoltzGenAdapter:
-    """Second real generator — proves the verifier is generator-blind."""
+    """Second real generator — BoltzGen designs a protein binder *to* the metal ion
+    (CCD target) and emits mmCIF. Ingested through the same `load_designs` path as every
+    other adapter, so the verifier treats it identically: that is the generator-blindness
+    proof — two unrelated generators, one verifier, no special-casing.
+    """
 
-    def design(self, target: str, n: int = 5) -> list[BinderDesign]:
-        raise NotImplementedError("BoltzGen wired in a later A100 step")
+    def __init__(self, output_dir: str | Path, metal_element: str = "NI",
+                 metal_label: str = "Ni2+", cutoff: float = 2.8):
+        self.output_dir = Path(output_dir)
+        self.metal_element = metal_element
+        self.metal_label = metal_label
+        self.cutoff = cutoff
+
+    def design(self, target: str | None = None, n: int | None = None) -> list[BinderDesign]:
+        # point output_dir at BoltzGen's refold_cif/ (the folded designs)
+        designs = load_designs(str(self.output_dir / "*.cif"), self.metal_element,
+                               target or self.metal_label, "boltzgen", self.cutoff)
+        if not designs:
+            raise FileNotFoundError(f"no BoltzGen .cif designs in {self.output_dir}")
+        return designs[:n]
