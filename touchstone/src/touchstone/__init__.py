@@ -5,7 +5,13 @@ reference standard against which a sample is judged. Same job here.
 """
 
 from .core import BinderDesign, CoordinationSite, Generator, Verdict, Verifier
-from .generators import BoltzGenAdapter, MockGenerator, RFdiffusionAdapter, octahedral_site
+from .generators import (
+    BoltzGenAdapter,
+    MockGenerator,
+    RFdiffusionAdapter,
+    load_designs,
+    octahedral_site,
+)
 from .geometry.ood import under_leachate
 from .geometry.parse import coordination_site_from_pdb
 from .geometry.reference import MetalGeometry, MockReference, PDBReference, ReferenceDistribution
@@ -21,6 +27,7 @@ __all__ = [
     "MockGenerator",
     "RFdiffusionAdapter",
     "BoltzGenAdapter",
+    "load_designs",
     "octahedral_site",
     "under_leachate",
     "coordination_site_from_pdb",

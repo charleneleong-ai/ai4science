@@ -8,6 +8,7 @@ machine, so they raise until wired during the A100 setup step (see docs/specs).
 
 from __future__ import annotations
 
+import glob
 from dataclasses import replace
 from pathlib import Path
 
@@ -15,6 +16,26 @@ import numpy as np
 
 from .core import BinderDesign, CoordinationSite
 from .geometry.parse import coordination_site_from_pdb
+
+
+def load_designs(
+    glob_pattern: str,
+    pdb_element: str = "NI",
+    metal_label: str = "Ni2+",
+    generator: str = "design",
+    cutoff: float = 2.8,
+) -> list[BinderDesign]:
+    """Parse design PDBs matching a glob into BinderDesigns, recording each `source`
+    path and skipping any file with no metal site. The shared ingestion any generator
+    adapter or analysis script uses."""
+    designs = []
+    for pdb in sorted(glob.glob(glob_pattern, recursive=True)):
+        try:
+            site = coordination_site_from_pdb(pdb, pdb_element, metal_label, cutoff)
+        except ValueError:
+            continue
+        designs.append(BinderDesign(Path(pdb).stem, site, generator, float("nan"), source=pdb))
+    return designs
 
 # Idealised octahedral ligand directions (unit vectors along ±x, ±y, ±z).
 _OCTAHEDRON = np.array(
@@ -76,22 +97,11 @@ class RFdiffusionAdapter:
         self.cutoff = cutoff
 
     def design(self, target: str | None = None, n: int | None = None) -> list[BinderDesign]:
-        label = target or self.metal_label
-        pdbs = sorted(self.output_dir.glob("*.pdb"))
-        if not pdbs:
+        designs = load_designs(str(self.output_dir / "*.pdb"), self.pdb_element,
+                               target or self.metal_label, "rfdiffusion_aa", self.cutoff)
+        if not designs:
             raise FileNotFoundError(f"no design PDBs in {self.output_dir}")
-        designs = []
-        for pdb in pdbs[:n]:
-            site = coordination_site_from_pdb(pdb, self.pdb_element, label, self.cutoff)
-            designs.append(
-                BinderDesign(
-                    sequence=pdb.stem,
-                    site=site,
-                    generator="rfdiffusion_aa",
-                    generator_confidence=float("nan"),  # RFAA gives no binding score here
-                )
-            )
-        return designs
+        return designs[:n]
 
 
 class BoltzGenAdapter:

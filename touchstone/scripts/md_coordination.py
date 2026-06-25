@@ -15,8 +15,9 @@ import numpy as np
 import typer
 from rich.console import Console
 
+from touchstone.geometry.parse import DONOR_ELEMENTS
+
 console = Console()
-_DONORS = {"N", "O", "S"}
 
 
 def main(trajectory: str, metal: str = "Ni", cutoff: float = 2.8, dump_fs: float = 20.0) -> None:
@@ -30,7 +31,7 @@ def main(trajectory: str, metal: str = "Ni", cutoff: float = 2.8, dump_fs: float
         els = [a[0] for a in atoms]
         xyz = np.array([[float(a[1]), float(a[2]), float(a[3])] for a in atoms])
         m = xyz[els.index(metal)]
-        d = np.linalg.norm(np.array([xyz[k] for k, e in enumerate(els) if e in _DONORS]) - m, axis=1)
+        d = np.linalg.norm(np.array([xyz[k] for k, e in enumerate(els) if e in DONOR_ELEMENTS]) - m, axis=1)
         cns.append(int((d <= cutoff).sum()))
         closest.append(float(d.min()))
 

@@ -22,11 +22,12 @@ from pathlib import Path
 import numpy as np
 import typer
 
+from touchstone.geometry.parse import DONOR_ELEMENTS
+
 OUT = Path(__file__).parent.parent / "src" / "touchstone" / "data" / "pdb_reference.json"
 METALS = {"NI": "Ni2+", "CU": "Cu2+"}  # PDB comp_id → verifier label
 SHELL = (1.0, 2.8)  # first-shell distance window
 MIN_CN = 3  # ignore adventitious ions with < 3 contacts
-DONORS = frozenset({"N", "O", "S"})
 
 
 def _search(comp_id: str, n_structures: int, max_res: float) -> list[str]:
@@ -66,7 +67,7 @@ def _sites(pdb_text: str, comp_id: str):
     """Per metal atom, the first-shell donor bond lengths (skips alt confs)."""
     atoms = [(el, xyz) for el, xyz, alt in _atoms(pdb_text) if alt in " A"]
     metals = [xyz for el, xyz in atoms if el == comp_id]
-    donors = [xyz for el, xyz in atoms if el in DONORS]
+    donors = [xyz for el, xyz in atoms if el in DONOR_ELEMENTS]
     for m in metals:
         d = np.linalg.norm(np.array(donors) - m, axis=1) if donors else np.empty(0)
         shell = d[(d > SHELL[0]) & (d <= SHELL[1])]

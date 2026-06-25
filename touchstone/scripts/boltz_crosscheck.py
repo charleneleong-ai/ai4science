@@ -45,8 +45,9 @@ def main(predictions_dir: str, metal_element: str = "NI", metal_label: str = "Ni
     verifier = GeometryVerifier(PDBReference())
     by_design: dict[str, list] = defaultdict(list)
     for pdb in sorted(glob.glob(f"{predictions_dir}/**/*_model_*.pdb", recursive=True)):
-        design = re.match(r"(.+?)_model_\d+", Path(pdb).stem).group(1)
-        conf = json.loads((Path(pdb).parent / f"confidence_{Path(pdb).stem}.json").read_text())
+        stem = Path(pdb).stem
+        design = re.match(r"(.+?)_model_\d+", stem).group(1)
+        conf = json.loads((Path(pdb).parent / f"confidence_{stem}.json").read_text())
         try:
             site = coordination_site_from_pdb(pdb, metal_element, metal_label)
             v = verifier.verify(BinderDesign(design, site, "boltz", float("nan")))

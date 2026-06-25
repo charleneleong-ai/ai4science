@@ -15,7 +15,7 @@ from touchstone import GeometryVerifier, MockGenerator, design_and_rank, under_l
 
 TARGET = "Ni2+"
 console = Console()
-_STYLE = {"trust": "green", "weak": "yellow", "DEFER": "red"}
+_STYLE = {"trust": "green", "weak": "yellow", "defer": "red"}
 
 
 def main() -> None:
@@ -27,8 +27,8 @@ def main() -> None:
     for col in ("design", "score", "verdict", "reason"):
         table.add_column(col, justify="left" if col in ("design", "reason") else "right")
     for design, verdict in ranked:
-        flag = "DEFER" if verdict.ood else ("trust" if verdict.trust else "weak")
-        table.add_row(design.sequence, f"{verdict.score:.3f}", flag, verdict.reason, style=_STYLE.get(flag))
+        table.add_row(design.sequence, f"{verdict.score:.3f}", verdict.label, verdict.reason,
+                      style=_STYLE.get(verdict.label))
     console.print(table)
 
     # The extreme-condition angle: the best design, re-judged under acidic leachate.

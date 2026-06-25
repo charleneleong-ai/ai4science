@@ -18,7 +18,7 @@ from rich.table import Table
 from touchstone import GeometryVerifier, PDBReference, RFdiffusionAdapter, rank
 
 console = Console()
-_STYLE = {"trust": "green", "weak": "yellow", "DEFER": "red"}
+_STYLE = {"trust": "green", "weak": "yellow", "defer": "red"}
 
 
 def main(design_dir: str) -> None:
@@ -28,9 +28,8 @@ def main(design_dir: str) -> None:
     for col in ("design", "CN", "score", "verdict", "reason"):
         table.add_column(col, justify="left" if col in ("design", "reason") else "right")
     for d, v in rank(designs, verifier):
-        flag = "DEFER" if v.ood else ("trust" if v.trust else "weak")
-        table.add_row(d.sequence, str(d.site.coordination_number), f"{v.score:.2e}", flag, v.reason,
-                      style=_STYLE.get(flag))
+        table.add_row(d.sequence, str(d.site.coordination_number), f"{v.score:.2e}", v.label, v.reason,
+                      style=_STYLE.get(v.label))
     console.print(table)
 
 

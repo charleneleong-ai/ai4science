@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from touchstone import coordination_site_from_pdb
+from touchstone import coordination_site_from_pdb, load_designs
 
 FIXTURE = Path(__file__).parent / "fixtures" / "rfaa_nickel_sample_0.pdb"
 FIXTURE_PACKED = Path(__file__).parent / "fixtures" / "ligmpnn_nickel_packed.pdb"
@@ -75,6 +75,19 @@ class TestCoordinationSiteFromPDB:
         p.write_text(_atom(1, "N", "HIS", 1, 1, 1, "N", rec="ATOM") + "\nEND\n")
         with pytest.raises(ValueError, match="no 'NI'"):
             coordination_site_from_pdb(p, "NI", "Ni2+")
+
+
+class TestLoadDesigns:
+    def test_loads_pdbs_with_source_set(self):
+        designs = load_designs(str(FIXTURE.parent / "*.pdb"), "NI", "Ni2+")
+        assert len(designs) >= 2  # the committed nickel fixtures
+        assert all(d.source and d.target_metal == "Ni2+" for d in designs)
+
+    def test_skips_files_without_the_metal(self, tmp_path):
+        (tmp_path / "has_ni.pdb").write_text(_atom(1, "NI", "NI", 0, 0, 0, "NI") + "\nEND\n")
+        (tmp_path / "no_metal.pdb").write_text(_atom(1, "N", "HIS", 1, 1, 1, "N", rec="ATOM") + "\nEND\n")
+        designs = load_designs(str(tmp_path / "*.pdb"), "NI", "Ni2+")
+        assert len(designs) == 1 and designs[0].source.endswith("has_ni.pdb")
 
 
 class TestRealRFdiffusionOutput:

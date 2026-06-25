@@ -47,6 +47,7 @@ class BinderDesign:
     site: CoordinationSite
     generator: str  # which generator produced this (provenance, not trusted)
     generator_confidence: float  # the generator's *own* score — recorded, never trusted
+    source: str | None = None  # path the design was loaded from, if any
 
     @property
     def target_metal(self) -> str:
@@ -61,6 +62,11 @@ class Verdict:
     trust: bool  # plausible geometry, in-distribution
     ood: bool  # site sits off the reference manifold (e.g. extreme-leachate input)
     reason: str
+
+    @property
+    def label(self) -> str:
+        """Single-word verdict for display/grouping: defer / trust / weak."""
+        return "defer" if self.ood else ("trust" if self.trust else "weak")
 
 
 @runtime_checkable

@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from touchstone import octahedral_site
-from touchstone.core import BinderDesign
+from touchstone.core import BinderDesign, Verdict
 
 
 class TestCoordinationSite:
@@ -23,3 +23,13 @@ class TestCoordinationSite:
     def test_target_metal_reads_from_site(self, metal):
         d = BinderDesign("SEQ", octahedral_site(metal), generator="x", generator_confidence=0.5)
         assert d.target_metal == metal
+
+
+class TestVerdictLabel:
+    @pytest.mark.parametrize(
+        "trust, ood, expected",
+        [(True, False, "trust"), (False, False, "weak"), (False, True, "defer"), (True, True, "defer")],
+    )
+    def test_label(self, trust, ood, expected):
+        # ood takes precedence — a site off the manifold defers even if otherwise "trusted"
+        assert Verdict(0.5, trust=trust, ood=ood, reason="x").label == expected

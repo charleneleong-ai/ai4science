@@ -47,12 +47,11 @@ def log_ranked(run, ranked, reference, metal: str = "Ni2+") -> Counter:
     bonds = wandb.Table(columns=["bond_length"])
     counts: Counter = Counter()
     for d, v in ranked:
-        verdict = "defer" if v.ood else ("trust" if v.trust else "weak")
-        counts[verdict] += 1
+        counts[v.label] += 1
         bl = d.site.bond_lengths()
         designs.add_data(
             d.sequence, d.site.coordination_number, v.score, math.log10(max(v.score, 1e-30)),
-            verdict, "".join(d.site.ligand_elems),
+            v.label, "".join(d.site.ligand_elems),
             round(float(bl.min()), 2) if len(bl) else 0.0,
             round(float(bl.max()), 2) if len(bl) else 0.0,
         )

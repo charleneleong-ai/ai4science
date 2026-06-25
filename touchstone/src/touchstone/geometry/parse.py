@@ -15,7 +15,7 @@ import numpy as np
 from ..core import CoordinationSite
 
 # Protein/ligand atoms that typically donate to a metal centre.
-_DONOR_ELEMENTS = frozenset({"N", "O", "S"})
+DONOR_ELEMENTS = frozenset({"N", "O", "S"})
 
 
 def _element(line: str) -> str:
@@ -51,7 +51,7 @@ def coordination_site_from_pdb(
         xyz = np.array([float(line[30:38]), float(line[38:46]), float(line[46:54])])
         if el == pdb_element.upper():
             metal_xyz = xyz
-        elif el in _DONOR_ELEMENTS:
+        elif el in DONOR_ELEMENTS:
             donors.append((el, xyz))
 
     if metal_xyz is None:
