@@ -1,0 +1,24 @@
+{
+  "Ni2+": {
+    "metal": "Ni2+",
+    "coordination_number": 4,
+    "cn_range": [
+      4,
+      6
+    ],
+    "bond_length_mean": 2.154,
+    "bond_length_std": 0.183,
+    "source": "RCSB PDB \u22641.8\u00c5, 40 structures, 88 sites / 416 bonds, pulled 2026-06-25"
+  },
+  "Cu2+": {
+    "metal": "Cu2+",
+    "coordination_number": 4,
+    "cn_range": [
+      3,
+      5
+    ],
+    "bond_length_mean": 2.144,
+    "bond_length_std": 0.179,
+    "source": "RCSB PDB \u22641.8\u00c5, 40 structures, 86 sites / 352 bonds, pulled 2026-06-25"
+  }
+}
