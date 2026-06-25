@@ -9,6 +9,7 @@ from touchstone import (
     PDBReference,
     octahedral_site,
     rank,
+    selectivity_profile,
     under_leachate,
 )
 from touchstone.core import CoordinationSite
@@ -90,7 +91,7 @@ class TestReferencePluggability:
 class TestPDBReference:
     """The real reference, loaded from the cached PDB pull."""
 
-    @pytest.mark.parametrize("metal", ["Ni2+", "Cu2+"])
+    @pytest.mark.parametrize("metal", ["Ni2+", "Cu2+", "Co2+"])
     def test_geometry_is_physically_sane(self, metal):
         g = PDBReference().geometry(metal)
         assert 1.8 <= g.bond_length_mean <= 2.6  # metal–donor bonds live here
@@ -116,6 +117,24 @@ class TestPDBReference:
         )
         v = GeometryVerifier(PDBReference()).verify(_design(site))
         assert v.trust and not v.ood
+
+
+class TestSelectivity:
+    """selectivity_profile re-scores a site as each metal. Geometry discriminates at CN
+    extremes but not in the overlapping mid-CN region where most real designs sit."""
+
+    def test_profile_returns_a_verdict_per_metal(self):
+        v = GeometryVerifier(PDBReference())
+        prof = selectivity_profile(_design(octahedral_site("Ni2+", bond=2.15)), v, ["Ni2+", "Cu2+", "Co2+"])
+        assert set(prof) == {"Ni2+", "Cu2+", "Co2+"} and prof["Ni2+"].trust
+
+    def test_cn4_site_does_not_discriminate(self):
+        # the honest limit: a CN4 site is in-range for Ni/Cu/Co, so geometry can't select
+        v = GeometryVerifier(PDBReference())
+        s = octahedral_site("Ni2+", bond=2.15)
+        cn4 = CoordinationSite("Ni2+", s.metal_xyz, s.ligand_xyz[:4], s.ligand_elems[:4])
+        prof = selectivity_profile(_design(cn4), v, ["Ni2+", "Cu2+", "Co2+"])
+        assert all(vd.trust for vd in prof.values())  # trusts for all — geometry gives no selectivity
 
 
 class TestEmptySite:
