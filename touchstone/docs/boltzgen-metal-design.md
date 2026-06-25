@@ -68,6 +68,25 @@ geometry of real Ni²⁺ sites. The refold step is slightly more conservative th
 (3 vs 5) — re-prediction loosens some sites, which touchstone honestly catches. Three runs are logged
 to W&B for side-by-side comparison (`ligmpnn-nickel-filter`, `boltzgen-nickel-filter`, `boltzgen-motif`).
 
+## Enhancing it: hand the scaffold to LigandMPNN — but keep the motif
+
+The obvious refinement is to pass BoltzGen's designs through LigandMPNN (which is metal-aware).
+It only helps if done in *refine* mode, not *redesign* mode:
+
+| approach | trusted |
+| --- | --- |
+| BoltzGen theozyme alone | 3 / 12 (25%) |
+| → LigandMPNN, full redesign | 2 / 24 (8%) — **discards the motif** |
+| → LigandMPNN, coordinators fixed | **8 / 24 (33%, 0 defer)** |
+
+Unlike RFdiffusionAA — which emits bare backbones, so LigandMPNN *adds* the coordinating
+sidechains (DEFER → trust) — BoltzGen already places them. A full LigandMPNN redesign therefore
+*throws away* BoltzGen's His/His/Asp/Cys and coordinates worse. Fixing the four coordinating
+residues (`--fixed_residues "A12 A27 A41 A55"`) and letting LigandMPNN only re-pack their rotamers
++ optimise the scaffold tightens the geometry and removes the failures (0 defer). The lesson:
+pair a *full-design* generator with a packer in **refine** mode, not **redesign** mode — and the
+verifier is what tells the two apart.
+
 ## Why it matters
 
 The verifier did more than score — it **diagnosed the misuse and confirmed the fix**. That is the
