@@ -22,8 +22,13 @@ from collections import defaultdict
 from pathlib import Path
 
 import typer
+from rich.console import Console
+from rich.table import Table
 
 from touchstone import BinderDesign, GeometryVerifier, PDBReference, coordination_site_from_pdb
+
+console = Console()
+_STYLE = {"both ✓": "green", "boltz-only": "yellow", "geom-only": "cyan", "neither": "red"}
 
 
 def _label(boltz_ok: bool, any_trust: bool, any_coord: bool) -> str:
@@ -49,19 +54,19 @@ def main(predictions_dir: str, metal_element: str = "NI", metal_label: str = "Ni
         except ValueError:
             by_design[design].append((0, False, False, conf))
 
-    print(f"Boltz-2 co-fold vs touchstone geometry ({metal_label}) — aggregated over diffusion samples\n")
-    print(f"{'design':12} {'n':>3} {'best CN':>7} {'coord':>7} {'trust':>6} {'ptm':>5} {'lig_iptm':>8} | agree")
-    print("-" * 76)
+    table = Table(title=f"Boltz-2 co-fold vs touchstone geometry ({metal_label}) — over diffusion samples")
+    for col in ("design", "n", "best CN", "coord", "trust", "ptm", "lig_iptm", "agree"):
+        table.add_column(col, justify="left" if col == "design" else "right")
     for design in sorted(by_design):
         rows = by_design[design]
-        best_cn = max(r[0] for r in rows)
         any_trust = any(r[1] for r in rows)
         coord = sum(1 for r in rows if r[2])
         ptm = max(r[3]["ptm"] for r in rows)
         lig = max(r[3]["ligand_iptm"] for r in rows)
         agree = _label(ptm > 0.7 and lig > 0.6, any_trust, coord > 0)
-        print(f"{design:12} {len(rows):>3} {best_cn:>7} {coord:>4}/{len(rows):<2} {str(any_trust):>6} "
-              f"{ptm:>5.2f} {lig:>8.2f} | {agree}")
+        table.add_row(design, str(len(rows)), str(max(r[0] for r in rows)), f"{coord}/{len(rows)}",
+                      str(any_trust), f"{ptm:.2f}", f"{lig:.2f}", agree, style=_STYLE.get(agree))
+    console.print(table)
 
 
 if __name__ == "__main__":

@@ -12,18 +12,26 @@ is the point — the verifier tracks how real the site is.
 """
 
 import typer
+from rich.console import Console
+from rich.table import Table
 
 from touchstone import GeometryVerifier, PDBReference, RFdiffusionAdapter, rank
+
+console = Console()
+_STYLE = {"trust": "green", "weak": "yellow", "DEFER": "red"}
 
 
 def main(design_dir: str) -> None:
     verifier = GeometryVerifier(PDBReference())
     designs = RFdiffusionAdapter(design_dir, pdb_element="NI", metal_label="Ni2+").design("Ni2+")
-    print(f"# touchstone — {len(designs)} nickel designs\n")
-    print(f"{'design':12} {'CN':>3} {'score':>9}  verdict")
+    table = Table(title=f"touchstone — {len(designs)} nickel designs")
+    for col in ("design", "CN", "score", "verdict", "reason"):
+        table.add_column(col, justify="left" if col in ("design", "reason") else "right")
     for d, v in rank(designs, verifier):
         flag = "DEFER" if v.ood else ("trust" if v.trust else "weak")
-        print(f"{d.sequence:12} {d.site.coordination_number:>3} {v.score:9.2e}  {flag:6} {v.reason}")
+        table.add_row(d.sequence, str(d.site.coordination_number), f"{v.score:.2e}", flag, v.reason,
+                      style=_STYLE.get(flag))
+    console.print(table)
 
 
 if __name__ == "__main__":

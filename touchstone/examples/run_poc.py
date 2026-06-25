@@ -8,10 +8,14 @@ PDBReference / CSD-Mogul and the loop below does not change.
 """
 
 import typer
+from rich.console import Console
+from rich.table import Table
 
 from touchstone import GeometryVerifier, MockGenerator, design_and_rank, under_leachate
 
 TARGET = "Ni2+"
+console = Console()
+_STYLE = {"trust": "green", "weak": "yellow", "DEFER": "red"}
 
 
 def main() -> None:
@@ -19,17 +23,19 @@ def main() -> None:
     verifier = GeometryVerifier()  # MockReference by default
     ranked = design_and_rank(generator, verifier, TARGET, n=5)
 
-    print(f"# touchstone POC — {TARGET}\n")
-    print(f"{'design':8} {'score':>6}  {'verdict':8} reason")
+    table = Table(title=f"touchstone POC — {TARGET}")
+    for col in ("design", "score", "verdict", "reason"):
+        table.add_column(col, justify="left" if col in ("design", "reason") else "right")
     for design, verdict in ranked:
         flag = "DEFER" if verdict.ood else ("trust" if verdict.trust else "weak")
-        print(f"{design.sequence:8} {verdict.score:6.3f}  {flag:8} {verdict.reason}")
+        table.add_row(design.sequence, f"{verdict.score:.3f}", flag, verdict.reason, style=_STYLE.get(flag))
+    console.print(table)
 
     # The extreme-condition angle: the best design, re-judged under acidic leachate.
     best, _ = ranked[0]
     stressed = verifier.verify(under_leachate(best, bond_stretch=0.6))
-    print(f"\n{best.sequence} under acidic leachate → "
-          f"score {stressed.score:.3f}, ood={stressed.ood} ({stressed.reason})")
+    console.print(f"\n[bold]{best.sequence}[/] under acidic leachate → "
+                  f"score {stressed.score:.3f}, [red]ood={stressed.ood}[/] ({stressed.reason})")
 
 
 if __name__ == "__main__":

@@ -1,26 +1,24 @@
 """Log one design's full verifier stack to W&B — the adjudication, visualized.
 
 Three views of the same design's metal site: the geometry-trusted structure, an
-independent Boltz-2 co-fold, and a physics (xtb GFN-FF) optimization — as comparable
-3D molecules plus each verifier's verdict. Disagreement resolved by physics.
+independent Boltz-2 co-fold, and a physics (xtb) optimization — as comparable 3D
+molecules plus each verifier's verdict. The W&B wiring lives in `touchstone.tracking`.
 
     uv run --extra viz python scripts/log_stack_wandb.py <pack.pdb> <boltz.pdb> <opt.pdb>
-
-Reads WANDB_API_KEY / WANDB_PROJECT from touchstone/.env (gitignored).
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import numpy as np
 import typer
 import wandb
-from dotenv import load_dotenv
+from rich.console import Console
+from rich.table import Table
 
-from touchstone import BinderDesign, GeometryVerifier, PDBReference, coordination_site_from_pdb
+from touchstone import BinderDesign, GeometryVerifier, PDBReference, coordination_site_from_pdb, tracking
 
-load_dotenv(Path(__file__).parent.parent / ".env")
+console = Console()
+_STYLE = {"TRUST": "green", "weak": "yellow", "DEFER": "red", "no site": "red"}
 
 
 def main(pack_pdb: str, boltz_pdb: str, opt_pdb: str, name: str = "design_4",
@@ -32,25 +30,30 @@ def main(pack_pdb: str, boltz_pdb: str, opt_pdb: str, name: str = "design_4",
         ("xtb GFN-FF opt", "physics", opt_pdb),
     ]
 
-    run = wandb.init(project="touchstone", name=f"verifier-stack-{name}")
-    table = wandb.Table(columns=["stage", "verifier", "CN", "verdict", "bonds (Å)", "detail"])
+    run = tracking.init(f"verifier-stack-{name}")
+    wb_table = wandb.Table(columns=["stage", "verifier", "CN", "verdict", "bonds (Å)", "detail"])
+    rich_table = Table(title=f"verifier stack — {name} ({metal_label})")
+    for col in ("stage", "verifier", "CN", "verdict", "bonds (Å)"):
+        rich_table.add_column(col)
+
     mols = {}
-    print(f"verifier stack — {name} ({metal_label})\n")
     for stage, role, pdb in stages:
         try:
             site = coordination_site_from_pdb(pdb, metal_element, metal_label)
             vd = verifier.verify(BinderDesign(stage, site, "x", float("nan")))
             flag = "TRUST" if vd.trust else ("DEFER" if vd.ood else "weak")
-            bonds = np.round(np.sort(site.bond_lengths()), 2).tolist()
-            table.add_data(stage, role, site.coordination_number, flag, str(bonds), vd.reason)
-            print(f"  {stage:18} [{role:20}] CN{site.coordination_number} {flag:6} {bonds}")
+            bonds = str(np.round(np.sort(site.bond_lengths()), 2).tolist())
+            wb_table.add_data(stage, role, site.coordination_number, flag, bonds, vd.reason)
+            rich_table.add_row(stage, role, str(site.coordination_number), flag, bonds, style=_STYLE.get(flag))
         except ValueError as e:
-            table.add_data(stage, role, 0, "no site", "[]", str(e))
-            print(f"  {stage:18} [{role:20}] no metal site")
-        mols[f"3d/{stage.replace(' ', '_')}"] = wandb.Molecule(open(pdb))
+            wb_table.add_data(stage, role, 0, "no site", "[]", str(e))
+            rich_table.add_row(stage, role, "0", "no site", "[]", style="red")
+        mols[f"3d/{stage.replace(' ', '_')}"] = pdb
 
-    run.log({"verifier_stack": table, **mols})
-    print(f"\nlogged → {run.url}")
+    run.log({"verifier_stack": wb_table})
+    tracking.log_molecules(run, mols)
+    console.print(rich_table)
+    console.print(f"[bold]logged →[/] {run.url}")
     run.finish()
 
 
