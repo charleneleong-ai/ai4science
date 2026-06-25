@@ -20,7 +20,7 @@ from .geometry.parse import (
 )
 from .geometry.reference import MetalGeometry, MockReference, PDBReference, ReferenceDistribution
 from .geometry.verifier import GeometryVerifier
-from .pipeline import design_and_rank, rank
+from .pipeline import design_and_rank, rank, selectivity_profile
 
 __all__ = [
     "BinderDesign",
@@ -43,5 +43,6 @@ __all__ = [
     "ReferenceDistribution",
     "GeometryVerifier",
     "design_and_rank",
+    "selectivity_profile",
     "rank",
 ]

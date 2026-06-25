@@ -25,7 +25,7 @@ import typer
 from touchstone.geometry.parse import DONOR_ELEMENTS
 
 OUT = Path(__file__).parent.parent / "src" / "touchstone" / "data" / "pdb_reference.json"
-METALS = {"NI": "Ni2+", "CU": "Cu2+"}  # PDB comp_id → verifier label
+METALS = {"NI": "Ni2+", "CU": "Cu2+", "CO": "Co2+"}  # PDB comp_id → verifier label
 SHELL = (1.0, 2.8)  # first-shell distance window
 MIN_CN = 3  # ignore adventitious ions with < 3 contacts
 
