@@ -106,6 +106,7 @@ def main(n_structures: int = 40, max_res: float = 1.8) -> None:
         print(f"building {label} from PDB comp {comp_id} ...", flush=True)
         table[label] = build_metal(comp_id, label, n_structures, max_res)
         print(f"  {table[label]}", flush=True)
+    OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(table, indent=2) + "\n")
     print(f"wrote {OUT}")
 

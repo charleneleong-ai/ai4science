@@ -7,3 +7,7 @@ dist/
 build/
 .env
 wandb/
+
+# package reference data is shipped (small, required by PDBReference at runtime)
+!src/touchstone/data/
+!src/touchstone/data/pdb_reference.json
