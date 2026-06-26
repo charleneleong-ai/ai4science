@@ -119,11 +119,51 @@ def relax_site(
     return SiteRelaxation(len(pre), len(post), drift, mean_bond, de)
 
 
-class MLIPVerifier:
-    """Verifier protocol over an MLIP relaxation. Trusts a design whose metal site
-    holds its coordination under the potential; defers when the site collapses or
-    the relaxation cannot run. The backbone is pluggable and lazily constructed.
-    """
+@dataclass
+class SiteDynamics:
+    """Metal-site coordination across a short MLIP molecular-dynamics run."""
+
+    cn_initial: int
+    retention: float  # fraction of sampled frames that kept the full first shell
+    temperature: float  # K
+
+
+def md_site(
+    atoms,
+    calc,
+    metal: str = "Ni",
+    cutoff: float = 2.8,
+    temperature: float = 300.0,
+    steps: int = 500,
+    timestep: float = 1.0,
+    friction: float = 0.02,
+    sample_every: int = 10,
+) -> SiteDynamics:
+    """Run short NVT (Langevin) MD and measure how often the first shell survives."""
+    from ase import units
+    from ase.md.langevin import Langevin
+    from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+
+    symbols = atoms.get_chemical_symbols()
+    mi = _metal_index(symbols, metal)
+    cn0 = len(_shell(atoms.get_positions(), symbols, mi, cutoff))
+
+    atoms.calc = calc
+    MaxwellBoltzmannDistribution(atoms, temperature_K=temperature)
+    dyn = Langevin(atoms, timestep * units.fs, temperature_K=temperature, friction=friction)
+    kept: list[bool] = []
+
+    def sample():
+        kept.append(len(_shell(atoms.get_positions(), symbols, mi, cutoff)) >= cn0)
+
+    dyn.attach(sample, interval=sample_every)
+    dyn.run(steps)
+    return SiteDynamics(cn0, sum(kept) / len(kept) if kept else 0.0, temperature)
+
+
+class _MLIPBase:
+    """Shared plumbing for MLIP verifiers: a lazily-built, pluggable backbone and
+    the metal-centred cluster pulled from a design's structure file."""
 
     def __init__(
         self,
@@ -133,8 +173,6 @@ class MLIPVerifier:
         metal_element: str | None = None,  # override; default derives from site.metal
         cutoff: float = 2.8,
         radius: float = 5.0,
-        trust_drift: float = 0.5,
-        ood_drift: float = 1.5,
         device: str = "cuda",
     ):
         self._backbone = backbone
@@ -142,13 +180,7 @@ class MLIPVerifier:
         self.metal_element = metal_element
         self.cutoff = cutoff
         self.radius = radius
-        self.trust_drift = trust_drift
-        self.ood_drift = ood_drift
         self.device = device
-
-    def _metal(self, design: BinderDesign) -> str:
-        """ASE element for this design — its site metal, unless overridden."""
-        return self.metal_element or element_symbol(design.site.metal)
 
     @property
     def calc(self):
@@ -156,15 +188,29 @@ class MLIPVerifier:
             self._calc = make_backbone(self._backbone, self.device)
         return self._calc
 
+    def _metal(self, design: BinderDesign) -> str:
+        """ASE element for this design — its site metal, unless overridden."""
+        return self.metal_element or element_symbol(design.site.metal)
+
     def _cluster(self, design: BinderDesign):
         from ase.io import read
 
         if not design.source:
-            raise ValueError("MLIPVerifier needs design.source (a structure file)")
+            raise ValueError("MLIP verifier needs design.source (a structure file)")
         atoms = read(design.source)
         pos = atoms.get_positions()
         mi = _metal_index(atoms.get_chemical_symbols(), self._metal(design))
         return atoms[np.linalg.norm(pos - pos[mi], axis=1) <= self.radius]
+
+
+class MLIPVerifier(_MLIPBase):
+    """Trusts a design whose metal site holds its coordination under an MLIP
+    relaxation; defers when the site collapses or the relaxation cannot run."""
+
+    def __init__(self, backbone: str = "mace_mp", *, trust_drift: float = 0.5, ood_drift: float = 1.5, **kw):
+        super().__init__(backbone, **kw)
+        self.trust_drift = trust_drift
+        self.ood_drift = ood_drift
 
     def relax(self, design: BinderDesign) -> SiteRelaxation:
         return relax_site(self._cluster(design), self.calc, self._metal(design), self.cutoff)
@@ -185,3 +231,42 @@ class MLIPVerifier:
         lost = "held" if held else f"lost {r.donors_lost} donor(s)"
         reason = f"site {lost}, drift {r.site_drift:.2f} Å{de}" + (" — defer" if ood else "")
         return Verdict(score, trust=trust, ood=ood, reason=reason)
+
+
+class MLIPDynamicsVerifier(_MLIPBase):
+    """Trusts a design whose coordination survives short MLIP molecular dynamics —
+    a thermal-stability check. The dynamic counterpart to MLIPVerifier's static
+    relax, and an independent second method to the xtb cluster-MD tier."""
+
+    def __init__(
+        self,
+        backbone: str = "mace_mp",
+        *,
+        temperature: float = 300.0,
+        trust_retention: float = 0.8,
+        ood_retention: float = 0.5,
+        steps: int = 500,
+        **kw,
+    ):
+        super().__init__(backbone, **kw)
+        self.temperature = temperature
+        self.trust_retention = trust_retention
+        self.ood_retention = ood_retention
+        self.steps = steps
+
+    def dynamics(self, design: BinderDesign) -> SiteDynamics:
+        return md_site(
+            self._cluster(design), self.calc, self._metal(design),
+            self.cutoff, self.temperature, self.steps,
+        )
+
+    def verify(self, design: BinderDesign) -> Verdict:
+        try:
+            d = self.dynamics(design)
+        except Exception as e:  # blow-up / unreadable input ⇒ defer
+            return Verdict(0.0, trust=False, ood=True, reason=f"MLIP MD failed: {type(e).__name__}")
+
+        ood = d.retention < self.ood_retention
+        trust = d.retention >= self.trust_retention and not ood
+        reason = f"shell survived {d.retention:.0%} of {self.temperature:.0f} K MD" + (" — defer" if ood else "")
+        return Verdict(d.retention, trust=trust, ood=ood, reason=reason)

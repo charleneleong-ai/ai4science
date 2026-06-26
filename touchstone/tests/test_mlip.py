@@ -6,7 +6,13 @@ pytest.importorskip("ase")  # the MLIP tier rides on the optional [mace]/[uma] e
 from ase import Atoms  # noqa: E402
 from ase.calculators.calculator import Calculator, all_changes  # noqa: E402
 
-from touchstone import BinderDesign, MLIPVerifier, make_backbone, relax_site  # noqa: E402
+from touchstone import (  # noqa: E402
+    BinderDesign,
+    MLIPDynamicsVerifier,
+    MLIPVerifier,
+    make_backbone,
+    relax_site,
+)
 from touchstone.core import CoordinationSite  # noqa: E402
 
 _OCT = np.array([[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]], float)
@@ -115,6 +121,26 @@ class TestMLIPVerifier:
         d = BinderDesign("S", site, generator="t", generator_confidence=0.5, source=src)
         r = MLIPVerifier(calculator=SpringToMetal(r0=2.1), radius=5.0).relax(d)
         assert r.cn_before == 6  # the stray O at 20 Å was cropped out
+
+
+class TestMLIPDynamics:
+    def test_bound_site_survives_md(self, tmp_path):
+        np.random.seed(0)  # Langevin draws thermal forces from np.random
+        v = MLIPDynamicsVerifier(
+            calculator=SpringToMetal(r0=2.1, k=10.0), temperature=100.0, steps=200
+        ).verify(_design(tmp_path, r=2.1))
+        assert v.trust and not v.ood and v.score > 0.8  # shell holds through the run
+
+    def test_unbound_site_defers(self, tmp_path):
+        np.random.seed(0)
+        v = MLIPDynamicsVerifier(
+            calculator=SpringToMetal(r0=3.5, k=10.0), temperature=100.0, steps=200
+        ).verify(_design(tmp_path, r=2.6))
+        assert v.ood and not v.trust  # donors pulled past the cutoff ⇒ low retention
+
+    def test_defers_when_md_fails(self, tmp_path):
+        v = MLIPDynamicsVerifier(calculator=_Exploding()).verify(_design(tmp_path))
+        assert v.ood and not v.trust and "failed" in v.reason
 
 
 def test_make_backbone_rejects_unknown():
