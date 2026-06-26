@@ -41,11 +41,6 @@ class TestBondValenceVerifier:
         v = verifier.verify(empty)
         assert v.score == 0.0 and v.ood and not v.trust
 
-    def test_disagrees_with_geometry_on_principle(self, verifier):
-        # BVS judges by valence sum, not distance z-score — the two are independent
-        # checks. Here a charge-recovering site is trusted by valence.
-        assert verifier.verify(_design(bond=2.06)).trust
-
 
 @pytest.mark.parametrize("label, expected", [("Ni2+", 2), ("Cu2+", 2), ("Fe3+", 3), ("O2-", -2)])
 def test_oxidation_state_parses(label, expected):

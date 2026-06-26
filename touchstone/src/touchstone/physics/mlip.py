@@ -125,7 +125,6 @@ class SiteDynamics:
 
     cn_initial: int
     retention: float  # fraction of sampled frames that kept the full first shell
-    temperature: float  # K
 
 
 def md_site(
@@ -158,12 +157,16 @@ def md_site(
 
     dyn.attach(sample, interval=sample_every)
     dyn.run(steps)
-    return SiteDynamics(cn0, sum(kept) / len(kept) if kept else 0.0, temperature)
+    return SiteDynamics(cn0, sum(kept) / len(kept) if kept else 0.0)
 
 
 class _MLIPBase:
     """Shared plumbing for MLIP verifiers: a lazily-built, pluggable backbone and
-    the metal-centred cluster pulled from a design's structure file."""
+    the metal-centred cluster pulled from a design's structure file.
+
+    Pass one `make_backbone(...)` instance as `calculator=` to both the static and
+    dynamics verifiers to share a single in-memory model across them.
+    """
 
     def __init__(
         self,
@@ -219,18 +222,18 @@ class MLIPVerifier(_MLIPBase):
         try:
             r = self.relax(design)
         except Exception as e:  # divergence / NaN forces / unreadable input ⇒ defer
-            return Verdict(0.0, trust=False, ood=True, reason=f"MLIP relaxation failed: {type(e).__name__}")
+            return Verdict.defer(f"MLIP relaxation failed: {type(e).__name__}")
 
         held = r.donors_lost == 0
-        ood = r.site_drift > self.ood_drift or r.cn_after == 0
-        trust = held and r.site_drift <= self.trust_drift and not ood
         # Higher = more stable: decays with site drift, scaled by the fraction of
         # the first shell retained. Interaction energy rides along for ranking.
         score = float(np.exp(-r.site_drift)) * (r.cn_after / max(r.cn_before, 1))
         de = "" if r.interaction_energy is None else f", ΔE_bind {r.interaction_energy:.2f} eV"
         lost = "held" if held else f"lost {r.donors_lost} donor(s)"
-        reason = f"site {lost}, drift {r.site_drift:.2f} Å{de}" + (" — defer" if ood else "")
-        return Verdict(score, trust=trust, ood=ood, reason=reason)
+        reason = f"site {lost}, drift {r.site_drift:.2f} Å{de}"
+        if r.site_drift > self.ood_drift or r.cn_after == 0:
+            return Verdict.defer(reason, score=score)
+        return Verdict(score, trust=held and r.site_drift <= self.trust_drift, ood=False, reason=reason)
 
 
 class MLIPDynamicsVerifier(_MLIPBase):
@@ -264,9 +267,11 @@ class MLIPDynamicsVerifier(_MLIPBase):
         try:
             d = self.dynamics(design)
         except Exception as e:  # blow-up / unreadable input ⇒ defer
-            return Verdict(0.0, trust=False, ood=True, reason=f"MLIP MD failed: {type(e).__name__}")
+            return Verdict.defer(f"MLIP MD failed: {type(e).__name__}")
 
-        ood = d.retention < self.ood_retention
-        trust = d.retention >= self.trust_retention and not ood
-        reason = f"shell survived {d.retention:.0%} of {self.temperature:.0f} K MD" + (" — defer" if ood else "")
-        return Verdict(d.retention, trust=trust, ood=ood, reason=reason)
+        # retention is higher-is-better, so the bound direction inverts vs the
+        # strain/drift verifiers: trust above trust_retention, defer below ood_retention.
+        reason = f"shell survived {d.retention:.0%} of {self.temperature:.0f} K MD"
+        if d.retention < self.ood_retention:
+            return Verdict.defer(reason, score=d.retention)
+        return Verdict(d.retention, trust=d.retention >= self.trust_retention, ood=False, reason=reason)
