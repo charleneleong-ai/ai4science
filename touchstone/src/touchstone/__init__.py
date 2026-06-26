@@ -4,7 +4,15 @@ A touchstone was historically used to assay precious metals: the independent
 reference standard against which a sample is judged. Same job here.
 """
 
-from .core import BinderDesign, CoordinationSite, Generator, Verdict, Verifier, element_symbol
+from .core import (
+    BinderDesign,
+    CoordinationSite,
+    Generator,
+    Verdict,
+    Verifier,
+    element_symbol,
+    oxidation_state,
+)
 from .generators import (
     BoltzGenAdapter,
     MockGenerator,
@@ -12,6 +20,7 @@ from .generators import (
     load_designs,
     octahedral_site,
 )
+from .geometry.bond_valence import BondValenceVerifier
 from .geometry.ood import under_leachate
 from .geometry.parse import (
     coordination_site,
@@ -30,6 +39,7 @@ __all__ = [
     "Verdict",
     "Verifier",
     "element_symbol",
+    "oxidation_state",
     "MockGenerator",
     "RFdiffusionAdapter",
     "BoltzGenAdapter",
@@ -44,6 +54,7 @@ __all__ = [
     "PDBReference",
     "ReferenceDistribution",
     "GeometryVerifier",
+    "BondValenceVerifier",
     "MLIPVerifier",
     "SiteRelaxation",
     "make_backbone",
