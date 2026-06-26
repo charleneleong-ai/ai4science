@@ -41,14 +41,13 @@ class BondValenceVerifier:
         b = self.params["b"]
         valence = oxidation_state(site.metal)
 
-        bonds, elems = site.bond_lengths(), site.ligand_elems
-        if len(bonds) == 0:
-            return Verdict(0.0, trust=False, ood=True, reason="no coordinating atoms — defer")
+        if site.is_empty:
+            return Verdict.defer("no coordinating atoms")
 
-        bvs = sum(math.exp((r0[e] - d) / b) for e, d in zip(elems, bonds) if e in r0)
+        bvs = sum(math.exp((r0[e] - d) / b) for e, d in zip(site.ligand_elems, site.bond_lengths()) if e in r0)
         disc = abs(bvs - valence)
         score = math.exp(-0.5 * (disc / self.trust_tol) ** 2)
-        ood = disc > self.ood_tol
-        trust = disc <= self.trust_tol and not ood
-        reason = f"BVS {bvs:.2f} vs formal {valence} (Δ{disc:.2f})" + (" — defer" if ood else "")
-        return Verdict(score, trust=trust, ood=ood, reason=reason)
+        reason = f"BVS {bvs:.2f} vs formal {valence} (Δ{disc:.2f})"
+        if disc > self.ood_tol:
+            return Verdict.defer(reason, score=score)
+        return Verdict(score, trust=disc <= self.trust_tol, ood=False, reason=reason)

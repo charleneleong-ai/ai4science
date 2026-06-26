@@ -27,12 +27,10 @@ class GeometryVerifier:
     def verify(self, design: BinderDesign) -> Verdict:
         site = design.site
         ref = self.reference.geometry(site.metal)
+        if site.is_empty:  # no coordinating atoms found — the worst case, not undefined
+            return Verdict.defer("no coordinating atoms within cutoff")
 
-        bonds = site.bond_lengths()
-        if len(bonds) == 0:  # no coordinating atoms found — the worst case, not undefined
-            return Verdict(0.0, trust=False, ood=True, reason="no coordinating atoms within cutoff — defer")
-
-        z = (bonds - ref.bond_length_mean) / ref.bond_length_std
+        z = (site.bond_lengths() - ref.bond_length_mean) / ref.bond_length_std
         strain = float(np.sqrt(np.mean(z**2)))  # RMS bond-length deviation, in std units
         cn_gap = abs(site.coordination_number - ref.coordination_number)  # vs modal, for the score
         cn_ok = ref.cn_range[0] <= site.coordination_number <= ref.cn_range[1]
@@ -40,14 +38,12 @@ class GeometryVerifier:
         # Higher score = more plausible. Gaussian in geometric strain, penalised for
         # the distance from the modal coordination number.
         score = float(np.exp(-0.5 * strain**2) * np.exp(-cn_gap))
-        ood = strain > self.ood_z
-        trust = strain <= self.trust_z and cn_ok and not ood
+        if strain > self.ood_z:
+            return Verdict.defer(f"off-manifold (bond strain {strain:.1f}σ)", score=score)
+        trust = strain <= self.trust_z and cn_ok
+        return Verdict(score, trust=trust, ood=False, reason=self._reason(strain, cn_ok))
 
-        return Verdict(score=score, trust=trust, ood=ood, reason=self._reason(strain, cn_ok, ood))
-
-    def _reason(self, strain: float, cn_ok: bool, ood: bool) -> str:
-        if ood:
-            return f"off-manifold (bond strain {strain:.1f}σ) — defer"
+    def _reason(self, strain: float, cn_ok: bool) -> str:
         if not cn_ok:
             return "coordination number outside observed range"
         if strain > self.trust_z:

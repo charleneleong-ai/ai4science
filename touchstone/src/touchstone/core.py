@@ -41,6 +41,10 @@ class CoordinationSite:
     def coordination_number(self) -> int:
         return len(self.ligand_xyz)
 
+    @property
+    def is_empty(self) -> bool:
+        return self.coordination_number == 0
+
     def bond_lengths(self) -> np.ndarray:
         """Metal–ligand distances."""
         return np.linalg.norm(self.ligand_xyz - self.metal_xyz, axis=1)
@@ -81,6 +85,12 @@ class Verdict:
     def label(self) -> str:
         """Single-word verdict for display/grouping: defer / trust / weak."""
         return "defer" if self.ood else ("trust" if self.trust else "weak")
+
+    @classmethod
+    def defer(cls, reason: str, score: float = 0.0) -> "Verdict":
+        """An off-manifold verdict — not trusted, flagged for review. Owns the
+        '— defer' reason suffix so every verifier signals it the same way."""
+        return cls(score, trust=False, ood=True, reason=f"{reason} — defer")
 
 
 @runtime_checkable
