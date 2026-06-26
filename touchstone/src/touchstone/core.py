@@ -14,6 +14,11 @@ from typing import Protocol, runtime_checkable
 import numpy as np
 
 
+def element_symbol(metal: str) -> str:
+    """ASE element symbol for a site-metal label: 'Ni2+' -> 'Ni'."""
+    return "".join(c for c in metal if c.isalpha())
+
+
 @dataclass
 class CoordinationSite:
     """A metal centre and the atoms coordinating it, in Angstrom."""
