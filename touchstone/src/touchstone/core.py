@@ -7,6 +7,7 @@ made — only the `CoordinationSite` — which is what makes it generator-blind.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from itertools import combinations
 from typing import Protocol, runtime_checkable
@@ -17,6 +18,14 @@ import numpy as np
 def element_symbol(metal: str) -> str:
     """ASE element symbol for a site-metal label: 'Ni2+' -> 'Ni'."""
     return "".join(c for c in metal if c.isalpha())
+
+
+def oxidation_state(metal: str) -> int:
+    """Formal charge from a site-metal label: 'Ni2+' -> 2, 'Fe3+' -> 3."""
+    m = re.search(r"(\d+)\s*([+-])", metal)
+    if not m:
+        raise ValueError(f"no oxidation state in {metal!r}")
+    return int(m.group(1)) * (1 if m.group(2) == "+" else -1)
 
 
 @dataclass
