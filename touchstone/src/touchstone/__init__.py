@@ -4,7 +4,7 @@ A touchstone was historically used to assay precious metals: the independent
 reference standard against which a sample is judged. Same job here.
 """
 
-from .core import BinderDesign, CoordinationSite, Generator, Verdict, Verifier
+from .core import BinderDesign, CoordinationSite, Generator, Verdict, Verifier, element_symbol
 from .generators import (
     BoltzGenAdapter,
     MockGenerator,
@@ -20,6 +20,7 @@ from .geometry.parse import (
 )
 from .geometry.reference import MetalGeometry, MockReference, PDBReference, ReferenceDistribution
 from .geometry.verifier import GeometryVerifier
+from .physics import MLIPVerifier, SiteRelaxation, make_backbone, relax_site
 from .pipeline import design_and_rank, rank, selectivity_profile
 
 __all__ = [
@@ -28,6 +29,7 @@ __all__ = [
     "Generator",
     "Verdict",
     "Verifier",
+    "element_symbol",
     "MockGenerator",
     "RFdiffusionAdapter",
     "BoltzGenAdapter",
@@ -42,6 +44,10 @@ __all__ = [
     "PDBReference",
     "ReferenceDistribution",
     "GeometryVerifier",
+    "MLIPVerifier",
+    "SiteRelaxation",
+    "make_backbone",
+    "relax_site",
     "design_and_rank",
     "selectivity_profile",
     "rank",
