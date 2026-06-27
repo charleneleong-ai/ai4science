@@ -35,6 +35,7 @@ from .geometry.reference import (
     PDBReference,
     ReferenceDistribution,
 )
+from .geometry.mogul import MogulVerifier
 from .geometry.verifier import GeometryVerifier
 from .physics import (
     MLIPDynamicsVerifier,
@@ -45,6 +46,7 @@ from .physics import (
     md_site,
     relax_site,
 )
+from .expression import ExpressionSignals, ExpressionVerifier, score_provider
 from .pipeline import design_and_rank, rank, selectivity_profile
 from .service import verify_structure
 
@@ -72,6 +74,7 @@ __all__ = [
     "ReferenceDistribution",
     "GeometryVerifier",
     "BondValenceVerifier",
+    "MogulVerifier",
     "CofoldCrossCheck",
     "cofold_agreement",
     "cif_provider",
@@ -86,4 +89,7 @@ __all__ = [
     "selectivity_profile",
     "rank",
     "verify_structure",
+    "ExpressionVerifier",
+    "ExpressionSignals",
+    "score_provider",
 ]

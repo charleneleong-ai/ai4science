@@ -21,14 +21,13 @@ import sys
 import tempfile
 from pathlib import Path
 
+import gemmi
 import numpy as np
 import typer
 
 
 def _apo(pdb: Path, out: Path) -> None:
     """Strip metals/waters → apo backbone (AllMetal3D predicts where metals go)."""
-    import gemmi
-
     st = gemmi.read_structure(str(pdb))
     st.setup_entities()
     st.remove_ligands_and_waters()
@@ -47,8 +46,6 @@ def _top_metal(metals_pdb: Path) -> tuple[float, np.ndarray | None]:
 
 
 def main(pdb: Path, out: Path, pthreshold: float = 0.25) -> None:
-    import gemmi
-
     work = Path(tempfile.mkdtemp())
     apo = work / "apo.pdb"
     _apo(pdb, apo)
