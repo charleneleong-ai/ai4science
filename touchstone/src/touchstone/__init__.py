@@ -28,7 +28,13 @@ from .geometry.parse import (
     coordination_site_from_cif,
     coordination_site_from_pdb,
 )
-from .geometry.reference import MetalGeometry, MockReference, PDBReference, ReferenceDistribution
+from .geometry.reference import (
+    CSDReference,
+    MetalGeometry,
+    MockReference,
+    PDBReference,
+    ReferenceDistribution,
+)
 from .geometry.verifier import GeometryVerifier
 from .physics import (
     MLIPDynamicsVerifier,
@@ -61,6 +67,7 @@ __all__ = [
     "MetalGeometry",
     "MockReference",
     "PDBReference",
+    "CSDReference",
     "ReferenceDistribution",
     "GeometryVerifier",
     "BondValenceVerifier",
