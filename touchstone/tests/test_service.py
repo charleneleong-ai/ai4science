@@ -25,6 +25,18 @@ class TestVerifyStructure:
         r = verify_structure(FIX / "boltzgen_nickel_design.cif", "Ni2+")
         assert r["metal"] == "Ni2+" and r["consensus"] in {"trust", "weak", "defer"}
 
+    def test_stack_lists_every_tier_with_status_and_metrics(self):
+        r = verify_structure(PACKED, "Ni2+")
+        by = {s["stage"]: s for s in r["stack"]}
+        # the full stack appears in cost order, even tiers that didn't run on a bare structure
+        assert [s["stage"] for s in r["stack"]] == [
+            "geometry", "bond_valence", "mogul", "mlip", "mlip_md", "cofold", "expression", "thermostability"
+        ]
+        assert by["geometry"]["status"] == "ran" and "strain_sigma" in by["geometry"]["metrics"]
+        assert by["bond_valence"]["status"] == "ran" and "bvs" in by["bond_valence"]["metrics"]
+        assert by["mogul"]["status"] == "needs_input"  # CSD licence
+        assert by["mlip"]["status"] == "needs_input"  # needs deep=True + a GPU
+
     def test_stress_adds_a_robustness_map_only_when_requested(self):
         assert "stress" not in verify_structure(PACKED, "Ni2+")
         r = verify_structure(PACKED, "Ni2+", stress=True)

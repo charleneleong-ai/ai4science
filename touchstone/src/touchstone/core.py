@@ -8,7 +8,7 @@ made — only the `CoordinationSite` — which is what makes it generator-blind.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from itertools import combinations
 from typing import Callable, Protocol, runtime_checkable
 
@@ -92,6 +92,7 @@ class Verdict:
     trust: bool  # plausible geometry, in-distribution
     ood: bool  # site sits off the reference manifold (e.g. extreme-leachate input)
     reason: str
+    metrics: dict = field(default_factory=dict)  # machine-readable detail behind the verdict (σ, BVS, drift…)
 
     @property
     def label(self) -> str:
@@ -99,10 +100,10 @@ class Verdict:
         return "defer" if self.ood else ("trust" if self.trust else "weak")
 
     @classmethod
-    def defer(cls, reason: str, score: float = 0.0) -> "Verdict":
+    def defer(cls, reason: str, score: float = 0.0, metrics: dict | None = None) -> "Verdict":
         """An off-manifold verdict — not trusted, flagged for review. Owns the
         '— defer' reason suffix so every verifier signals it the same way."""
-        return cls(score, trust=False, ood=True, reason=f"{reason} — defer")
+        return cls(score, trust=False, ood=True, reason=f"{reason} — defer", metrics=metrics or {})
 
 
 @runtime_checkable

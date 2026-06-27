@@ -30,6 +30,8 @@ touchstone rank designs/*.pdb --metal Ni2+    # batch, best-first by reward
 
 Consensus is defense-in-depth: a single `defer` collapses it. **Only `trust` is worth wet-lab.** When `weak`/`defer`, name which verifier flagged it (geometry σ, bond-valence Δ, co-fold disagreement…) and what to change.
 
+The result also carries a **`stack`** list — every tier in cost order with its `status` (`ran` / `skipped` / `needs_input`), so the consensus is fully auditable. Each ran verdict includes a **`metrics`** dict with the raw numbers behind it (`strain_sigma`, `bvs`/`delta`, MLIP `drift_angstrom`/`retention`) — threshold on those directly rather than parsing the reason string.
+
 ## Depth
 - Default (instant, runs anywhere): geometry z-score vs CSD/PDB prior + bond-valence + CSD reference.
 - `deep=True` / `--deep`: adds MLIP (MACE) relaxation + MD — **needs a GPU**. Route deep runs to a host that has one (a remote HTTP touchstone MCP), not the local machine.

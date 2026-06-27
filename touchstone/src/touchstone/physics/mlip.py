@@ -275,9 +275,12 @@ class MLIPVerifier(_MLIPBase):
         de = "" if r.interaction_energy is None else f", ΔE_bind {r.interaction_energy:.2f} eV"
         lost = "held" if held else f"lost {r.donors_lost} donor(s)"
         reason = f"site {lost}, drift {r.site_drift:.2f} Å{de}"
+        metrics = {"drift_angstrom": round(r.site_drift, 3), "cn_before": r.cn_before, "cn_after": r.cn_after}
+        if r.interaction_energy is not None:
+            metrics["interaction_energy_ev"] = round(r.interaction_energy, 3)
         if r.site_drift > self.ood_drift or r.cn_after == 0:
-            return Verdict.defer(reason, score=score)
-        return Verdict(score, trust=held and r.site_drift <= self.trust_drift, ood=False, reason=reason)
+            return Verdict.defer(reason, score=score, metrics=metrics)
+        return Verdict(score, trust=held and r.site_drift <= self.trust_drift, ood=False, reason=reason, metrics=metrics)
 
 
 class MLIPDynamicsVerifier(_MLIPBase):
@@ -318,6 +321,7 @@ class MLIPDynamicsVerifier(_MLIPBase):
         # retention is higher-is-better, so the bound direction inverts vs the
         # strain/drift verifiers: trust above trust_retention, defer below ood_retention.
         reason = f"shell survived {d.retention:.0%} of {self.temperature:.0f} K MD"
+        metrics = {"retention": round(d.retention, 3), "cn_initial": d.cn_initial, "temperature_k": self.temperature}
         if d.retention < self.ood_retention:
-            return Verdict.defer(reason, score=d.retention)
-        return Verdict(d.retention, trust=d.retention >= self.trust_retention, ood=False, reason=reason)
+            return Verdict.defer(reason, score=d.retention, metrics=metrics)
+        return Verdict(d.retention, trust=d.retention >= self.trust_retention, ood=False, reason=reason, metrics=metrics)

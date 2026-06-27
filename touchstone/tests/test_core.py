@@ -47,7 +47,9 @@ class TestVerdictLabel:
     def test_defer_factory(self):
         v = Verdict.defer("no data")
         assert not v.trust and v.ood and v.score == 0.0 and v.reason == "no data — defer"
+        assert v.metrics == {}  # empty by default — verifiers attach their numbers when they have them
         assert Verdict.defer("weak signal", score=0.3).score == 0.3  # ood verdict can still carry a score
+        assert Verdict.defer("strained", metrics={"strain_sigma": 6.1}).metrics == {"strain_sigma": 6.1}
 
 
 class TestProviderFrom:

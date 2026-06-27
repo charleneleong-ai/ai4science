@@ -46,7 +46,31 @@ _NEEDS_INPUT = {
 
 
 def _as_dict(v: Verdict) -> dict:
-    return {"label": v.label, "score": round(v.score, 3), "trust": v.trust, "ood": v.ood, "reason": v.reason}
+    d = {"label": v.label, "score": round(v.score, 3), "trust": v.trust, "ood": v.ood, "reason": v.reason}
+    if v.metrics:  # machine-readable numbers behind the verdict (σ, BVS, drift…) when the verifier exposes them
+        d["metrics"] = v.metrics
+    return d
+
+
+# the full verifier stack in cost order — the unified `stack` view lists every tier with its
+# status so the consensus is auditable, even tiers that didn't run on this input
+_STACK_ORDER = ("geometry", "bond_valence", "mogul", "mlip", "mlip_md", "cofold", "expression", "thermostability")
+
+
+def _stack(results: dict) -> list[dict]:
+    """One entry per stack tier, in cost order: ran (with its verdict), skipped (backend
+    absent), or needs_input (licence / scorer / co-fold) — the complete per-stage picture."""
+    rows = []
+    for stage in _STACK_ORDER:
+        if stage in results and "label" in results[stage]:
+            rows.append({"stage": stage, "status": "ran", **results[stage]})
+        elif stage in results:  # ran-but-skipped (e.g. MLIP with no backend)
+            rows.append({"stage": stage, "status": "skipped", "detail": results[stage]["skipped"]})
+        elif stage in _NEEDS_INPUT:
+            rows.append({"stage": stage, "status": "needs_input", "detail": _NEEDS_INPUT[stage]})
+        elif stage in ("mlip", "mlip_md"):  # only attempted with deep=True + a GPU backend
+            rows.append({"stage": stage, "status": "needs_input", "detail": "pass deep=True (needs a GPU backend)"})
+    return rows
 
 
 _AUTO = object()  # verify_structure default: build the MLIP backbone per call (a batch passes a shared one)
@@ -109,6 +133,7 @@ def verify_structure(
         "reference": _REFERENCE.source,  # which geometry prior backed the z-score (CSD or PDB)
         "verifiers": results,
         "not_run": _NEEDS_INPUT,
+        "stack": _stack(results),  # full per-tier breakdown (ran / skipped / needs_input), cost order
         "consensus": consensus,
     }
     if stress:  # robustness map: does the site hold its verdict across the operating envelope?
