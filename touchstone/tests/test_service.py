@@ -14,7 +14,8 @@ runner = CliRunner()
 class TestVerifyStructure:
     def test_returns_per_verifier_and_consensus(self):
         r = verify_structure(PACKED, "Ni2+")
-        assert set(r["verifiers"]) == {"geometry", "bond_valence"}  # lightweight default, no GPU
+        # the always-on pure-python tiers (no GPU): lengths, valence, symmetry, shape
+        assert set(r["verifiers"]) == {"geometry", "bond_valence", "coord_symmetry", "coord_geometry"}
         assert r["consensus"] in {"trust", "weak", "defer"}
         assert r["coordination_number"] >= 1
         assert r["reference"] in {"CSD", "PDB"}  # which geometry prior backed the z-score
@@ -30,11 +31,15 @@ class TestVerifyStructure:
         by = {s["stage"]: s for s in r["stack"]}
         # the full stack appears in cost order, even tiers that didn't run on a bare structure
         assert [s["stage"] for s in r["stack"]] == [
-            "geometry", "bond_valence", "mogul", "mlip", "mlip_md", "cofold", "expression", "thermostability"
+            "geometry", "bond_valence", "coord_symmetry", "coord_geometry",
+            "mogul", "mlip", "mlip_md", "trs", "cofold", "expression", "thermostability",
         ]
         assert by["geometry"]["status"] == "ran" and "strain_sigma" in by["geometry"]["metrics"]
         assert by["bond_valence"]["status"] == "ran" and "bvs" in by["bond_valence"]["metrics"]
+        assert by["coord_symmetry"]["status"] == "ran" and "nvecsum" in by["coord_symmetry"]["metrics"]
+        assert by["coord_geometry"]["status"] == "ran" and "angle_rmsd_deg" in by["coord_geometry"]["metrics"]
         assert by["mogul"]["status"] == "needs_input"  # CSD licence
+        assert by["trs"]["status"] == "needs_input"  # apo structure
         assert by["mlip"]["status"] == "needs_input"  # needs deep=True + a GPU
 
     def test_stress_adds_a_robustness_map_only_when_requested(self):

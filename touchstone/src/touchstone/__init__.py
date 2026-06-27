@@ -37,6 +37,7 @@ from .geometry.reference import (
     ReferenceDistribution,
 )
 from .geometry.conformer import conformer_seeds
+from .geometry.coordination import CoordinationGeometryVerifier, CoordinationSymmetryVerifier
 from .geometry.mogul import MogulVerifier
 from .geometry.precedent import PrecedentHits, PrecedentVerifier
 from .geometry.verifier import GeometryVerifier
@@ -83,6 +84,8 @@ __all__ = [
     "ReferenceDistribution",
     "GeometryVerifier",
     "BondValenceVerifier",
+    "CoordinationSymmetryVerifier",
+    "CoordinationGeometryVerifier",
     "MogulVerifier",
     "PrecedentVerifier",
     "PrecedentHits",
