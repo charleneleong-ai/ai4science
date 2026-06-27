@@ -1,8 +1,11 @@
+import json
+
 import numpy as np
 import pytest
 
 from touchstone import (
     BinderDesign,
+    CSDReference,
     GeometryVerifier,
     MockGenerator,
     MockReference,
@@ -135,6 +138,32 @@ class TestSelectivity:
         cn4 = CoordinationSite("Ni2+", s.metal_xyz, s.ligand_xyz[:4], s.ligand_elems[:4])
         prof = selectivity_profile(_design(cn4), v, ["Ni2+", "Cu2+", "Co2+"])
         assert all(vd.trust for vd in prof.values())  # trusts for all — geometry gives no selectivity
+class TestCSDReference:
+    """The CSD/Mogul drop-in: same interface as PDBReference, license-gated data."""
+
+    _CSD_JSON = {
+        "Ni2+": {"metal": "Ni2+", "coordination_number": 6, "bond_length_mean": 2.08,
+                 "bond_length_std": 0.09, "cn_range": [4, 6], "source": "test fixture"},
+    }
+
+    def _ref(self, tmp_path) -> CSDReference:
+        p = tmp_path / "csd_reference.json"
+        p.write_text(json.dumps(self._CSD_JSON))
+        return CSDReference(p)
+
+    def test_plugs_into_verifier_unchanged(self, tmp_path):
+        # identical call as PDB/Mock — the verifier never learns which reference it is
+        v = GeometryVerifier(self._ref(tmp_path)).verify(GOOD)
+        assert isinstance(v.score, float)
+
+    def test_unknown_metal_raises_with_source(self, tmp_path):
+        with pytest.raises(KeyError, match="CSD"):
+            self._ref(tmp_path).geometry("Au3+")
+
+    def test_missing_data_raises_actionable_error(self, tmp_path):
+        # license-gated: no data file yet ⇒ a clear "build it first" error, not a raw stack trace
+        with pytest.raises(FileNotFoundError, match="CSD reference data not found"):
+            CSDReference(tmp_path / "nonexistent.json")
 
 
 class TestEmptySite:
