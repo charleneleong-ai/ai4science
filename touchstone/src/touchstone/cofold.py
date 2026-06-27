@@ -19,7 +19,7 @@ from typing import Callable
 
 import numpy as np
 
-from .core import BinderDesign, CoordinationSite, Verdict
+from .core import BinderDesign, CoordinationSite, Verdict, reraise_if_bug
 from .geometry.parse import coordination_site
 
 
@@ -82,7 +82,8 @@ class CofoldCrossCheck:
         try:
             predicted = self.provider(design)
         except Exception as e:  # inference / parse failure ⇒ can't cross-check
-            return Verdict.defer(f"co-fold prediction failed: {type(e).__name__}")
+            reraise_if_bug(e)
+            return Verdict.defer(f"co-fold prediction failed: {e}")
         if predicted is None:
             return Verdict.defer("no co-fold prediction available")
         return cofold_agreement(design.site, predicted, self.cn_tol, self.bond_tol, self.donor_tol)

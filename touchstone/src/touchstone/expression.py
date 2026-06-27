@@ -23,7 +23,7 @@ from typing import Callable
 
 import numpy as np
 
-from .core import BinderDesign, Verdict
+from .core import BinderDesign, Verdict, reraise_if_bug
 
 
 @dataclass
@@ -54,7 +54,8 @@ class ExpressionVerifier:
         try:
             s = self.scorer(design)
         except Exception as e:  # model load / forward failure ⇒ can't judge
-            return Verdict.defer(f"expression scoring failed: {type(e).__name__}")
+            reraise_if_bug(e)
+            return Verdict.defer(f"expression scoring failed: {e}")
         if s is None:
             return Verdict.defer("no expression score available")
 

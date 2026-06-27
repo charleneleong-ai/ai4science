@@ -17,7 +17,7 @@ from typing import Callable
 
 import numpy as np
 
-from ..core import BinderDesign, CoordinationSite, Verdict, element_symbol
+from ..core import BinderDesign, CoordinationSite, Verdict, element_symbol, reraise_if_bug
 
 
 @dataclass
@@ -74,7 +74,8 @@ class MogulVerifier:
         try:
             frags = self._analyse(design.site, element_symbol(design.site.metal))
         except Exception as e:  # no licence / Mogul failure ⇒ can't validate
-            return Verdict.defer(f"Mogul analysis unavailable: {type(e).__name__}")
+            reraise_if_bug(e)
+            return Verdict.defer(f"Mogul analysis unavailable: {e}")
         if not frags:
             return Verdict.defer("no Mogul-matched fragments")
         if (fewest := min(f.nhits for f in frags)) < self.min_hits:

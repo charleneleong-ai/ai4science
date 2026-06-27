@@ -71,4 +71,11 @@ class TestCofoldCrossCheck:
             raise RuntimeError("inference died")
 
         v = CofoldCrossCheck(provider=boom).verify(_design(_site()))
-        assert v.ood and "failed" in v.reason
+        assert v.ood and "inference died" in v.reason  # keeps the message
+
+    def test_provider_bug_surfaces(self):
+        def buggy(_):
+            raise AttributeError("typo in provider")  # code bug, not a runtime failure
+
+        with pytest.raises(AttributeError):
+            CofoldCrossCheck(provider=buggy).verify(_design(_site()))

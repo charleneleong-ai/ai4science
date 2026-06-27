@@ -28,6 +28,19 @@ def oxidation_state(metal: str) -> int:
     return int(m.group(1) or 1) * (1 if m.group(2) == "+" else -1)
 
 
+# Programming errors — a typo, wrong attribute, wrong call, or unimplemented stub. A
+# verifier must let these surface, not launder them into a benign "defer" that reads
+# like a missing backend.
+_PROGRAMMING_ERRORS = (AttributeError, TypeError, NameError, NotImplementedError)
+
+
+def reraise_if_bug(e: BaseException) -> None:
+    """Re-raise programming errors so they surface; call inside `except Exception as e`
+    before deferring, so only genuine runtime/backend failures degrade to a defer."""
+    if isinstance(e, _PROGRAMMING_ERRORS):
+        raise e
+
+
 @dataclass
 class CoordinationSite:
     """A metal centre and the atoms coordinating it, in Angstrom."""

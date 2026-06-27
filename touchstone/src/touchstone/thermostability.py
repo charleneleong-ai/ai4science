@@ -20,7 +20,7 @@ from typing import Callable
 
 import numpy as np
 
-from .core import BinderDesign, Verdict
+from .core import BinderDesign, Verdict, reraise_if_bug
 
 _TM_SCALE = 10.0  # °C; fixes the score's sensitivity, independent of the trust cutoff
 
@@ -50,7 +50,8 @@ class ThermostabilityVerifier:
         try:
             s = self.predictor(design)
         except Exception as e:  # model load / inference failure ⇒ can't judge
-            return Verdict.defer(f"thermostability prediction failed: {type(e).__name__}")
+            reraise_if_bug(e)
+            return Verdict.defer(f"thermostability prediction failed: {e}")
         if s is None:
             return Verdict.defer("no thermostability prediction available")
 

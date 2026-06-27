@@ -46,4 +46,12 @@ class TestExpressionVerifier:
             raise RuntimeError("model died")
 
         v = ExpressionVerifier(boom).verify(_design())
-        assert v.ood and not v.trust and "failed" in v.reason
+        # an expected runtime failure defers — and keeps the message, not just the type
+        assert v.ood and not v.trust and "model died" in v.reason
+
+    def test_programming_error_surfaces(self):
+        def buggy(_design):
+            raise AttributeError("typo: signals has no .ppl")  # a code bug, not a backend issue
+
+        with pytest.raises(AttributeError):  # must surface, not hide as a benign defer
+            ExpressionVerifier(buggy).verify(_design())

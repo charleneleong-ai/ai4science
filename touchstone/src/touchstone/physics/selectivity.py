@@ -17,7 +17,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..core import BinderDesign, Verdict, element_symbol
+from ..core import BinderDesign, Verdict, element_symbol, reraise_if_bug
 from .mlip import _MLIPBase, relax_site
 
 _MARGIN_SCALE = 0.3  # eV; fixes the score's sensitivity, independent of the trust cutoff
@@ -85,7 +85,8 @@ class MLIPSelectivityVerifier(_MLIPBase):
         try:
             prof = self.profile(design)
         except Exception as e:  # relaxation / parse failure ⇒ can't judge selectivity
-            return Verdict.defer(f"MLIP selectivity failed: {type(e).__name__}")
+            reraise_if_bug(e)
+            return Verdict.defer(f"MLIP selectivity failed: {e}")
         if any(e is None for e in prof.energies.values()):
             return Verdict.defer("interaction energy unavailable")
 

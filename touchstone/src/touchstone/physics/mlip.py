@@ -19,7 +19,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..core import BinderDesign, Verdict, element_symbol
+from ..core import BinderDesign, Verdict, element_symbol, reraise_if_bug
 from ..geometry.parse import DONOR_ELEMENTS
 
 
@@ -84,7 +84,7 @@ def _interaction_energy(atoms, calc, mi: int, e_complex: float) -> float | None:
     keep = [i for i in range(len(atoms)) if i != mi]
     try:
         return e_complex - _energy(atoms[keep], calc) - _energy(atoms[[mi]], calc)
-    except Exception:
+    except (RuntimeError, ValueError, FloatingPointError):  # numerical only; let bugs propagate
         return None
 
 
@@ -222,7 +222,8 @@ class MLIPVerifier(_MLIPBase):
         try:
             r = self.relax(design)
         except Exception as e:  # divergence / NaN forces / unreadable input ⇒ defer
-            return Verdict.defer(f"MLIP relaxation failed: {type(e).__name__}")
+            reraise_if_bug(e)
+            return Verdict.defer(f"MLIP relaxation failed: {e}")
 
         held = r.donors_lost == 0
         # Higher = more stable: decays with site drift, scaled by the fraction of
@@ -268,7 +269,8 @@ class MLIPDynamicsVerifier(_MLIPBase):
         try:
             d = self.dynamics(design)
         except Exception as e:  # blow-up / unreadable input ⇒ defer
-            return Verdict.defer(f"MLIP MD failed: {type(e).__name__}")
+            reraise_if_bug(e)
+            return Verdict.defer(f"MLIP MD failed: {e}")
 
         if d.cn_initial == 0:  # a naked metal trivially "retains" 0 donors — don't trust it
             return Verdict.defer("no coordinating atoms to track")
