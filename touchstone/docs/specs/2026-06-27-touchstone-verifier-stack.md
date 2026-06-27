@@ -71,6 +71,43 @@ Mapped to the wet-lab validation triad:
 Calibration against real wet-lab outcomes (turning "trust" into a measured hit-rate)
 is unbuilt — the verdicts are physically-grounded but not yet experiment-calibrated.
 
+## Live trace — real BoltzGen designs (2026-06-27)
+
+Ran the stack end-to-end on four **real BoltzGen** Ni-motif designs (His/His/His-Cys
+theozyme sites → N/N/N/S donors), with their backbones, on the A100 (`mlip` env,
+MACE-MP-0 float64, CUDA). This is the first run against generator output rather than
+hand-built fixtures.
+
+| design | CN · donors | geometry | bond-valence | MLIP relax | reward |
+| --- | --- | --- | --- | --- | --- |
+| `ni_motif_00` | 3 · N/N/S | WEAK 0.265 | TRUST (BVS 1.71) | DEFER (diverged, drift 9.1 Å) | 0.0 |
+| `ni_motif_01` | 3 · N/N/S | WEAK 0.289 | DEFER (BVS 1.09, Δ0.91) | DEFER (RuntimeError) | 0.0 |
+| `ni_motif_02` | 4 · N/N/N/S | TRUST 0.268 | **TRUST (BVS 2.00)** | DEFER (diverged, drift 7.9 Å) | 0.0 |
+| `ni_motif_03` | 4 · N/N/O/S | TRUST 0.219 | TRUST (BVS 1.88) | DEFER (RuntimeError) | 0.0 |
+
+**What works:** geometry + bond-valence discriminate cleanly and agree — the two
+CN-4 designs (`ni_motif_02` His₃Cys, BVS 2.00 exact; `ni_motif_03`, BVS 1.88) read
+as the real binders; the CN-3 pair reads weak/under-coordinated (BVS 1.71 / 1.09).
+This is the stack doing its job on generator output without seeing the generator.
+
+**What broke — the MLIP statics/dynamics tier is non-functional on backbone-bearing
+designs as currently implemented.** `MLIPVerifier._cluster` extracts *metal +
+donor atoms only*, dropping the protein backbone that physically holds the donors in
+place. Relaxed as a free cluster, the donors disperse (drift 8–9 Å) and the
+interaction energy blows up to ~10²⁷ eV, or the optimiser RuntimeErrors outright; the
+200-step float64 MLIP-**MD** then hangs on the diverged/inf geometry, pinning all
+80 GB of GPU at 0 % util (had to be killed). So every MLIP verdict DEFERs, which —
+because consensus is min-like — drags **every** reward to 0.0 even for the BVS-2.00
+design. The physics tier is actively *harming* the signal, not adding to it.
+
+**Fix (next):** the cluster must carry the backbone — either include backbone atoms
+and **position-restrain** them during relaxation/MD (so only the side-chain donors
+relax against a fixed scaffold), or cap the residues and freeze Cα. Until then the
+statics/dynamics tier should be **gated out** of the reward (geometry + bond-valence
++ co-fold only), not silently DEFERed into a 0.0. Tracked as the top physics-tier
+TODO; the hang also argues for an MD pre-check that aborts on non-finite forces
+instead of grinding for minutes.
+
 ## Forward — post-training (RLVR)
 
 The verifier stack is, by construction, a **verifiable reward**: it emits a scalar
