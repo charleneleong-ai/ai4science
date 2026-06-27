@@ -2,7 +2,17 @@ import numpy as np
 import pytest
 
 from touchstone import octahedral_site
-from touchstone.core import BinderDesign, Verdict
+from touchstone.core import BinderDesign, Verdict, oxidation_state
+
+
+class TestOxidationState:
+    @pytest.mark.parametrize(
+        "label, expected",
+        [("Ni2+", 2), ("Fe3+", 3), ("Cu+", 1), ("Na+", 1), ("Cl-", -1), ("O2-", -2)],
+    )
+    def test_parses_charge(self, label, expected):
+        # bare-sign labels like 'Cu+' (cuprous) must read as ±1, not raise
+        assert oxidation_state(label) == expected
 
 
 class TestCoordinationSite:

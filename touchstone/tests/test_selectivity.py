@@ -80,3 +80,9 @@ class TestMLIPSelectivity:
     def test_failure_defers(self, tmp_path):
         v = MLIPSelectivityVerifier(calculator=_Exploding()).verify(_design(tmp_path, "Ni2+"))
         assert v.ood and not v.trust and "failed" in v.reason
+
+    def test_target_outside_panel_does_not_crash(self, tmp_path):
+        # design targets Zn2+, not in the default Ni/Cu/Co panel — must produce a verdict,
+        # not a KeyError from the margin lookup
+        v = MLIPSelectivityVerifier(calculator=MetalBiasSpring()).verify(_design(tmp_path, "Zn2+"))
+        assert v.label in ("trust", "weak", "defer") and not v.trust

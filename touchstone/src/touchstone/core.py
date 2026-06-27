@@ -21,11 +21,11 @@ def element_symbol(metal: str) -> str:
 
 
 def oxidation_state(metal: str) -> int:
-    """Formal charge from a site-metal label: 'Ni2+' -> 2, 'Fe3+' -> 3."""
-    m = re.search(r"(\d+)\s*([+-])", metal)
+    """Formal charge from a site-metal label: 'Ni2+' -> 2, 'Fe3+' -> 3, 'Cu+' -> 1."""
+    m = re.search(r"(\d*)\s*([+-])", metal)  # bare sign (e.g. 'Cu+') ⇒ magnitude 1
     if not m:
         raise ValueError(f"no oxidation state in {metal!r}")
-    return int(m.group(1)) * (1 if m.group(2) == "+" else -1)
+    return int(m.group(1) or 1) * (1 if m.group(2) == "+" else -1)
 
 
 @dataclass

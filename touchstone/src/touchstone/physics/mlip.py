@@ -226,8 +226,9 @@ class MLIPVerifier(_MLIPBase):
 
         held = r.donors_lost == 0
         # Higher = more stable: decays with site drift, scaled by the fraction of
-        # the first shell retained. Interaction energy rides along for ranking.
-        score = float(np.exp(-r.site_drift)) * (r.cn_after / max(r.cn_before, 1))
+        # the first shell retained. Clamp to [0,1] — a donor migrating into the shell
+        # can push cn_after/cn_before above 1. Interaction energy rides along for ranking.
+        score = min(1.0, float(np.exp(-r.site_drift)) * (r.cn_after / max(r.cn_before, 1)))
         de = "" if r.interaction_energy is None else f", ΔE_bind {r.interaction_energy:.2f} eV"
         lost = "held" if held else f"lost {r.donors_lost} donor(s)"
         reason = f"site {lost}, drift {r.site_drift:.2f} Å{de}"
@@ -269,6 +270,8 @@ class MLIPDynamicsVerifier(_MLIPBase):
         except Exception as e:  # blow-up / unreadable input ⇒ defer
             return Verdict.defer(f"MLIP MD failed: {type(e).__name__}")
 
+        if d.cn_initial == 0:  # a naked metal trivially "retains" 0 donors — don't trust it
+            return Verdict.defer("no coordinating atoms to track")
         # retention is higher-is-better, so the bound direction inverts vs the
         # strain/drift verifiers: trust above trust_retention, defer below ood_retention.
         reason = f"shell survived {d.retention:.0%} of {self.temperature:.0f} K MD"

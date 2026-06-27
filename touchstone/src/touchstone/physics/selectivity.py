@@ -69,12 +69,15 @@ class MLIPSelectivityVerifier(_MLIPBase):
     def profile(self, design: BinderDesign) -> SelectivityProfile:
         base = self._cluster(design)
         from_el = self._metal(design)
+        # always evaluate the design's own metal, even if it isn't in the competitor
+        # panel — else SelectivityProfile.margin KeyErrors on the target lookup.
+        metals = tuple(dict.fromkeys((design.site.metal, *self.metals)))
         energies = {
             m: relax_site(
                 _swap_metal(base, from_el, element_symbol(m)), self.calc,
                 metal=element_symbol(m), interaction=True,
             ).interaction_energy
-            for m in self.metals
+            for m in metals
         }
         return SelectivityProfile(design.site.metal, energies)
 

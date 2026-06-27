@@ -43,8 +43,13 @@ class BondValenceVerifier:
 
         if site.is_empty:
             return Verdict.defer("no coordinating atoms")
+        # Don't silently undercount: an unparameterized donor would drop out of the sum
+        # and wrongly deflate the BVS — defer rather than judge a partial valence.
+        unparameterized = sorted(set(site.ligand_elems) - set(r0))
+        if unparameterized:
+            return Verdict.defer(f"donor element(s) {','.join(unparameterized)} not parameterized")
 
-        bvs = sum(math.exp((r0[e] - d) / b) for e, d in zip(site.ligand_elems, site.bond_lengths()) if e in r0)
+        bvs = sum(math.exp((r0[e] - d) / b) for e, d in zip(site.ligand_elems, site.bond_lengths()))
         disc = abs(bvs - valence)
         score = math.exp(-0.5 * (disc / self.trust_tol) ** 2)
         reason = f"BVS {bvs:.2f} vs formal {valence} (Δ{disc:.2f})"
