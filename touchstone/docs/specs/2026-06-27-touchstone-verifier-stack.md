@@ -79,6 +79,19 @@ MACE-MP-0 float64, CUDA) — the first run against generator output rather than
 hand-built fixtures. The first pass surfaced two MLIP-tier bugs, both fixed in
 [#30](../pull/30); numbers below are post-fix.
 
+**Why nickel, and why `ni_motif_02`.** The verifier is **metal-agnostic** — element,
+oxidation state, and the geometry/bond-valence references are all parameters, so the
+same stack judges Cu, Co, Zn, … (see the [selectivity tier](../metal-selectivity.md)).
+Ni(II) is the *worked example* because it is the best-supported target end-to-end: it
+is the metal-recovery / e-waste motivation behind the project, it has the richest CSD +
+PDB coordination priors to score against, and BoltzGen emits clean His/Cys theozyme
+sites for it. `ni_motif_02` is the one we track because it is the textbook **His₃Cys
+Ni(II)** site — CN-4 N/N/N/S with a bond-valence sum of *exactly* 2.00, i.e. the formal
+Ni²⁺ charge. It is the stack's **positive control**: a genuinely good design that
+*should* clear every tier, so it is the canary for "does the verifier reward a real
+binder," not just reject bad ones. The other three span the failure modes around it —
+under-coordinated CN-3 (`00`/`01`) and a softer O-for-N substitution (`03`).
+
 | design | CN · donors | geometry | bond-valence | MLIP relax (post-fix) | reward |
 | --- | --- | --- | --- | --- | --- |
 | `ni_motif_00` | 3 · N/N/S | WEAK 0.265 | TRUST (BVS 1.71) | WEAK — held, drift 0.95 Å, ΔE −5.6 eV | 0.24 |
@@ -105,14 +118,24 @@ generator output without seeing the generator.
    ΔE_bind, the source of the 10²⁷ eV). Fix: strip the cell in `_cluster`. ΔE_bind is
    now physical (−5 to −6 eV) and all four designs run with no OOM.
 
-**Remaining nuance — not a bug.** Post-fix, the CN-4 designs (`02`/`03`) still DEFER
-at the MLIP step (the metal drifts ~2.6–2.9 Å and sheds 2 donors), while the CN-3
-pair holds. The likely cause is **missing protonation** — the BoltzGen PDBs have no
-hydrogens, and MACE-MP sees under-coordinated His/backbone heavy atoms, so the metal
-wanders. Adding explicit H to the cluster (the docstring's assumed prep) is the next
-calibration step; geometry + bond-valence already rank `02`/`03` correctly, so the
-consensus is sound. The MD pre-check that aborts on non-finite forces (rather than
-grinding) remains a TODO.
+**Protonation (resolved).** The post-#30 numbers above had the CN-4 designs
+(`02`/`03`) DEFER at the MLIP step — the metal drifted ~2.6–2.9 Å and shed 2 donors.
+Root cause confirmed: **missing hydrogens**. BoltzGen PDBs are bare backbones,
+so MACE-MP saw under-coordinated His/backbone and the metal wandered. The `deep` path
+now protonates the structure (OpenBabel at pH 7.4) before the MLIP tier — coordinating
+donors stay deprotonated, heavy-atom coords (hence geometry/bond-valence) untouched.
+With H, the wandering collapses and the physics tier finally *contributes*:
+
+| design | MLIP relax (no H → H) | MLIP-MD (300 K) |
+| --- | --- | --- |
+| `ni_motif_02` | DEFER 2.60 Å → **WEAK, held 0.57 Å** | **TRUST — 100% shell survival** |
+| `ni_motif_03` | DEFER 2.86 Å → WEAK, lost 1, 0.75 Å | DEFER — 43% survival |
+
+`ni_motif_02` (His₃Cys, BVS 2.00) now holds *and* survives MD — the strongest design
+clearing every tier; the weaker `03` is correctly more marginal. Protonation degrades
+gracefully (no OpenBabel ⇒ proceeds unprotonated). Remaining TODOs: metal-aware
+protonation states (OpenBabel is heuristic — it grumbles "failed to kekulize" on the
+His rings but protonates fine), and an MD pre-check that aborts on non-finite forces.
 
 ## Forward — post-training (RLVR)
 

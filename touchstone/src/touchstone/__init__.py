@@ -50,6 +50,7 @@ from .physics import (
     SiteRelaxation,
     make_backbone,
     md_site,
+    protonate,
     relax_site,
 )
 from .expression import ExpressionSignals, ExpressionVerifier, score_provider
@@ -103,6 +104,7 @@ __all__ = [
     "SiteRelaxation",
     "SiteDynamics",
     "make_backbone",
+    "protonate",
     "relax_site",
     "md_site",
     "design_and_rank",

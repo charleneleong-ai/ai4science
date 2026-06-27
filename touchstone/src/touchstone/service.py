@@ -5,6 +5,8 @@ judge a structure inline, with graceful degradation:
 
   - **always** (pure-Python, instant): geometry z-score + bond-valence.
   - `deep=True`: MLIP relaxation + MLIP-MD (need a GPU backend; skipped if absent).
+    Protonates the structure first (OpenBabel) so MACE sees a chemically complete
+    site — skipped, with no protonation, if OpenBabel isn't installed.
 
 Stages that need an external input a bare structure can't supply — Mogul (a CSD
 licence), co-fold (a second predictor's structure), expression (a sequence scorer),
@@ -118,7 +120,7 @@ def verify_structure(
         if calc is None:  # no backend ⇒ skip both (not a defer that tanks consensus)
             for n in ("mlip", "mlip_md"):
                 results[n] = {"skipped": "no MLIP backend (install touchstone[mace])"}
-        else:  # share the one backbone across both MLIP verifiers
+        else:  # share the one backbone across both MLIP verifiers (they protonate internally)
             verifiers["mlip"] = MLIPVerifier(calculator=calc)
             verifiers["mlip_md"] = MLIPDynamicsVerifier(calculator=calc)
 
