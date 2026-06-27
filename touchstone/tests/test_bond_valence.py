@@ -41,6 +41,11 @@ class TestBondValenceVerifier:
         v = verifier.verify(empty)
         assert v.score == 0.0 and v.ood and not v.trust
 
+    def test_unparameterized_donor_defers(self, verifier):
+        # P is not in the R0 table — must defer, not silently undercount the BVS
+        v = verifier.verify(_design(elem="P"))
+        assert v.ood and not v.trust and "not parameterized" in v.reason
+
 
 @pytest.mark.parametrize("label, expected", [("Ni2+", 2), ("Cu2+", 2), ("Fe3+", 3), ("O2-", -2)])
 def test_oxidation_state_parses(label, expected):

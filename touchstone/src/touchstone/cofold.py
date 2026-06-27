@@ -45,6 +45,8 @@ def cofold_agreement(
     """
     if predicted.is_empty:
         return Verdict.defer("co-fold placed no coordinating atoms")
+    if reference.is_empty:  # else reference.bond_lengths().mean() is NaN → NaN score corrupts rank()
+        return Verdict.defer("design has no coordinating atoms")
 
     cn_delta = abs(reference.coordination_number - predicted.coordination_number)
     overlap = _donor_overlap(reference.ligand_elems, predicted.ligand_elems)

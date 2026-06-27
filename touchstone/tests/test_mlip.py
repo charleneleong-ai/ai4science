@@ -142,6 +142,33 @@ class TestMLIPDynamics:
         v = MLIPDynamicsVerifier(calculator=_Exploding()).verify(_design(tmp_path))
         assert v.ood and not v.trust and "failed" in v.reason
 
+    def test_empty_initial_site_defers_not_trusts(self, tmp_path):
+        # donors all start beyond the cutoff ⇒ CN=0; retention >= 0 is trivially true,
+        # so this must defer, not be promoted to trust
+        atoms = _cluster(r=4.0)  # 6 donors at 4.0 Å, all outside the 2.8 Å cutoff
+        src = str(tmp_path / "empty.pdb")
+        atoms.write(src)
+        site = CoordinationSite("Ni2+", np.zeros(3), atoms.get_positions()[1:],
+                                tuple(atoms.get_chemical_symbols()[1:]))
+        d = BinderDesign("SEQ", site, generator="test", generator_confidence=0.5, source=src)
+        v = MLIPDynamicsVerifier(calculator=SpringToMetal(r0=2.1, k=10.0), temperature=100.0, steps=40).verify(d)
+        assert v.ood and not v.trust
+
+
+class TestMLIPScoreBounds:
+    def test_score_clamped_when_donors_migrate_in(self, tmp_path):
+        # 1 donor in-shell + 5 just outside that the potential pulls in ⇒ cn_after > cn_before;
+        # the cn_after/cn_before ratio must not push the score above 1
+        pos = np.vstack([[0, 0, 0], _OCT[0] * 2.1, _OCT[1:] * 4.0])  # metal + 1 near + 5 far
+        atoms = Atoms(symbols=["Ni", "N", "N", "O", "O", "N", "O"], positions=pos)
+        src = str(tmp_path / "migrate.pdb")
+        atoms.write(src)
+        site = CoordinationSite("Ni2+", np.zeros(3), atoms.get_positions()[1:],
+                                tuple(atoms.get_chemical_symbols()[1:]))
+        d = BinderDesign("SEQ", site, generator="test", generator_confidence=0.5, source=src)
+        v = MLIPVerifier(calculator=SpringToMetal(r0=2.1, k=10.0)).verify(d)
+        assert 0.0 <= v.score <= 1.0
+
 
 def test_make_backbone_rejects_unknown():
     with pytest.raises(ValueError, match="unknown MLIP backbone"):
