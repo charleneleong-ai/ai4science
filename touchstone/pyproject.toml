@@ -12,6 +12,12 @@ viz = ["wandb>=0.17", "python-dotenv>=1.0"]
 # in its own environment; the tier is backbone-pluggable across both.
 mace = ["ase>=3.23", "mace-torch>=0.3"]
 uma = ["ase>=3.23", "fairchem-core>=2.0"]
+# Agent-callable MCP server (the CLI needs only the core typer/rich deps)
+mcp = ["mcp>=1.2"]
+
+[project.scripts]
+touchstone = "touchstone.cli:main"
+touchstone-mcp = "touchstone.mcp_server:main"
 
 [tool.uv]
 # mace and uma pin incompatible e3nn versions — never resolve them together.
