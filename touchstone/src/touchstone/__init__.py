@@ -46,6 +46,7 @@ from .physics import (
     relax_site,
 )
 from .pipeline import design_and_rank, rank, selectivity_profile
+from .service import verify_structure
 
 __all__ = [
     "BinderDesign",
@@ -84,4 +85,5 @@ __all__ = [
     "design_and_rank",
     "selectivity_profile",
     "rank",
+    "verify_structure",
 ]
