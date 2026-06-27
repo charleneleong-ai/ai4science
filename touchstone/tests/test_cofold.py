@@ -50,6 +50,12 @@ class TestCofoldAgreement:
         v = cofold_agreement(_site(), empty)
         assert v.ood and not v.trust
 
+    def test_empty_reference_defers_with_finite_score(self):
+        # design's own site empty ⇒ defer, not a NaN score (which would corrupt rank())
+        empty = CoordinationSite("Ni2+", np.zeros(3), np.empty((0, 3)), ())
+        v = cofold_agreement(empty, _site())
+        assert v.ood and not v.trust and np.isfinite(v.score)
+
 
 class TestCofoldCrossCheck:
     def test_agreeing_provider_trusts(self):
