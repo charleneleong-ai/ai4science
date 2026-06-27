@@ -3,10 +3,17 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from touchstone import coordination_site_from_pdb, load_designs
+from touchstone import (
+    BoltzGenAdapter,
+    coordination_site,
+    coordination_site_from_cif,
+    coordination_site_from_pdb,
+    load_designs,
+)
 
 FIXTURE = Path(__file__).parent / "fixtures" / "rfaa_nickel_sample_0.pdb"
 FIXTURE_PACKED = Path(__file__).parent / "fixtures" / "ligmpnn_nickel_packed.pdb"
+FIXTURE_CIF = Path(__file__).parent / "fixtures" / "boltzgen_nickel_design.cif"
 
 
 def _atom(serial, name, resname, x, y, z, element, rec="HETATM"):
@@ -75,6 +82,25 @@ class TestCoordinationSiteFromPDB:
         p.write_text(_atom(1, "N", "HIS", 1, 1, 1, "N", rec="ATOM") + "\nEND\n")
         with pytest.raises(ValueError, match="no 'NI'"):
             coordination_site_from_pdb(p, "NI", "Ni2+")
+
+
+class TestCifSupport:
+    """A real BoltzGen mmCIF design parses through the same path as PDB — the
+    verifier is blind to file format as well as to which generator produced it."""
+
+    def test_cif_reader_parses_boltzgen_design(self):
+        site = coordination_site_from_cif(FIXTURE_CIF, "NI", "Ni2+")
+        assert site.coordination_number >= 1
+        assert set(site.ligand_elems) <= {"N", "O", "S"}
+        assert (site.bond_lengths() > 1.0).all()
+
+    def test_dispatcher_routes_cif_and_pdb(self):
+        assert coordination_site(FIXTURE_CIF, "NI", "Ni2+").metal == "Ni2+"  # → cif reader
+        assert coordination_site(FIXTURE, "NI", "Ni2+").metal == "Ni2+"  # → pdb reader
+
+    def test_boltzgen_adapter_ingests_cif(self):
+        designs = BoltzGenAdapter(str(FIXTURE_CIF.parent)).design("Ni2+")
+        assert designs and all(d.generator == "boltzgen" and d.source for d in designs)
 
 
 class TestLoadDesigns:

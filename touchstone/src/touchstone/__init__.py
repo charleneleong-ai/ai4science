@@ -13,7 +13,11 @@ from .generators import (
     octahedral_site,
 )
 from .geometry.ood import under_leachate
-from .geometry.parse import coordination_site_from_pdb
+from .geometry.parse import (
+    coordination_site,
+    coordination_site_from_cif,
+    coordination_site_from_pdb,
+)
 from .geometry.reference import MetalGeometry, MockReference, PDBReference, ReferenceDistribution
 from .geometry.verifier import GeometryVerifier
 from .pipeline import design_and_rank, rank
@@ -30,6 +34,8 @@ __all__ = [
     "load_designs",
     "octahedral_site",
     "under_leachate",
+    "coordination_site",
+    "coordination_site_from_cif",
     "coordination_site_from_pdb",
     "MetalGeometry",
     "MockReference",

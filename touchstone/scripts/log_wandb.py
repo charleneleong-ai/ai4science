@@ -20,13 +20,17 @@ from touchstone import GeometryVerifier, PDBReference, load_designs, rank, track
 console = Console()
 
 
-def main(design_dir: str = typer.Argument("ligmpnn_out")) -> None:
+def main(design_dir: str = typer.Argument("ligmpnn_out"), generator: str = "rfaa+ligmpnn") -> None:
     ref = PDBReference()
     with console.status("verifying designs…"):
-        designs = load_designs(f"{design_dir}/**/*.pdb", generator="rfaa+ligmpnn")
+        designs = [  # format-agnostic, like the verifier: ingest PDB and mmCIF
+            d for ext in ("pdb", "cif")
+            for d in load_designs(f"{design_dir}/**/*.{ext}", generator=generator)
+        ]
         ranked = rank(designs, GeometryVerifier(ref))
 
-    run = tracking.init("ligmpnn-nickel-filter", config={"n_designs": len(ranked), "metal": "Ni2+"})
+    run = tracking.init(f"{generator}-nickel-filter",
+                        config={"n_designs": len(ranked), "metal": "Ni2+", "generator": generator})
     counts = tracking.log_ranked(run, ranked, ref)
 
     # 3D structures: best overall + the best of each verdict class (d.source = its PDB path)
