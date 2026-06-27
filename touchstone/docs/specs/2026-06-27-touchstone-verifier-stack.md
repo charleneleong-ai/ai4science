@@ -75,38 +75,44 @@ is unbuilt — the verdicts are physically-grounded but not yet experiment-calib
 
 Ran the stack end-to-end on four **real BoltzGen** Ni-motif designs (His/His/His-Cys
 theozyme sites → N/N/N/S donors), with their backbones, on the A100 (`mlip` env,
-MACE-MP-0 float64, CUDA). This is the first run against generator output rather than
-hand-built fixtures.
+MACE-MP-0 float64, CUDA) — the first run against generator output rather than
+hand-built fixtures. The first pass surfaced two MLIP-tier bugs, both fixed in
+[#30](../pull/30); numbers below are post-fix.
 
-| design | CN · donors | geometry | bond-valence | MLIP relax | reward |
+| design | CN · donors | geometry | bond-valence | MLIP relax (post-fix) | reward |
 | --- | --- | --- | --- | --- | --- |
-| `ni_motif_00` | 3 · N/N/S | WEAK 0.265 | TRUST (BVS 1.71) | DEFER (diverged, drift 9.1 Å) | 0.0 |
-| `ni_motif_01` | 3 · N/N/S | WEAK 0.289 | DEFER (BVS 1.09, Δ0.91) | DEFER (RuntimeError) | 0.0 |
-| `ni_motif_02` | 4 · N/N/N/S | TRUST 0.268 | **TRUST (BVS 2.00)** | DEFER (diverged, drift 7.9 Å) | 0.0 |
-| `ni_motif_03` | 4 · N/N/O/S | TRUST 0.219 | TRUST (BVS 1.88) | DEFER (RuntimeError) | 0.0 |
+| `ni_motif_00` | 3 · N/N/S | WEAK 0.265 | TRUST (BVS 1.71) | WEAK — held, drift 0.95 Å, ΔE −5.6 eV | 0.24 |
+| `ni_motif_01` | 3 · N/N/S | WEAK 0.289 | DEFER (BVS 1.09) | WEAK — held, drift 0.75 Å, ΔE −5.3 eV | 0.0 |
+| `ni_motif_02` | 4 · N/N/N/S | TRUST 0.268 | **TRUST (BVS 2.00)** | DEFER — lost 2, drift 2.60 Å, ΔE −5.3 eV | 0.0 |
+| `ni_motif_03` | 4 · N/N/O/S | TRUST 0.219 | TRUST (BVS 1.88) | DEFER — lost 2, drift 2.86 Å, ΔE −5.7 eV | 0.0 |
 
-**What works:** geometry + bond-valence discriminate cleanly and agree — the two
-CN-4 designs (`ni_motif_02` His₃Cys, BVS 2.00 exact; `ni_motif_03`, BVS 1.88) read
-as the real binders; the CN-3 pair reads weak/under-coordinated (BVS 1.71 / 1.09).
-This is the stack doing its job on generator output without seeing the generator.
+**Geometry + bond-valence** discriminate cleanly and agree — the CN-4 designs
+(`ni_motif_02` His₃Cys, BVS 2.00 exact; `ni_motif_03`, BVS 1.88) read as the real
+binders; the CN-3 pair reads weak/under-coordinated. The stack doing its job on
+generator output without seeing the generator.
 
-**What broke — the MLIP statics/dynamics tier is non-functional on backbone-bearing
-designs as currently implemented.** `MLIPVerifier._cluster` extracts *metal +
-donor atoms only*, dropping the protein backbone that physically holds the donors in
-place. Relaxed as a free cluster, the donors disperse (drift 8–9 Å) and the
-interaction energy blows up to ~10²⁷ eV, or the optimiser RuntimeErrors outright; the
-200-step float64 MLIP-**MD** then hangs on the diverged/inf geometry, pinning all
-80 GB of GPU at 0 % util (had to be killed). So every MLIP verdict DEFERs, which —
-because consensus is min-like — drags **every** reward to 0.0 even for the BVS-2.00
-design. The physics tier is actively *harming* the signal, not adding to it.
+**Two MLIP-tier bugs the first pass exposed (fixed in [#30](../pull/30)):**
 
-**Fix (next):** the cluster must carry the backbone — either include backbone atoms
-and **position-restrain** them during relaxation/MD (so only the side-chain donors
-relax against a fixed scaffold), or cap the residues and freeze Cα. Until then the
-statics/dynamics tier should be **gated out** of the reward (geometry + bond-valence
-+ co-fold only), not silently DEFERed into a 0.0. Tracked as the top physics-tier
-TODO; the hang also argues for an MD pre-check that aborts on non-finite forces
-instead of grinding for minutes.
+1. *Free-cluster dispersal.* [`_cluster`](../tree/main/touchstone/src/touchstone/physics/mlip.py)
+   pulls a metal-centred sphere out of the protein, but relaxing it freely let the
+   cut-out fragment disperse (donors drift 8–9 Å, energies → ~10²⁷ eV). Fix: a
+   **frozen-boundary restraint** ([`_freeze_scaffold`](../tree/main/touchstone/src/touchstone/physics/mlip.py))
+   — only the metal + first-shell donors relax; the scaffold is position-restrained.
+   Drift collapses to <1 Å on the sites that hold.
+2. *Bogus periodic cell.* BoltzGen PDBs carry a `CRYST1 1.000` record, so
+   `ase.io.read` marks the structure periodic; on a 1 Å cell MACE builds a vast
+   periodic neighbour list → 13–27 GiB allocations → CUDA OOM (and a corrupted
+   ΔE_bind, the source of the 10²⁷ eV). Fix: strip the cell in `_cluster`. ΔE_bind is
+   now physical (−5 to −6 eV) and all four designs run with no OOM.
+
+**Remaining nuance — not a bug.** Post-fix, the CN-4 designs (`02`/`03`) still DEFER
+at the MLIP step (the metal drifts ~2.6–2.9 Å and sheds 2 donors), while the CN-3
+pair holds. The likely cause is **missing protonation** — the BoltzGen PDBs have no
+hydrogens, and MACE-MP sees under-coordinated His/backbone heavy atoms, so the metal
+wanders. Adding explicit H to the cluster (the docstring's assumed prep) is the next
+calibration step; geometry + bond-valence already rank `02`/`03` correctly, so the
+consensus is sound. The MD pre-check that aborts on non-finite forces (rather than
+grinding) remains a TODO.
 
 ## Forward — post-training (RLVR)
 
