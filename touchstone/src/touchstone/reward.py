@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from statistics import fmean
 
-from .service import verify_structure
+from .service import mlip_backbone, verify_structure
 
 _CONSENSUS_WEIGHT = {"trust": 1.0, "weak": 0.5, "defer": 0.0}
 
@@ -28,10 +28,11 @@ def reward_from_result(result: dict) -> float:
 def rank_structures(structures, metal: str = "Ni2+", deep: bool = False) -> list[dict]:
     """Verify each structure and return results (each with a `reward`) sorted best-first.
     A structure that can't be parsed/verified scores 0 with an `error` recorded."""
+    calc = mlip_backbone() if deep else None  # build the MLIP backbone once, share across the batch
     scored: list[dict] = []
     for s in structures:
         try:
-            result = verify_structure(s, metal, deep)
+            result = verify_structure(s, metal, deep, calc=calc)
         except Exception as e:  # unparseable / no metal ⇒ worst reward, recorded
             result = {"structure": str(s), "consensus": "defer", "verifiers": {}, "error": f"{type(e).__name__}: {e}"}
         result["reward"] = reward_from_result(result)
