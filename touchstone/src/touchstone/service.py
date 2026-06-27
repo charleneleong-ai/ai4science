@@ -1,13 +1,19 @@
 """Run a structure through the verifier stack → one JSON-able verdict.
 
-The shared engine behind the CLI and the MCP server. **Lightweight by default**
-(geometry z-score + bond-valence — instant, no GPU); `deep=True` adds the MLIP
-relaxation when the optional backend is installed. Co-fold and MD verifiers run via
-the dedicated inference scripts (they need a GPU box / precomputed predictions), so
-they are out of a single inline call's scope.
+The shared engine behind the CLI and the MCP server. Runs every verifier that can
+judge a structure inline, with graceful degradation:
 
-Consensus is defense-in-depth: `trust` only if every verifier trusts, `defer` if any
-defers (or none could run), else `weak`.
+  - **always** (pure-Python, instant): geometry z-score + bond-valence.
+  - `deep=True`: MLIP relaxation + MLIP-MD (need a GPU backend; skipped if absent).
+
+Stages that need an external input a bare structure can't supply — Mogul (a CSD
+licence), co-fold (a second predictor's structure), expression (a sequence scorer),
+global thermostability (an MD/Tm scorer) — are reported under `not_run` rather than
+guessed. A verifier that can't run (no backend) is *skipped* (excluded from the
+verdict), distinct from one that ran and *deferred*.
+
+Consensus is defense-in-depth: `trust` only if every verifier that ran trusts, `defer`
+if any defers (or none ran), else `weak`.
 """
 
 from __future__ import annotations
@@ -19,7 +25,16 @@ from .geometry.bond_valence import BondValenceVerifier
 from .geometry.parse import coordination_site
 from .geometry.reference import PDBReference
 from .geometry.verifier import GeometryVerifier
-from .physics.mlip import MLIPVerifier  # light at import-time; heavy ase/mace load lazily on use
+from .physics.mlip import MLIPDynamicsVerifier, MLIPVerifier, make_backbone  # light import; heavy load lazy
+
+# stages with a library verifier but no inline-available input (licence / prediction /
+# scorer) — advertised so an agent knows the full stack and how to enable each.
+_NEEDS_INPUT = {
+    "mogul": "a CSD licence (Mogul / CSD Python API)",
+    "cofold": "a co-fold prediction (scripts/chai_crosscheck or allmetal3d_crosscheck)",
+    "expression": "a sequence scorer (scripts/expression_score)",
+    "thermostability": "an MD/Tm scorer (scripts/thermostability_score)",
+}
 
 
 def _as_dict(v: Verdict) -> dict:
@@ -27,26 +42,36 @@ def _as_dict(v: Verdict) -> dict:
 
 
 def verify_structure(structure: str | Path, metal: str = "Ni2+", deep: bool = False, cutoff: float = 2.8) -> dict:
-    """Verify a metal-coordination structure. Returns per-verifier verdicts + a
-    trust/weak/defer consensus, ready to serialise for an agent or the CLI."""
+    """Verify a metal-coordination structure. Returns per-verifier verdicts, a `not_run`
+    map of stages needing inputs, and a trust/weak/defer consensus."""
     site = coordination_site(structure, element_symbol(metal).upper(), metal, cutoff)
     design = BinderDesign("", site, generator="external", generator_confidence=0.0, source=str(structure))
 
     verifiers = {"geometry": GeometryVerifier(PDBReference()), "bond_valence": BondValenceVerifier()}
-    if deep:
-        verifiers["mlip"] = MLIPVerifier(backbone="mace_mp")  # lazy; errors if no GPU backend
-
     results: dict[str, dict] = {}
+    if deep:
+        try:  # build the backbone once; share it across both MLIP verifiers
+            calc = make_backbone("mace_mp")
+        except Exception as e:  # no GPU backend ⇒ skip both (not a defer that tanks consensus)
+            for n in ("mlip", "mlip_md"):
+                results[n] = {"skipped": f"no MLIP backend: {type(e).__name__}"}
+        else:
+            verifiers["mlip"] = MLIPVerifier(calculator=calc)
+            verifiers["mlip_md"] = MLIPDynamicsVerifier(calculator=calc)
+
+    counted: list[str] = []
     for name, verifier in verifiers.items():
         try:
-            results[name] = _as_dict(verifier.verify(design))
-        except Exception as e:  # an unavailable/failed verifier is reported, not fatal
-            results[name] = {"error": f"{type(e).__name__}: {e}"}
+            verdict = verifier.verify(design)
+        except Exception as e:  # unexpected per-verifier failure ⇒ skipped, not counted
+            results[name] = {"skipped": f"{type(e).__name__}: {e}"}
+            continue
+        results[name] = _as_dict(verdict)
+        counted.append(verdict.label)
 
-    labels = [r["label"] for r in results.values() if "label" in r]
     consensus = (
-        "defer" if (not labels or "defer" in labels)
-        else "trust" if all(label == "trust" for label in labels)
+        "defer" if (not counted or "defer" in counted)
+        else "trust" if all(label == "trust" for label in counted)
         else "weak"
     )
     return {
@@ -55,5 +80,6 @@ def verify_structure(structure: str | Path, metal: str = "Ni2+", deep: bool = Fa
         "coordination_number": site.coordination_number,
         "donors": list(site.ligand_elems),
         "verifiers": results,
+        "not_run": _NEEDS_INPUT,
         "consensus": consensus,
     }
