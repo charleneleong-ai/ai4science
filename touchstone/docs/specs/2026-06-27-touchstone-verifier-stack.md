@@ -1,7 +1,7 @@
 # Touchstone verifier stack — architecture
 
 **Date:** 2026-06-27
-**Status:** living spec (consolidates the stack as built across PRs #2/#3/#5/#6/#7)
+**Status:** living spec (consolidates the stack as built across PRs #2/#3/#5/#6/#7/#8)
 **Related:** [`2026-06-24-touchstone-design.md`](2026-06-24-touchstone-design.md) (original thesis),
 the MLIP + structural-verifier scoping doc (PR #5)
 
@@ -37,12 +37,12 @@ reliability signal (it is also what makes the stack a hard-to-hack RL reward).
 | stage | method A | method B | question | PR |
 | --- | --- | --- | --- | --- |
 | **Geometry** | `GeometryVerifier` (z-score vs reference) | `BondValenceVerifier` (Σ bond-valence ≈ formal charge?) | is the coordination plausible? | #5 |
-| **Co-fold** | Boltz-2 | Chai-1 (both via `CofoldCrossCheck`) | does an *independent* folder agree? | #6 |
+| **Co-fold** | Boltz-2 | Chai-1 + AllMetal3D (via `CofoldCrossCheck`) | does an *independent* predictor agree? | #6 |
 | **Physics (statics)** | xtb GFN2 | `MLIPVerifier` (MACE-MP / UMA) | does the site hold under relaxation? | #5 |
 | **Dynamics** | xtb cluster-MD | `MLIPDynamicsVerifier` | does it survive 300 K MD? | #5 |
 
-`CofoldCrossCheck` is predictor-agnostic — Boltz-2, Chai-1 (and AllMetal3D, pending)
-plug in via a `provider` callback, no verifier change.
+`CofoldCrossCheck` is predictor-agnostic — Boltz-2, Chai-1, and AllMetal3D plug in
+via a `provider` callback, no verifier change.
 
 ## Pluggable seams ("swap, don't rewrite")
 
@@ -129,6 +129,16 @@ requirement).
 
 ## Where it lives
 
-`main` = core stack (#1) + reference-data fix (#4). Open PRs: **#2** BoltzGen ·
-**#3** selectivity · **#5** MLIP + bond-valence + MLIP-MD · **#6** co-fold/Chai-1 ·
-**#7** CSDReference.
+| PR | status | scope |
+| --- | --- | --- |
+| [#1](https://github.com/charleneleong-ai/ai4science/pull/1) | merged | core verifier stack — geometry oracle, generators, pipeline |
+| [#2](https://github.com/charleneleong-ai/ai4science/pull/2) | open | `BoltzGenAdapter` — 2nd generator + mmCIF support |
+| [#3](https://github.com/charleneleong-ai/ai4science/pull/3) | open | multi-metal selectivity (Ni/Cu/Co) |
+| [#4](https://github.com/charleneleong-ai/ai4science/pull/4) | merged | reference-data fix (gitignore / package data) |
+| [#5](https://github.com/charleneleong-ai/ai4science/pull/5) | open | MLIP physics tier + bond-valence + MLIP-MD |
+| [#6](https://github.com/charleneleong-ai/ai4science/pull/6) | open | co-fold cross-check — Chai-1 + AllMetal3D |
+| [#7](https://github.com/charleneleong-ai/ai4science/pull/7) | open | `CSDReference` (CSD/Mogul drop-in) |
+| [#8](https://github.com/charleneleong-ai/ai4science/pull/8) | open | this spec — verifier-stack architecture + RLVR |
+
+Stacked chain **#2 → #3 → #5 → #6** (merge bottom-up); **#7** and **#8** are
+independent off `main`.

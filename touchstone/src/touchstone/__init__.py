@@ -21,6 +21,7 @@ from .generators import (
     octahedral_site,
 )
 from .cofold import CofoldCrossCheck, cif_provider, cofold_agreement
+from .expression import ExpressionSignals, ExpressionVerifier, score_provider
 from .geometry.bond_valence import BondValenceVerifier
 from .geometry.ood import under_leachate
 from .geometry.parse import (
@@ -32,7 +33,9 @@ from .geometry.reference import MetalGeometry, MockReference, PDBReference, Refe
 from .geometry.verifier import GeometryVerifier
 from .physics import (
     MLIPDynamicsVerifier,
+    MLIPSelectivityVerifier,
     MLIPVerifier,
+    SelectivityProfile,
     SiteDynamics,
     SiteRelaxation,
     make_backbone,
@@ -69,6 +72,11 @@ __all__ = [
     "cif_provider",
     "MLIPVerifier",
     "MLIPDynamicsVerifier",
+    "MLIPSelectivityVerifier",
+    "SelectivityProfile",
+    "ExpressionVerifier",
+    "ExpressionSignals",
+    "score_provider",
     "SiteRelaxation",
     "SiteDynamics",
     "make_backbone",
