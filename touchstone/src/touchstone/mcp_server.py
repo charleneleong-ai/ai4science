@@ -24,7 +24,9 @@ def _serve(
     mcp = FastMCP("touchstone", host=host, port=port)
 
     @mcp.tool()
-    def verify_metal_binder(structure_path: str, metal: str = "Ni2+", deep: bool = False) -> dict:
+    def verify_metal_binder(
+        structure_path: str, metal: str = "Ni2+", deep: bool = False, stress: bool = False
+    ) -> dict:
         """Verify a designed metal-binding site against the touchstone verifier stack.
 
         Args:
@@ -32,10 +34,14 @@ def _serve(
             metal: target metal label, e.g. "Ni2+", "Cu2+", "Co2+".
             deep: also run the MLIP relaxation (needs a GPU backend); default is the
                 instant geometry + bond-valence check.
+            stress: also re-verify under extreme operating conditions (acidic-leachate bond
+                stretch, low-pH donor protonation) → a `stress` map {neutral/leachate/low_pH}.
+                Use when the binder must survive a real recovery process, not just stand still.
 
-        Returns a dict with per-verifier verdicts and a trust/weak/defer consensus.
+        Returns a dict with per-verifier verdicts and a trust/weak/defer consensus (plus a
+        `stress` robustness map when `stress=True`).
         """
-        return verify_structure(structure_path, metal, deep)
+        return verify_structure(structure_path, metal, deep, stress=stress)
 
     mcp.run(transport="streamable-http" if http else "stdio")
 

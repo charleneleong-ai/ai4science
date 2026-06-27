@@ -26,6 +26,7 @@ from .geometry.parse import coordination_site
 from .geometry.reference import best_reference
 from .geometry.verifier import GeometryVerifier
 from .physics.mlip import MLIPDynamicsVerifier, MLIPVerifier, make_backbone  # light import; heavy load lazy
+from .pipeline import stress_profile
 
 # the lightweight verifiers are stateless over read-only package data — build once and reuse,
 # so a batch `rank` doesn't re-parse JSON per design. Geometry uses the sharpest reference on
@@ -62,11 +63,14 @@ def mlip_backbone():
 
 
 def verify_structure(
-    structure: str | Path, metal: str = "Ni2+", deep: bool = False, cutoff: float = 2.8, calc=_AUTO
+    structure: str | Path, metal: str = "Ni2+", deep: bool = False, cutoff: float = 2.8, stress: bool = False, calc=_AUTO
 ) -> dict:
     """Verify a metal-coordination structure. Returns per-verifier verdicts, a `not_run`
-    map of stages needing inputs, and a trust/weak/defer consensus. `calc` is an internal
-    knob for batch callers (`rank_structures`) to share one MLIP backbone; leave it default."""
+    map of stages needing inputs, and a trust/weak/defer consensus. With `stress`, also
+    re-verify the site under extreme-condition perturbations (acidic-leachate bond stretch,
+    low-pH donor protonation) → a `stress` map {neutral/leachate/low_pH: verdict}: does it
+    hold up in the real recovery process? `calc` is an internal knob for batch callers
+    (`rank_structures`) to share one MLIP backbone; leave it default."""
     site = coordination_site(structure, element_symbol(metal).upper(), metal, cutoff)
     design = BinderDesign("", site, generator="external", generator_confidence=0.0, source=str(structure))
 
@@ -97,7 +101,7 @@ def verify_structure(
         else "trust" if all(label == "trust" for label in counted)
         else "weak"
     )
-    return {
+    result = {
         "structure": str(structure),
         "metal": metal,
         "coordination_number": site.coordination_number,
@@ -107,3 +111,9 @@ def verify_structure(
         "not_run": _NEEDS_INPUT,
         "consensus": consensus,
     }
+    if stress:  # robustness map: does the site hold its verdict across the operating envelope?
+        # geometry-tier by design (independent of `deep`): the perturbations are geometric
+        # (bond stretch, donor protonation), so the z-score is the natural judge — and running
+        # the MLIP tier across every condition would multiply GPU cost for little extra signal.
+        result["stress"] = {cond: _as_dict(v) for cond, v in stress_profile(design, _GEOMETRY).items()}
+    return result

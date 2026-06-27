@@ -34,5 +34,12 @@ Consensus is defense-in-depth: a single `defer` collapses it. **Only `trust` is 
 - Default (instant, runs anywhere): geometry z-score vs CSD/PDB prior + bond-valence + CSD reference.
 - `deep=True` / `--deep`: adds MLIP (MACE) relaxation + MD — **needs a GPU**. Route deep runs to a host that has one (a remote HTTP touchstone MCP), not the local machine.
 
+## Stress / operating conditions
+`stress=True` (`--stress`) adds a **robustness map** — re-verifies the site under extreme
+conditions: `neutral` (as-is), `leachate` (bonds stretched — hot/acidic/saline), `low_pH`
+(labile donors protonated off). Use it when the binder must survive a real recovery
+process, not just stand still: a site can be `trust` at rest but `defer` under leachate.
+Report which conditions hold and which break.
+
 ## Honest scope
 The trust threshold is grounded in CSD geometry + physics, **not yet calibrated to wet-lab outcomes** — read `trust` as "physically / precedent-plausible," not a calibrated binding probability. The thermostability (TemStaPro) and CSD/Mogul tiers need a GPU / CSD licence; without them those tiers report as `not_run` rather than guessing.
