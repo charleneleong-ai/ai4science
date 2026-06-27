@@ -53,6 +53,7 @@ class BondValenceVerifier:
         disc = abs(bvs - valence)
         score = math.exp(-0.5 * (disc / self.trust_tol) ** 2)
         reason = f"BVS {bvs:.2f} vs formal {valence} (Δ{disc:.2f})"
+        metrics = {"bvs": round(bvs, 2), "formal_valence": valence, "delta": round(disc, 2)}
         if disc > self.ood_tol:
-            return Verdict.defer(reason, score=score)
-        return Verdict(score, trust=disc <= self.trust_tol, ood=False, reason=reason)
+            return Verdict.defer(reason, score=score, metrics=metrics)
+        return Verdict(score, trust=disc <= self.trust_tol, ood=False, reason=reason, metrics=metrics)

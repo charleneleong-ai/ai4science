@@ -38,10 +38,11 @@ class GeometryVerifier:
         # Higher score = more plausible. Gaussian in geometric strain, penalised for
         # the distance from the modal coordination number.
         score = float(np.exp(-0.5 * strain**2) * np.exp(-cn_gap))
+        metrics = {"strain_sigma": round(strain, 2), "cn": site.coordination_number, "cn_modal": ref.coordination_number}
         if strain > self.ood_z:
-            return Verdict.defer(f"off-manifold (bond strain {strain:.1f}σ)", score=score)
+            return Verdict.defer(f"off-manifold (bond strain {strain:.1f}σ)", score=score, metrics=metrics)
         trust = strain <= self.trust_z and cn_ok
-        return Verdict(score, trust=trust, ood=False, reason=self._reason(strain, cn_ok))
+        return Verdict(score, trust=trust, ood=False, reason=self._reason(strain, cn_ok), metrics=metrics)
 
     def _reason(self, strain: float, cn_ok: bool) -> str:
         if not cn_ok:
