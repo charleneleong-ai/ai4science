@@ -23,13 +23,15 @@ from pathlib import Path
 from .core import BinderDesign, Verdict, element_symbol
 from .geometry.bond_valence import BondValenceVerifier
 from .geometry.parse import coordination_site
-from .geometry.reference import PDBReference
+from .geometry.reference import best_reference
 from .geometry.verifier import GeometryVerifier
 from .physics.mlip import MLIPDynamicsVerifier, MLIPVerifier, make_backbone  # light import; heavy load lazy
 
-# the lightweight verifiers are stateless over read-only package data (PDB reference,
-# bond-valence params) — build once and reuse, so a batch `rank` doesn't re-parse JSON per design
-_GEOMETRY = GeometryVerifier(PDBReference())
+# the lightweight verifiers are stateless over read-only package data — build once and reuse,
+# so a batch `rank` doesn't re-parse JSON per design. Geometry uses the sharpest reference on
+# hand: the CSD metal–organic prior if it's been built, else the committed PDB reference.
+_REFERENCE = best_reference()
+_GEOMETRY = GeometryVerifier(_REFERENCE)
 _BOND_VALENCE = BondValenceVerifier()
 
 # stages with a library verifier but no inline-available input (licence / prediction /
@@ -100,6 +102,7 @@ def verify_structure(
         "metal": metal,
         "coordination_number": site.coordination_number,
         "donors": list(site.ligand_elems),
+        "reference": _REFERENCE.source,  # which geometry prior backed the z-score (CSD or PDB)
         "verifiers": results,
         "not_run": _NEEDS_INPUT,
         "consensus": consensus,
