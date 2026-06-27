@@ -9,10 +9,13 @@ from .mlip import (
     md_site,
     relax_site,
 )
+from .selectivity import MLIPSelectivityVerifier, SelectivityProfile
 
 __all__ = [
     "MLIPVerifier",
     "MLIPDynamicsVerifier",
+    "MLIPSelectivityVerifier",
+    "SelectivityProfile",
     "SiteRelaxation",
     "SiteDynamics",
     "make_backbone",

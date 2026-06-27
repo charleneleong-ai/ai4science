@@ -39,7 +39,9 @@ from .geometry.mogul import MogulVerifier
 from .geometry.verifier import GeometryVerifier
 from .physics import (
     MLIPDynamicsVerifier,
+    MLIPSelectivityVerifier,
     MLIPVerifier,
+    SelectivityProfile,
     SiteDynamics,
     SiteRelaxation,
     make_backbone,
@@ -47,6 +49,7 @@ from .physics import (
     relax_site,
 )
 from .expression import ExpressionSignals, ExpressionVerifier, score_provider
+from .thermostability import ThermostabilitySignal, ThermostabilityVerifier, tm_provider
 from .pipeline import design_and_rank, rank, selectivity_profile
 from .service import verify_structure
 
@@ -80,6 +83,11 @@ __all__ = [
     "cif_provider",
     "MLIPVerifier",
     "MLIPDynamicsVerifier",
+    "MLIPSelectivityVerifier",
+    "SelectivityProfile",
+    "ThermostabilityVerifier",
+    "ThermostabilitySignal",
+    "tm_provider",
     "SiteRelaxation",
     "SiteDynamics",
     "make_backbone",
