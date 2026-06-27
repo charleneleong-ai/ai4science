@@ -7,6 +7,7 @@ from .mlip import (
     SiteRelaxation,
     make_backbone,
     md_site,
+    protonate,
     relax_site,
 )
 from .selectivity import MLIPSelectivityVerifier, SelectivityProfile
@@ -19,6 +20,7 @@ __all__ = [
     "SiteRelaxation",
     "SiteDynamics",
     "make_backbone",
+    "protonate",
     "relax_site",
     "md_site",
 ]

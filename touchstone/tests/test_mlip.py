@@ -11,6 +11,7 @@ from touchstone import (  # noqa: E402
     MLIPDynamicsVerifier,
     MLIPVerifier,
     make_backbone,
+    protonate,
     relax_site,
 )
 from touchstone.core import CoordinationSite  # noqa: E402
@@ -68,6 +69,13 @@ def _design(tmp_path, r: float = 2.5, source: bool = True) -> BinderDesign:
         "Ni2+", np.zeros(3), atoms.get_positions()[1:], tuple(atoms.get_chemical_symbols()[1:])
     )
     return BinderDesign("SEQ", site, generator="test", generator_confidence=0.5, source=src)
+
+
+@pytest.fixture(autouse=True)
+def _no_protonation(monkeypatch):
+    # the clusters here are synthetic and already "prepared" — never run OpenBabel on them.
+    # TestProtonate exercises protonate() directly through its own imported reference.
+    monkeypatch.setattr("touchstone.physics.mlip.protonate", lambda *a, **k: None)
 
 
 class TestRelaxSite:
@@ -203,6 +211,45 @@ class TestMLIPScoreBounds:
         # the clamp guards); with the default restraint they would be frozen out-of-shell.
         v = MLIPVerifier(calculator=SpringToMetal(r0=2.1, k=10.0), restrain=False).verify(d)
         assert 0.0 <= v.score <= 1.0
+
+
+_ALA_PDB = (  # one alanine, no hydrogens
+    "ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N\n"
+    "ATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00  0.00           C\n"
+    "ATOM      3  C   ALA A   1       2.010   1.420   0.000  1.00  0.00           C\n"
+    "ATOM      4  O   ALA A   1       1.250   2.390   0.000  1.00  0.00           O\n"
+    "ATOM      5  CB  ALA A   1       2.010  -0.770   1.200  1.00  0.00           C\n"
+    "END\n"
+)
+
+
+class TestProtonate:
+    def test_returns_none_when_openbabel_missing(self, monkeypatch, tmp_path):
+        # graceful degradation: no OpenBabel ⇒ caller proceeds unprotonated, not a crash
+        import builtins
+
+        real_import = builtins.__import__
+
+        def no_openbabel(name, *a, **k):
+            if name.startswith("openbabel"):
+                raise ImportError(name)
+            return real_import(name, *a, **k)
+
+        monkeypatch.setattr(builtins, "__import__", no_openbabel)
+        src = tmp_path / "x.pdb"
+        src.write_text(_ALA_PDB)
+        assert protonate(src) is None
+
+    def test_adds_hydrogens_keeping_heavy_atoms(self, tmp_path):
+        pytest.importorskip("openbabel")
+        from ase.io import read
+
+        src = tmp_path / "noH.pdb"
+        src.write_text(_ALA_PDB)
+        out = protonate(src)
+        syms = read(out).get_chemical_symbols()
+        assert "H" in syms  # hydrogens added
+        assert syms.count("C") == 3 and syms.count("N") == 1 and syms.count("O") == 1  # heavy atoms intact
 
 
 def test_make_backbone_rejects_unknown():

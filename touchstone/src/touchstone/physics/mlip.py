@@ -15,12 +15,54 @@ are deferred so the module loads without the optional backends installed.
 
 from __future__ import annotations
 
+import atexit
+import shutil
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
 from ..core import BinderDesign, Verdict, element_symbol
 from ..geometry.parse import DONOR_ELEMENTS
+
+_H_CACHE: dict[tuple[str, float], str] = {}  # (source, pH) → protonated path; dedups across verifiers/batches
+_H_DIR: str | None = None  # one temp dir for all protonated copies, removed at process exit
+
+
+def _h_dir() -> str:
+    global _H_DIR
+    if _H_DIR is None:
+        _H_DIR = tempfile.mkdtemp(prefix="touchstone_h_")
+        atexit.register(shutil.rmtree, _H_DIR, ignore_errors=True)
+    return _H_DIR
+
+
+def protonate(structure: str | Path, pH: float = 7.4) -> str | None:
+    """Add hydrogens to a structure for the MLIP tier and return the path to a
+    protonated copy (or None if OpenBabel isn't installed — the caller then proceeds
+    unprotonated). MACE needs explicit H: on a bare BoltzGen backbone it sees
+    under-coordinated His/backbone heavy atoms and the metal wanders out of its site.
+    OpenBabel at `pH` leaves metal-coordinating donors (N/S bonded to the cation)
+    deprotonated, so the donating lone pairs are preserved. Heavy-atom coordinates are
+    untouched — only H are added — so the geometry/bond-valence verdicts are unchanged.
+
+    Cached per (structure, pH): the static and dynamics verifiers share one protonation,
+    and copies live in a single temp dir cleaned up at process exit."""
+    try:
+        from openbabel import pybel
+    except ImportError:  # optional MLIP-tier dep; degrade to no protonation
+        return None
+
+    structure = Path(structure)
+    key = (str(structure), pH)
+    if key not in _H_CACHE:
+        mol = next(pybel.readfile(structure.suffix[1:] or "pdb", str(structure)))
+        mol.OBMol.AddHydrogens(False, True, pH)  # (polar-only=False, correct-for-pH=True, pH)
+        out = str(Path(_h_dir()) / f"{len(_H_CACHE)}_{structure.stem}_H.pdb")
+        mol.write("pdb", out, overwrite=True)
+        _H_CACHE[key] = out
+    return _H_CACHE[key]
 
 
 def make_backbone(name: str, device: str = "cuda"):
@@ -212,6 +254,7 @@ class _MLIPBase:
         radius: float = 5.0,
         device: str = "cuda",
         restrain: bool = True,  # freeze the backbone scaffold during relax/MD
+        protonate: bool = True,  # add H first (MACE needs it); no-op if OpenBabel absent
     ):
         self._backbone = backbone
         self._calc = calculator
@@ -220,6 +263,7 @@ class _MLIPBase:
         self.radius = radius
         self.device = device
         self.restrain = restrain
+        self.protonate = protonate
 
     @property
     def calc(self):
@@ -236,7 +280,11 @@ class _MLIPBase:
 
         if not design.source:
             raise ValueError("MLIP verifier needs design.source (a structure file)")
-        atoms = read(design.source)
+        # add H first (MACE needs explicit H or the metal wanders); falls back to the raw
+        # structure if OpenBabel is absent. Heavy-atom coords are untouched, so the parsed
+        # site (geometry/bond-valence) is unaffected — only this MLIP cluster sees the H.
+        source = (self.protonate and protonate(design.source)) or design.source
+        atoms = read(source)
         # PDBs (incl. BoltzGen's) carry a CRYST1 1 Å cell, so ase.io.read marks the
         # structure periodic. Treated as a crystal, an MLIP builds a vast periodic
         # neighbour list (millions of image edges ⇒ OOM). We want a finite cluster.
