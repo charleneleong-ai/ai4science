@@ -9,14 +9,19 @@ off-distribution bond. It uses CCDC's *validation engine*, not just CSD data —
 is license-gated (CSD Python API); the analyser is pluggable (inject one for tests,
 the default lazily drives `ccdc.conformer.GeometryAnalyser`).
 
-Caveat (verified 2026-06-27 against a live licence): Mogul classifies fragments by
+Caveat (investigated 2026-06-27 against a live licence): Mogul classifies fragments by
 their full chemical context, and `_ccdc_analyse` feeds it a site stripped to the metal
 + bare donor atoms — too little context to match its fragment library, so live Mogul
 returns too few hits on these and the verifier defers. On fully-perceived molecules it
-does cover metal–organic bonds (real CSD Ni complexes return 5/5 bond hits). The robust
-CSD signal for our stripped coordinate input is therefore the empirical distance prior
-in `CSDReference` (data/csd_reference.json), which needs no fragment classification;
-reconstructing fuller ligand context here to make this tier informative is a follow-up.
+does cover metal–organic bonds (real CSD Ni complexes return 5/5 bond hits). Three ways
+to supply that context were tried and rejected: (a) ccdc reading the design's PDB/mmCIF
+perceives **0** metal–donor bonds (coordinate bonds aren't in the file); (b) the bare
+metal+donor molecule gives 0 hits (no donor typing); (c) analysing the full protein, or
+a cluster carved from it, is impractically slow (>2 min — heavy ccdc molecule surgery)
+for a verifier meant to run in ms, and is licence-gated so untestable in CI. The robust,
+fast CSD signal for our stripped coordinate input is therefore the empirical distance
+prior in `CSDReference` (data/csd_reference.json), which needs no fragment classification.
+This verifier is kept for organic-linker geometry / future fully-perceived inputs.
 """
 
 from __future__ import annotations
