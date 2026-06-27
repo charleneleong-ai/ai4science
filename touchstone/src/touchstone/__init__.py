@@ -20,6 +20,7 @@ from .generators import (
     load_designs,
     octahedral_site,
 )
+from .cofold import CofoldCrossCheck, cif_provider, cofold_agreement
 from .geometry.bond_valence import BondValenceVerifier
 from .geometry.ood import under_leachate
 from .geometry.parse import (
@@ -63,6 +64,9 @@ __all__ = [
     "ReferenceDistribution",
     "GeometryVerifier",
     "BondValenceVerifier",
+    "CofoldCrossCheck",
+    "cofold_agreement",
+    "cif_provider",
     "MLIPVerifier",
     "MLIPDynamicsVerifier",
     "SiteRelaxation",
