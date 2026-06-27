@@ -46,6 +46,48 @@ touchstone rank designs/*.pdb --metal Ni2+    # batch, best-first by reward
 touchstone verify design.pdb --deep           # + MLIP relax/MD (needs a GPU)
 ```
 
+## Sample output
+
+Each result is a JSON-able dict: per-tier verdicts (`label` / `score` / `reason` + a
+machine-readable `metrics` block), a `stack` listing every tier with its `status`
+(`ran` / `skipped` / `needs_input`), and the trust/weak/defer `consensus`. A real
+LigandMPNN Ni pack, verified **without a GPU** (the default, runs anywhere):
+
+```jsonc
+{
+  "metal": "Ni2+", "coordination_number": 5, "donors": ["O","O","N","O","N"], "reference": "PDB",
+  "verifiers": {
+    "geometry":     { "label": "weak",  "score": 0.025, "reason": "strained geometry (2.3σ)",
+                      "metrics": { "strain_sigma": 2.32, "cn": 5, "cn_modal": 4 } },
+    "bond_valence": { "label": "defer", "score": 0.023, "reason": "BVS 0.90 vs formal 2 (Δ1.10) — defer",
+                      "metrics": { "bvs": 0.9, "formal_valence": 2, "delta": 1.1 } }
+  },
+  "stack": [
+    { "stage": "geometry",     "status": "ran" },
+    { "stage": "bond_valence", "status": "ran" },
+    { "stage": "mogul",        "status": "needs_input", "detail": "a CSD licence (Mogul / CSD Python API)" },
+    { "stage": "mlip",         "status": "needs_input", "detail": "pass deep=True (needs a GPU backend)" },
+    { "stage": "mlip_md",      "status": "needs_input", "detail": "pass deep=True (needs a GPU backend)" }
+    // … cofold, expression, thermostability: needs_input
+  ],
+  "consensus": "defer"
+}
+```
+
+With **`--deep`** on a GPU, the two MLIP tiers flip from `needs_input` to `ran` and add
+quantitative physics (the rest of the result is identical):
+
+```jsonc
+"mlip":    { "label": "defer", "score": 0.088, "reason": "site lost 2 donor(s), drift 1.92 Å, ΔE_bind -3.33 eV — defer",
+             "metrics": { "drift_angstrom": 1.92, "cn_before": 5, "cn_after": 3, "interaction_energy_ev": -3.327 } },
+"mlip_md": { "label": "defer", "score": 0.059, "reason": "shell survived 6% of 300 K MD — defer",
+             "metrics": { "retention": 0.059, "cn_initial": 5, "temperature_k": 300.0 } }
+```
+
+Here the GPU physics **confirms** the instant tiers' `defer`: under MACE relaxation the site
+drifts ~2 Å and loses 2 of 5 donors, and only 6 % of the first shell survives 300 K MD.
+Add `--stress` for a robustness map (`neutral` / `leachate` / `low_pH`) on top of either.
+
 ## Remote / deep tiers
 
 The default tiers run anywhere. The deep tiers (MLIP/xtb/ESM) need a GPU, and CSD/Mogul
