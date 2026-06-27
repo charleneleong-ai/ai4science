@@ -45,7 +45,7 @@ _COORD_GEOMETRY = CoordinationGeometryVerifier()  # polyhedron shape vs ideal
 _NEEDS_INPUT = {
     "mogul": "a CSD licence (Mogul / CSD Python API)",
     "trs": "an apo (unbound) structure to diff against (topology-reorganization on binding)",
-    "cofold": "a co-fold prediction (scripts/chai_crosscheck or allmetal3d_crosscheck)",
+    "cofold": "a co-fold prediction (scripts/chai_crosscheck, alphafold3_crosscheck, or allmetal3d_crosscheck)",
     "expression": "a sequence scorer (scripts/expression_score)",
     "thermostability": "an MD/Tm scorer (scripts/thermostability_score)",
 }
