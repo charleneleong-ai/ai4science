@@ -46,21 +46,37 @@ def _as_dict(v: Verdict) -> dict:
     return {"label": v.label, "score": round(v.score, 3), "trust": v.trust, "ood": v.ood, "reason": v.reason}
 
 
-def verify_structure(structure: str | Path, metal: str = "Ni2+", deep: bool = False, cutoff: float = 2.8) -> dict:
+_AUTO = object()  # verify_structure default: build the MLIP backbone per call (a batch passes a shared one)
+
+
+def mlip_backbone():
+    """The default MLIP backbone (MACE-MP), or None if no backend is installed — so the
+    caller can skip the MLIP tier cleanly rather than deferring. Build it once and pass it
+    to a batch of verify_structure calls to avoid reloading the model per design."""
+    try:
+        return make_backbone("mace_mp")
+    except Exception:  # no GPU/torch backend ⇒ MLIP tier unavailable
+        return None
+
+
+def verify_structure(
+    structure: str | Path, metal: str = "Ni2+", deep: bool = False, cutoff: float = 2.8, calc=_AUTO
+) -> dict:
     """Verify a metal-coordination structure. Returns per-verifier verdicts, a `not_run`
-    map of stages needing inputs, and a trust/weak/defer consensus."""
+    map of stages needing inputs, and a trust/weak/defer consensus. `calc` is an internal
+    knob for batch callers (`rank_structures`) to share one MLIP backbone; leave it default."""
     site = coordination_site(structure, element_symbol(metal).upper(), metal, cutoff)
     design = BinderDesign("", site, generator="external", generator_confidence=0.0, source=str(structure))
 
     verifiers = {"geometry": _GEOMETRY, "bond_valence": _BOND_VALENCE}
     results: dict[str, dict] = {}
     if deep:
-        try:  # build the backbone once; share it across both MLIP verifiers
-            calc = make_backbone("mace_mp")
-        except Exception as e:  # no GPU backend ⇒ skip both (not a defer that tanks consensus)
+        if calc is _AUTO:  # single call ⇒ build per call; a batch hands in a shared backbone (or None)
+            calc = mlip_backbone()
+        if calc is None:  # no backend ⇒ skip both (not a defer that tanks consensus)
             for n in ("mlip", "mlip_md"):
-                results[n] = {"skipped": f"no MLIP backend: {type(e).__name__}"}
-        else:
+                results[n] = {"skipped": "no MLIP backend (install touchstone[mace])"}
+        else:  # share the one backbone across both MLIP verifiers
             verifiers["mlip"] = MLIPVerifier(calculator=calc)
             verifiers["mlip_md"] = MLIPDynamicsVerifier(calculator=calc)
 

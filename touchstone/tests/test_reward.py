@@ -1,7 +1,9 @@
 from pathlib import Path
+from unittest.mock import Mock
 
 from typer.testing import CliRunner
 
+from touchstone import reward
 from touchstone.cli import app
 from touchstone.reward import best_of_n, rank_structures, reward_from_result
 
@@ -43,6 +45,16 @@ class TestRankStructures:
     def test_best_of_n_takes_the_top(self):
         top = best_of_n(DESIGNS, "Ni2+", n=1)
         assert len(top) == 1 and top[0]["reward"] == max(r["reward"] for r in rank_structures(DESIGNS, "Ni2+"))
+
+    def test_deep_batch_builds_the_mlip_backbone_once(self, monkeypatch):
+        backbone = Mock(return_value=None)  # None ⇒ MLIP tier skipped; we only care it's built once
+        monkeypatch.setattr(reward, "mlip_backbone", backbone)
+        rank_structures(DESIGNS, "Ni2+", deep=True)  # 3 designs, one shared backbone
+        assert backbone.call_count == 1
+
+    def test_non_deep_never_touches_the_backbone(self, monkeypatch):
+        monkeypatch.setattr(reward, "mlip_backbone", Mock(side_effect=AssertionError("built for a non-deep rank")))
+        rank_structures(DESIGNS, "Ni2+")
 
 
 def test_cli_rank_runs():
