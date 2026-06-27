@@ -27,6 +27,11 @@ from .geometry.reference import PDBReference
 from .geometry.verifier import GeometryVerifier
 from .physics.mlip import MLIPDynamicsVerifier, MLIPVerifier, make_backbone  # light import; heavy load lazy
 
+# the lightweight verifiers are stateless over read-only package data (PDB reference,
+# bond-valence params) — build once and reuse, so a batch `rank` doesn't re-parse JSON per design
+_GEOMETRY = GeometryVerifier(PDBReference())
+_BOND_VALENCE = BondValenceVerifier()
+
 # stages with a library verifier but no inline-available input (licence / prediction /
 # scorer) — advertised so an agent knows the full stack and how to enable each.
 _NEEDS_INPUT = {
@@ -47,7 +52,7 @@ def verify_structure(structure: str | Path, metal: str = "Ni2+", deep: bool = Fa
     site = coordination_site(structure, element_symbol(metal).upper(), metal, cutoff)
     design = BinderDesign("", site, generator="external", generator_confidence=0.0, source=str(structure))
 
-    verifiers = {"geometry": GeometryVerifier(PDBReference()), "bond_valence": BondValenceVerifier()}
+    verifiers = {"geometry": _GEOMETRY, "bond_valence": _BOND_VALENCE}
     results: dict[str, dict] = {}
     if deep:
         try:  # build the backbone once; share it across both MLIP verifiers

@@ -19,7 +19,7 @@ from typing import Callable
 
 import numpy as np
 
-from .core import BinderDesign, CoordinationSite, Verdict
+from .core import BinderDesign, CoordinationSite, Verdict, provider_from
 from .geometry.parse import coordination_site
 
 
@@ -90,8 +90,4 @@ def cif_provider(predictions: dict[str, str], metal_atom: str = "NI", metal: str
     """File-based provider: parse each design's predicted CIF/PDB from a
     {design.source: predicted_path} map (e.g. Chai-1 / AllMetal3D outputs)."""
 
-    def provide(design: BinderDesign) -> CoordinationSite | None:
-        path = predictions.get(design.source or "")
-        return coordination_site(path, metal_atom, metal) if path else None
-
-    return provide
+    return provider_from(predictions, key="source", transform=lambda p: coordination_site(p, metal_atom, metal))

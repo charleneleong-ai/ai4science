@@ -9,7 +9,6 @@ reward-guided selection (rejection sampling) before any policy-gradient RL.
 
 from __future__ import annotations
 
-from pathlib import Path
 from statistics import fmean
 
 from .service import verify_structure
