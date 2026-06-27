@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from .core import BinderDesign, Generator, Verdict, Verifier
+from .geometry.ood import under_leachate, under_low_pH
 
 
 def rank(designs: list[BinderDesign], verifier: Verifier) -> list[tuple[BinderDesign, Verdict]]:
@@ -32,3 +33,20 @@ def selectivity_profile(
     not coordination geometry.
     """
     return {m: verifier.verify(replace(design, site=replace(design.site, metal=m))) for m in metals}
+
+
+def stress_profile(
+    design: BinderDesign, verifier: Verifier, *, bond_stretch: float = 0.5, n_protonate: int = 1
+) -> dict[str, Verdict]:
+    """Re-verify a design under extreme-condition perturbations → {condition: Verdict}.
+
+    A robust binder holds its verdict across the operating envelope; a fragile one
+    degrades to weak/defer under stress. Conditions: `neutral` (as-is), `leachate`
+    (bonds stretched — hot/acidic/saline), `low_pH` (the most labile donors protonated
+    off). The robustness map, not a single verdict — does it work in the real process?
+    """
+    return {
+        "neutral": verifier.verify(design),
+        "leachate": verifier.verify(under_leachate(design, bond_stretch)),
+        "low_pH": verifier.verify(under_low_pH(design, n_protonate)),
+    }

@@ -22,7 +22,7 @@ from .generators import (
 )
 from .cofold import CofoldCrossCheck, cif_provider, cofold_agreement
 from .geometry.bond_valence import BondValenceVerifier
-from .geometry.ood import under_leachate
+from .geometry.ood import under_leachate, under_low_pH
 from .geometry.parse import (
     coordination_site,
     coordination_site_from_cif,
@@ -50,7 +50,7 @@ from .physics import (
 )
 from .expression import ExpressionSignals, ExpressionVerifier, score_provider
 from .thermostability import ThermostabilitySignal, ThermostabilityVerifier, tm_provider
-from .pipeline import design_and_rank, rank, selectivity_profile
+from .pipeline import design_and_rank, rank, selectivity_profile, stress_profile
 from .reward import best_of_n, rank_structures, reward_from_result
 from .service import verify_structure
 
@@ -68,6 +68,7 @@ __all__ = [
     "load_designs",
     "octahedral_site",
     "under_leachate",
+    "under_low_pH",
     "coordination_site",
     "coordination_site_from_cif",
     "coordination_site_from_pdb",
@@ -96,6 +97,7 @@ __all__ = [
     "md_site",
     "design_and_rank",
     "selectivity_profile",
+    "stress_profile",
     "rank",
     "verify_structure",
     "ExpressionVerifier",
