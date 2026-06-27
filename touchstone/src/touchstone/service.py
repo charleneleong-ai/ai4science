@@ -112,5 +112,8 @@ def verify_structure(
         "consensus": consensus,
     }
     if stress:  # robustness map: does the site hold its verdict across the operating envelope?
+        # geometry-tier by design (independent of `deep`): the perturbations are geometric
+        # (bond stretch, donor protonation), so the z-score is the natural judge — and running
+        # the MLIP tier across every condition would multiply GPU cost for little extra signal.
         result["stress"] = {cond: _as_dict(v) for cond, v in stress_profile(design, _GEOMETRY).items()}
     return result
