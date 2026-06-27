@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "ai4science",
+  "description": "Charlene's AI-for-science tools for Claude Code",
+  "owner": {
+    "name": "Charlene Leong"
+  },
+  "plugins": [
+    {
+      "name": "touchstone",
+      "source": "./touchstone",
+      "description": "Generator-agnostic verifier for designed metal-binding proteins — geometry + bond-valence + CSD + physics/MLIP + co-fold consensus, exposed as an MCP tool and a /verify-binder command. Triage designs to wet-lab; score them as an RLVR reward.",
+      "category": "development"
+    }
+  ]
+}
