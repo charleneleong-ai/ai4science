@@ -22,6 +22,7 @@ from pathlib import Path
 
 from .core import BinderDesign, Verdict, element_symbol
 from .geometry.bond_valence import BondValenceVerifier
+from .geometry.coordination import CoordinationGeometryVerifier, CoordinationSymmetryVerifier
 from .geometry.parse import coordination_site
 from .geometry.reference import best_reference
 from .geometry.verifier import GeometryVerifier
@@ -34,11 +35,14 @@ from .pipeline import stress_profile
 _REFERENCE = best_reference()
 _GEOMETRY = GeometryVerifier(_REFERENCE)
 _BOND_VALENCE = BondValenceVerifier()
+_COORD_SYMMETRY = CoordinationSymmetryVerifier()  # nVECSUM: is the metal enclosed?
+_COORD_GEOMETRY = CoordinationGeometryVerifier()  # polyhedron shape vs ideal
 
 # stages with a library verifier but no inline-available input (licence / prediction /
 # scorer) — advertised so an agent knows the full stack and how to enable each.
 _NEEDS_INPUT = {
     "mogul": "a CSD licence (Mogul / CSD Python API)",
+    "trs": "an apo (unbound) structure to diff against (topology-reorganization on binding)",
     "cofold": "a co-fold prediction (scripts/chai_crosscheck or allmetal3d_crosscheck)",
     "expression": "a sequence scorer (scripts/expression_score)",
     "thermostability": "an MD/Tm scorer (scripts/thermostability_score)",
@@ -54,7 +58,10 @@ def _as_dict(v: Verdict) -> dict:
 
 # the full verifier stack in cost order — the unified `stack` view lists every tier with its
 # status so the consensus is auditable, even tiers that didn't run on this input
-_STACK_ORDER = ("geometry", "bond_valence", "mogul", "mlip", "mlip_md", "cofold", "expression", "thermostability")
+_STACK_ORDER = (
+    "geometry", "bond_valence", "coord_symmetry", "coord_geometry",
+    "mogul", "mlip", "mlip_md", "trs", "cofold", "expression", "thermostability",
+)
 
 
 def _stack(results: dict) -> list[dict]:
@@ -98,7 +105,12 @@ def verify_structure(
     site = coordination_site(structure, element_symbol(metal).upper(), metal, cutoff)
     design = BinderDesign("", site, generator="external", generator_confidence=0.0, source=str(structure))
 
-    verifiers = {"geometry": _GEOMETRY, "bond_valence": _BOND_VALENCE}
+    verifiers = {
+        "geometry": _GEOMETRY,
+        "bond_valence": _BOND_VALENCE,
+        "coord_symmetry": _COORD_SYMMETRY,
+        "coord_geometry": _COORD_GEOMETRY,
+    }
     results: dict[str, dict] = {}
     if deep:
         if calc is _AUTO:  # single call ⇒ build per call; a batch hands in a shared backbone (or None)

@@ -1,6 +1,6 @@
 {
   "name": "touchstone",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Generator-agnostic verifier for designed metal-binding proteins. Validates a generator's predicted coordination site (geometry + bond-valence + CSD + physics/MLIP + co-fold consensus) → trust/weak/defer, to triage designs to wet-lab and score them as an RLVR reward.",
   "author": {
     "name": "Charlene Leong"
