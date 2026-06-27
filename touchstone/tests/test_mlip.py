@@ -91,6 +91,23 @@ class TestRelaxSite:
             relax_site(Atoms("N2", positions=[[0, 0, 0], [0, 0, 2]]), SpringToMetal(), metal="Ni")
 
 
+class TestRestraint:
+    def test_freezes_the_scaffold_so_donors_cannot_disperse(self):
+        # metal + 3 in-shell N donors + 2 out-of-shell "backbone" O atoms (the
+        # scaffold), placed symmetrically so they pull the free metal equally. The
+        # spring drags every non-metal toward the metal; frozen, the scaffold holds.
+        pos = np.vstack([[0, 0, 0], _OCT[:3] * 2.5, [[4.0, 0, 0], [-4.0, 0, 0]]])
+        restrained = Atoms(symbols=["Ni", "N", "N", "N", "O", "O"], positions=pos)
+        free = restrained.copy()
+        r = relax_site(restrained, SpringToMetal(r0=2.1), metal="Ni", interaction=False, restrain=True)
+        relax_site(free, SpringToMetal(r0=2.1), metal="Ni", interaction=False, restrain=False)
+
+        assert np.allclose(restrained.get_positions()[4], [4.0, 0, 0], atol=1e-3)  # scaffold held
+        assert np.linalg.norm(free.get_positions()[4]) < 3.0  # unrestrained: dragged in
+        # the in-shell donors still relax to the spring length against the fixed scaffold
+        assert r.cn_after == 3 and abs(r.mean_bond - 2.1) < 0.1
+
+
 class TestMLIPVerifier:
     def test_trusts_a_site_that_holds(self, tmp_path):
         v = MLIPVerifier(calculator=SpringToMetal(r0=2.1)).verify(_design(tmp_path, r=2.5))
@@ -110,6 +127,22 @@ class TestMLIPVerifier:
         # and a missing source structure
         v = MLIPVerifier(calculator=calc).verify(_design(tmp_path, source=source))
         assert v.ood and not v.trust and "failed" in v.reason
+
+    def test_cluster_is_finite_not_periodic(self, tmp_path):
+        # BoltzGen PDBs carry a CRYST1 1 Å cell ⇒ ase.io.read marks them periodic; on
+        # a 1 Å cell an MLIP builds a vast periodic neighbour list (millions of image
+        # edges ⇒ OOM). The cluster must strip the cell to a finite fragment.
+        src = tmp_path / "cryst.pdb"
+        src.write_text(
+            "CRYST1    1.000    1.000    1.000  90.00  90.00  90.00 P 1\n"
+            "ATOM      1 NI   NI  A   1       0.000   0.000   0.000  1.00  0.00          NI\n"
+            "ATOM      2  N   HIS A   2       2.000   0.000   0.000  1.00  0.00           N\n"
+            "END\n"
+        )
+        site = CoordinationSite("Ni2+", np.zeros(3), np.array([[2.0, 0, 0]]), ("N",))
+        d = BinderDesign("S", site, generator="t", generator_confidence=0.5, source=str(src))
+        cluster = MLIPVerifier(calculator=SpringToMetal(), radius=5.0)._cluster(d)
+        assert not cluster.pbc.any()  # periodic cell stripped ⇒ finite cluster
 
     def test_radius_crops_to_the_local_cluster(self, tmp_path):
         # a far-away stray O beyond `radius` must not enter the relaxed cluster
@@ -166,7 +199,9 @@ class TestMLIPScoreBounds:
         site = CoordinationSite("Ni2+", np.zeros(3), atoms.get_positions()[1:],
                                 tuple(atoms.get_chemical_symbols()[1:]))
         d = BinderDesign("SEQ", site, generator="test", generator_confidence=0.5, source=src)
-        v = MLIPVerifier(calculator=SpringToMetal(r0=2.1, k=10.0)).verify(d)
+        # restrain=False so the 5 out-of-shell donors are free to migrate in (the case
+        # the clamp guards); with the default restraint they would be frozen out-of-shell.
+        v = MLIPVerifier(calculator=SpringToMetal(r0=2.1, k=10.0), restrain=False).verify(d)
         assert 0.0 <= v.score <= 1.0
 
 

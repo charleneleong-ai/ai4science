@@ -77,14 +77,35 @@ def _energy(atoms, calc) -> float:
     return float(atoms.get_potential_energy())
 
 
+def _freeze_scaffold(atoms, free: set[int]) -> None:
+    """Position-restrain every atom outside `free` (the metal + first shell). A
+    metal-centred cluster is a cut-out of a protein: without the backbone holding the
+    donors, free relaxation lets the whole fragment disperse (donors drift many Å,
+    energies blow up). Freezing the scaffold lets only the coordination polyhedron
+    relax against a fixed backbone — the standard frozen-boundary cluster treatment."""
+    from ase.constraints import FixAtoms
+
+    frozen = [i for i in range(len(atoms)) if i not in free]
+    if frozen:
+        atoms.set_constraint(FixAtoms(indices=frozen))
+
+
+def _single_point(atoms, calc) -> float:
+    """Constraint-free single-point energy of a (possibly sliced) cluster — slicing a
+    constrained Atoms carries stale FixAtoms indices, irrelevant to a single point."""
+    atoms = atoms.copy()
+    atoms.set_constraint()
+    return _energy(atoms, calc)
+
+
 def _interaction_energy(atoms, calc, mi: int, e_complex: float) -> float | None:
     """Crude metal binding energy: E(complex) − E(apo, frozen) − E(metal). Ranking
     only — no apo relaxation, no solvation, reference-state-naive. Reuses the
     already-relaxed complex energy rather than recomputing it."""
     keep = [i for i in range(len(atoms)) if i != mi]
     try:
-        return e_complex - _energy(atoms[keep], calc) - _energy(atoms[[mi]], calc)
-    except Exception:
+        return e_complex - _single_point(atoms[keep], calc) - _single_point(atoms[[mi]], calc)
+    except (RuntimeError, ValueError, FloatingPointError):
         return None
 
 
@@ -96,8 +117,11 @@ def relax_site(
     fmax: float = 0.05,
     steps: int = 200,
     interaction: bool = True,
+    restrain: bool = True,
 ) -> SiteRelaxation:
-    """Relax `atoms` under `calc` and measure how the metal site moved."""
+    """Relax `atoms` under `calc` and measure how the metal site moved. With
+    `restrain` (default), the backbone scaffold is frozen so only the metal + first
+    shell relax — without it a cut-out cluster disperses unphysically."""
     from ase.optimize import LBFGS
 
     symbols = atoms.get_chemical_symbols()
@@ -105,9 +129,13 @@ def relax_site(
     start = atoms.get_positions().copy()
     pre = _shell(start, symbols, mi, cutoff)
 
+    if restrain:
+        _freeze_scaffold(atoms, {mi, *pre})
     atoms.calc = calc
     LBFGS(atoms, logfile=None).run(fmax=fmax, steps=steps)
     energy = float(atoms.get_potential_energy())  # cached at the converged geometry
+    if not np.isfinite(energy):  # diverged into non-finite territory ⇒ unjudgeable
+        raise FloatingPointError("non-finite relaxation energy")
 
     pos = atoms.get_positions()
     post = _shell(pos, symbols, mi, cutoff)
@@ -137,16 +165,22 @@ def md_site(
     timestep: float = 1.0,
     friction: float = 0.02,
     sample_every: int = 10,
+    restrain: bool = True,
 ) -> SiteDynamics:
-    """Run short NVT (Langevin) MD and measure how often the first shell survives."""
+    """Run short NVT (Langevin) MD and measure how often the first shell survives.
+    With `restrain` (default), the backbone scaffold is frozen so the cluster cannot
+    disperse — the same frozen-boundary treatment as `relax_site`."""
     from ase import units
     from ase.md.langevin import Langevin
     from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
     symbols = atoms.get_chemical_symbols()
     mi = _metal_index(symbols, metal)
-    cn0 = len(_shell(atoms.get_positions(), symbols, mi, cutoff))
+    shell0 = _shell(atoms.get_positions(), symbols, mi, cutoff)
+    cn0 = len(shell0)
 
+    if restrain:
+        _freeze_scaffold(atoms, {mi, *shell0})
     atoms.calc = calc
     MaxwellBoltzmannDistribution(atoms, temperature_K=temperature)
     dyn = Langevin(atoms, timestep * units.fs, temperature_K=temperature, friction=friction)
@@ -177,6 +211,7 @@ class _MLIPBase:
         cutoff: float = 2.8,
         radius: float = 5.0,
         device: str = "cuda",
+        restrain: bool = True,  # freeze the backbone scaffold during relax/MD
     ):
         self._backbone = backbone
         self._calc = calculator
@@ -184,6 +219,7 @@ class _MLIPBase:
         self.cutoff = cutoff
         self.radius = radius
         self.device = device
+        self.restrain = restrain
 
     @property
     def calc(self):
@@ -201,6 +237,11 @@ class _MLIPBase:
         if not design.source:
             raise ValueError("MLIP verifier needs design.source (a structure file)")
         atoms = read(design.source)
+        # PDBs (incl. BoltzGen's) carry a CRYST1 1 Å cell, so ase.io.read marks the
+        # structure periodic. Treated as a crystal, an MLIP builds a vast periodic
+        # neighbour list (millions of image edges ⇒ OOM). We want a finite cluster.
+        atoms.set_pbc(False)
+        atoms.set_cell(None)
         pos = atoms.get_positions()
         mi = _metal_index(atoms.get_chemical_symbols(), self._metal(design))
         return atoms[np.linalg.norm(pos - pos[mi], axis=1) <= self.radius]
@@ -216,7 +257,9 @@ class MLIPVerifier(_MLIPBase):
         self.ood_drift = ood_drift
 
     def relax(self, design: BinderDesign) -> SiteRelaxation:
-        return relax_site(self._cluster(design), self.calc, self._metal(design), self.cutoff)
+        return relax_site(
+            self._cluster(design), self.calc, self._metal(design), self.cutoff, restrain=self.restrain
+        )
 
     def verify(self, design: BinderDesign) -> Verdict:
         try:
@@ -261,7 +304,7 @@ class MLIPDynamicsVerifier(_MLIPBase):
     def dynamics(self, design: BinderDesign) -> SiteDynamics:
         return md_site(
             self._cluster(design), self.calc, self._metal(design),
-            self.cutoff, self.temperature, self.steps,
+            self.cutoff, self.temperature, self.steps, restrain=self.restrain,
         )
 
     def verify(self, design: BinderDesign) -> Verdict:
