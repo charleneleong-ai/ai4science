@@ -25,6 +25,12 @@ class TestVerifyStructure:
         r = verify_structure(FIX / "boltzgen_nickel_design.cif", "Ni2+")
         assert r["metal"] == "Ni2+" and r["consensus"] in {"trust", "weak", "defer"}
 
+    def test_stress_adds_a_robustness_map_only_when_requested(self):
+        assert "stress" not in verify_structure(PACKED, "Ni2+")
+        r = verify_structure(PACKED, "Ni2+", stress=True)
+        assert set(r["stress"]) == {"neutral", "leachate", "low_pH"}  # the operating-envelope conditions
+        assert all(v["label"] in {"trust", "weak", "defer"} for v in r["stress"].values())
+
     def test_deep_without_backend_degrades_gracefully(self):
         # no GPU/mace here ⇒ mlip + mlip_md are skipped, consensus still decided by geometry+BV
         r = verify_structure(PACKED, "Ni2+", deep=True)
