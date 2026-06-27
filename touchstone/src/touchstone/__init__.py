@@ -51,6 +51,7 @@ from .physics import (
 from .expression import ExpressionSignals, ExpressionVerifier, score_provider
 from .thermostability import ThermostabilitySignal, ThermostabilityVerifier, tm_provider
 from .pipeline import design_and_rank, rank, selectivity_profile
+from .reward import best_of_n, rank_structures, reward_from_result
 from .service import verify_structure
 
 __all__ = [
@@ -100,4 +101,7 @@ __all__ = [
     "ExpressionVerifier",
     "ExpressionSignals",
     "score_provider",
+    "reward_from_result",
+    "rank_structures",
+    "best_of_n",
 ]

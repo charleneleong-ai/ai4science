@@ -15,6 +15,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from .reward import rank_structures
 from .service import verify_structure
 
 app = typer.Typer(add_completion=False, help="Generator-agnostic verifier for designed metal binders.")
@@ -56,6 +57,36 @@ def verify(
     )
     if result.get("not_run"):
         console.print(f"[dim]not run (needs input): {', '.join(result['not_run'])}[/]")
+
+
+@app.command()
+def rank(
+    structures: list[Path] = typer.Argument(..., help="designs to rank (.pdb/.cif; shell-glob expands)"),
+    metal: str = typer.Option("Ni2+", help="target metal, e.g. Ni2+ / Cu2+ / Co2+"),
+    deep: bool = typer.Option(False, "--deep", help="also run the MLIP relaxation + MD (needs a GPU backend)"),
+    top: int = typer.Option(0, "--top", help="show only the top N (0 = all)"),
+    json: bool = typer.Option(False, "--json", help="emit JSON (for agents / piping)"),
+) -> None:
+    """Rank a batch of designs by verifier reward, best first (the best-of-N selection step)."""
+    ranked = rank_structures(structures, metal, deep)
+    if top:
+        ranked = ranked[:top]
+    if json:
+        typer.echo(_json.dumps(ranked, indent=2))
+        return
+
+    console = Console()
+    table = Table(title=f"touchstone rank · {metal} · {len(ranked)} designs")
+    for col in ("#", "design", "reward", "consensus", "CN"):
+        table.add_column(col)
+    for i, r in enumerate(ranked, 1):
+        name = Path(r["structure"]).name
+        if "error" in r:
+            table.add_row(str(i), name, "0.000", "[dim]error[/]", "—")
+        else:
+            c = r["consensus"]
+            table.add_row(str(i), name, f"{r['reward']:.3f}", f"[{_COLOR[c]}]{c}[/]", str(r["coordination_number"]))
+    console.print(table)
 
 
 def main() -> None:
