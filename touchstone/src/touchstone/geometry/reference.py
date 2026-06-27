@@ -45,6 +45,7 @@ class MockReference:
     _TABLE = {
         "Ni2+": MetalGeometry("Ni2+", 6, 2.09, 0.08, cn_range=(5, 7)),
         "Cu2+": MetalGeometry("Cu2+", 5, 2.00, 0.12, cn_range=(4, 6)),
+        "Co2+": MetalGeometry("Co2+", 6, 2.10, 0.10, cn_range=(4, 6)),
     }
 
     def geometry(self, metal: str) -> MetalGeometry:
