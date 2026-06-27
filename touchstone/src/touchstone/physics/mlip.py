@@ -91,9 +91,9 @@ def _freeze_scaffold(atoms, free: set[int]) -> None:
 
 
 def _single_point(atoms, calc) -> float:
-    """Constraint-free single-point energy of a (possibly sliced) cluster — slicing a
-    constrained Atoms carries stale FixAtoms indices, irrelevant to a single point."""
-    atoms = atoms.copy()
+    """Constraint-free single-point energy of a freshly-sliced cluster. Callers pass
+    `atoms[...]` slices (already independent copies); a slice carries stale FixAtoms
+    indices, so clear them in place — irrelevant to a single point anyway."""
     atoms.set_constraint()
     return _energy(atoms, calc)
 
