@@ -7,11 +7,25 @@ made — only the `CoordinationSite` — which is what makes it generator-blind.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from itertools import combinations
 from typing import Protocol, runtime_checkable
 
 import numpy as np
+
+
+def element_symbol(metal: str) -> str:
+    """ASE element symbol for a site-metal label: 'Ni2+' -> 'Ni'."""
+    return "".join(c for c in metal if c.isalpha())
+
+
+def oxidation_state(metal: str) -> int:
+    """Formal charge from a site-metal label: 'Ni2+' -> 2, 'Fe3+' -> 3."""
+    m = re.search(r"(\d+)\s*([+-])", metal)
+    if not m:
+        raise ValueError(f"no oxidation state in {metal!r}")
+    return int(m.group(1)) * (1 if m.group(2) == "+" else -1)
 
 
 @dataclass
@@ -26,6 +40,10 @@ class CoordinationSite:
     @property
     def coordination_number(self) -> int:
         return len(self.ligand_xyz)
+
+    @property
+    def is_empty(self) -> bool:
+        return self.coordination_number == 0
 
     def bond_lengths(self) -> np.ndarray:
         """Metal–ligand distances."""
@@ -67,6 +85,12 @@ class Verdict:
     def label(self) -> str:
         """Single-word verdict for display/grouping: defer / trust / weak."""
         return "defer" if self.ood else ("trust" if self.trust else "weak")
+
+    @classmethod
+    def defer(cls, reason: str, score: float = 0.0) -> "Verdict":
+        """An off-manifold verdict — not trusted, flagged for review. Owns the
+        '— defer' reason suffix so every verifier signals it the same way."""
+        return cls(score, trust=False, ood=True, reason=f"{reason} — defer")
 
 
 @runtime_checkable

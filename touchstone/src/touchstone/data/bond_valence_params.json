@@ -1,0 +1,9 @@
+{
+  "b": 0.37,
+  "metals": {
+    "Ni2+": {"N": 1.647, "O": 1.654, "S": 2.040},
+    "Cu2+": {"N": 1.713, "O": 1.679, "S": 2.054},
+    "Co2+": {"N": 1.658, "O": 1.692, "S": 2.030}
+  },
+  "source": "Brese & O'Keeffe (1991) Acta Cryst. B47, 192-197; universal b=0.37. O values from Table 2 (oxide/fluoride/chloride). N/S are oxidation-state-II values cross-referenced to softBV — verify against the canonical bvparm2020.cif before quantitative use, as N/S parameters are oxidation-state-sensitive."
+}

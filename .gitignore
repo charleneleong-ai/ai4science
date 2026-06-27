@@ -17,3 +17,6 @@ venv/
 *.pt
 .cache/
 data/
+# ...but touchstone ships its reference tables as tracked package data
+!touchstone/src/touchstone/data/
+!touchstone/src/touchstone/data/**
