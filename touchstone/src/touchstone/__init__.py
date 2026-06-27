@@ -36,7 +36,9 @@ from .geometry.reference import (
     PDBReference,
     ReferenceDistribution,
 )
+from .geometry.conformer import conformer_seeds
 from .geometry.mogul import MogulVerifier
+from .geometry.precedent import PrecedentHits, PrecedentVerifier
 from .geometry.verifier import GeometryVerifier
 from .physics import (
     MLIPDynamicsVerifier,
@@ -51,7 +53,7 @@ from .physics import (
 )
 from .expression import ExpressionSignals, ExpressionVerifier, score_provider
 from .thermostability import ThermostabilitySignal, ThermostabilityVerifier, tm_provider
-from .pipeline import design_and_rank, rank, selectivity_profile, stress_profile
+from .pipeline import CascadeResult, cascade, design_and_rank, rank, selectivity_profile, stress_profile
 from .reward import best_of_n, rank_structures, reward_from_result
 from .service import verify_structure
 
@@ -82,6 +84,9 @@ __all__ = [
     "GeometryVerifier",
     "BondValenceVerifier",
     "MogulVerifier",
+    "PrecedentVerifier",
+    "PrecedentHits",
+    "conformer_seeds",
     "CofoldCrossCheck",
     "cofold_agreement",
     "cif_provider",
@@ -101,6 +106,8 @@ __all__ = [
     "selectivity_profile",
     "stress_profile",
     "rank",
+    "cascade",
+    "CascadeResult",
     "verify_structure",
     "ExpressionVerifier",
     "ExpressionSignals",

@@ -1,11 +1,63 @@
-"""generator → verify → rank. The whole loop, in two functions."""
+"""generator → verify → rank, and a cost-ordered cascade over the tiers."""
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from typing import Callable
 
 from .core import BinderDesign, Generator, Verdict, Verifier
 from .geometry.ood import under_leachate, under_low_pH
+
+
+@dataclass
+class CascadeResult:
+    """How one design fared through a cost-ordered cascade of verifier tiers."""
+
+    design: BinderDesign
+    verdicts: list[tuple[str, Verdict]]  # (tier label, verdict), in the order run
+    survived: bool  # advanced past every tier
+
+    @property
+    def dropped_at(self) -> str | None:
+        """Tier that rejected the design, or None if it survived all of them."""
+        return None if self.survived else self.verdicts[-1][0]
+
+    @property
+    def final(self) -> Verdict:
+        return self.verdicts[-1][1]
+
+
+def _advances(verdict: Verdict) -> bool:
+    """Default gate: a design advances to the next tier unless flagged off-manifold."""
+    return not verdict.ood
+
+
+def cascade(
+    designs: list[BinderDesign],
+    tiers: list[tuple[str, Verifier]],
+    *,
+    advances: Callable[[Verdict], bool] = _advances,
+) -> list[CascadeResult]:
+    """Run verifier `tiers` (label, verifier) cheap→expensive; each design advances only
+    while `advances(verdict)` holds, stopping at the first tier that rejects it — so the
+    expensive tiers (MLIP / co-fold / MD) only ever run on designs the cheap CSD/geometry
+    gates let through. Returns a CascadeResult per design.
+
+    `advances` defaults to "not off-manifold" (drop only clear rejects); pass
+    `lambda v: v.trust` for aggressive triage that only fast-tracks trusted designs.
+    """
+    results = []
+    for design in designs:
+        verdicts: list[tuple[str, Verdict]] = []
+        survived = True
+        for label, verifier in tiers:
+            verdict = verifier.verify(design)
+            verdicts.append((label, verdict))
+            if not advances(verdict):
+                survived = False
+                break
+        results.append(CascadeResult(design, verdicts, survived))
+    return results
 
 
 def rank(designs: list[BinderDesign], verifier: Verifier) -> list[tuple[BinderDesign, Verdict]]:
