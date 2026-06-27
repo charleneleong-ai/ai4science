@@ -1,6 +1,7 @@
 """MCP server exposing touchstone's verifier to agents (Claude Code, etc.).
 
-    touchstone-mcp        # runs a stdio MCP server
+    touchstone-mcp                         # stdio (local — what Claude Code spawns)
+    touchstone-mcp --http --host 0.0.0.0   # streamable-HTTP (host on a GPU box for the deep tiers)
 
 Exposes one tool, `verify_metal_binder`, backed by the same engine as the CLI.
 Requires the optional `mcp` dependency: `pip install touchstone[mcp]`.
@@ -8,13 +9,19 @@ Requires the optional `mcp` dependency: `pip install touchstone[mcp]`.
 
 from __future__ import annotations
 
+import typer
+
 from .service import verify_structure
 
 
-def main() -> None:
-    from mcp.server.fastmcp import FastMCP
+def _serve(
+    http: bool = typer.Option(False, "--http", help="serve over streamable-HTTP for remote hosting (default: stdio)"),
+    host: str = typer.Option("127.0.0.1", help="bind address for --http (use 0.0.0.0 to expose)"),
+    port: int = typer.Option(8000, help="port for --http"),
+) -> None:
+    from mcp.server.fastmcp import FastMCP  # optional dep — only needed to run the server
 
-    mcp = FastMCP("touchstone")
+    mcp = FastMCP("touchstone", host=host, port=port)
 
     @mcp.tool()
     def verify_metal_binder(structure_path: str, metal: str = "Ni2+", deep: bool = False) -> dict:
@@ -30,7 +37,11 @@ def main() -> None:
         """
         return verify_structure(structure_path, metal, deep)
 
-    mcp.run()
+    mcp.run(transport="streamable-http" if http else "stdio")
+
+
+def main() -> None:
+    typer.run(_serve)
 
 
 if __name__ == "__main__":
