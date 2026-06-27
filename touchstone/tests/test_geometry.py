@@ -16,6 +16,7 @@ from touchstone import (
     under_leachate,
 )
 from touchstone.core import CoordinationSite
+from touchstone.geometry.reference import _CSD_DATA, best_reference
 
 
 def _design(site: CoordinationSite, conf: float = 0.7) -> BinderDesign:
@@ -164,6 +165,12 @@ class TestCSDReference:
         # license-gated: no data file yet ⇒ a clear "build it first" error, not a raw stack trace
         with pytest.raises(FileNotFoundError, match="CSD reference data not found"):
             CSDReference(tmp_path / "nonexistent.json")
+
+    def test_best_reference_prefers_csd_when_built_else_pdb(self):
+        # picks the sharper CSD prior iff its license-gated file exists, else the committed PDB
+        ref = best_reference()
+        assert ref.source == ("CSD" if _CSD_DATA.exists() else "PDB")
+        assert ref.geometry("Ni2+").coordination_number >= 1  # whichever it is, it's usable
 
 
 class TestEmptySite:

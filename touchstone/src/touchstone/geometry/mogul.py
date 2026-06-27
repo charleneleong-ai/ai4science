@@ -1,5 +1,5 @@
-"""Geometry validation against the CSD via Mogul (CCDC) — the gold-standard
-counterpart to GeometryVerifier's hand-rolled z-score.
+"""Geometry validation against the CSD via Mogul (CCDC) — a per-bond counterpart to
+GeometryVerifier's z-score that names *which* bond is unusual.
 
 Mogul checks each metal–donor bond against the Cambridge Structural Database and
 reports how unusual the length is (z-score) and how many CSD hits backed the
@@ -8,6 +8,15 @@ a fragment with too few CSD hits to judge (or when Mogul can't run), and flags a
 off-distribution bond. It uses CCDC's *validation engine*, not just CSD data — so it
 is license-gated (CSD Python API); the analyser is pluggable (inject one for tests,
 the default lazily drives `ccdc.conformer.GeometryAnalyser`).
+
+Caveat (verified 2026-06-27 against a live licence): Mogul classifies fragments by
+their full chemical context, and `_ccdc_analyse` feeds it a site stripped to the metal
++ bare donor atoms — too little context to match its fragment library, so live Mogul
+returns too few hits on these and the verifier defers. On fully-perceived molecules it
+does cover metal–organic bonds (real CSD Ni complexes return 5/5 bond hits). The robust
+CSD signal for our stripped coordinate input is therefore the empirical distance prior
+in `CSDReference` (data/csd_reference.json), which needs no fragment classification;
+reconstructing fuller ligand context here to make this tier informative is a follow-up.
 """
 
 from __future__ import annotations
