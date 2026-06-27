@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from itertools import combinations
-from typing import Protocol, runtime_checkable
+from typing import Callable, Protocol, runtime_checkable
 
 import numpy as np
 
@@ -26,6 +26,18 @@ def oxidation_state(metal: str) -> int:
     if not m:
         raise ValueError(f"no oxidation state in {metal!r}")
     return int(m.group(1)) * (1 if m.group(2) == "+" else -1)
+
+
+def provider_from(mapping: dict, *, key: str = "sequence", transform: Callable = lambda v: v):
+    """Build a verifier provider/scorer: look up `mapping` by `design.<key>`, returning
+    `transform(value)` or None when absent. The shared shape behind the expression /
+    thermostability / co-fold providers — None-guarded in one place."""
+
+    def provide(design):
+        value = mapping.get(getattr(design, key) or "")
+        return transform(value) if value is not None else None
+
+    return provide
 
 
 @dataclass

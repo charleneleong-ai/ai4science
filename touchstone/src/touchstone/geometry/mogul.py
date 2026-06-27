@@ -80,9 +80,10 @@ class MogulVerifier:
         if (fewest := min(f.nhits for f in frags)) < self.min_hits:
             return Verdict.defer(f"insufficient CSD support ({fewest} < {self.min_hits} hits)")
 
-        max_z = max(abs(f.z_score) for f in frags)
+        worst = max(frags, key=lambda f: abs(f.z_score))  # the bond driving the verdict
+        max_z = abs(worst.z_score)
         score = float(np.exp(-0.5 * (max_z / self.trust_z) ** 2))
-        reason = f"Mogul max |z| {max_z:.1f}σ over {len(frags)} bonds ({fewest}+ CSD hits)"
+        reason = f"Mogul: worst bond {worst.label} {worst.value:.2f} Å at {max_z:.1f}σ ({len(frags)} bonds, {fewest}+ CSD hits)"
         if max_z > self.ood_z:
             return Verdict.defer(reason, score=score)
         return Verdict(score, trust=max_z <= self.trust_z, ood=False, reason=reason)

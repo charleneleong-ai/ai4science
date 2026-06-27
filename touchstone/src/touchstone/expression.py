@@ -23,7 +23,7 @@ from typing import Callable
 
 import numpy as np
 
-from .core import BinderDesign, Verdict
+from .core import BinderDesign, Verdict, provider_from
 
 
 @dataclass
@@ -71,8 +71,4 @@ class ExpressionVerifier:
 def score_provider(scores: dict[str, ExpressionSignals]):
     """A scorer reading precomputed ExpressionSignals per design sequence (written by
     scripts/expression_score.py) — the in-library half of the expression stage."""
-
-    def provide(design: BinderDesign) -> ExpressionSignals | None:
-        return scores.get(design.sequence)
-
-    return provide
+    return provider_from(scores)

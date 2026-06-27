@@ -20,7 +20,7 @@ from typing import Callable
 
 import numpy as np
 
-from .core import BinderDesign, Verdict
+from .core import BinderDesign, Verdict, provider_from
 
 _TM_SCALE = 10.0  # °C; fixes the score's sensitivity, independent of the trust cutoff
 
@@ -64,9 +64,4 @@ class ThermostabilityVerifier:
 def tm_provider(predictions: dict[str, float]):
     """A predictor reading a precomputed {sequence: Tm °C} map (written by
     scripts/thermostability_score.py) — the in-library half of the stage."""
-
-    def provide(design: BinderDesign) -> ThermostabilitySignal | None:
-        tm = predictions.get(design.sequence)
-        return ThermostabilitySignal(tm) if tm is not None else None
-
-    return provide
+    return provider_from(predictions, transform=ThermostabilitySignal)

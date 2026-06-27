@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from touchstone import octahedral_site
+from touchstone import octahedral_site, provider_from
 from touchstone.core import BinderDesign, Verdict
 
 
@@ -33,3 +33,24 @@ class TestVerdictLabel:
     def test_label(self, trust, ood, expected):
         # ood takes precedence — a site off the manifold defers even if otherwise "trusted"
         assert Verdict(0.5, trust=trust, ood=ood, reason="x").label == expected
+
+    def test_defer_factory(self):
+        v = Verdict.defer("no data")
+        assert not v.trust and v.ood and v.score == 0.0 and v.reason == "no data — defer"
+        assert Verdict.defer("weak signal", score=0.3).score == 0.3  # ood verdict can still carry a score
+
+
+class TestProviderFrom:
+    """The shared factory behind the expression / thermostability / co-fold providers."""
+
+    def _design(self, source: str | None = None) -> BinderDesign:
+        return BinderDesign("SEQ", octahedral_site("Ni2+"), generator="x", generator_confidence=0.5, source=source)
+
+    def test_looks_up_by_sequence_and_transforms_present_values(self):
+        assert provider_from({"SEQ": 3.0}, transform=lambda v: v * 2)(self._design()) == 6.0
+
+    def test_missing_returns_none_without_transforming(self):
+        assert provider_from({}, transform=lambda v: v * 2)(self._design()) is None
+
+    def test_alternate_key(self):
+        assert provider_from({"p.pdb": "hit"}, key="source")(self._design(source="p.pdb")) == "hit"

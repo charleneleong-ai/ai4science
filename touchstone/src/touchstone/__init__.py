@@ -12,6 +12,7 @@ from .core import (
     Verifier,
     element_symbol,
     oxidation_state,
+    provider_from,
 )
 from .generators import (
     BoltzGenAdapter,
@@ -62,6 +63,7 @@ __all__ = [
     "Verifier",
     "element_symbol",
     "oxidation_state",
+    "provider_from",
     "MockGenerator",
     "RFdiffusionAdapter",
     "BoltzGenAdapter",
