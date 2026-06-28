@@ -56,9 +56,13 @@ def _rows(npz_dir: Path, cif_dir: Path, metal: str) -> list[dict]:
             r = verify_structure(cif, metal)
             row["consensus"] = r["consensus"]
             row["reward"] = reward_from_result(r)
-            row["flags"] = ", ".join(n for n, v in r["verifiers"].items() if v.get("label") not in (None, "trust")) or "—"
+            # why it isn't trusted: the reason from each tier that flagged it
+            row["why"] = "; ".join(
+                f"{n} {v['reason'].replace(' — defer', '')}"
+                for n, v in r["verifiers"].items() if v.get("label") not in (None, "trust")
+            ) or "—"
         except Exception as e:  # unparseable / no metal ⇒ record, don't crash the batch
-            row["consensus"], row["reward"], row["flags"] = "error", 0.0, type(e).__name__
+            row["consensus"], row["reward"], row["why"] = "error", 0.0, type(e).__name__
         rows.append(row)
     return rows
 
@@ -66,13 +70,13 @@ def _rows(npz_dir: Path, cif_dir: Path, metal: str) -> list[dict]:
 def _print(rows: list[dict], metal: str) -> None:
     console = Console()
     table = Table(title=f"BoltzGen confidence  vs  touchstone verdict · {metal}")
-    for col in ("design", "iPTM↑", "pLDDT↑", "pTM↑", "touchstone", "reward", "tiers not trusted"):
+    for col in ("design", "iPTM↑", "pLDDT↑", "pTM↑", "touchstone", "reward", "why (touchstone)"):
         table.add_column(col)
     fmt = lambda x: f"{x:.2f}" if isinstance(x, float) else "—"
     for r in rows:
         c = r["consensus"]
         verdict = f"[{_COLOR[c]}]{c.upper()}[/]" if c in _COLOR else "[dim]error[/]"
-        table.add_row(r["design"], fmt(r["iptm"]), fmt(r["plddt"]), fmt(r["ptm"]), verdict, fmt(r["reward"]), r["flags"])
+        table.add_row(r["design"], fmt(r["iptm"]), fmt(r["plddt"]), fmt(r["ptm"]), verdict, fmt(r["reward"]), r["why"])
     console.print(table)
     console.print("[dim]BoltzGen iPTM/pLDDT/pTM = generator self-confidence (best refold sample); "
                   "touchstone = independent chemistry verdict on the same structure.[/]")
@@ -84,11 +88,11 @@ def _to_wandb(rows: list[dict], metal: str, project: str | None) -> None:
     from touchstone import tracking
 
     run = tracking.init(f"boltzgen-vs-touchstone-{metal}", config={"metal": metal, "n": len(rows)}, project=project)
-    tbl = wandb.Table(columns=["design", "iptm", "plddt", "ptm", "consensus", "reward", "flags"])
+    tbl = wandb.Table(columns=["design", "iptm", "plddt", "ptm", "consensus", "reward", "why"])
     counts = {"trust": 0, "weak": 0, "defer": 0}
     for r in rows:
         counts[r["consensus"]] = counts.get(r["consensus"], 0) + 1
-        tbl.add_data(r["design"], r["iptm"], r["plddt"], r["ptm"], r["consensus"], r["reward"], r["flags"])
+        tbl.add_data(r["design"], r["iptm"], r["plddt"], r["ptm"], r["consensus"], r["reward"], r["why"])
     bar = wandb.Table(data=[[k, counts.get(k, 0)] for k in ("trust", "weak", "defer")], columns=["verdict", "count"])
     run.log({
         "boltzgen_vs_touchstone": tbl,

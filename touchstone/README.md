@@ -46,6 +46,13 @@ touchstone rank designs/*.pdb --metal Ni2+    # batch, best-first by reward
 touchstone verify design.pdb --deep           # + MLIP relax/MD (needs a GPU)
 ```
 
+Compare a generator's own confidence with the verifier's verdict per design (BoltzGen iPTM/pLDDT/pTM vs touchstone consensus + the reason it deferred), optionally logging to W&B:
+
+```bash
+uv run --extra viz python scripts/boltzgen_scores.py \
+  --npz-dir <fold_out_npz> --cif-dir <refold_cif> --metal Ni2+ --wandb
+```
+
 ## Sample output
 
 Each result is a JSON-able dict: per-tier verdicts (`label` / `score` / `reason` + a
