@@ -19,7 +19,7 @@ No custom RL code needed — the reward is expressed as **which samples enter th
    `scripts/rlvr_select.py --npz-dir … --cif-dir … --out round_k --metal Ni2+ --keep trust`
    → `round_k/dataset/*.cif` (the kept designs) + `round_k/rewards.jsonl`. Reward =
    `reward_from_result` (consensus-weighted mean over geometry · bond-valence · nVECSUM · shape · …).
-3. **Format** the kept CIFs into BoltzGen training targets (pipeline mapped — see below).
+3. **Format** the kept CIFs into BoltzGen training targets with `scripts/winners_to_targets.py` (validated — see below).
 4. **Fine-tune** on the winners, resuming from the released weights, on the A100 (`bg` env):
    `python -m boltzgen.task.train.train ... --config-name boltzgen.yaml resume=<released.ckpt> data=<winners>`
 5. **Repeat** — the policy drifts toward verifier-passing (CSD-plausible) metal sites.
@@ -27,21 +27,24 @@ No custom RL code needed — the reward is expressed as **which samples enter th
 This is exactly the verifier slot the team's `loop_runner` already exposes (its per-loop
 "verifier evaluation" adapter) — touchstone is that adapter; rlvr_select is the batch version.
 
-## Winners → BoltzGen training targets (step 3, pipeline mapped)
-BoltzGen's trainer reads, per design, a **`Record` JSON + a `Structure` `.npz`** from
-`DatasetConfig.target_dir` (+ MSAs from `msa_dir`, optional `manifest_path` listing ids with the
-metadata its `SizeFilter`/`DateFilter`/`ResolutionFilter`/`ClusterSampler` use). Mapped entrypoints
-(all in the `bg` env, `boltzgen.data`):
+## Winners → BoltzGen training targets (step 3 — `scripts/winners_to_targets.py`, validated)
+BoltzGen's trainer (`task/train/data.py`) reads, per design, a **`Record` JSON + a `Structure`
+`.npz`** under `DatasetConfig.target_dir`, plus a `Manifest` at `manifest_path`. The validated
+layout the converter writes (confirmed by a dump→load round-trip on real winner CIFs):
 
-1. `parse/mmcif.py:parse_mmcif(path) -> ParsedStructure` — CIF → parsed structure.
-2. `data.py:Structure.dump(target_dir/<id>.npz)` + `Record.dump(target_dir/<id>.json)` — serialize.
-3. MSAs → `msa_dir/<id>.npz` (de-novo designs have none → single-sequence / dummy MSA).
-4. `manifest.json` listing the kept ids (+ size/date/resolution so the filters pass).
+    out/structures/<id>.npz   # Structure.dump  (parse_mmcif → ParsedStructure.data)
+    out/records/<id>.json     # Record.dump     (StructureInfo + per-chain ChainInfo)
+    out/manifest.json         # Manifest(records=[…])  → DatasetConfig.manifest_path
 
-The generation `.npz` is **not** reusable as a training `Structure` (it lacks the `chains` array —
-verified). So the converter must re-parse the winner CIFs through `parse_mmcif` and `Structure.dump`.
-It has to run in the `bg` env on the A100 (where `parse_mmcif` + the schema live) and be validated
-against it on real winner CIFs — so it's built next, once a winner pool exists, not blind from here.
+Path, in the `bg` env (`boltzgen.data`): `parse_mmcif(cif, moldir=~/.boltz/mols) -> ParsedStructure`
+→ `.data` is the `Structure` (dump it), `.info` is the `StructureInfo` (goes in the `Record`). Build
+one `ChainInfo` per `structure.chains` row (protein `mol_type=0` + metal ligand `mol_type=3`).
+
+**No MSA needed.** De-novo designs carry no alignment; the trainer gates MSA loading on `use_msa`,
+so fine-tune with **`use_msa: false`** (single-sequence) and `msa_dir` is never read — `msa_id=-1`.
+The generation `.npz` is **not** reusable as a training `Structure` (no `chains` array — verified),
+so the converter re-parses the winner CIFs. Needs the `~/.boltz/mols` CCD cache (`NI.pkl` etc.) to
+resolve components.
 
 ## Honest caveats (read before burning A100 hours)
 - **The pool must contain winners.** On the current bare Ni pool *every* design is `DEFER`
@@ -58,7 +61,7 @@ against it on real winner CIFs — so it's built next, once a winner pool exists
 ## Status
 - ✅ Reward + selection (`reward.py`, `scripts/rlvr_select.py`) — runnable; validated on real BoltzGen Ni output.
 - ✅ BoltzGen fine-tune entrypoint identified (`Training`, resume).
-- ✅ Step-3 pipeline mapped (`parse_mmcif` → `Structure.dump`/`Record.dump` + manifest + MSA); gen-npz confirmed not a training Structure.
-- 🟡 48-design motif pool generating on the A100 (`boltzgen_rlvr_r1_out`, detached) — to give `rlvr_select` real TRUST winners.
-- ⬜ Build + validate the winners→targets converter in the `bg` env on those winners.
-- ⬜ First fine-tune round on the A100, then re-verify the new pool with touchstone (did TRUST-rate rise?).
+- ✅ Step-3 converter `scripts/winners_to_targets.py` — built + validated in the `bg` env (dump→load round-trip on real round-1 winners; `structures/`+`records/`+`manifest.json`).
+- ✅ Round-1 motif pool (48) generated → `rlvr_select` kept **4 TRUST** winners (`ni_motif_13/16/40/43`).
+- 🟡 Round-2 motif pool (48) generating to enlarge the winner set before fine-tuning.
+- ⬜ Merge round-1+round-2 winners → run the converter → first resume-train round on the A100, then re-verify the new pool with touchstone (did TRUST-rate rise?).
