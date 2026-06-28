@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .cofold import CofoldCrossCheck
 from .core import BinderDesign, Verdict, element_symbol
 from .geometry.bond_valence import BondValenceVerifier
 from .geometry.coordination import CoordinationGeometryVerifier, CoordinationSymmetryVerifier
@@ -96,14 +97,17 @@ def mlip_backbone():
 
 
 def verify_structure(
-    structure: str | Path, metal: str = "Ni2+", deep: bool = False, cutoff: float = 2.8, stress: bool = False, calc=_AUTO
+    structure: str | Path, metal: str = "Ni2+", deep: bool = False, cutoff: float = 2.8, stress: bool = False,
+    cofold_provider=None, calc=_AUTO,
 ) -> dict:
     """Verify a metal-coordination structure. Returns per-verifier verdicts, a `not_run`
     map of stages needing inputs, and a trust/weak/defer consensus. With `stress`, also
     re-verify the site under extreme-condition perturbations (acidic-leachate bond stretch,
     low-pH donor protonation) → a `stress` map {neutral/leachate/low_pH: verdict}: does it
-    hold up in the real recovery process? `calc` is an internal knob for batch callers
-    (`rank_structures`) to share one MLIP backbone; leave it default."""
+    hold up in the real recovery process? `cofold_provider` (a design → predicted
+    CoordinationSite callback, e.g. cofold.cif_provider over Chai-1 / AllMetal3D outputs)
+    adds the independent co-fold cross-check tier. `calc` is an internal knob for batch
+    callers (`rank_structures`) to share one MLIP backbone; leave it default."""
     site = coordination_site(structure, element_symbol(metal).upper(), metal, cutoff)
     design = BinderDesign("", site, generator="external", generator_confidence=0.0, source=str(structure))
 
@@ -113,6 +117,8 @@ def verify_structure(
         "coord_symmetry": _COORD_SYMMETRY,
         "coord_geometry": _COORD_GEOMETRY,
     }
+    if cofold_provider is not None:  # independent predictor (Chai-1 / AllMetal3D) corroboration
+        verifiers["cofold"] = CofoldCrossCheck(cofold_provider)
     results: dict[str, dict] = {}
     if deep:
         if calc is _AUTO:  # single call ⇒ build per call; a batch hands in a shared backbone (or None)
