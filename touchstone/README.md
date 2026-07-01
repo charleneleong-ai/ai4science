@@ -53,6 +53,24 @@ uv run --extra viz python scripts/boltzgen_scores.py \
   --npz-dir <fold_out_npz> --cif-dir <refold_cif> --metal Ni2+ --wandb
 ```
 
+## Close the loop (RLVR)
+
+The verdict doubles as a reward to fine-tune the generator on its own best designs
+(reject-sampling / RAFT — BoltzGen ships no DPO). The loop is wired and validated end-to-end:
+
+```bash
+# 1. score a generated pool, keep the TRUST winners as the fine-tuning set
+uv run python scripts/rlvr_select.py --npz-dir <fold_out_npz> --cif-dir <refold_cif> \
+  --out round1 --metal Ni2+ --keep trust
+# 2. convert the winners to BoltzGen training targets (bg env, on the GPU box)
+python scripts/winners_to_targets.py --cif-dir round1/dataset --out targets/round1
+# 3. resume-train BoltzGen on targets/round1 — then re-verify the next pool, repeat
+```
+
+CSD metal knowledge enters through the reward (touchstone's prior), **not** as raw training
+data — the only sound way to inject small-molecule crystallography into a *protein* generator.
+See [`docs/specs/2026-06-28-rlvr-boltzgen.md`](docs/specs/2026-06-28-rlvr-boltzgen.md).
+
 ## Sample output
 
 Each result is a JSON-able dict: per-tier verdicts (`label` / `score` / `reason` + a

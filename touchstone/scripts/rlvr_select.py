@@ -14,6 +14,9 @@ training data — which is why this works for a *protein* generator. See docs/sp
         --npz-dir boltzgen_out/.../fold_out_npz --cif-dir boltzgen_out/.../refold_cif \
         --out rlvr_round1 --metal Ni2+ --keep trust      # strict: only TRUST designs
     # or --keep 8  → top-8 by reward (softer; use to bootstrap when the pool has few/no TRUST)
+    # --deep  → also run the MLIP relax+MD tiers, so the reward selects for dynamically-stable
+    #           sites, not just geometrically-clean ones (needs a GPU; only spends MLIP on
+    #           geometry-plausible designs). Run in the mace env on the GPU box.
 """
 
 from __future__ import annotations
@@ -25,8 +28,20 @@ from pathlib import Path
 import numpy as np
 import typer
 
-from touchstone.reward import reward_from_result
-from touchstone.service import verify_structure
+from touchstone.reward import rank_structures
+from touchstone.service import mlip_backbone
+
+
+def _iptm(npz_dir: Path, stem: str) -> float | None:
+    """Best BoltzGen iPTM for a design (max over refold samples), or None if absent."""
+    npz_path = npz_dir / f"{stem}.npz"
+    if not npz_path.exists():
+        return None
+    npz = np.load(npz_path, allow_pickle=True)
+    for k in ("design_to_target_iptm", "ligand_iptm", "iptm"):
+        if k in npz:
+            return float(np.atleast_1d(npz[k]).astype(float).max())
+    return None
 
 
 def main(
@@ -35,29 +50,25 @@ def main(
     out: Path = typer.Option(..., help="output dir for the selected fine-tuning set + rewards"),
     metal: str = typer.Option("Ni2+", help="target metal"),
     keep: str = typer.Option("trust", help="'trust' (only TRUST designs) or an int N (top-N by reward)"),
+    deep: bool = typer.Option(False, "--deep", help="fold the MLIP relax+MD tiers into the reward (needs a GPU + touchstone[mace])"),
 ) -> None:
     out.mkdir(parents=True, exist_ok=True)
     dataset = out / "dataset"
     dataset.mkdir(exist_ok=True)
 
+    calc = mlip_backbone() if deep else None  # build the MACE backbone once, share across the batch
+    if deep and calc is None:  # honor an explicit --deep: never silently ship a geometry-only reward as "deep"
+        raise typer.Exit("--deep needs a GPU + touchstone[mace]; refusing to score geometry-only")
+
+    # rank_structures does the batch verify+reward+sort; gate_defer spends MLIP only on geometry-plausible designs
+    ranked = rank_structures(sorted(cif_dir.glob("*.cif")), metal, deep=deep, gate_defer=deep, calc=calc)
     scored = []
-    for cif in sorted(cif_dir.glob("*.cif")):
-        try:
-            r = verify_structure(cif, metal)
-        except Exception as e:
-            scored.append({"design": cif.stem, "reward": 0.0, "consensus": "error", "error": str(e)})
-            continue
-        npz_path = npz_dir / f"{cif.stem}.npz"
-        iptm = None
-        if npz_path.exists():
-            npz = np.load(npz_path, allow_pickle=True)
-            for k in ("design_to_target_iptm", "ligand_iptm", "iptm"):
-                if k in npz:
-                    iptm = float(np.atleast_1d(npz[k]).astype(float).max())
-                    break
-        scored.append({"design": cif.stem, "cif": str(cif), "reward": reward_from_result(r),
-                       "consensus": r["consensus"], "boltzgen_iptm": iptm})
-    scored.sort(key=lambda s: s["reward"], reverse=True)
+    for r in ranked:
+        cif = Path(r["structure"])
+        v = r.get("verifiers", {})
+        scored.append({"design": cif.stem, "cif": str(cif), "reward": r["reward"],
+                       "consensus": r["consensus"], "boltzgen_iptm": _iptm(npz_dir, cif.stem),
+                       "mlip": v.get("mlip", {}).get("label"), "mlip_md": v.get("mlip_md", {}).get("label")})
 
     if keep == "trust":
         winners = [s for s in scored if s["consensus"] == "trust"]

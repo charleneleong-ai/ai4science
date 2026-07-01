@@ -14,6 +14,7 @@ from statistics import fmean
 from .service import mlip_backbone, verify_structure
 
 _CONSENSUS_WEIGHT = {"trust": 1.0, "weak": 0.5, "defer": 0.0}
+_AUTO = object()  # rank_structures default: build the MLIP backbone per call (batch callers pass a shared one)
 
 
 def reward_from_result(result: dict) -> float:
@@ -25,14 +26,26 @@ def reward_from_result(result: dict) -> float:
     return round(_CONSENSUS_WEIGHT[result["consensus"]] * fmean(scores), 4)
 
 
-def rank_structures(structures, metal: str = "Ni2+", deep: bool = False) -> list[dict]:
+def rank_structures(
+    structures, metal: str = "Ni2+", deep: bool = False, gate_defer: bool = False, calc=_AUTO
+) -> list[dict]:
     """Verify each structure and return results (each with a `reward`) sorted best-first.
-    A structure that can't be parsed/verified scores 0 with an `error` recorded."""
-    calc = mlip_backbone() if deep else None  # build the MLIP backbone once, share across the batch
+    A structure that can't be parsed/verified scores 0 with an `error` recorded. `calc` lets a
+    caller share one MLIP backbone (leave default to build per call). With `gate_defer`, run the
+    cheap geometry pass first and spend the deep MLIP tiers only on designs that don't already
+    defer on geometry — a geometry-defer scores reward 0 regardless (see `_CONSENSUS_WEIGHT`), and
+    MLIP can only add defers, so gating can't change the selection, only save GPU."""
+    if calc is _AUTO:
+        calc = mlip_backbone() if deep else None  # build the MLIP backbone once, share across the batch
     scored: list[dict] = []
     for s in structures:
         try:
-            result = verify_structure(s, metal, deep, calc=calc)
+            if gate_defer and calc is not None:
+                result = verify_structure(s, metal)  # geometry-only first
+                if result["consensus"] != "defer":
+                    result = verify_structure(s, metal, deep=True, calc=calc)
+            else:
+                result = verify_structure(s, metal, deep, calc=calc)
         except Exception as e:  # unparseable / no metal ⇒ worst reward, recorded
             result = {"structure": str(s), "consensus": "defer", "verifiers": {}, "error": f"{type(e).__name__}: {e}"}
         result["reward"] = reward_from_result(result)
