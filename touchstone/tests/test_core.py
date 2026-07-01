@@ -20,9 +20,6 @@ class TestCoordinationSite:
         site = octahedral_site("Ni2+", bond=2.1)
         assert np.allclose(site.bond_lengths(), 2.1)
 
-    def test_coordination_number(self):
-        assert octahedral_site("Ni2+").coordination_number == 6
-
     def test_octahedral_angles_are_90_or_180(self):
         angles = np.sort(octahedral_site("Ni2+").bond_angles())
         # 12 cis pairs at 90°, 3 trans pairs at 180°

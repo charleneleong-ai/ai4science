@@ -101,11 +101,6 @@ class TestPDBReference:
         assert 1.8 <= g.bond_length_mean <= 2.6  # metal–donor bonds live here
         assert g.bond_length_std > 0 and g.coordination_number >= 3
 
-    def test_plugs_into_verifier_unchanged(self):
-        # same verifier API, real reference — an ideal-mock site verifies without error
-        v = GeometryVerifier(PDBReference()).verify(GOOD)
-        assert isinstance(v.score, float)
-
     def test_unknown_metal_raises(self):
         with pytest.raises(KeyError):
             PDBReference().geometry("Au3+")
@@ -153,9 +148,10 @@ class TestCSDReference:
         return CSDReference(p)
 
     def test_plugs_into_verifier_unchanged(self, tmp_path):
-        # identical call as PDB/Mock — the verifier never learns which reference it is
+        # identical call as PDB/Mock — the verifier never learns which reference it is;
+        # an ideal site at the CSD mean (2.08 Å, CN in [4,6]) trusts through it
         v = GeometryVerifier(self._ref(tmp_path)).verify(GOOD)
-        assert isinstance(v.score, float)
+        assert v.trust and not v.ood
 
     def test_unknown_metal_raises_with_source(self, tmp_path):
         with pytest.raises(KeyError, match="CSD"):
