@@ -57,12 +57,26 @@ def protonate(structure: str | Path, pH: float = 7.4) -> str | None:
     structure = Path(structure)
     key = (str(structure), pH)
     if key not in _H_CACHE:
-        mol = next(pybel.readfile(structure.suffix[1:] or "pdb", str(structure)))
+        mol = next(pybel.readfile("pdb", _normalize(structure)))
         mol.OBMol.AddHydrogens(False, True, pH)  # (polar-only=False, correct-for-pH=True, pH)
         out = str(Path(_h_dir()) / f"{len(_H_CACHE)}_{structure.stem}_H.pdb")
         mol.write("pdb", out, overwrite=True)
         _H_CACHE[key] = out
     return _H_CACHE[key]
+
+
+def _normalize(structure: Path) -> str:
+    """Rewrite to a clean PDB via gemmi so OpenBabel/ASE can type the metal — BoltzGen
+    mmCIFs encode the cation as element `*`/unknown (→ downstream KeyError); gemmi reads it.
+    Falls back to the raw path if gemmi is absent (fine for PDBs; CIF metals may be lost)."""
+    try:
+        import gemmi
+    except ImportError:
+        return str(structure)
+    st = gemmi.read_structure(str(structure))
+    out = str(Path(_h_dir()) / f"{structure.stem}_norm.pdb")
+    st.write_pdb(out)
+    return out
 
 
 def make_backbone(name: str, device: str = "cuda"):
@@ -283,7 +297,9 @@ class _MLIPBase:
         # add H first (MACE needs explicit H or the metal wanders); falls back to the raw
         # structure if OpenBabel is absent. Heavy-atom coords are untouched, so the parsed
         # site (geometry/bond-valence) is unaffected — only this MLIP cluster sees the H.
-        source = (self.protonate and protonate(design.source)) or design.source
+        # normalize either way (protonate does it internally; the no-protonation fallback
+        # needs it too, else a BoltzGen CIF's untyped metal breaks the ASE read below)
+        source = (self.protonate and protonate(design.source)) or _normalize(design.source)
         atoms = read(source)
         # PDBs (incl. BoltzGen's) carry a CRYST1 1 Å cell, so ase.io.read marks the
         # structure periodic. Treated as a crystal, an MLIP builds a vast periodic
