@@ -25,23 +25,11 @@ import json
 import shutil
 from pathlib import Path
 
-import numpy as np
 import typer
 
+from touchstone.boltzgen import boltzgen_confidence
 from touchstone.reward import rank_structures
 from touchstone.service import mlip_backbone
-
-
-def _iptm(npz_dir: Path, stem: str) -> float | None:
-    """Best BoltzGen iPTM for a design (max over refold samples), or None if absent."""
-    npz_path = npz_dir / f"{stem}.npz"
-    if not npz_path.exists():
-        return None
-    npz = np.load(npz_path, allow_pickle=True)
-    for k in ("design_to_target_iptm", "ligand_iptm", "iptm"):
-        if k in npz:
-            return float(np.atleast_1d(npz[k]).astype(float).max())
-    return None
 
 
 def main(
@@ -67,7 +55,8 @@ def main(
         cif = Path(r["structure"])
         v = r.get("verifiers", {})
         scored.append({"design": cif.stem, "cif": str(cif), "reward": r["reward"],
-                       "consensus": r["consensus"], "boltzgen_iptm": _iptm(npz_dir, cif.stem),
+                       "consensus": r["consensus"],
+                       "boltzgen_iptm": (boltzgen_confidence(npz_dir / f"{cif.stem}.npz") or {}).get("iptm"),
                        "mlip": v.get("mlip", {}).get("label"), "mlip_md": v.get("mlip_md", {}).get("label")})
 
     if keep == "trust":

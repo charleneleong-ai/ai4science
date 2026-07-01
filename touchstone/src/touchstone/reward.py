@@ -11,10 +11,8 @@ from __future__ import annotations
 
 from statistics import fmean
 
-from .service import mlip_backbone, verify_structure
-
-_CONSENSUS_WEIGHT = {"trust": 1.0, "weak": 0.5, "defer": 0.0}
-_AUTO = object()  # rank_structures default: build the MLIP backbone per call (batch callers pass a shared one)
+from .core import _CONSENSUS_WEIGHT
+from .service import _AUTO, mlip_backbone, verify_structure
 
 
 def reward_from_result(result: dict) -> float:

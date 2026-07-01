@@ -19,6 +19,8 @@ import os
 from collections import Counter
 from pathlib import Path
 
+from .core import _CONSENSUS_WEIGHT
+
 _ENV = Path(__file__).resolve().parents[2] / ".env"  # touchstone/.env
 
 
@@ -87,9 +89,6 @@ def log_molecules(run, named_pdbs: dict[str, str]) -> None:
     import wandb
 
     run.log({key: wandb.Molecule(open(pdb)) for key, pdb in named_pdbs.items()})
-
-
-_CONSENSUS_WEIGHT = {"trust": 1.0, "weak": 0.5, "defer": 0.0}
 
 
 def _candidate_metrics(result: dict) -> dict:

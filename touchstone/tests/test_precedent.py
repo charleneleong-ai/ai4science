@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from touchstone import BinderDesign, PrecedentHits, PrecedentVerifier
 from touchstone.core import CoordinationSite
