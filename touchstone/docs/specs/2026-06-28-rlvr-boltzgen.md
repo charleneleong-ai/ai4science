@@ -59,9 +59,11 @@ resolve components.
 - **Data formatting** (step 3) is the real engineering gap; the rest is wired.
 
 ## Status
-- ✅ Reward + selection (`reward.py`, `scripts/rlvr_select.py`) — runnable; validated on real BoltzGen Ni output.
-- ✅ BoltzGen fine-tune entrypoint identified (`Training`, resume).
-- ✅ Step-3 converter `scripts/winners_to_targets.py` — built + validated in the `bg` env (dump→load round-trip on real round-1 winners; `structures/`+`records/`+`manifest.json`).
-- ✅ Round-1 motif pool (48) generated → `rlvr_select` kept **4 TRUST** winners (`ni_motif_13/16/40/43`).
-- 🟡 Round-2 motif pool (48) generating to enlarge the winner set before fine-tuning.
-- ⬜ Merge round-1+round-2 winners → run the converter → first resume-train round on the A100, then re-verify the new pool with touchstone (did TRUST-rate rise?).
+- ✅ Reward + selection (`reward.py`, `scripts/rlvr_select.py`) — validated on real BoltzGen Ni output.
+- ✅ Step-3 converter `scripts/winners_to_targets.py` — built + validated in the `bg` env.
+- ✅ **First loop closed end-to-end** — 4 motif pools (288 designs) → 17 TRUST winners → 300-step
+  fine-tune from `boltzgen1_diverse.ckpt` → fresh pool re-verified. **Geometry-TRUST 5.9% → 21.9%
+  (3.7×).** Independent MLIP deep check shows the reward is geometry-permissive (sites hold but are
+  MD-labile). Full writeup: [`docs/experiments/2026-07-01-rlvr-boltzgen-round1.md`](../experiments/2026-07-01-rlvr-boltzgen-round1.md).
+- ⬜ Fold the MLIP/MD tier into the reward → next RAFT round (select for dynamically-stable sites,
+  not just geometrically-clean ones); add a matched base-model `--deep` baseline.
