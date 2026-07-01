@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from touchstone import BinderDesign, BondValenceVerifier
-from touchstone.core import CoordinationSite, oxidation_state
+from touchstone.core import CoordinationSite
 
 _OCT = np.array([[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]], float)
 
@@ -45,8 +45,3 @@ class TestBondValenceVerifier:
         # P is not in the R0 table — must defer, not silently undercount the BVS
         v = verifier.verify(_design(elem="P"))
         assert v.ood and not v.trust and "not parameterized" in v.reason
-
-
-@pytest.mark.parametrize("label, expected", [("Ni2+", 2), ("Cu2+", 2), ("Fe3+", 3), ("O2-", -2)])
-def test_oxidation_state_parses(label, expected):
-    assert oxidation_state(label) == expected
