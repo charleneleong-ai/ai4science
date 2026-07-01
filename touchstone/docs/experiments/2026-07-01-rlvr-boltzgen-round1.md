@@ -1,4 +1,4 @@
-# RLVR round 1 — does the touchstone reward improve BoltzGen? (Ni, 2026-07-01)
+# RLVR rounds 1–2 — does the touchstone reward improve BoltzGen? (Ni, 2026-07-01)
 
 First end-to-end run of the loop in [`docs/specs/2026-06-28-rlvr-boltzgen.md`](../specs/2026-06-28-rlvr-boltzgen.md):
 generate → [`rlvr_select`](../../scripts/rlvr_select.py) → [`winners_to_targets`](../../scripts/winners_to_targets.py)
@@ -54,7 +54,35 @@ asked; the fix is to ask for more.
   *worse*, only that geometry-TRUST overstates it. A base-model `--deep` pass would close that.
 - **Single run / single seed.** Effect is large but unreplicated.
 
-## Next move
-Fold the MLIP (or MD-retention) tier into the reward and run another RAFT round — select for sites
-that are geometrically clean **and** dynamically stable — then check whether the MLIP-trust rate
-climbs, not just the geometry-trust rate.
+## Round 2 — folding MLIP into the reward (the objective tradeoff)
+Added `--deep` to `rlvr_select` so the MLIP relax+MD tiers enter the consensus + `reward_from_result`
+(shared MACE backbone; MLIP spent only on geometry-plausible designs). Re-selected the round-1
+fine-tuned pool (96) → top-15 by the MLIP-aware reward, fine-tuned round-1's checkpoint on them
+(iterative RAFT), and deep-verified a fresh pool.
+
+The round-2 training set was genuinely MLIP-stable (12/15 MLIP-MD-trust, 0 collapse) — but mostly only
+geometry-*weak* (3 trust · 12 weak), because MLIP-stability dominated the ranking. The result, on a
+fresh 96-design pool:
+
+| metric | round-1 (geometry reward) | round-2 (MLIP-aware reward) |
+|---|---|---|
+| geometry-TRUST | 21.9% (21/96) | **6.3% (6/96)** ↓ 3.5× |
+| MLIP-MD trust | ~4/96 (subset) | **34.4% (33/96)** ↑ ~8× |
+
+**RLVR moved exactly what the reward measured — and regressed the objective it stopped weighting.**
+Dynamic stability jumped ~8×; geometry-TRUST collapsed, because the MLIP-dominated selection trained
+the model on geometrically-mediocre (but stable) sites. Two rounds now demonstrate the tradeoff
+empirically: a single-objective-dominated reward sacrifices the de-emphasized objective.
+
+## Verdict (both rounds)
+Verifier-as-reward **works and is steerable** — it reliably optimizes whatever the reward encodes.
+That is also its hazard: geometry-only → MD-labile designs; MLIP-only → geometry-poor designs. The
+reward must be **balanced**, and selection must require *both* (geometry-TRUST ∧ MLIP-stable), not let
+either term dominate.
+
+## Next move — round 3, balanced reward
+Branch from **round-1's checkpoint** (best geometry) and train only on **dual-passers** (geometry-TRUST
+∧ MLIP-MD-trust). These are rare (~2–4 per 96-pool), so the first balanced set is small (8 accumulated
+across the ft2+ft3 pools). Success = a pool that holds geometry-TRUST **and** MLIP-stability together —
+neither collapsing. If the dual-pass rate is too low to train well, grow the set with more generation
+or adopt a weighted continuous reward that keeps both terms.
