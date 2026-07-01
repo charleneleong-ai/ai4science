@@ -124,8 +124,10 @@ Folds into **phase 3 (calibration)** of the MLIP design.
 
 1. **Relaxation-health gate — done.** Non-convergence / high `|F|max` → `defer` on the
    MLIP verdict. Single backbone, zero new deps.
-2. **Ensemble disagreement** — add an `orb` backbone and run MACE ↔ Orb in-process
-   (resolves clean, no env split), once Orb passes the Ni-cluster CN benchmark. UMA
-   remains the separate-env third opinion.
+2. **Ensemble disagreement** — the `orbmol` backbone is wired (charge/spin plumbed
+   through to `atoms.info`, `[orb]` extra, fail-fast when charge/spin are missing);
+   remaining is the MACE ↔ Orb disagreement comparison itself, gated on Orb first
+   passing the Ni-cluster CN benchmark UMA already passed. UMA stays the separate-env
+   third opinion.
 3. **Calibrated UQ head** against DFT / high-error configs — the research-program
    version, gated on wet-lab outcome data touchstone does not yet have.

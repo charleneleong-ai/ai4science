@@ -267,6 +267,37 @@ class TestProtonate:
         assert syms.count("C") == 3 and syms.count("N") == 1 and syms.count("O") == 1  # heavy atoms intact
 
 
+class TestChargeSpin:
+    """OrbMol requires total charge + spin multiplicity via atoms.info; the other
+    backbones ignore it. The verifier plumbs them onto the cluster it hands to the calc."""
+
+    def test_cluster_carries_charge_and_spin_when_set(self, tmp_path):
+        cluster = MLIPVerifier(calculator=SpringToMetal(), charge=2, spin=3)._cluster(_design(tmp_path))
+        assert cluster.info["charge"] == 2 and cluster.info["spin"] == 3
+
+    def test_cluster_omits_them_when_unset(self, tmp_path):
+        # MACE/UMA runs must not carry a spurious charge/spin — absence, not a default.
+        cluster = MLIPVerifier(calculator=SpringToMetal())._cluster(_design(tmp_path))
+        assert "charge" not in cluster.info and "spin" not in cluster.info
+
+    @pytest.mark.parametrize("kw", [{}, {"charge": 2}, {"spin": 3}], ids=["neither", "spin-missing", "charge-missing"])
+    def test_orbmol_requires_charge_and_spin(self, kw):
+        # fail loud at construction, not deep in the orb adapter — total cluster charge
+        # can't be honestly derived (depends on donor protonation), so it must be given.
+        with pytest.raises(ValueError, match="orbmol backbone requires charge and spin"):
+            MLIPVerifier(backbone="orbmol", **kw)
+
+    def test_orbmol_constructs_with_both(self):
+        MLIPVerifier(backbone="orbmol", charge=2, spin=3)  # no model load until .calc is touched
+
+
 def test_make_backbone_rejects_unknown():
     with pytest.raises(ValueError, match="unknown MLIP backbone"):
         make_backbone("not_a_model")
+
+
+def test_make_backbone_orbmol_is_wired():
+    # orb-models isn't installed here, so a wired branch reaches the deferred import and
+    # fails *there* (ImportError) rather than at the unknown-backbone guard (ValueError).
+    with pytest.raises(ImportError):
+        make_backbone("orbmol")

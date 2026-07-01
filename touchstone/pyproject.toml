@@ -9,10 +9,14 @@ dependencies = ["numpy>=1.26", "typer>=0.12", "rich>=13"]
 dev = ["pytest>=8", "ase>=3.23"]
 viz = ["wandb>=0.17", "python-dotenv>=1.0"]
 # MLIP physics tier. mace and uma pin conflicting e3nn versions — install one,
-# in its own environment; the tier is backbone-pluggable across both. openbabel
-# protonates the structure (MACE needs explicit H) — degrades gracefully if absent.
+# in its own environment; the tier is backbone-pluggable across all three. orb is
+# non-equivariant (no e3nn) so it co-resides with mace in one env — the preferred
+# in-process ensemble pair; the [orb] extra installs orb-models, backbone string is
+# "orbmol". openbabel protonates the structure (MACE needs explicit H) — degrades
+# gracefully if absent.
 mace = ["ase>=3.23", "mace-torch>=0.3", "openbabel-wheel>=3.1"]
 uma = ["ase>=3.23", "fairchem-core>=2.0", "openbabel-wheel>=3.1"]
+orb = ["ase>=3.23", "orb-models>=0.7", "openbabel-wheel>=3.1"]
 # Agent-callable MCP server (the CLI needs only the core typer/rich deps)
 mcp = ["mcp>=1.2"]
 

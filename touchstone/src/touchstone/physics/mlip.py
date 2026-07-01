@@ -76,6 +76,12 @@ def make_backbone(name: str, device: str = "cuda"):
 
         unit = pretrained_mlip.get_predict_unit("uma-s-1p1", device=device)
         return FAIRChemCalculator(unit, task_name="omol")
+    if name == "orbmol":  # non-equivariant (no e3nn) ⇒ co-resides with MACE in one env
+        from orb_models.forcefield import pretrained
+        from orb_models.forcefield.inference.calculator import ORBCalculator
+
+        orbff, adapter = pretrained.orbmol_v2(device=device, precision="float64")
+        return ORBCalculator(orbff, atoms_adapter=adapter, device=device)
     if name == "emt":  # ASE-core, light — real relaxation for Ni/Cu/… smoke runs
         from ase.calculators.emt import EMT
 
@@ -260,7 +266,15 @@ class _MLIPBase:
         device: str = "cuda",
         restrain: bool = True,  # freeze the backbone scaffold during relax/MD
         protonate: bool = True,  # add H first (MACE needs it); no-op if OpenBabel absent
+        charge: int | None = None,  # total cluster charge — required by charge-aware backbones (OrbMol)
+        spin: int | None = None,  # spin multiplicity — required by charge-aware backbones (OrbMol)
     ):
+        # OrbMol reads total charge + spin off atoms.info and cannot run without them.
+        # Fail loud at construction, not deep in the orb adapter — and total cluster
+        # charge can't be honestly derived (it depends on donor protonation), so it must
+        # be supplied. Other backbones ignore atoms.info, so the fields stay optional.
+        if backbone == "orbmol" and (charge is None or spin is None):
+            raise ValueError("orbmol backbone requires charge and spin (total cluster charge + multiplicity)")
         self._backbone = backbone
         self._calc = calculator
         self.metal_element = metal_element
@@ -269,6 +283,8 @@ class _MLIPBase:
         self.device = device
         self.restrain = restrain
         self.protonate = protonate
+        self.charge = charge
+        self.spin = spin
 
     @property
     def calc(self):
@@ -297,7 +313,15 @@ class _MLIPBase:
         atoms.set_cell(None)
         pos = atoms.get_positions()
         mi = _metal_index(atoms.get_chemical_symbols(), self._metal(design))
-        return atoms[np.linalg.norm(pos - pos[mi], axis=1) <= self.radius]
+        cluster = atoms[np.linalg.norm(pos - pos[mi], axis=1) <= self.radius]
+        # Standard ASE per-structure metadata; consumed only by charge/spin-aware
+        # backbones (OrbMol), ignored by the rest. Written only when set — absence, not
+        # a spurious default, so a MACE/UMA cluster is byte-identical to before.
+        if self.charge is not None:
+            cluster.info["charge"] = self.charge
+        if self.spin is not None:
+            cluster.info["spin"] = self.spin
+        return cluster
 
 
 class MLIPVerifier(_MLIPBase):
