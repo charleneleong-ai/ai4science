@@ -76,6 +76,12 @@ def make_backbone(name: str, device: str = "cuda"):
 
         unit = pretrained_mlip.get_predict_unit("uma-s-1p1", device=device)
         return FAIRChemCalculator(unit, task_name="omol")
+    if name == "orbmol":  # non-equivariant (no e3nn) ⇒ co-resides with MACE in one env
+        from orb_models.forcefield import pretrained
+        from orb_models.forcefield.inference.calculator import ORBCalculator
+
+        orbff, adapter = pretrained.orbmol_v2(device=device, precision="float64")
+        return ORBCalculator(orbff, atoms_adapter=adapter, device=device)
     if name == "emt":  # ASE-core, light — real relaxation for Ni/Cu/… smoke runs
         from ase.calculators.emt import EMT
 
@@ -92,6 +98,8 @@ class SiteRelaxation:
     site_drift: float  # max displacement of metal + original first-shell atoms (Å)
     mean_bond: float  # mean metal–donor distance after relaxation (Å)
     interaction_energy: float | None  # E(complex) − E(apo) − E(metal), ranking-only (eV)
+    converged: bool = True  # optimiser reached fmax within the step budget
+    max_force: float = 0.0  # final |F|max over the free atoms (eV/Å) — the relaxation-health signal
 
     @property
     def donors_lost(self) -> int:
@@ -174,10 +182,13 @@ def relax_site(
     if restrain:
         _freeze_scaffold(atoms, {mi, *pre})
     atoms.calc = calc
-    LBFGS(atoms, logfile=None).run(fmax=fmax, steps=steps)
+    converged = bool(LBFGS(atoms, logfile=None).run(fmax=fmax, steps=steps))
     energy = float(atoms.get_potential_energy())  # cached at the converged geometry
     if not np.isfinite(energy):  # diverged into non-finite territory ⇒ unjudgeable
         raise FloatingPointError("non-finite relaxation energy")
+    # final |F|max over the free atoms (FixAtoms zeroes the frozen ones) — the same
+    # basis the optimiser's convergence test uses, kept as a graded relaxation-health metric.
+    max_force = float(np.linalg.norm(atoms.get_forces(), axis=1).max())
 
     pos = atoms.get_positions()
     post = _shell(pos, symbols, mi, cutoff)
@@ -186,7 +197,7 @@ def relax_site(
     mean_bond = float(np.mean(list(post.values()))) if post else 0.0
     de = _interaction_energy(atoms, calc, mi, energy) if interaction else None
 
-    return SiteRelaxation(len(pre), len(post), drift, mean_bond, de)
+    return SiteRelaxation(len(pre), len(post), drift, mean_bond, de, converged, max_force)
 
 
 @dataclass
@@ -255,7 +266,15 @@ class _MLIPBase:
         device: str = "cuda",
         restrain: bool = True,  # freeze the backbone scaffold during relax/MD
         protonate: bool = True,  # add H first (MACE needs it); no-op if OpenBabel absent
+        charge: int | None = None,  # total cluster charge — required by charge-aware backbones (OrbMol)
+        spin: int | None = None,  # spin multiplicity — required by charge-aware backbones (OrbMol)
     ):
+        # OrbMol reads total charge + spin off atoms.info and cannot run without them.
+        # Fail loud at construction, not deep in the orb adapter — and total cluster
+        # charge can't be honestly derived (it depends on donor protonation), so it must
+        # be supplied. Other backbones ignore atoms.info, so the fields stay optional.
+        if backbone == "orbmol" and (charge is None or spin is None):
+            raise ValueError("orbmol backbone requires charge and spin (total cluster charge + multiplicity)")
         self._backbone = backbone
         self._calc = calculator
         self.metal_element = metal_element
@@ -264,6 +283,8 @@ class _MLIPBase:
         self.device = device
         self.restrain = restrain
         self.protonate = protonate
+        self.charge = charge
+        self.spin = spin
 
     @property
     def calc(self):
@@ -292,21 +313,33 @@ class _MLIPBase:
         atoms.set_cell(None)
         pos = atoms.get_positions()
         mi = _metal_index(atoms.get_chemical_symbols(), self._metal(design))
-        return atoms[np.linalg.norm(pos - pos[mi], axis=1) <= self.radius]
+        cluster = atoms[np.linalg.norm(pos - pos[mi], axis=1) <= self.radius]
+        # Standard ASE per-structure metadata; consumed only by charge/spin-aware
+        # backbones (OrbMol), ignored by the rest. Written only when set — absence, not
+        # a spurious default, so a MACE/UMA cluster is byte-identical to before.
+        if self.charge is not None:
+            cluster.info["charge"] = self.charge
+        if self.spin is not None:
+            cluster.info["spin"] = self.spin
+        return cluster
 
 
 class MLIPVerifier(_MLIPBase):
     """Trusts a design whose metal site holds its coordination under an MLIP
     relaxation; defers when the site collapses or the relaxation cannot run."""
 
-    def __init__(self, backbone: str = "mace_mp", *, trust_drift: float = 0.5, ood_drift: float = 1.5, **kw):
+    def __init__(
+        self, backbone: str = "mace_mp", *, trust_drift: float = 0.5, ood_drift: float = 1.5, steps: int = 200, **kw
+    ):
         super().__init__(backbone, **kw)
         self.trust_drift = trust_drift
         self.ood_drift = ood_drift
+        self.steps = steps
 
     def relax(self, design: BinderDesign) -> SiteRelaxation:
         return relax_site(
-            self._cluster(design), self.calc, self._metal(design), self.cutoff, restrain=self.restrain
+            self._cluster(design), self.calc, self._metal(design), self.cutoff,
+            steps=self.steps, restrain=self.restrain,
         )
 
     def verify(self, design: BinderDesign) -> Verdict:
@@ -320,12 +353,24 @@ class MLIPVerifier(_MLIPBase):
         # the first shell retained. Clamp to [0,1] — a donor migrating into the shell
         # can push cn_after/cn_before above 1. Interaction energy rides along for ranking.
         score = min(1.0, float(np.exp(-r.site_drift)) * (r.cn_after / max(r.cn_before, 1)))
+        metrics = {
+            "drift_angstrom": round(r.site_drift, 3), "cn_before": r.cn_before, "cn_after": r.cn_after,
+            "max_force_ev_ang": round(r.max_force, 3), "converged": r.converged,
+        }
+        if r.interaction_energy is not None:
+            metrics["interaction_energy_ev"] = round(r.interaction_energy, 3)
+        # Relaxation-health gate: a relaxation that never reached fmax leaves drift/CN
+        # read off a non-equilibrium geometry — the surrogate's own "I didn't settle"
+        # signal, the materials analog of a low confidence score. Defer before drift/CN.
+        if not r.converged:
+            return Verdict.defer(
+                f"relaxation did not settle: |F|max {r.max_force:.2f} eV/Å after {self.steps} steps",
+                score=score, metrics=metrics,
+            )
+
         de = "" if r.interaction_energy is None else f", ΔE_bind {r.interaction_energy:.2f} eV"
         lost = "held" if held else f"lost {r.donors_lost} donor(s)"
         reason = f"site {lost}, drift {r.site_drift:.2f} Å{de}"
-        metrics = {"drift_angstrom": round(r.site_drift, 3), "cn_before": r.cn_before, "cn_after": r.cn_after}
-        if r.interaction_energy is not None:
-            metrics["interaction_energy_ev"] = round(r.interaction_energy, 3)
         if r.site_drift > self.ood_drift or r.cn_after == 0:
             return Verdict.defer(reason, score=score, metrics=metrics)
         return Verdict(score, trust=held and r.site_drift <= self.trust_drift, ood=False, reason=reason, metrics=metrics)

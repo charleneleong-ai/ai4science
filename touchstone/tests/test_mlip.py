@@ -98,6 +98,13 @@ class TestRelaxSite:
         with pytest.raises(ValueError, match="no Ni"):
             relax_site(Atoms("N2", positions=[[0, 0, 0], [0, 0, 2]]), SpringToMetal(), metal="Ni")
 
+    def test_reports_relaxation_health(self):
+        # convergence + final |F|max are the surrogate's "did this settle?" self-signal
+        settled = relax_site(_cluster(2.5), SpringToMetal(r0=2.1), metal="Ni", interaction=False)
+        assert settled.converged and settled.max_force <= 0.05  # reached the fmax target
+        unsettled = relax_site(_cluster(2.5), SpringToMetal(r0=2.1), metal="Ni", interaction=False, steps=1)
+        assert not unsettled.converged and unsettled.max_force > 0.05  # one step ⇒ forces still live
+
 
 class TestRestraint:
     def test_freezes_the_scaffold_so_donors_cannot_disperse(self):
@@ -124,6 +131,14 @@ class TestMLIPVerifier:
     def test_defers_when_the_shell_collapses(self, tmp_path):
         v = MLIPVerifier(calculator=SpringToMetal(r0=3.5)).verify(_design(tmp_path, r=2.6))
         assert not v.trust and v.ood and v.score == 0.0  # cn_after 0 ⇒ defer
+
+    def test_defers_when_the_relaxation_does_not_settle(self, tmp_path):
+        # geometry holds (full shell, sub-trust drift) but one optimiser step leaves
+        # the forces unconverged — the surrogate hasn't settled, so the drift/CN it
+        # reports are read off a non-equilibrium geometry and can't be vouched for.
+        v = MLIPVerifier(calculator=SpringToMetal(r0=2.1), steps=1).verify(_design(tmp_path, r=2.5))
+        assert v.label == "defer" and "settle" in v.reason
+        assert v.metrics["converged"] is False and v.metrics["max_force_ev_ang"] > 0.05
 
     @pytest.mark.parametrize(
         "calc, source",
@@ -252,6 +267,37 @@ class TestProtonate:
         assert syms.count("C") == 3 and syms.count("N") == 1 and syms.count("O") == 1  # heavy atoms intact
 
 
+class TestChargeSpin:
+    """OrbMol requires total charge + spin multiplicity via atoms.info; the other
+    backbones ignore it. The verifier plumbs them onto the cluster it hands to the calc."""
+
+    def test_cluster_carries_charge_and_spin_when_set(self, tmp_path):
+        cluster = MLIPVerifier(calculator=SpringToMetal(), charge=2, spin=3)._cluster(_design(tmp_path))
+        assert cluster.info["charge"] == 2 and cluster.info["spin"] == 3
+
+    def test_cluster_omits_them_when_unset(self, tmp_path):
+        # MACE/UMA runs must not carry a spurious charge/spin — absence, not a default.
+        cluster = MLIPVerifier(calculator=SpringToMetal())._cluster(_design(tmp_path))
+        assert "charge" not in cluster.info and "spin" not in cluster.info
+
+    @pytest.mark.parametrize("kw", [{}, {"charge": 2}, {"spin": 3}], ids=["neither", "spin-missing", "charge-missing"])
+    def test_orbmol_requires_charge_and_spin(self, kw):
+        # fail loud at construction, not deep in the orb adapter — total cluster charge
+        # can't be honestly derived (depends on donor protonation), so it must be given.
+        with pytest.raises(ValueError, match="orbmol backbone requires charge and spin"):
+            MLIPVerifier(backbone="orbmol", **kw)
+
+    def test_orbmol_constructs_with_both(self):
+        MLIPVerifier(backbone="orbmol", charge=2, spin=3)  # no model load until .calc is touched
+
+
 def test_make_backbone_rejects_unknown():
     with pytest.raises(ValueError, match="unknown MLIP backbone"):
         make_backbone("not_a_model")
+
+
+def test_make_backbone_orbmol_is_wired():
+    # orb-models isn't installed here, so a wired branch reaches the deferred import and
+    # fails *there* (ImportError) rather than at the unknown-backbone guard (ValueError).
+    with pytest.raises(ImportError):
+        make_backbone("orbmol")
