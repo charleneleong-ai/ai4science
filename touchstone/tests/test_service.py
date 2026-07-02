@@ -4,6 +4,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from touchstone.cli import app
+from touchstone.cofold import cif_provider
 from touchstone.service import verify_structure
 
 FIX = Path(__file__).parent / "fixtures"
@@ -47,6 +48,14 @@ class TestVerifyStructure:
         r = verify_structure(PACKED, "Ni2+", stress=True)
         assert set(r["stress"]) == {"neutral", "leachate", "low_pH"}  # the operating-envelope conditions
         assert all(v["label"] in {"trust", "weak", "defer"} for v in r["stress"].values())
+
+    def test_cofold_provider_adds_the_crosscheck_tier(self):
+        # provider predicts the design's own structure ⇒ the independent site agrees ⇒ trust.
+        provider = cif_provider({str(PACKED): str(PACKED)}, metal_atom="NI", metal="Ni2+")
+        r = verify_structure(PACKED, "Ni2+", cofold_provider=provider)
+        by = {s["stage"]: s for s in r["stack"]}
+        assert by["cofold"]["status"] == "ran"  # was needs_input without a provider
+        assert r["verifiers"]["cofold"]["label"] == "trust"
 
     def test_deep_without_backend_degrades_gracefully(self):
         # no GPU/mace here ⇒ mlip + mlip_md are skipped, consensus still decided by geometry+BV
