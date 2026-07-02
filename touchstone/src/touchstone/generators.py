@@ -43,8 +43,8 @@ _OCTAHEDRON = np.array(
 )
 
 
-def octahedral_site(metal: str, bond: float = 2.09, center=(0.0, 0.0, 0.0)) -> CoordinationSite:
-    c = np.asarray(center, dtype=float)
+def octahedral_site(metal: str, bond: float = 2.09) -> CoordinationSite:
+    c = np.zeros(3)
     return CoordinationSite(
         metal=metal,
         metal_xyz=c,

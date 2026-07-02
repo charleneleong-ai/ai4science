@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from touchstone import BinderDesign, MogulVerifier
 from touchstone.core import CoordinationSite

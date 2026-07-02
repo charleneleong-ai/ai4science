@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from touchstone import BinderDesign, CofoldCrossCheck, cofold_agreement
 from touchstone.core import CoordinationSite

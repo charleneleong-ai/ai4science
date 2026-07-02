@@ -19,23 +19,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from touchstone.boltzgen import boltzgen_confidence
 from touchstone.reward import reward_from_result
 from touchstone.service import verify_structure
 
 _COLOR = {"trust": "green", "weak": "yellow", "defer": "red"}
-
-
-def _best(npz, key: str, kind: str = "max") -> float | None:
-    """Best value of a per-sample confidence array (max for iptm/plddt/ptm, min for pae)."""
-    if key not in npz:
-        return None
-    arr = np.atleast_1d(npz[key]).astype(float)
-    return float(arr.max() if kind == "max" else arr.min())
 
 
 def _rows(npz_dir: Path, cif_dir: Path, metal: str) -> list[dict]:
@@ -45,13 +37,7 @@ def _rows(npz_dir: Path, cif_dir: Path, metal: str) -> list[dict]:
         cif = cif_dir / f"{npz_path.stem}.cif"
         if not cif.exists():
             continue
-        npz = np.load(npz_path, allow_pickle=True)
-        row = {
-            "design": npz_path.stem,
-            "iptm": _best(npz, "design_to_target_iptm") or _best(npz, "ligand_iptm") or _best(npz, "iptm"),
-            "plddt": _best(npz, "complex_plddt"),
-            "ptm": _best(npz, "design_ptm") or _best(npz, "ptm"),
-        }
+        row = {"design": npz_path.stem, **boltzgen_confidence(npz_path)}
         try:
             r = verify_structure(cif, metal)
             row["consensus"] = r["consensus"]
