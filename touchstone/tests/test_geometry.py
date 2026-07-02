@@ -7,6 +7,7 @@ from touchstone import (
     BinderDesign,
     CSDReference,
     GeometryVerifier,
+    MetalPDBReference,
     MockGenerator,
     MockReference,
     PDBReference,
@@ -16,7 +17,8 @@ from touchstone import (
     under_leachate,
 )
 from touchstone.core import CoordinationSite
-from touchstone.geometry.reference import _CSD_DATA, best_reference
+from touchstone.geometry import reference as _ref_mod
+from touchstone.geometry.reference import _CSD_DATA, _METALPDB_DATA, best_reference
 
 
 def _design(site: CoordinationSite, conf: float = 0.7) -> BinderDesign:
@@ -166,11 +168,45 @@ class TestCSDReference:
         with pytest.raises(FileNotFoundError, match="CSD reference data not found"):
             CSDReference(tmp_path / "nonexistent.json")
 
-    def test_best_reference_prefers_csd_when_built_else_pdb(self):
-        # picks the sharper CSD prior iff its license-gated file exists, else the committed PDB
+    def test_best_reference_falls_back_when_no_metalpdb(self):
+        # with no MetalPDB file (the repo default), pick CSD if its data exists, else PDB
         ref = best_reference()
         assert ref.source == ("CSD" if _CSD_DATA.exists() else "PDB")
         assert ref.geometry("Ni2+").coordination_number >= 1  # whichever it is, it's usable
+
+
+class TestMetalPDBReference:
+    """The open, licence-free metalloprotein reference — same interface as PDB/CSD."""
+
+    _JSON = {
+        "Ni2+": {"metal": "Ni2+", "coordination_number": 5, "bond_length_mean": 2.11,
+                 "bond_length_std": 0.12, "cn_range": [4, 6], "source": "test fixture"},
+    }
+
+    def _ref(self, tmp_path) -> MetalPDBReference:
+        p = tmp_path / "metalpdb_reference.json"
+        p.write_text(json.dumps(self._JSON))
+        return MetalPDBReference(p)
+
+    def test_plugs_into_verifier_unchanged(self, tmp_path):
+        v = GeometryVerifier(self._ref(tmp_path)).verify(GOOD)
+        assert isinstance(v.score, float)
+
+    def test_unknown_metal_raises_with_source(self, tmp_path):
+        with pytest.raises(KeyError, match="MetalPDB"):
+            self._ref(tmp_path).geometry("Au3+")
+
+    def test_missing_data_raises_actionable_error(self, tmp_path):
+        with pytest.raises(FileNotFoundError, match="MetalPDB reference data not found"):
+            MetalPDBReference(tmp_path / "nonexistent.json")
+
+    def test_best_reference_prefers_metalpdb_when_built(self, tmp_path, monkeypatch):
+        # once the open MetalPDB file exists it wins over CSD/PDB — the licence-free default
+        p = tmp_path / "metalpdb_reference.json"
+        p.write_text(json.dumps(self._JSON))
+        monkeypatch.setattr(_ref_mod, "_METALPDB_DATA", p)
+        ref = best_reference()
+        assert ref.source == "MetalPDB" and ref.geometry("Ni2+").bond_length_mean == 2.11
 
 
 class TestEmptySite:
