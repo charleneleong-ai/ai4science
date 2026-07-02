@@ -3,6 +3,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
+from touchstone import MetalHawkPrediction
 from touchstone.cli import app
 from touchstone.cofold import cif_provider
 from touchstone.service import verify_structure
@@ -32,13 +33,14 @@ class TestVerifyStructure:
         by = {s["stage"]: s for s in r["stack"]}
         # the full stack appears in cost order, even tiers that didn't run on a bare structure
         assert [s["stage"] for s in r["stack"]] == [
-            "geometry", "bond_valence", "coord_symmetry", "coord_geometry",
+            "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "metalhawk",
             "mogul", "mlip", "mlip_md", "trs", "cofold", "expression", "thermostability",
         ]
         assert by["geometry"]["status"] == "ran" and "strain_sigma" in by["geometry"]["metrics"]
         assert by["bond_valence"]["status"] == "ran" and "bvs" in by["bond_valence"]["metrics"]
         assert by["coord_symmetry"]["status"] == "ran" and "nvecsum" in by["coord_symmetry"]["metrics"]
         assert by["coord_geometry"]["status"] == "ran" and "angle_rmsd_deg" in by["coord_geometry"]["metrics"]
+        assert by["metalhawk"]["status"] == "needs_input"  # MetalHawk predictions (open, no licence)
         assert by["mogul"]["status"] == "needs_input"  # CSD licence
         assert by["trs"]["status"] == "needs_input"  # apo structure
         assert by["mlip"]["status"] == "needs_input"  # needs deep=True + a GPU
@@ -56,6 +58,14 @@ class TestVerifyStructure:
         by = {s["stage"]: s for s in r["stack"]}
         assert by["cofold"]["status"] == "ran"  # was needs_input without a provider
         assert r["verifiers"]["cofold"]["label"] == "trust"
+
+    def test_metalhawk_scorer_adds_the_tier(self):
+        # scorer echoes the design's CN ⇒ MetalHawk agrees ⇒ the tier runs and trusts.
+        scorer = lambda d: MetalHawkPrediction(d.site.coordination_number, "octahedral", 0.9)
+        r = verify_structure(PACKED, "Ni2+", metalhawk_scorer=scorer)
+        by = {s["stage"]: s for s in r["stack"]}
+        assert by["metalhawk"]["status"] == "ran"  # was needs_input without a scorer
+        assert r["verifiers"]["metalhawk"]["label"] == "trust"
 
     def test_deep_without_backend_degrades_gracefully(self):
         # no GPU/mace here ⇒ mlip + mlip_md are skipped, consensus still decided by geometry+BV
