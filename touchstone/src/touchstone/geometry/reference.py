@@ -14,6 +14,7 @@ from typing import Protocol
 
 _PDB_DATA = Path(__file__).parent.parent / "data" / "pdb_reference.json"
 _CSD_DATA = Path(__file__).parent.parent / "data" / "csd_reference.json"
+_METALPDB_DATA = Path(__file__).parent.parent / "data" / "metalpdb_reference.json"
 
 
 @dataclass(frozen=True)
@@ -115,8 +116,29 @@ class CSDReference(_JsonReference):
         super().__init__(path)
 
 
+class MetalPDBReference(_JsonReference):
+    """Empirical geometry from MetalPDB — the open, licence-free curation of every metal
+    site in the PDB (metalpdb.cerm.unifi.it). Populate data/metalpdb_reference.json via
+    scripts/build_metalpdb_reference.py; same schema, so it drops in behind `geometry()`.
+
+    Metalloprotein-specific (unlike the CSD's small-molecule crystals) and needs no
+    licence — the natural default prior for designed metal-binding *proteins*, and the
+    fully-open path when the CSD is unavailable.
+    """
+
+    source = "MetalPDB"
+
+    def __init__(self, path: str | Path = _METALPDB_DATA):
+        super().__init__(path)
+
+
 def best_reference() -> ReferenceDistribution:
-    """The sharpest reference available: the CSD metal–organic prior if its (license-gated)
-    data file has been built, else the committed PDB reference — so the tool uses the best
-    evidence on hand and still works without a CSD licence."""
-    return CSDReference() if _CSD_DATA.exists() else PDBReference()
+    """The best reference available, in domain-relevance order: MetalPDB (open, curated
+    metalloprotein sites) → CSD (small-molecule metal–organic prior, if built) → the
+    committed PDB pull. Each is just a JSON at runtime, so none needs a licence — the tool
+    always works, and prefers the open metalloprotein-specific evidence when present."""
+    if _METALPDB_DATA.exists():
+        return MetalPDBReference(_METALPDB_DATA)
+    if _CSD_DATA.exists():
+        return CSDReference(_CSD_DATA)
+    return PDBReference()

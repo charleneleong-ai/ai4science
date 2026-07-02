@@ -32,6 +32,7 @@ from .geometry.parse import (
 from .geometry.reference import (
     CSDReference,
     MetalGeometry,
+    MetalPDBReference,
     MockReference,
     PDBReference,
     ReferenceDistribution,
@@ -82,6 +83,7 @@ __all__ = [
     "MockReference",
     "PDBReference",
     "CSDReference",
+    "MetalPDBReference",
     "ReferenceDistribution",
     "GeometryVerifier",
     "BondValenceVerifier",
