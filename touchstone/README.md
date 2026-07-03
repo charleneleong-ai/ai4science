@@ -73,6 +73,11 @@ CSD metal knowledge enters through the reward (touchstone's prior), **not** as r
 data — the only sound way to inject small-molecule crystallography into a *protein* generator.
 See [`docs/specs/2026-06-28-rlvr-boltzgen.md`](docs/specs/2026-06-28-rlvr-boltzgen.md).
 
+**Result (Ni²⁺, 4 rounds).** The loop lifted the touchstone-TRUST rate **5.9% → 21.9%** (geometry),
+and a *balanced* geometry∧MLIP reward reached **12.5% fully-verified** (passing all six tiers) — with
+the honest catch that a single-objective reward trades one axis for the other, and that the balanced
+gains then plateau. Full arc: [`docs/experiments/2026-07-01-rlvr-boltzgen-round1.md`](docs/experiments/2026-07-01-rlvr-boltzgen-round1.md).
+
 ## Sample output
 
 Each result is a JSON-able dict: per-tier verdicts (`label` / `score` / `reason` + a
