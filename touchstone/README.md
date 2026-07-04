@@ -14,6 +14,8 @@ consensus across independent methods (defense-in-depth, ≥2 per stage):
 - **cross-verification** — independent co-fold (Boltz-2 / Chai-1 / AllMetal3D): does the
   generator's predicted site reproduce?
 
+![touchstone verifier stack](docs/verifier-stack.png)
+
 Use it to **triage designs to wet-lab** (only `trust` clears the bar) and to **score them
 as an RLVR reward** to iterate the generator.
 
