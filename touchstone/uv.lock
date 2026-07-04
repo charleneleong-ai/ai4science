@@ -11,16 +11,21 @@ resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version < '3.12' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version < '3.12' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version < '3.12' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
 ]
 conflicts = [[
@@ -267,6 +272,52 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/9a/8e/82a0fe20a541c03148528be8cac2408564a6c9a0cc7e9171802bc1d26985/attrs-26.1.0.tar.gz", hash = "sha256:d03ceb89cb322a8fd706d4fb91940737b6642aa36998fe130a9bc96c985eff32", size = 952055, upload-time = "2026-03-19T14:22:25.026Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl", hash = "sha256:c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309", size = 67548, upload-time = "2026-03-19T14:22:23.645Z" },
+]
+
+[[package]]
+name = "boto3"
+version = "1.43.40"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "botocore", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "jmespath", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "s3transfer", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3b/43/38cdaf9c7bb50f0922ef87e6b6696c6aa589d978e4311a8287537e84ecf7/boto3-1.43.40.tar.gz", hash = "sha256:a7108b9ce25b8f92d1ce96b9e35090794d5c58b219ff2f6a7a65c8986a4ed6f4", size = 112655, upload-time = "2026-07-03T00:28:26.776Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d7/3b/2abcc7f47e955a8cb45a6378ec69cd8ed2dcb3d14ceb67717dea020a794a/boto3-1.43.40-py3-none-any.whl", hash = "sha256:5fa80de4b4b7bab383dd8c563e235d51fcc7df4502662af56f0a2472c3c15651", size = 140029, upload-time = "2026-07-03T00:28:25.028Z" },
+]
+
+[[package]]
+name = "botocore"
+version = "1.43.40"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "jmespath", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "python-dateutil", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "urllib3", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d0/50/269986277f852cc83029bccbdcdc0b343a685cfd570599e58029792808d8/botocore-1.43.40.tar.gz", hash = "sha256:2085a4314cfd2c8bc1d08ab8039f76c92e99278db0d2a0e2437010526d5d5d70", size = 15639899, upload-time = "2026-07-03T00:28:16.125Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dc/8c/5f7e73fd66b28f0705bc55d7060d41ef72328b656b86ca53e75765b3ba2c/botocore-1.43.40-py3-none-any.whl", hash = "sha256:0bc9d352267c9e48415c5d7bb61ff05c3f193eac2fc7e69cfd229a05fbab67d6", size = 15323870, upload-time = "2026-07-03T00:28:12.56Z" },
+]
+
+[[package]]
+name = "cached-path"
+version = "1.8.10"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "boto3", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "filelock", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "google-cloud-storage", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "huggingface-hub", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "packaging", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "requests", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "rich", version = "13.9.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9b/da/59aa2a3f5d92415d1c072a35c94c7ada2251679b3bca3cf69d420ea95ac4/cached_path-1.8.10.tar.gz", hash = "sha256:ce80db439e25619800330dcbf1f0516c0ee70a27bd65ffca33aac9f55a56ef1c", size = 33249, upload-time = "2026-03-20T17:52:08.713Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7b/db/ccb08109c7056b0670384fc5042be5eacd1391eb12485188e92ca97ced21/cached_path-1.8.10-py3-none-any.whl", hash = "sha256:a7a80c4a77859e40080ed3450bc1ca5434a74fc51566361677a75fd2f5b8fea8", size = 37932, upload-time = "2026-03-20T17:52:07.747Z" },
 ]
 
 [[package]]
@@ -658,6 +709,29 @@ wheels = [
 ]
 
 [[package]]
+name = "dm-tree"
+version = "0.1.8"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f8/6d/f1997aac42e0f550c1e952a0b920eaa0bfc4d27d0421499881b934b969fc/dm-tree-0.1.8.tar.gz", hash = "sha256:0fcaabbb14e7980377439e7140bd05552739ca5e515ecb3119f234acee4b9430", size = 35384, upload-time = "2022-12-18T09:46:55.953Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e2/64/901b324804793743f0fdc9e47db893bf0ded9e074850fab2440af330fe83/dm_tree-0.1.8-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:ad16ceba90a56ec47cf45b21856d14962ac314787975ef786efb5e6e9ca75ec7", size = 167628, upload-time = "2022-12-18T09:46:14.195Z" },
+    { url = "https://files.pythonhosted.org/packages/b1/65/4f10a68dde5fa0c91043c9c899e9bc79b1657ba932d39a5f8525c0058e68/dm_tree-0.1.8-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:803bfc53b4659f447ac694dbd04235f94a73ef7c1fd1e0df7c84ac41e0bc963b", size = 115351, upload-time = "2022-12-18T09:46:16.467Z" },
+    { url = "https://files.pythonhosted.org/packages/08/e2/4c29cb9876456517f21979ddcbb6048f28a3b52c61aa9d14d42adafcdca4/dm_tree-0.1.8-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:378cc8ad93c5fe3590f405a309980721f021c790ca1bdf9b15bb1d59daec57f5", size = 110661, upload-time = "2022-12-18T09:46:18.821Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/89/386332bbd7567c4ccc13aa2e58f733237503fc75fb389955d3b06b9fb967/dm_tree-0.1.8-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1607ce49aa42f010d1e5e616d92ce899d66835d4d8bea49679582435285515de", size = 146727, upload-time = "2023-01-21T08:49:52.992Z" },
+    { url = "https://files.pythonhosted.org/packages/a3/e7/b0c04ea5af82c19fd5984bfe980f4012601c4708634c7c51a952b17c93b2/dm_tree-0.1.8-cp311-cp311-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:343a4a4ebaa127451ff971254a4be4084eb4bdc0b2513c32b46f6f728fd03f9e", size = 174689, upload-time = "2023-01-21T08:49:56.279Z" },
+    { url = "https://files.pythonhosted.org/packages/13/0d/09a4ecb54c03db53d9eb5bbc81609d89de26e3762743f003282c1b48debb/dm_tree-0.1.8-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:fa42a605d099ee7d41ba2b5fb75e21423951fd26e5d50583a00471238fb3021d", size = 150338, upload-time = "2023-01-21T08:49:59.049Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/27/c5e3580a952a07e5a1428ae952874796870dc8db789f3d774e886160a9f4/dm_tree-0.1.8-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:83b7764de0d855338abefc6e3ee9fe40d301668310aa3baea3f778ff051f4393", size = 152800, upload-time = "2022-12-18T09:46:21.065Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/c1/522041457444b67125ac9527208bb3148f63d7dce0a86ffa589ec763a10e/dm_tree-0.1.8-cp311-cp311-win_amd64.whl", hash = "sha256:a5d819c38c03f0bb5b3b3703c60e4b170355a0fc6b5819325bf3d4ceb3ae7e80", size = 101336, upload-time = "2022-12-18T09:46:23.449Z" },
+    { url = "https://files.pythonhosted.org/packages/72/2c/e33dfc96f974ae3cba82c9836371c93fcb4d59d5a82ebb853861618a0b0b/dm_tree-0.1.8-cp312-cp312-macosx_10_9_universal2.whl", hash = "sha256:ea9e59e0451e7d29aece402d9f908f2e2a80922bcde2ebfd5dcb07750fcbfee8", size = 169495, upload-time = "2024-02-06T09:09:13.276Z" },
+    { url = "https://files.pythonhosted.org/packages/17/af/4030827253a5d50eb8da6f7189bc33d3c850c4109cf3414910e9af677cb7/dm_tree-0.1.8-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:94d3f0826311f45ee19b75f5b48c99466e4218a0489e81c0f0167bda50cacf22", size = 116525, upload-time = "2024-02-06T09:09:15.529Z" },
+    { url = "https://files.pythonhosted.org/packages/10/10/5f9eed00b1186921e447960443f03cda6374cba8cd5cf7aff2b42ecb8a0e/dm_tree-0.1.8-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:435227cf3c5dc63f4de054cf3d00183790bd9ead4c3623138c74dde7f67f521b", size = 111436, upload-time = "2024-02-06T09:09:16.781Z" },
+    { url = "https://files.pythonhosted.org/packages/4a/da/3d3d04f7a572f7649f48edc9402ff5836e2f90e18445ffde110fd6142889/dm_tree-0.1.8-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:09964470f76a5201aff2e8f9b26842976de7889300676f927930f6285e256760", size = 146828, upload-time = "2024-02-13T21:25:21.639Z" },
+    { url = "https://files.pythonhosted.org/packages/c4/12/0a8c2152655ca39c1059c762ea1dc12784166c735126eb0ab929c518ef4e/dm_tree-0.1.8-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:75c5d528bb992981c20793b6b453e91560784215dffb8a5440ba999753c14ceb", size = 175054, upload-time = "2024-02-13T21:25:23.532Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/d4/8cbb857612ca69763ee4f4f97c7b91659df1d373d62237cb9c772e55ae97/dm_tree-0.1.8-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c0a94aba18a35457a1b5cd716fd7b46c5dafdc4cf7869b4bae665b91c4682a8e", size = 152834, upload-time = "2024-02-06T09:09:18.536Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/e3/96f5267fe5a47c882dce7f3d06b26ddd756681fc4fbedd55d51b78b08bca/dm_tree-0.1.8-cp312-cp312-win_amd64.whl", hash = "sha256:96a548a406a6fb15fe58f6a30a57ff2f2aafbf25f05afab00c8f5e5977b6c715", size = 101754, upload-time = "2024-02-06T09:09:20.962Z" },
+]
+
+[[package]]
 name = "e3nn"
 version = "0.4.4"
 source = { registry = "https://pypi.org/simple" }
@@ -665,9 +739,12 @@ resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32'",
+    "python_full_version == '3.13.*' and sys_platform == 'emscripten'",
+    "python_full_version == '3.12.*' and sys_platform == 'emscripten'",
+    "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
+    "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32'",
     "python_full_version < '3.12' and sys_platform == 'win32'",
     "python_full_version < '3.12' and sys_platform == 'emscripten'",
     "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32'",
@@ -931,6 +1008,49 @@ wheels = [
 ]
 
 [[package]]
+name = "gemmi"
+version = "0.7.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/60/38/a79d9e672b837ceefa7da1921c33b10479362603c4c6370bc004d69558d6/gemmi-0.7.5.tar.gz", hash = "sha256:3328f26c8a8a0ef6a7fc8bb28e167818e324e4239dd4197d6b6066ae2b6315fe", size = 1523171, upload-time = "2026-03-02T08:27:31.157Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7f/79/b13830a65bf9fc85474a984604f094cc18817dc93a784f4c567a2dc05169/gemmi-0.7.5-cp311-cp311-macosx_10_14_x86_64.whl", hash = "sha256:e134fd33f34bf9f2ffacd9e0207aeac6329dde818f62340e7390217a25ee8e2d", size = 2834430, upload-time = "2026-03-02T08:31:16.14Z" },
+    { url = "https://files.pythonhosted.org/packages/42/15/26cac702cdf6281ddeb185d5912ce14e555e277c6e4caeb1d36966e43822/gemmi-0.7.5-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:4db34eaa3d3fc102afea7a156330862cbeb82f557444c079403d4412e326c527", size = 2716532, upload-time = "2026-03-02T08:31:18.321Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/42/a60fd259b99785f04fe5c7fdbda1ec9c10aa9641d4efe9186c019a1689d9/gemmi-0.7.5-cp311-cp311-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:fcd6b82ce6b33049aa43d2aaed167090a77eaa1370f51f5422a683edfe2eec97", size = 2638468, upload-time = "2026-03-02T08:31:20.26Z" },
+    { url = "https://files.pythonhosted.org/packages/48/eb/46e443fc70b4aabe6e775521ff476aefb051db9acabb16a5cb51f04e3e2b/gemmi-0.7.5-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:895c63c7bcf30cffba97cf12c89dc3905f4645f838c17009b4534459a6c53a1e", size = 2991765, upload-time = "2026-03-02T08:31:22.617Z" },
+    { url = "https://files.pythonhosted.org/packages/32/7e/27b2313a644b42e02ed875ebeff73a1e88d7f564f15c1bf88c9557bbda0b/gemmi-0.7.5-cp311-cp311-musllinux_1_2_aarch64.whl", hash = "sha256:7f9524061282ceb114d5316af333667fae850896141ddbadfd2d275d9d6ac5ad", size = 3161503, upload-time = "2026-03-02T08:31:24.757Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/05/ee808eb8ece89c612d1bf6dd071ee870e129a69331383b95e482bbd4b692/gemmi-0.7.5-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:264726ed818aee8907dd8e6007f4a14c28fbf1f1b8ded3761e793e5a5f3284c6", size = 3514467, upload-time = "2026-03-02T08:31:26.812Z" },
+    { url = "https://files.pythonhosted.org/packages/b9/5e/62402bf021183bc6122cb01b8f1be17cac67545713fb30f888f59357a782/gemmi-0.7.5-cp311-cp311-win_amd64.whl", hash = "sha256:06cb44f4e3657b7e3a2b23cd40b67a8e7b5d00bfb92ea94cb4060bd47ba50df6", size = 2268231, upload-time = "2026-03-02T08:31:29.469Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/72/7e33f0c1871d648088e3dd67ce47366ed942d625300f6d966730da92a7d7/gemmi-0.7.5-cp312-cp312-macosx_10_14_x86_64.whl", hash = "sha256:2da5d5c1d31fc8c3bffe7530c697c97f8389edff57e8b12898218c588c4f0dac", size = 2845071, upload-time = "2026-03-02T08:31:31.413Z" },
+    { url = "https://files.pythonhosted.org/packages/b0/3e/a6497e1c2c9bc6ed2b79e0f2d31a4ce509fd2a9eed4e4f7ac63eda8113cb/gemmi-0.7.5-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:5682920985109c6a08616ae9aae080f8b46a9714534dc864b535e3e6d203d5b8", size = 2720607, upload-time = "2026-03-02T08:31:33.778Z" },
+    { url = "https://files.pythonhosted.org/packages/df/31/704e6c7ffc251d1dc1a19a8cd2e30881a83978c6df8668ba052523fa1720/gemmi-0.7.5-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:255ca0b0a7f6fb0bf4322f2d69c5f94edf6e95fb801bc1d120ca8dd93b646065", size = 2624986, upload-time = "2026-03-02T08:31:35.902Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/88/5a431cd1ea7587408a66947384b39beb2ab2bcc1c87b7c4082f05036719f/gemmi-0.7.5-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:217bb9ac9da7c90704026dacfc0a0652a38f4df1e318225d8f35c75f1f8c7ebf", size = 2982717, upload-time = "2026-03-02T08:31:37.781Z" },
+    { url = "https://files.pythonhosted.org/packages/36/e0/ca646b4e22b3d6129ce56a087a9031f7a7843d47425f0adc38a7ab789b24/gemmi-0.7.5-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:74e1b5177b626aadb819fd8168f5d6064c04a2a1e45c87f357a96d30ddafc749", size = 3146031, upload-time = "2026-03-02T08:31:39.744Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/cc/47e6039859393175a9b38f9a72732c018a3052d838fecf1ff635d8b84d95/gemmi-0.7.5-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:6d30fa7ae889149c22dbb58899e77117e6548edc6e8ccfae3b4b2a259464d2ee", size = 3505196, upload-time = "2026-03-02T08:31:41.651Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/f2/53be7a4ba5816e13c39be0f728facac4bcb39cf4903ceeec54b006511c8f/gemmi-0.7.5-cp312-cp312-win_amd64.whl", hash = "sha256:a1fdb6f72006495b5119e3a8bb5c3185efa708b785bd4a5ce4397ef7abb3fec7", size = 2270488, upload-time = "2026-03-02T08:31:43.898Z" },
+    { url = "https://files.pythonhosted.org/packages/c4/80/fd758344a72ca7b5e1c5bbdc1d263f3b215d3897941b5f450380445ca0a9/gemmi-0.7.5-cp313-cp313-macosx_10_14_x86_64.whl", hash = "sha256:ef9b6ada1c00c6ba7c7a5b9e938cc3b45d83e775c23d12bf63b6882d5f3cdd6b", size = 2844981, upload-time = "2026-03-02T08:31:45.741Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/9c/1236dd7d22ed48527286b613c84e3376ea731b65e6734b6e6a0b4d03744c/gemmi-0.7.5-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:c7d8b08c33fe6ba375223306149092440c69cbfbd55c3d3e3436e5fb315a225d", size = 2720773, upload-time = "2026-03-02T08:31:47.494Z" },
+    { url = "https://files.pythonhosted.org/packages/91/d6/ccf890f054f2fc12ff3a43a604a7a1e9f99706f057394e5c7d51c67cf6ed/gemmi-0.7.5-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f2bd55985d7cf4403985118f677a187a3f0bb96fd314fb4582e66c2ab4a752ec", size = 2625116, upload-time = "2026-03-02T08:31:49.848Z" },
+    { url = "https://files.pythonhosted.org/packages/a3/8c/db8e79c4c744ebae1dcf25f7dbcc5d7df912cdbcdf7221e761479e8bd04b/gemmi-0.7.5-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:750b4d9751aaf1460ac4f0f45308ddced25f47bcf7a30355eb3b1f779f03952a", size = 2982474, upload-time = "2026-03-02T08:31:52.09Z" },
+    { url = "https://files.pythonhosted.org/packages/05/eb/24c0071ad231b22dac9acf7e7e544e0b6466307a01d716c8a06363fa70a4/gemmi-0.7.5-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:789f0e05e8ad020c69011351c54cc1a9555f6aaf2ac18e00e5624eb5255c309d", size = 3146075, upload-time = "2026-03-02T08:31:54.163Z" },
+    { url = "https://files.pythonhosted.org/packages/08/06/da6fe6eb09e7f3e439e8c5b85908bf9539dfb7afe19bb4853f0c1fd98e4c/gemmi-0.7.5-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:f34643c917c9ae0c26cded3044ad4634987469797188782b882cd2812c7769b1", size = 3505371, upload-time = "2026-03-02T08:31:56.056Z" },
+    { url = "https://files.pythonhosted.org/packages/ee/ab/7d7463cda94f8b68b969ea97aaad679655a0e436efd6a643e528a8de114e/gemmi-0.7.5-cp313-cp313-win_amd64.whl", hash = "sha256:ad1f72ffa24adbfaf259e11471f6f071a668667f6ca846051f3bfea024fd337d", size = 2270352, upload-time = "2026-03-02T08:31:58.538Z" },
+    { url = "https://files.pythonhosted.org/packages/c5/b4/07e9e47a223abd2490b14d31719d65e609932ba29355b453cfe8cd412142/gemmi-0.7.5-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:f1e6547e3af4fa23664a2bf7775478ebc1799a914d96560140c7dff366e0cded", size = 2846225, upload-time = "2026-03-02T08:32:00.083Z" },
+    { url = "https://files.pythonhosted.org/packages/06/41/4e70dea1d0311016c0b0b1c53a24a266f9f8a34c6bc1af0f17cfca20aa1d/gemmi-0.7.5-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:5144f107f2bca479d1b8266a79649bd631ee92c5b1319b27b0279157331ebc89", size = 2721745, upload-time = "2026-03-02T08:32:01.829Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/27/e1859a6ef2330f83a4818d8f1bc6d1b21b681313f26d3d4bd4fc54f88335/gemmi-0.7.5-cp314-cp314-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ea386ec725baa7253e1aa146540d4f8f8145fc32a26d0ac025be97fd7f593557", size = 2627960, upload-time = "2026-03-02T08:32:03.996Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/04/c5bb20d64417d20cba0105277235c51969444fa873000fbc26ac0a3fc5a8/gemmi-0.7.5-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:bdc67ad4a7fc420974ab3102f7f6ad1517fa0c3d9f2f7561e42e5f7017635242", size = 2984907, upload-time = "2026-03-02T08:32:05.73Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/c7/16f0913d82bcb817e63d8a183de8a8d0379a4837629e497aa60e01e89e78/gemmi-0.7.5-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:fef67aa026e523f43ced23afb8204b314cdf5770eaea97b4a06ac236d782cb10", size = 3149649, upload-time = "2026-03-02T08:32:07.547Z" },
+    { url = "https://files.pythonhosted.org/packages/c8/77/d26931ef5b50c69128ca04d19fdd0ce0cd3a392263cb9e4bebb4cd150459/gemmi-0.7.5-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:e496880ef0e2f5c929302db2d5e3489c48af1b70a3653870defafb17384e64b7", size = 3507297, upload-time = "2026-03-02T08:32:09.162Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/1c/a28b27effb13a381fe077ea3e3e78f6debd6315f2b3edff67bbb93d0ef51/gemmi-0.7.5-cp314-cp314-win_amd64.whl", hash = "sha256:419c36d9ea0f28dda0ff0d6db17035170d0888ca78aff82a0f9f604613aec58f", size = 2333709, upload-time = "2026-03-02T08:32:25.888Z" },
+    { url = "https://files.pythonhosted.org/packages/85/41/dc47a16404a250cc8f5ff441e2746b380e15ad73aec12d359e85ada0db21/gemmi-0.7.5-cp314-cp314t-macosx_10_15_x86_64.whl", hash = "sha256:647e25ce2f78c3da2577503892556d8aba0bc3014085affc82d375794b239a30", size = 2894672, upload-time = "2026-03-02T08:32:10.947Z" },
+    { url = "https://files.pythonhosted.org/packages/59/24/d411c04807dcac85567852b21647d953b65e5991359ec37097aa1c6b2b55/gemmi-0.7.5-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:e72db1f4580a24c1ff9a2426bab8b6b407ffdb394ec7417f40dfea68a3fc2505", size = 2768311, upload-time = "2026-03-02T08:32:13.069Z" },
+    { url = "https://files.pythonhosted.org/packages/60/da/b33ea873c2035b45318e1ed7ffb4d8d0c40c9ac99029761449bef1f226b5/gemmi-0.7.5-cp314-cp314t-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:8d015f560ad436fcecb9a9577f1ad304f5a45496a95c1f28326f0277b8044337", size = 2660998, upload-time = "2026-03-02T08:32:15.142Z" },
+    { url = "https://files.pythonhosted.org/packages/81/7f/c0efd1cd08d48c2a339922739b69b2244b7099d7bd6e48eba8477d5c7758/gemmi-0.7.5-cp314-cp314t-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:667fe4c20ef52a36dad397367c282293edf9deedfee58c03da2f89bf89099589", size = 3005330, upload-time = "2026-03-02T08:32:17.502Z" },
+    { url = "https://files.pythonhosted.org/packages/47/2e/4b799d2e1891fcfba02cb031ffc4b900f278040e5579c38e7d3d75d739da/gemmi-0.7.5-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:a9b92612cb33cbd1788c7620a1445b506459f927032cde2a761b91e5754c512d", size = 3185785, upload-time = "2026-03-02T08:32:19.938Z" },
+    { url = "https://files.pythonhosted.org/packages/20/b3/4889b36322255592a9aa1bb20ee847804413378521410b454cfc73698665/gemmi-0.7.5-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:0b7ddf3f93688a8a7893858b45cb4df5ee324309939f461fc3734db575bde44c", size = 3527630, upload-time = "2026-03-02T08:32:22.528Z" },
+    { url = "https://files.pythonhosted.org/packages/74/29/07cb963112e2559ef4128d9bded0c9f74db8f1ba4468555d646c99942e52/gemmi-0.7.5-cp314-cp314t-win_amd64.whl", hash = "sha256:1aa3abfca7b65557ee1efba1247729d322c838a6c67371de6731125d2a337ed7", size = 2356795, upload-time = "2026-03-02T08:32:24.17Z" },
+]
+
+[[package]]
 name = "gitdb"
 version = "4.0.12"
 source = { registry = "https://pypi.org/simple" }
@@ -959,11 +1079,11 @@ name = "google-api-core"
 version = "2.31.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "google-auth" },
-    { name = "googleapis-common-protos" },
-    { name = "proto-plus" },
-    { name = "protobuf" },
-    { name = "requests" },
+    { name = "google-auth", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
+    { name = "googleapis-common-protos", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
+    { name = "proto-plus", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
+    { name = "protobuf", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
+    { name = "requests", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c6/22/155cadf1d49272a9cf48f3168c0f3874fa13397297e611a5ea00cd093880/google_api_core-2.31.0.tar.gz", hash = "sha256:2be84ee0f584c48e6bde1b36766e23348b361fb7e55e56135fc76ce1c397f9c2", size = 176492, upload-time = "2026-06-03T14:52:17.257Z" }
 wheels = [
@@ -975,8 +1095,8 @@ name = "google-auth"
 version = "2.55.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cryptography" },
-    { name = "pyasn1-modules" },
+    { name = "cryptography", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
+    { name = "pyasn1-modules", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a3/6f/f3f4ac177c67bbee8fe8e88f2ab4f36af88c44a096e165c5217accf6e5d3/google_auth-2.55.1.tar.gz", hash = "sha256:fb2d9b730f2c9b8d326ec8d7222f21aef2ead15bf0513793d6442485d87af0a1", size = 349527, upload-time = "2026-06-25T23:39:27.182Z" }
 wheels = [
@@ -984,11 +1104,83 @@ wheels = [
 ]
 
 [[package]]
+name = "google-cloud-core"
+version = "2.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "google-auth", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/dd/1eef226e470369b26824a505c34482c0b493bc35fe8e0c6b003b5feca21a/google_cloud_core-2.6.0.tar.gz", hash = "sha256:e76149739f90fac1fc6757c09f47eaccb3145b54adbd7759b0f7c4b235f46c83", size = 36001, upload-time = "2026-05-07T08:04:04.124Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/84/4a/98da8930ab109c73d9a5d13782a9ebb81ea8c111f6d534a567b71d23e52b/google_cloud_core-2.6.0-py3-none-any.whl", hash = "sha256:6d63ac8e5eca6d9e4319d0a1e2265fadcd7f1049904378caecfa01cf52dd869e", size = 29390, upload-time = "2026-05-07T08:02:34.672Z" },
+]
+
+[[package]]
+name = "google-cloud-storage"
+version = "3.12.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "google-auth", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "google-cloud-core", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "google-crc32c", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "google-resumable-media", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "requests", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/58/72/86f94e1639a8bcd9d33e8e01b49afcaa1c3a13bda7683c681717e0901e15/google_cloud_storage-3.12.0.tar.gz", hash = "sha256:03ae9847c6babb368f35f054126b8a08cbc0e3266efb990eb17b9926a45cf3be", size = 17338620, upload-time = "2026-06-12T18:03:29.215Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1b/bd/a89eaebd2f9db5f92ddcc8e4f23c266be1dbd11058bb83451d8dd029f34c/google_cloud_storage-3.12.0-py3-none-any.whl", hash = "sha256:3880773754ddf7c27567b04e2a4d193950b6b99429f37b9097d873686e95b09c", size = 340605, upload-time = "2026-06-12T18:03:12.677Z" },
+]
+
+[[package]]
+name = "google-crc32c"
+version = "1.8.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/03/41/4b9c02f99e4c5fb477122cd5437403b552873f014616ac1d19ac8221a58d/google_crc32c-1.8.0.tar.gz", hash = "sha256:a428e25fb7691024de47fecfbff7ff957214da51eddded0da0ae0e0f03a2cf79", size = 14192, upload-time = "2025-12-16T00:35:25.142Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5d/ef/21ccfaab3d5078d41efe8612e0ed0bfc9ce22475de074162a91a25f7980d/google_crc32c-1.8.0-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:014a7e68d623e9a4222d663931febc3033c5c7c9730785727de2a81f87d5bab8", size = 31298, upload-time = "2025-12-16T00:20:32.241Z" },
+    { url = "https://files.pythonhosted.org/packages/c5/b8/f8413d3f4b676136e965e764ceedec904fe38ae8de0cdc52a12d8eb1096e/google_crc32c-1.8.0-cp311-cp311-macosx_12_0_x86_64.whl", hash = "sha256:86cfc00fe45a0ac7359e5214a1704e51a99e757d0272554874f419f79838c5f7", size = 30872, upload-time = "2025-12-16T00:33:58.785Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/fd/33aa4ec62b290477181c55bb1c9302c9698c58c0ce9a6ab4874abc8b0d60/google_crc32c-1.8.0-cp311-cp311-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:19b40d637a54cb71e0829179f6cb41835f0fbd9e8eb60552152a8b52c36cbe15", size = 33243, upload-time = "2025-12-16T00:40:21.46Z" },
+    { url = "https://files.pythonhosted.org/packages/71/03/4820b3bd99c9653d1a5210cb32f9ba4da9681619b4d35b6a052432df4773/google_crc32c-1.8.0-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:17446feb05abddc187e5441a45971b8394ea4c1b6efd88ab0af393fd9e0a156a", size = 33608, upload-time = "2025-12-16T00:40:22.204Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/43/acf61476a11437bf9733fb2f70599b1ced11ec7ed9ea760fdd9a77d0c619/google_crc32c-1.8.0-cp311-cp311-win_amd64.whl", hash = "sha256:71734788a88f551fbd6a97be9668a0020698e07b2bf5b3aa26a36c10cdfb27b2", size = 34439, upload-time = "2025-12-16T00:35:20.458Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/5f/7307325b1198b59324c0fa9807cafb551afb65e831699f2ce211ad5c8240/google_crc32c-1.8.0-cp312-cp312-macosx_12_0_arm64.whl", hash = "sha256:4b8286b659c1335172e39563ab0a768b8015e88e08329fa5321f774275fc3113", size = 31300, upload-time = "2025-12-16T00:21:56.723Z" },
+    { url = "https://files.pythonhosted.org/packages/21/8e/58c0d5d86e2220e6a37befe7e6a94dd2f6006044b1a33edf1ff6d9f7e319/google_crc32c-1.8.0-cp312-cp312-macosx_12_0_x86_64.whl", hash = "sha256:2a3dc3318507de089c5384cc74d54318401410f82aa65b2d9cdde9d297aca7cb", size = 30867, upload-time = "2025-12-16T00:38:31.302Z" },
+    { url = "https://files.pythonhosted.org/packages/ce/a9/a780cc66f86335a6019f557a8aaca8fbb970728f0efd2430d15ff1beae0e/google_crc32c-1.8.0-cp312-cp312-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:14f87e04d613dfa218d6135e81b78272c3b904e2a7053b841481b38a7d901411", size = 33364, upload-time = "2025-12-16T00:40:22.96Z" },
+    { url = "https://files.pythonhosted.org/packages/21/3f/3457ea803db0198c9aaca2dd373750972ce28a26f00544b6b85088811939/google_crc32c-1.8.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:cb5c869c2923d56cb0c8e6bcdd73c009c36ae39b652dbe46a05eb4ef0ad01454", size = 33740, upload-time = "2025-12-16T00:40:23.96Z" },
+    { url = "https://files.pythonhosted.org/packages/df/c0/87c2073e0c72515bb8733d4eef7b21548e8d189f094b5dad20b0ecaf64f6/google_crc32c-1.8.0-cp312-cp312-win_amd64.whl", hash = "sha256:3cc0c8912038065eafa603b238abf252e204accab2a704c63b9e14837a854962", size = 34437, upload-time = "2025-12-16T00:35:21.395Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/db/000f15b41724589b0e7bc24bc7a8967898d8d3bc8caf64c513d91ef1f6c0/google_crc32c-1.8.0-cp313-cp313-macosx_12_0_arm64.whl", hash = "sha256:3ebb04528e83b2634857f43f9bb8ef5b2bbe7f10f140daeb01b58f972d04736b", size = 31297, upload-time = "2025-12-16T00:23:20.709Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/0d/8ebed0c39c53a7e838e2a486da8abb0e52de135f1b376ae2f0b160eb4c1a/google_crc32c-1.8.0-cp313-cp313-macosx_12_0_x86_64.whl", hash = "sha256:450dc98429d3e33ed2926fc99ee81001928d63460f8538f21a5d6060912a8e27", size = 30867, upload-time = "2025-12-16T00:43:14.628Z" },
+    { url = "https://files.pythonhosted.org/packages/ce/42/b468aec74a0354b34c8cbf748db20d6e350a68a2b0912e128cabee49806c/google_crc32c-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:3b9776774b24ba76831609ffbabce8cdf6fa2bd5e9df37b594221c7e333a81fa", size = 33344, upload-time = "2025-12-16T00:40:24.742Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/e8/b33784d6fc77fb5062a8a7854e43e1e618b87d5ddf610a88025e4de6226e/google_crc32c-1.8.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:89c17d53d75562edfff86679244830599ee0a48efc216200691de8b02ab6b2b8", size = 33694, upload-time = "2025-12-16T00:40:25.505Z" },
+    { url = "https://files.pythonhosted.org/packages/92/b1/d3cbd4d988afb3d8e4db94ca953df429ed6db7282ed0e700d25e6c7bfc8d/google_crc32c-1.8.0-cp313-cp313-win_amd64.whl", hash = "sha256:57a50a9035b75643996fbf224d6661e386c7162d1dfdab9bc4ca790947d1007f", size = 34435, upload-time = "2025-12-16T00:35:22.107Z" },
+    { url = "https://files.pythonhosted.org/packages/21/88/8ecf3c2b864a490b9e7010c84fd203ec8cf3b280651106a3a74dd1b0ca72/google_crc32c-1.8.0-cp314-cp314-macosx_12_0_arm64.whl", hash = "sha256:e6584b12cb06796d285d09e33f63309a09368b9d806a551d8036a4207ea43697", size = 31301, upload-time = "2025-12-16T00:24:48.527Z" },
+    { url = "https://files.pythonhosted.org/packages/36/c6/f7ff6c11f5ca215d9f43d3629163727a272eabc356e5c9b2853df2bfe965/google_crc32c-1.8.0-cp314-cp314-macosx_12_0_x86_64.whl", hash = "sha256:f4b51844ef67d6cf2e9425983274da75f18b1597bb2c998e1c0a0e8d46f8f651", size = 30868, upload-time = "2025-12-16T00:48:12.163Z" },
+    { url = "https://files.pythonhosted.org/packages/56/15/c25671c7aad70f8179d858c55a6ae8404902abe0cdcf32a29d581792b491/google_crc32c-1.8.0-cp314-cp314-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:b0d1a7afc6e8e4635564ba8aa5c0548e3173e41b6384d7711a9123165f582de2", size = 33381, upload-time = "2025-12-16T00:40:26.268Z" },
+    { url = "https://files.pythonhosted.org/packages/42/fa/f50f51260d7b0ef5d4898af122d8a7ec5a84e2984f676f746445f783705f/google_crc32c-1.8.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:8b3f68782f3cbd1bce027e48768293072813469af6a61a86f6bb4977a4380f21", size = 33734, upload-time = "2025-12-16T00:40:27.028Z" },
+    { url = "https://files.pythonhosted.org/packages/08/a5/7b059810934a09fb3ccb657e0843813c1fee1183d3bc2c8041800374aa2c/google_crc32c-1.8.0-cp314-cp314-win_amd64.whl", hash = "sha256:d511b3153e7011a27ab6ee6bb3a5404a55b994dc1a7322c0b87b29606d9790e2", size = 34878, upload-time = "2025-12-16T00:35:23.142Z" },
+    { url = "https://files.pythonhosted.org/packages/52/c5/c171e4d8c44fec1422d801a6d2e5d7ddabd733eeda505c79730ee9607f07/google_crc32c-1.8.0-pp311-pypy311_pp73-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:87fa445064e7db928226b2e6f0d5304ab4cd0339e664a4e9a25029f384d9bb93", size = 28615, upload-time = "2025-12-16T00:40:29.298Z" },
+    { url = "https://files.pythonhosted.org/packages/9c/97/7d75fe37a7a6ed171a2cf17117177e7aab7e6e0d115858741b41e9dd4254/google_crc32c-1.8.0-pp311-pypy311_pp73-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:f639065ea2042d5c034bf258a9f085eaa7af0cd250667c0635a3118e8f92c69c", size = 28800, upload-time = "2025-12-16T00:40:30.322Z" },
+]
+
+[[package]]
+name = "google-resumable-media"
+version = "2.10.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-crc32c", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/f8/1ca5781d6be9cb9f73f7d40f4958c4bd1226a60598e3e39e1d6aaf838c4b/google_resumable_media-2.10.0.tar.gz", hash = "sha256:e324bc9d0fdae4c52a08ae90456edc4e71ece858399e1217ac0eb3a51d6bc6ee", size = 2164570, upload-time = "2026-06-03T16:14:26.103Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b0/d8/00c6854ac1512bb9eaf13bd3f8f28222f7674947fc510a4ff7616f2efc80/google_resumable_media-2.10.0-py3-none-any.whl", hash = "sha256:88152884bee37b2bf36a0ab81ad8c7fd12212c9803dd981d77c1b35b02d34e7c", size = 81533, upload-time = "2026-06-03T16:13:12.51Z" },
+]
+
+[[package]]
 name = "googleapis-common-protos"
 version = "1.75.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "protobuf" },
+    { name = "protobuf", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b5/c8/f439cffde755cffa462bfbb156278fa6f9d09119719af9814b858fd4f81f/googleapis_common_protos-1.75.0.tar.gz", hash = "sha256:53a062ff3c32552fbd62c11fe23768b78e4ddf0494d5e5fd97d3f4689c75fbbd", size = 151035, upload-time = "2026-05-07T08:04:49.423Z" }
 wheels = [
@@ -1224,15 +1416,15 @@ name = "huggingface-hub"
 version = "1.16.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "filelock" },
-    { name = "fsspec" },
-    { name = "hf-xet", marker = "platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'" },
-    { name = "httpx" },
-    { name = "packaging" },
-    { name = "pyyaml" },
-    { name = "tqdm" },
-    { name = "typer" },
-    { name = "typing-extensions" },
+    { name = "filelock", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
+    { name = "fsspec", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
+    { name = "hf-xet", marker = "(python_full_version >= '3.12' and platform_machine == 'AMD64') or (python_full_version >= '3.12' and platform_machine == 'aarch64') or (python_full_version >= '3.12' and platform_machine == 'amd64') or (python_full_version >= '3.12' and platform_machine == 'arm64') or (python_full_version >= '3.12' and platform_machine == 'x86_64') or (platform_machine != 'AMD64' and platform_machine != 'aarch64' and platform_machine != 'amd64' and platform_machine != 'arm64' and platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (platform_machine == 'AMD64' and extra == 'extra-10-touchstone-uma') or (platform_machine == 'aarch64' and extra == 'extra-10-touchstone-uma') or (platform_machine == 'amd64' and extra == 'extra-10-touchstone-uma') or (platform_machine == 'arm64' and extra == 'extra-10-touchstone-uma') or (platform_machine == 'x86_64' and extra == 'extra-10-touchstone-uma')" },
+    { name = "httpx", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
+    { name = "packaging", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
+    { name = "pyyaml", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
+    { name = "tqdm", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
+    { name = "typer", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
+    { name = "typing-extensions", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/48/0f/ed994dbade67a54407c28cab96ef845e0e6d25500be56aca6394f8bfc9dd/huggingface_hub-1.16.1.tar.gz", hash = "sha256:7f1dc4c5ec21aed69be630ad0c3378616be16f3de1a47b141c0e812965d9c832", size = 792534, upload-time = "2026-05-21T18:40:00.908Z" }
 wheels = [
@@ -1276,11 +1468,20 @@ name = "jinja2"
 version = "3.1.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "markupsafe" },
+    { name = "markupsafe", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-mace' or extra == 'extra-10-touchstone-uma'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
+]
+
+[[package]]
+name = "jmespath"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/59/322338183ecda247fb5d1763a6cbe46eff7222eaeebafd9fa65d4bf5cb11/jmespath-1.1.0.tar.gz", hash = "sha256:472c87d80f36026ae83c6ddd0f1d05d4e510134ed462851fd5f754c8c3cbb88d", size = 27377, upload-time = "2026-01-22T16:35:26.279Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/14/2f/967ba146e6d58cf6a652da73885f52fc68001525b4197effc174321d70b4/jmespath-1.1.0-py3-none-any.whl", hash = "sha256:a5663118de4908c91729bea0acadca56526eb2698e83de10cd116ae0f4e97c64", size = 20419, upload-time = "2026-01-22T16:35:24.919Z" },
 ]
 
 [[package]]
@@ -2094,13 +2295,18 @@ resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e7/05/3d27272d30698dc0ecb7fdfaa41ad70303b444f81722bb99bce1d818638a/numpy-2.5.0.tar.gz", hash = "sha256:5a129578019311b6e56bdd714250f19b518f7dceeeb8d1af5490f4942d3f891c", size = 20652461, upload-time = "2026-06-21T20:57:51.95Z" }
 wheels = [
@@ -2150,6 +2356,24 @@ wheels = [
 ]
 
 [[package]]
+name = "nvalchemi-toolkit-ops"
+version = "0.3.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'extra-10-touchstone-uma') or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "numpy", version = "2.5.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'extra-10-touchstone-mace') or (python_full_version >= '3.12' and extra != 'extra-10-touchstone-uma') or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "warp-lang", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d5/44/7c7e8d52460755918810a1486c08ed4cc7bb810c9fbc186f8e2e02c0b856/nvalchemi_toolkit_ops-0.3.1-py3-none-any.whl", hash = "sha256:1c0f37c0a798c81d0a7d617591968d71f4187ba3c32515db16d2efa712edb4e7", size = 464233, upload-time = "2026-04-14T09:26:07.706Z" },
+]
+
+[package.optional-dependencies]
+torch = [
+    { name = "torch", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
+
+[[package]]
 name = "nvidia-cublas-cu12"
 version = "12.8.4.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2194,7 +2418,7 @@ name = "nvidia-cudnn-cu12"
 version = "9.10.2.21"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12", marker = "(python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-cublas-cu12", marker = "(python_full_version >= '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32') or (python_full_version < '3.12' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-10-touchstone-mace') or (python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (python_full_version < '3.12' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fa/41/e79269ce215c857c935fd86bcfe91a451a584dfc27f1e068f568b9ad1ab7/nvidia_cudnn_cu12-9.10.2.21-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:c9132cc3f8958447b4910a1720036d9eff5928cc3179b0a51fb6d167c6cc87d8", size = 705026878, upload-time = "2025-06-06T21:52:51.348Z" },
@@ -2207,7 +2431,7 @@ name = "nvidia-cufft-cu12"
 version = "11.3.3.83"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12", marker = "(python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(python_full_version >= '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32') or (python_full_version < '3.12' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-10-touchstone-mace') or (python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (python_full_version < '3.12' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/bc/7771846d3a0272026c416fbb7e5f4c1f146d6d80704534d0b187dd6f4800/nvidia_cufft_cu12-11.3.3.83-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:848ef7224d6305cdb2a4df928759dca7b1201874787083b6e7550dd6765ce69a", size = 193109211, upload-time = "2025-03-07T01:44:56.873Z" },
@@ -2239,9 +2463,9 @@ name = "nvidia-cusolver-cu12"
 version = "11.7.3.90"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12", marker = "(python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
-    { name = "nvidia-cusparse-cu12", marker = "(python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
-    { name = "nvidia-nvjitlink-cu12", marker = "(python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-cublas-cu12", marker = "(python_full_version >= '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32') or (python_full_version < '3.12' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-10-touchstone-mace') or (python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (python_full_version < '3.12' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-cusparse-cu12", marker = "(python_full_version >= '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32') or (python_full_version < '3.12' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-10-touchstone-mace') or (python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (python_full_version < '3.12' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(python_full_version >= '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32') or (python_full_version < '3.12' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-10-touchstone-mace') or (python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (python_full_version < '3.12' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c8/32/f7cd6ce8a7690544d084ea21c26e910a97e077c9b7f07bf5de623ee19981/nvidia_cusolver_cu12-11.7.3.90-py3-none-manylinux_2_27_aarch64.whl", hash = "sha256:db9ed69dbef9715071232caa9b69c52ac7de3a95773c2db65bdba85916e4e5c0", size = 267229841, upload-time = "2025-03-07T01:46:54.356Z" },
@@ -2254,7 +2478,7 @@ name = "nvidia-cusparse-cu12"
 version = "12.5.8.93"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12", marker = "(python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(python_full_version >= '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32') or (python_full_version < '3.12' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-10-touchstone-mace') or (python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (python_full_version < '3.12' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bc/f7/cd777c4109681367721b00a106f491e0d0d15cfa1fd59672ce580ce42a97/nvidia_cusparse_cu12-12.5.8.93-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:9b6c161cb130be1a07a27ea6923df8141f3c295852f4b260c65f18f3e0a091dc", size = 288117129, upload-time = "2025-03-07T01:47:40.407Z" },
@@ -2312,6 +2536,43 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ce/3d/e4b57b8d9008c6ebe0d5eff901f91d5700cf7bdb8c8863df817463a7fd5e/omegaconf-2.3.1.tar.gz", hash = "sha256:e5e7de64aeebeddaf8e6d3f7a783b32ac2a01c0fbd9c878012caecb891a1f42a", size = 3298472, upload-time = "2026-06-11T05:05:12.885Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a4/0e/152509871bf30df6fc38569f52a2db9b55dd41aae957adae50a053ac7778/omegaconf-2.3.1-py3-none-any.whl", hash = "sha256:3d701d14e9a8828f1edd28bb70b725908b34277cdd72cf7d6a83f94dadc6b6a0", size = 79502, upload-time = "2026-06-11T05:05:09.954Z" },
+]
+
+[[package]]
+name = "openbabel-wheel"
+version = "3.1.1.23"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/63/2d/720579ccff6247aa8fd2d397a7bd592dae72ef0f0133fe6cce2323ea13a2/openbabel_wheel-3.1.1.23.tar.gz", hash = "sha256:68fd86540ff0895d36b26f25721187399fb6073f874f6ae474a574e6acf8759d", size = 13256, upload-time = "2026-03-06T01:31:11.497Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/05/29/3ad7b597f3176ff3921a7aecb66baaf7fcf87cbeaca51b3d4ca73a1dc37d/openbabel_wheel-3.1.1.23-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:6af73b6d401df4ad2679ee65b3b99ca83347c6282f21b9ea425394393d947e4e", size = 11605888, upload-time = "2026-02-17T13:17:45.42Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/85/2006233637c714e3c3b258b7a39e4b16fbd5e9648761bfc7632caa8850a6/openbabel_wheel-3.1.1.23-cp311-cp311-macosx_14_0_x86_64.whl", hash = "sha256:25e479c9e9a970a63cff89236583d5e3e5633887769571dffceb6578d7e1921a", size = 12213433, upload-time = "2026-02-17T13:17:47.835Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/2a/17ec36d9c0b90f9c7cffa2a8f79dfd2113a3ac3738742ab354360bcfadd5/openbabel_wheel-3.1.1.23-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:d740d5b87e101054d2b9e2846c9d445e353ce7217b3088b2cb974c26eb40595f", size = 15637628, upload-time = "2026-02-17T13:17:49.903Z" },
+    { url = "https://files.pythonhosted.org/packages/33/69/af809769228ab7f052237ba56f4678a3e63f594c0d4f982c6293d4ad854c/openbabel_wheel-3.1.1.23-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:733ebba8a93786674d173e0651be894b2debd3cc68a2c4be62739207d51ba257", size = 16083095, upload-time = "2026-02-17T13:17:52.174Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/e8/9335b9fd5798049b11b98483a4094bca8d28e9571c5f32b8f43568e3363d/openbabel_wheel-3.1.1.23-cp311-cp311-win_amd64.whl", hash = "sha256:f0568906e6959fc541518c8e4cea26973e58707bd2434fb7cddfc5f745c32df7", size = 5068427, upload-time = "2026-02-17T13:17:54.599Z" },
+    { url = "https://files.pythonhosted.org/packages/29/89/c332ce2ae368d887fc8e3f3f991c948f6ec31c8194a6d04ca3a9c80b4929/openbabel_wheel-3.1.1.23-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:39a648f936aa733984381863793b13945cf51452c0d56ceeaf7a46d9534a8527", size = 11608377, upload-time = "2026-02-17T13:17:56.142Z" },
+    { url = "https://files.pythonhosted.org/packages/54/72/8f6306674248cf1305e5610c0f5fb79b37b986ecba713a8429924da11a85/openbabel_wheel-3.1.1.23-cp312-cp312-macosx_14_0_x86_64.whl", hash = "sha256:9ad8e30bafbadd8325ad7c74cf2145c683ab766608e82262f1b0d8c6bb42a80b", size = 12218579, upload-time = "2026-02-17T13:17:59.068Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/d4/88625e94fa159c870c3ad7fb0a9a0c77be7b9ead68b2730c4b781243fe0e/openbabel_wheel-3.1.1.23-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:7fa4edf22b616e6c71065bdb01f028ec6fb4821b7f788cef97edc33a916203cf", size = 15639446, upload-time = "2026-02-17T13:18:01.125Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/a9/3e60dc173672ae40172a1f0c49fc42906d7587503f1f3acce4bd5b0cac7d/openbabel_wheel-3.1.1.23-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:39340af4da11cafabb95542fd110e7ff120e3af085e4e48aa2b8e69cc49b807b", size = 16087232, upload-time = "2026-02-17T13:18:04.563Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/ef/fe52b70c0e45348263ad52b3b11897cc16fd7a825d0013e1abb95dab4951/openbabel_wheel-3.1.1.23-cp312-cp312-win_amd64.whl", hash = "sha256:a7404eb43fcdd538120c127c59f5e61db2e93f11dc1230a71523a1c542bc445b", size = 5070029, upload-time = "2026-02-17T13:18:06.689Z" },
+    { url = "https://files.pythonhosted.org/packages/c3/97/a2fa3962b36d26fb2ac1969671c287bb521124c4d0d9d73e250640902722/openbabel_wheel-3.1.1.23-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:26652b12f5eefdcf2399b9305b4fc4d588af0af64ef089237074d81f59a5a73b", size = 11607808, upload-time = "2026-02-17T13:18:08.501Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/a2/3f50177535df26da55cc713470c45d4e0bb2707b29de6bdeaed84b2e33fb/openbabel_wheel-3.1.1.23-cp313-cp313-macosx_14_0_x86_64.whl", hash = "sha256:14f7d321d50661cd89a495f4f5601df7f4faeda944ed702459339bf1fdb0edbf", size = 12218456, upload-time = "2026-02-17T13:18:10.624Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/c8/2ee60db27b572d20f2c9a4239df35f5230b1687d738b52c4b0671561f6b8/openbabel_wheel-3.1.1.23-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:5395eb3fd4ce660a45c3693c65dd8155027a593c9f1fd192dccf69ed01c5295c", size = 15636511, upload-time = "2026-02-17T13:18:12.74Z" },
+    { url = "https://files.pythonhosted.org/packages/22/40/a885b253b15f95460d272a11be9aa039badbdc507dcd7f73256dca8cc339/openbabel_wheel-3.1.1.23-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:b20aae66b907da10489bdee3912571d50b85986cfce8845d4f53f9c855bc2494", size = 16084796, upload-time = "2026-02-17T13:18:14.847Z" },
+    { url = "https://files.pythonhosted.org/packages/98/41/d3c3c237fc2dbb161ae9fa9ee3f69a7fd700a9890c1d0e26652c9c6ec605/openbabel_wheel-3.1.1.23-cp313-cp313-win_amd64.whl", hash = "sha256:5d19a91d741b6a724735aa8d07dea80b4255f87bf75ed89ecb28ad57e4716f74", size = 5069328, upload-time = "2026-02-17T13:18:17.087Z" },
+    { url = "https://files.pythonhosted.org/packages/ce/18/52b95fe0ff9b97c0e0f51a6dd2949270d427dd3db51e350d37776d68d8be/openbabel_wheel-3.1.1.23-cp313-cp313t-macosx_14_0_arm64.whl", hash = "sha256:578e4b033690ec27431f7239b80721b6cfb2f592d9270d764b6166ff5ef08232", size = 11623468, upload-time = "2026-02-17T13:18:18.896Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/e0/f7d1154f1b3a1e550927e8f3dc73f604991f26a96d9e7ce77ac7a39f2fdb/openbabel_wheel-3.1.1.23-cp313-cp313t-macosx_14_0_x86_64.whl", hash = "sha256:9af2d09ad3c7e105c0e2de1c74b97a6c265c0c8e990a929edad032d5f1e10b8e", size = 12239256, upload-time = "2026-02-17T13:18:20.847Z" },
+    { url = "https://files.pythonhosted.org/packages/26/d8/2cef68780788bc420b0a6c8b0f3d8bfb41cd14900cca43873c744f3d886e/openbabel_wheel-3.1.1.23-cp313-cp313t-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:3a9912e5b32ff3139e653db746a43ea4b7da0ce1b5b68b6e63f10f028c5d8a2d", size = 15641869, upload-time = "2026-02-17T13:18:22.976Z" },
+    { url = "https://files.pythonhosted.org/packages/c7/5c/875704cbbc314dd0c6ff0a2d689308a3d626cd64c7c6b48cf299874f484f/openbabel_wheel-3.1.1.23-cp313-cp313t-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:0f56d0ae28e6bbbaaca483abe35dd21d4d2c7f3b1b6f602593f419b2b5f067ac", size = 16067368, upload-time = "2026-02-17T13:18:25.182Z" },
+    { url = "https://files.pythonhosted.org/packages/96/01/e6d4c2be84ceb8d05e73ee18840cda353e3d862f0961745345ff51a890c1/openbabel_wheel-3.1.1.23-cp313-cp313t-win_amd64.whl", hash = "sha256:a65c577f3f78f535accc504e09733bc42d4eb2f36c9d711e4dd783e05c610af9", size = 5148217, upload-time = "2026-02-17T13:18:27.694Z" },
+    { url = "https://files.pythonhosted.org/packages/15/4d/2ddd716e4e760769806457abae3e8cedad73ff04575dc79005a5f5f69f97/openbabel_wheel-3.1.1.23-cp314-cp314-macosx_14_0_arm64.whl", hash = "sha256:305fb0b7fe2bf44da8133cf6d58cd1cdf19d123469cde8ca16a83f8d4c4900ee", size = 11607818, upload-time = "2026-02-17T13:18:29.674Z" },
+    { url = "https://files.pythonhosted.org/packages/89/9a/8f3d74ff656dadabd3b0c39f4439936a457c358f7948059c462911dfb44c/openbabel_wheel-3.1.1.23-cp314-cp314-macosx_14_0_x86_64.whl", hash = "sha256:0ce98ced58fda97ec0f159177c85996cbfaad63e1ee0eff360ce0e5e62eaf478", size = 12219080, upload-time = "2026-02-17T13:18:31.724Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/41/bf28930bc29c427bc7015376f20836553c2617099ea95fbaca810ca27ee6/openbabel_wheel-3.1.1.23-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:5696be0fdc271670a540b50baba4d6bf005557b8c52e955122c2df7f05455320", size = 15637730, upload-time = "2026-02-17T13:18:34.006Z" },
+    { url = "https://files.pythonhosted.org/packages/ae/fa/d99287bd9ea00f6c0506d88d5c79cf7fc2b34865955e4e4b8e81fc2637a8/openbabel_wheel-3.1.1.23-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:14b007a4d233a32267298a0100787fa74b0edb1f264b480268b95490abd27969", size = 16084576, upload-time = "2026-02-17T13:18:36.183Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/94/5f3aba19af7161ff3aefc90b60ae881e82cf35226a785aca105c845e57ce/openbabel_wheel-3.1.1.23-cp314-cp314-win_amd64.whl", hash = "sha256:b2b94575bdf20ef400505db6549e304fb13cc1fd45faa710fcda14706936076b", size = 5196055, upload-time = "2026-02-17T13:18:38.185Z" },
+    { url = "https://files.pythonhosted.org/packages/39/6d/f36fdee19006947caa2076573f21fa410297e80650ac1dfeee53e25da1b1/openbabel_wheel-3.1.1.23-cp314-cp314t-macosx_14_0_arm64.whl", hash = "sha256:ff34dc00cff8730e70026a39ab3f70417028cecb364ac461cc7a24af84e95e5e", size = 11623410, upload-time = "2026-02-17T13:18:39.763Z" },
+    { url = "https://files.pythonhosted.org/packages/9c/54/20b1641c938c268bf811d7c797226e310bc68bc76ea7e6c223644176c701/openbabel_wheel-3.1.1.23-cp314-cp314t-macosx_14_0_x86_64.whl", hash = "sha256:fe8221e4cbe28d6e82a32dc8e8ed92e65457845f661628e35d3faf318e9d25db", size = 12239214, upload-time = "2026-02-17T13:18:42.148Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/62/0ea5523964930b5f6f049133d0262cfba037668d2fa3559a5535b383a2d2/openbabel_wheel-3.1.1.23-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:050f973fa4c355f55ad8ef57fd6ea6694965449ad64593f62adc7cc37242b0a9", size = 15641856, upload-time = "2026-02-17T13:18:44.263Z" },
+    { url = "https://files.pythonhosted.org/packages/88/a1/f2a65bedad51230965963e92cff0409d6647e5245a4b00fa5ad537de4f09/openbabel_wheel-3.1.1.23-cp314-cp314t-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:68f23116535003fba5daf25ff364782b283d41bd3db16f6a57113942c7ae9f2a", size = 16067392, upload-time = "2026-02-17T13:18:46.477Z" },
 ]
 
 [[package]]
@@ -2423,6 +2684,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/93/de/856dab99be0360c7275fee075eb0450a2ec82a54c4c33689606f62e9615b/opt_einsum_fx-0.1.4.tar.gz", hash = "sha256:7eeb7f91ecb70be65e6179c106ea7f64fc1db6319e3d1289a4518b384f81e74f", size = 12969, upload-time = "2021-11-07T20:49:33.811Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8d/4c/e0370709aaf9d7ceb68f975cac559751e75954429a77e83202e680606560/opt_einsum_fx-0.1.4-py3-none-any.whl", hash = "sha256:85f489f4c7c31fd88d5faf9669c09e61ec37a30098809fdcfe2a08a9e42f23c9", size = 13213, upload-time = "2021-11-07T20:49:32.395Z" },
+]
+
+[[package]]
+name = "orb-models"
+version = "0.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "ase", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "cached-path", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "dm-tree", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvalchemi-toolkit-ops", extra = ["torch"], marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "torch", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "tqdm", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/c3/c6feb4cd02adcb6097f3b08500399395207d438a3e01f09d92f1577e27b7/orb_models-0.7.0.tar.gz", hash = "sha256:61573b9c3a1a6eade590b72d5abd5fa4280e7185a8f9f0ed2e9b59335a9276dd", size = 404035, upload-time = "2026-05-26T15:06:44.841Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/03/1d/8e61628ffea42a56c0f8bc251e71344d7e2c43bc61f0e43dae22a1ca8ce6/orb_models-0.7.0-py3-none-any.whl", hash = "sha256:b8e83f16ebddc9fd24a20b45062422c2ed2eb2bf07c34eeea06567975b4cf636", size = 416165, upload-time = "2026-05-26T15:06:43.317Z" },
 ]
 
 [[package]]
@@ -2805,7 +3084,7 @@ name = "proto-plus"
 version = "1.28.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "protobuf" },
+    { name = "protobuf", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c9/56/e647b0c675392d2da368da7b6f158f7368b18542fd6f7d7400a2f39de000/proto_plus-1.28.0.tar.gz", hash = "sha256:38e5696342835b08fc116f30a25665b29531cda9d5d5643e9b81fc312385abd9", size = 57221, upload-time = "2026-05-07T08:04:50.811Z" }
 wheels = [
@@ -2936,7 +3215,7 @@ name = "pyasn1-modules"
 version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pyasn1" },
+    { name = "pyasn1", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-uma'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e9/e6/78ebbb10a8c8e4b61a59249394a4a594c1a7af95593dc933a349c8d00964/pyasn1_modules-0.4.2.tar.gz", hash = "sha256:677091de870a80aae844b1ca6134f54652fa2c8c5a52aa396440ac3106e941e6", size = 307892, upload-time = "2025-03-28T02:41:22.17Z" }
 wheels = [
@@ -3363,11 +3642,53 @@ wheels = [
 
 [[package]]
 name = "rich"
+version = "13.9.4"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma'",
+    "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+]
+dependencies = [
+    { name = "markdown-it-py", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "pygments", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ab/3a/0316b28d0761c6734d6bc14e770d85506c986c85ffb239e688eeaab2c2bc/rich-13.9.4.tar.gz", hash = "sha256:439594978a49a09530cff7ebc4b5c7103ef57baf48d5ea3184f21d9a2befa098", size = 223149, upload-time = "2024-11-01T16:43:57.873Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/19/71/39c7c0d87f8d4e6c020a393182060eaefeeae6c01dab6a84ec346f2567df/rich-13.9.4-py3-none-any.whl", hash = "sha256:6049d5e6ec054bf2779ab3358186963bac2ea89175919d699e378b99738c2a90", size = 242424, upload-time = "2024-11-01T16:43:55.817Z" },
+]
+
+[[package]]
+name = "rich"
 version = "15.0.0"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.12' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma'",
+    "python_full_version < '3.12' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version < '3.12' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version < '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version < '3.12' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+]
 dependencies = [
-    { name = "markdown-it-py" },
-    { name = "pygments" },
+    { name = "markdown-it-py", marker = "python_full_version < '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "pygments", marker = "python_full_version < '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c0/8f/0722ca900cc807c13a6a0c696dacf35430f72e0ec571c4275d2371fca3e9/rich-15.0.0.tar.gz", hash = "sha256:edd07a4824c6b40189fb7ac9bc4c52536e9780fbbfbddf6f1e2502c31b068c36", size = 230680, upload-time = "2026-04-12T08:24:00.75Z" }
 wheels = [
@@ -3521,6 +3842,18 @@ wheels = [
 ]
 
 [[package]]
+name = "s3transfer"
+version = "0.19.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "botocore", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f6/94/dcdaeb1713cab9c84def276cfac7388b17c7d9855bbcfe88d77e4dbafd44/s3transfer-0.19.0.tar.gz", hash = "sha256:ce436931687addc4c1712d52d40b32f53e88315723f107ffa20ba82b05a0f685", size = 165171, upload-time = "2026-06-16T19:44:51.599Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/46/5f/4c174edad94f82de888ac00a5ddd8d07b35609b6c94f0bdf4d74af57703e/s3transfer-0.19.0-py3-none-any.whl", hash = "sha256:777cc2415536f1debadb5c2ef7779275d0fc0fe0e042411cdd6caebeb2685262", size = 90101, upload-time = "2026-06-16T19:44:50.439Z" },
+]
+
+[[package]]
 name = "scipy"
 version = "1.17.1"
 source = { registry = "https://pypi.org/simple" }
@@ -3611,13 +3944,18 @@ resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version >= '3.14' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version >= '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version >= '3.14' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
     "python_full_version >= '3.14' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
-    "python_full_version >= '3.12' and python_full_version < '3.14' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform == 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.13.*' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
+    "python_full_version == '3.12.*' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra != 'extra-10-touchstone-uma'",
 ]
 dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'extra-10-touchstone-uma') or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
@@ -3772,7 +4110,7 @@ name = "sympy"
 version = "1.14.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "mpmath" },
+    { name = "mpmath", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-mace' or extra == 'extra-10-touchstone-uma'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/83/d3/803453b36afefb7c2bb238361cd4ae6125a569b4db67cd9e79846ba2d68c/sympy-1.14.0.tar.gz", hash = "sha256:d3d3fe8df1e5a0b42f0e7bdf50541697dbe7d23746e894990c030e2b05e72517", size = 7793921, upload-time = "2025-04-27T18:05:01.611Z" }
 wheels = [
@@ -3823,28 +4161,28 @@ name = "torch"
 version = "2.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "filelock" },
-    { name = "fsspec" },
-    { name = "jinja2" },
-    { name = "networkx" },
-    { name = "nvidia-cublas-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cuda-cupti-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cuda-nvrtc-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cuda-runtime-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cudnn-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cufft-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cufile-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-curand-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cusolver-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cusparse-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cusparselt-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-nccl-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-nvjitlink-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-nvtx-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "setuptools", marker = "python_full_version >= '3.12'" },
-    { name = "sympy" },
-    { name = "triton", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "typing-extensions" },
+    { name = "filelock", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-mace' or extra == 'extra-10-touchstone-uma'" },
+    { name = "fsspec", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-mace' or extra == 'extra-10-touchstone-uma'" },
+    { name = "jinja2", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-mace' or extra == 'extra-10-touchstone-uma'" },
+    { name = "networkx", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-mace' or extra == 'extra-10-touchstone-uma'" },
+    { name = "nvidia-cublas-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-cuda-cupti-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-cuda-nvrtc-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-cuda-runtime-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-cudnn-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-cufft-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-cufile-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-curand-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-cusolver-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-cusparse-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-cusparselt-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-nccl-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "nvidia-nvtx-cu12", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "setuptools", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "sympy", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-mace' or extra == 'extra-10-touchstone-uma'" },
+    { name = "triton", marker = "(python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-mace') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-10-touchstone-uma') or (platform_machine != 'x86_64' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'linux' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "typing-extensions", marker = "python_full_version >= '3.12' or extra == 'extra-10-touchstone-mace' or extra == 'extra-10-touchstone-uma'" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/c4/3e7a3887eba14e815e614db70b3b529112d1513d9dae6f4d43e373360b7f/torch-2.8.0-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:220a06fd7af8b653c35d359dfe1aaf32f65aa85befa342629f716acb134b9710", size = 102073391, upload-time = "2025-08-06T14:53:20.937Z" },
@@ -3922,7 +4260,8 @@ source = { editable = "." }
 dependencies = [
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or extra == 'extra-10-touchstone-uma'" },
     { name = "numpy", version = "2.5.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'extra-10-touchstone-mace') or (python_full_version >= '3.12' and extra != 'extra-10-touchstone-uma') or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
-    { name = "rich" },
+    { name = "rich", version = "13.9.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "rich", version = "15.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
     { name = "typer" },
 ]
 
@@ -3933,14 +4272,24 @@ dev = [
 ]
 mace = [
     { name = "ase" },
+    { name = "gemmi" },
     { name = "mace-torch" },
+    { name = "openbabel-wheel" },
 ]
 mcp = [
     { name = "mcp" },
 ]
+orb = [
+    { name = "ase" },
+    { name = "gemmi" },
+    { name = "openbabel-wheel" },
+    { name = "orb-models", marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
 uma = [
     { name = "ase" },
     { name = "fairchem-core" },
+    { name = "gemmi" },
+    { name = "openbabel-wheel" },
 ]
 viz = [
     { name = "python-dotenv" },
@@ -3951,25 +4300,33 @@ viz = [
 requires-dist = [
     { name = "ase", marker = "extra == 'dev'", specifier = ">=3.23" },
     { name = "ase", marker = "extra == 'mace'", specifier = ">=3.23" },
+    { name = "ase", marker = "extra == 'orb'", specifier = ">=3.23" },
     { name = "ase", marker = "extra == 'uma'", specifier = ">=3.23" },
     { name = "fairchem-core", marker = "extra == 'uma'", specifier = ">=2.0" },
+    { name = "gemmi", marker = "extra == 'mace'", specifier = ">=0.6" },
+    { name = "gemmi", marker = "extra == 'orb'", specifier = ">=0.6" },
+    { name = "gemmi", marker = "extra == 'uma'", specifier = ">=0.6" },
     { name = "mace-torch", marker = "extra == 'mace'", specifier = ">=0.3" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.2" },
     { name = "numpy", specifier = ">=1.26" },
+    { name = "openbabel-wheel", marker = "extra == 'mace'", specifier = ">=3.1" },
+    { name = "openbabel-wheel", marker = "extra == 'orb'", specifier = ">=3.1" },
+    { name = "openbabel-wheel", marker = "extra == 'uma'", specifier = ">=3.1" },
+    { name = "orb-models", marker = "python_full_version >= '3.12' and extra == 'orb'", specifier = ">=0.7" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
     { name = "python-dotenv", marker = "extra == 'viz'", specifier = ">=1.0" },
     { name = "rich", specifier = ">=13" },
     { name = "typer", specifier = ">=0.12" },
     { name = "wandb", marker = "extra == 'viz'", specifier = ">=0.17" },
 ]
-provides-extras = ["dev", "viz", "mace", "uma", "mcp"]
+provides-extras = ["dev", "viz", "mace", "uma", "orb", "mcp"]
 
 [[package]]
 name = "tqdm"
 version = "4.68.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "(python_full_version >= '3.12' and sys_platform == 'win32') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/87/d7/0535a28b1f5f24f6612fb3ff1e89fb1a8d160fee0f976e0aa6803862134b/tqdm-4.68.3.tar.gz", hash = "sha256:00dfa48452b6b6cfae3dd9885636c23d3422d1ec97c66d96818cbd5e0821d482", size = 170596, upload-time = "2026-06-17T07:36:52.105Z" }
 wheels = [
@@ -3981,7 +4338,7 @@ name = "triton"
 version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "setuptools", marker = "(python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "setuptools", marker = "(python_full_version >= '3.12' and sys_platform != 'emscripten' and sys_platform != 'win32') or (python_full_version < '3.12' and sys_platform == 'emscripten' and extra == 'extra-10-touchstone-uma') or (python_full_version >= '3.12' and sys_platform == 'emscripten' and extra != 'extra-10-touchstone-mace') or (python_full_version < '3.13' and sys_platform == 'win32' and extra == 'extra-10-touchstone-uma') or (python_full_version < '3.12' and sys_platform != 'win32' and extra != 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform != 'emscripten' and sys_platform != 'win32' and extra == 'extra-10-touchstone-mace') or (sys_platform == 'emscripten' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma') or (sys_platform == 'win32' and extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7d/39/43325b3b651d50187e591eefa22e236b2981afcebaefd4f2fc0ea99df191/triton-3.4.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:7b70f5e6a41e52e48cfc087436c8a28c17ff98db369447bcaff3b887a3ab4467", size = 155531138, upload-time = "2025-07-30T19:58:29.908Z" },
@@ -3997,7 +4354,8 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-doc" },
     { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
-    { name = "rich" },
+    { name = "rich", version = "13.9.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "rich", version = "15.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
     { name = "shellingham" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5e/ed/ef06584ccdd5c410df0837951ecd7e15d9a6144ea1bd4c73cecab1a89891/typer-0.26.7.tar.gz", hash = "sha256:e314a34c617e419c091b2830dda3ea1f257134ff593061a8f5b9717ab8dddb3a", size = 201709, upload-time = "2026-06-03T07:18:06.843Z" }
@@ -4161,6 +4519,21 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/59/b1/f7a96c09cab0c5131b1e6466659b093b401e1653cbe6bb77b462fc1c361d/wandb-0.28.0-py3-none-win32.whl", hash = "sha256:8834ef3a7c8c43b701654162783caa7ad37af48a0ff06fc35d0d65a411f76ccd", size = 24525206, upload-time = "2026-06-23T00:38:42.041Z" },
     { url = "https://files.pythonhosted.org/packages/c6/c4/c7bed5e981679c74e9fbb22c03ff31c42e95f266199d03d8d325f4d0e6df/wandb-0.28.0-py3-none-win_amd64.whl", hash = "sha256:ac1f82292e2da4f98297b78c3a46726b3a6c5734ecb75fc39b8db2c8a4989159", size = 24525214, upload-time = "2026-06-23T00:38:44.549Z" },
     { url = "https://files.pythonhosted.org/packages/f0/77/b5ce9696c8cb955521a7941fbc443e78b2f504894c6ae1a2d0b1de6e12ae/wandb-0.28.0-py3-none-win_arm64.whl", hash = "sha256:c5b0faf1b84cf79ebabed77538c1940a4c6053e815f767a4004e877a1354bed1", size = 22378208, upload-time = "2026-06-23T00:38:47.148Z" },
+]
+
+[[package]]
+name = "warp-lang"
+version = "1.14.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'extra-10-touchstone-uma') or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+    { name = "numpy", version = "2.5.0", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'extra-10-touchstone-mace') or (python_full_version >= '3.12' and extra != 'extra-10-touchstone-uma') or (extra == 'extra-10-touchstone-mace' and extra == 'extra-10-touchstone-uma')" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/83/0f/28ba3c563a87adb85884fb59f5f281446f99a338c907e2b3f0b9f2f4a76c/warp_lang-1.14.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:12656050545cc77bf9b9b155399496c1a6279b5b6c59e407507d6858a2beb4a2", size = 24755239, upload-time = "2026-06-01T15:15:53.395Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/32/784829665b0cc6fadada337f103c811b7bf92a951a69c08f7e3cd6ab2580/warp_lang-1.14.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:70cd127d0e9109417099649fedf9d00f39f1307ccb7a6e9fb87661337868d7de", size = 138666257, upload-time = "2026-06-01T15:15:59.163Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/e1/1f882dfbf4b2528093722423b389984eb65433ac5ebe53f94a1f9a72c262/warp_lang-1.14.0-py3-none-manylinux_2_34_aarch64.whl", hash = "sha256:f482787e8da9c9ef045601fde99095e16d604fbcc3cbb4a1e0cef0769388b316", size = 140159761, upload-time = "2026-06-01T15:16:04.039Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/6a/f530a27d627c19302d40d100ad986b7d1722237866fe178a0c5233a4717e/warp_lang-1.14.0-py3-none-win_amd64.whl", hash = "sha256:936b49ec78237f9760e58cbe9c46ee6f4244aefbd62071c4fa9fd3b313dfa878", size = 121919902, upload-time = "2026-06-01T15:16:05.777Z" },
 ]
 
 [[package]]

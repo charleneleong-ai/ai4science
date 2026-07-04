@@ -8,7 +8,7 @@ consensus across independent methods (defense-in-depth, ≥2 per stage):
 - **geometry** — z-score vs a CSD/PDB prior · bond-valence sum · Mogul CSD validation
 - **precedent** — CSD CrossMiner (is the motif seen in nature?)
 - **expression** — ESM-2 pseudo-perplexity · solubility
-- **physics / dynamics** — xtb GFN2 · MLIP (MACE) relaxation + MD
+- **physics / dynamics** — xtb GFN2 · MLIP (MACE · OrbMol · UMA) relaxation + MD
 - **thermostability** — site MLIP-MD · global Tm (TemStaPro)
 - **selectivity** — geometry profile · MLIP ΔE metal-swap
 - **cross-verification** — independent co-fold (Boltz-2 / Chai-1 / AllMetal3D): does the

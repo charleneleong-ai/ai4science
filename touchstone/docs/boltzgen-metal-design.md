@@ -34,7 +34,7 @@ So "0/16" is a statement about the *spec*, not about BoltzGen.
 Pose metal design as BoltzGen's actual strength: scaffolding a fold around a specified
 coordination motif. The self-contained way (no target structure file) is to fix the coordinating
 residues in the **sequence string** and bond their donor atoms to the metal —
-[`boltzgen_in/ni_motif.yaml`](../../materialhack/) (lives on the GPU box):
+`boltzgen_in/ni_motif.yaml` (lives on the GPU box):
 
 ```yaml
 entities:
