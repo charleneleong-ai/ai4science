@@ -1,4 +1,4 @@
-# RLVR rounds 1–2 — does the touchstone reward improve BoltzGen? (Ni, 2026-07-01)
+# RLVR rounds 1–4 — does the touchstone reward improve BoltzGen? (Ni, 2026-07-01)
 
 First end-to-end run of the loop in [`docs/specs/2026-06-28-rlvr-boltzgen.md`](../specs/2026-06-28-rlvr-boltzgen.md):
 generate → [`rlvr_select`](../../scripts/rlvr_select.py) → [`winners_to_targets`](../../scripts/winners_to_targets.py)
@@ -42,17 +42,9 @@ independent of the geometry reward:
   to trust and downgrades the rest to weak (moderate drift / one lost donor). Under 300 K MD only
   `ni_motif_37` and `ni_motif_60` survive both (drift 0.31–0.35 Å, ≥98% retention).
 
-## Verdict
-RLVR **works** — the generator genuinely shifted toward the reward's notion of a good site, and the
-3.7× lift is real *in geometry space*. But geometry-plausible ≠ MLIP-stable: the deep check exposes
-the reward's blind spot (it doesn't penalize dynamic lability). RAFT optimized exactly what we
-asked; the fix is to ask for more.
-
-## Caveats
-- **Not wet-lab-calibrated** — optimizes CSD/physics-plausibility, not measured Kd/selectivity.
-- **No matched base-model deep baseline** — can't yet claim the fine-tune made MLIP-stability
-  *worse*, only that geometry-TRUST overstates it. A base-model `--deep` pass would close that.
-- **Single run / single seed.** Effect is large but unreplicated.
+Round 1 lifted geometry-TRUST 3.7× — real *in geometry space* — but the deep check exposed the
+reward's blind spot: geometry-plausible ≠ MLIP-stable. It optimized exactly what it measured; the
+fix is to measure more (rounds 2–3 below).
 
 ## Round 2 — folding MLIP into the reward (the objective tradeoff)
 Added `--deep` to `rlvr_select` so the MLIP relax+MD tiers enter the consensus + `reward_from_result`
@@ -74,15 +66,54 @@ Dynamic stability jumped ~8×; geometry-TRUST collapsed, because the MLIP-domina
 the model on geometrically-mediocre (but stable) sites. Two rounds now demonstrate the tradeoff
 empirically: a single-objective-dominated reward sacrifices the de-emphasized objective.
 
-## Verdict (both rounds)
-Verifier-as-reward **works and is steerable** — it reliably optimizes whatever the reward encodes.
-That is also its hazard: geometry-only → MD-labile designs; MLIP-only → geometry-poor designs. The
-reward must be **balanced**, and selection must require *both* (geometry-TRUST ∧ MLIP-stable), not let
-either term dominate.
+## Round 3 — balanced reward (the resolution)
+Branched from **round-1's checkpoint** (best geometry) and fine-tuned on **8 dual-passers** —
+designs that pass geometry-TRUST **and** MLIP-MD-trust, accumulated across the ft2+ft3 pools. Then
+generated + deep-verified a fresh 96-design pool. The balanced set pushed *both* axes up at once:
 
-## Next move — round 3, balanced reward
-Branch from **round-1's checkpoint** (best geometry) and train only on **dual-passers** (geometry-TRUST
-∧ MLIP-MD-trust). These are rare (~2–4 per 96-pool), so the first balanced set is small (8 accumulated
-across the ft2+ft3 pools). Success = a pool that holds geometry-TRUST **and** MLIP-stability together —
-neither collapsing. If the dual-pass rate is too low to train well, grow the set with more generation
-or adopt a weighted continuous reward that keeps both terms.
+| metric (96-design pool) | round 1 (geometry) | round 2 (MLIP) | **round 3 (balanced)** |
+|---|---|---|---|
+| geometry-TRUST | 21.9% | 6.3% | **66.7% (64/96)** |
+| MLIP-MD trust | ~4% | 34.4% | **39% (37/96)** |
+| full 6-tier TRUST (all verifiers) | ~2% | ~2% | **12.5% (12/96)** |
+
+Geometry-TRUST hit its highest of any round (3× round-1, 11× baseline) with **no** MLIP regression,
+and the "passes *every* verifier" rate (z-score · BVS · nVECSUM · polyhedron · MLIP relax · MLIP-MD)
+jumped ~6×. Training on designs that were uniformly high-quality on both axes improved both — the
+inverse of round-2, which trained on geometry-weak (but stable) sites and dragged geometry down.
+
+## Verdict (rounds 1–3)
+Verifier-as-reward **works, is steerable, and is reward-shaped** — RLVR optimizes precisely what the
+reward selects for. The three rounds map the consequence cleanly:
+- **geometry-only** → geometry ↑, MD-labile sites;
+- **MLIP-only** → MLIP ↑, geometry collapses;
+- **balanced (require both)** → *both* rise together, and the fully-verified rate climbs ~6×.
+
+The lesson: **the reward must encode every objective you care about** — a single-objective-dominated
+reward sacrifices whatever it stops weighting. Balanced dual-pass selection is the resolution — and
+then it **saturates**: round 4 (below) holds the gains but doesn't climb further, so beyond this the
+lever is a richer generation spec / new metal / wet-lab calibration, not more RAFT on the same reward.
+
+## Round 4 — more dual-passers → plateau
+Iterative RAFT continued: fine-tuned **round-3's** checkpoint on the accumulated **20 dual-passers**
+(round-3's 8 + the 12 new full-6-tier winners from round-3's own pool), then generated + deep-verified
+a fresh 96-design pool.
+
+| metric (96-design pool) | round 3 (8 dual-passers) | round 4 (20 dual-passers) |
+|---|---|---|
+| geometry-TRUST | 66.7% | 72.9% (70/96) |
+| MLIP-MD trust | 39% | 34% (33/96) |
+| full 6-tier TRUST | 12.5% | 10.4% (10/96) |
+
+**The gains plateau.** Geometry-TRUST holds high (edged up, within noise), but the fully-verified
+6-tier rate is flat at ~10–12% (12→10/96 is ≈2 designs, well inside binomial noise for n=96). A second
+balanced round neither climbs past round-3 nor collapses — the balanced reward's win **saturates** once
+the policy already sits at the dual-pass ceiling this generation spec / motif pool can reach. Pushing
+higher likely needs a *different* lever (a richer motif pool, a metal beyond Ni, or wet-lab-calibrated
+reward signal), not more RAFT rounds on the same objective.
+
+## Caveats
+- **Not wet-lab-calibrated** — optimizes CSD/physics-plausibility, not measured Kd/selectivity.
+- **Single seed per round**; effects are large but unreplicated.
+- **Small balanced sets** (8→20 dual-passers) — dual-passers are rare (~2–12 per 96-pool), so the
+  fine-tuning sets are small and overfitting is a live risk; the fresh-pool re-verify is the guard.
