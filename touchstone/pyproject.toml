@@ -17,7 +17,7 @@ viz = ["wandb>=0.17", "python-dotenv>=1.0"]
 # CIFs otherwise lose the metal element through OpenBabel/ASE).
 mace = ["ase>=3.23", "mace-torch>=0.3", "openbabel-wheel>=3.1", "gemmi>=0.6"]
 uma = ["ase>=3.23", "fairchem-core>=2.0", "openbabel-wheel>=3.1", "gemmi>=0.6"]
-orb = ["ase>=3.23", "orb-models>=0.7", "openbabel-wheel>=3.1", "gemmi>=0.6"]
+orb = ["ase>=3.23", "orb-models>=0.7; python_version >= '3.12'", "openbabel-wheel>=3.1", "gemmi>=0.6"]
 # Agent-callable MCP server (the CLI needs only the core typer/rich deps)
 mcp = ["mcp>=1.2"]
 

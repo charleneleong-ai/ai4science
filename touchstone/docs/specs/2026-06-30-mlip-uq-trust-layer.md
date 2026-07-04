@@ -20,6 +20,27 @@ the MLIP, that means a calibrated **uncertainty / OOD signal on the potential's 
 prediction** that decides where the MLIP's energy can be believed and where an
 expensive higher-fidelity check (DFT) must be paid for.
 
+## Origin — the MaterialHack brief (the OOD thesis)
+
+This trust layer is the direct descendant of the project's founding framing (MaterialHack
+2026, Nucleate UK / ARIA, AI track — *"design protein–metal interactions for critical-mineral
+recovery"*). Of the track's three questions, **Q2 — "accurately predict protein behaviour in
+extreme environments" — is the verification question in disguise.** Real critical-mineral recovery
+(bioleaching ores, e-waste, brines, mine tailings) happens in **acidic (pH 1–2), hot, high-salinity
+leachate** — exactly where a model trained on benign-condition data goes out-of-distribution and
+**confidently wrong**. The contrarian move — versus teams that just maximise predicted binding
+affinity — was to **design for robustness and know when you can't be trusted.**
+
+Two commitments from that brief carry straight into touchstone and this layer:
+- **The verifier must be independent of the generator**, and can be validated *in silico* — via a
+  physics oracle (co-fold, MLIP) and a held-out slice of the existing experimental record
+  (MetalPDB / BioLiP), no wet lab required. This MLIP-UQ layer is that principle turned on
+  touchstone's *own* MLIP tier.
+- **Extreme-condition inputs need an explicit OOD flag.** touchstone's `--stress` map
+  (`neutral` / `leachate` / `low_pH`) already probes the operating envelope at the geometry tier;
+  this layer extends "flag when you can't be trusted" to the physics tier. (Founding brief archived
+  here; the standalone `materialhack/` note was folded in and removed.)
+
 ## The structural mapping
 
 The robotics result this borrows from is *When to Trust Imagination: Adaptive Action

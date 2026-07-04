@@ -16,7 +16,7 @@ A fast generative/predictive model is increasingly a commodity. What converts a 
 
 This repo collects the applied work and research grounding where that thesis met two 2026 opportunities:
 
-- [`materialhack/`](materialhack) — **MaterialHack** (Nucleate UK × ARIA, London, Jun 26–28 2026). AI track: protein–metal binders for critical-mineral recovery. The verifier thesis applied to de-novo protein design under extreme (out-of-distribution) conditions — built as [`touchstone/`](touchstone), a generator-agnostic metal-binder verifier.
+- **MaterialHack** (Nucleate UK × ARIA, London, Jun 26–28 2026). AI track: protein–metal binders for critical-mineral recovery. The verifier thesis applied to de-novo protein design under extreme (out-of-distribution) conditions — built as [`touchstone/`](touchstone), a generator-agnostic metal-binder verifier. Its founding brief is folded into the [`MLIP UQ trust-layer`](touchstone/docs/specs/2026-06-30-mlip-uq-trust-layer.md) spec.
 - **Orbital Industries / Orb** — the atomistic-simulation foundation-model direction: the verifier thesis applied to materials, a trust layer on a fast learned surrogate for quantum reality. Now folded into touchstone as the [`MLIP UQ trust-layer`](touchstone/docs/specs/2026-06-30-mlip-uq-trust-layer.md) design spec, with a first step shipped (relaxation-health gate + OrbMol backbone).
 
 The one-line pitch that ties it all together:
