@@ -14,11 +14,6 @@ A fast generative/predictive model is increasingly a commodity. What converts a 
 | [`robotics_world_models`](../robotics_world_models) | learned world model (TD-MPC2, DreamerV3) | classical planner / when-to-trust crossover |
 | [`smart_city_foundation_model`](../smart_city_foundation_model) | coupled weather→energy→demand forecast | conformal calibration — guaranteed uncertainty band |
 
-This repo collects the applied work and research grounding where that thesis met two 2026 opportunities:
-
-- **MaterialHack** (Nucleate UK × ARIA, London, Jun 26–28 2026). AI track: protein–metal binders for critical-mineral recovery. The verifier thesis applied to de-novo protein design under extreme (out-of-distribution) conditions — built as [`touchstone/`](touchstone), a generator-agnostic metal-binder verifier. Its founding brief is folded into the [`MLIP UQ trust-layer`](touchstone/docs/specs/2026-06-30-mlip-uq-trust-layer.md) spec.
-- **Orbital Industries / Orb** — the atomistic-simulation foundation-model direction: the verifier thesis applied to materials, a trust layer on a fast learned surrogate for quantum reality. Now folded into touchstone as the [`MLIP UQ trust-layer`](touchstone/docs/specs/2026-06-30-mlip-uq-trust-layer.md) design spec, with a first step shipped (relaxation-health gate + OrbMol backbone).
-
 The one-line pitch that ties it all together:
 
 > A verifiable world model for the planet — weather, energy, and movement turned into trusted decisions. The same architecture powers embodied reasoning and materials foundation models: a fast generative world model, gated by a verifier that knows when to trust it.
