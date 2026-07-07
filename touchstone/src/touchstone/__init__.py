@@ -39,6 +39,7 @@ from .geometry.reference import (
 )
 from .geometry.conformer import conformer_seeds
 from .geometry.coordination import CoordinationGeometryVerifier, CoordinationSymmetryVerifier
+from .geometry.metalhawk import MetalHawkPrediction, MetalHawkVerifier, load_predictions
 from .geometry.mogul import MogulVerifier
 from .geometry.precedent import PrecedentHits, PrecedentVerifier
 from .geometry.verifier import GeometryVerifier
@@ -90,6 +91,9 @@ __all__ = [
     "CoordinationSymmetryVerifier",
     "CoordinationGeometryVerifier",
     "MogulVerifier",
+    "MetalHawkVerifier",
+    "MetalHawkPrediction",
+    "load_predictions",
     "PrecedentVerifier",
     "PrecedentHits",
     "conformer_seeds",

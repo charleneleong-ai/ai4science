@@ -7,6 +7,8 @@ from touchstone import (
     BinderDesign,
     CSDReference,
     GeometryVerifier,
+    MetalHawkPrediction,
+    MetalHawkVerifier,
     MetalPDBReference,
     MockGenerator,
     MockReference,
@@ -18,7 +20,12 @@ from touchstone import (
 )
 from touchstone.core import CoordinationSite
 from touchstone.geometry import reference as _ref_mod
+from touchstone.geometry.metalhawk import load_predictions, score_provider
 from touchstone.geometry.reference import _CSD_DATA, _METALPDB_DATA, best_reference
+
+
+def _boom(_design):  # a scorer that fails — module-level so it's not a lambda
+    raise RuntimeError("metalhawk exploded")
 
 
 def _design(site: CoordinationSite, conf: float = 0.7) -> BinderDesign:
@@ -203,6 +210,55 @@ class TestMetalPDBReference:
         monkeypatch.setattr(_ref_mod, "_METALPDB_DATA", p)
         ref = best_reference()
         assert ref.source == "MetalPDB" and ref.geometry("Ni2+").bond_length_mean == 2.11
+
+
+class TestMetalHawk:
+    """The open ANN geometry-distortion oracle — a learned CN/geometry classifier, pluggable
+    via a scorer callback (the heavy inference lives in scripts/metalhawk_score.py)."""
+
+    def _design(self, n: int) -> BinderDesign:
+        s = octahedral_site("Ni2+")
+        site = CoordinationSite("Ni2+", s.metal_xyz, s.ligand_xyz[:n], s.ligand_elems[:n])
+        return BinderDesign("SEQ", site, generator="t", generator_confidence=0.5, source="x.pdb")
+
+    def test_confident_cn_match_is_trusted(self):
+        v = MetalHawkVerifier(lambda _d: MetalHawkPrediction(6, "octahedral", 0.9)).verify(self._design(6))
+        assert v.trust and not v.ood and v.score > 0.8
+
+    def test_small_cn_mismatch_is_weak(self):
+        # Δcn == 1: MetalHawk confidently sees a mildly different geometry ⇒ a distortion signal, weak
+        v = MetalHawkVerifier(lambda _d: MetalHawkPrediction(5, "square pyramidal", 0.9)).verify(self._design(6))
+        assert not v.trust and not v.ood and v.score < 0.6
+
+    def test_confident_large_mismatch_defers_off_manifold(self):
+        # Δcn >= ood_cn_gap at high confidence: MetalHawk grossly contradicts the physical shell
+        # ⇒ confidently off its training manifold, so it abstains rather than emit a spurious weak.
+        v = MetalHawkVerifier(lambda _d: MetalHawkPrediction(4, "tetrahedral", 0.99)).verify(self._design(6))
+        assert v.ood and not v.trust and "off-manifold" in v.reason
+
+    def test_low_confidence_defers(self):
+        # the ANN itself is unsure ⇒ off its training manifold, not judgeable
+        v = MetalHawkVerifier(lambda _d: MetalHawkPrediction(6, "octahedral", 0.2)).verify(self._design(6))
+        assert v.ood and not v.trust
+
+    @pytest.mark.parametrize("scorer", [lambda _d: None, _boom], ids=["no-prediction", "scorer-raises"])
+    def test_defers_without_a_prediction(self, scorer):
+        v = MetalHawkVerifier(scorer).verify(self._design(6))
+        assert v.ood and not v.trust and "MetalHawk" in v.reason
+
+    def test_score_provider_keys_by_source(self):
+        pred = MetalHawkPrediction(6, "octahedral", 0.9)
+        provide = score_provider({"x.pdb": pred})
+        assert provide(self._design(6)) is pred  # source "x.pdb" → its prediction
+        other = self._design(6)
+        other.source = "unlisted.pdb"
+        assert provide(other) is None  # no prediction for an unlisted structure
+
+    def test_load_predictions_round_trips(self, tmp_path):
+        # the loader that closes the metalhawk_score.py JSON → verifier loop
+        p = tmp_path / "scores.json"
+        p.write_text(json.dumps({"a.pdb": {"coordination_number": 4, "geometry": "tetrahedral", "confidence": 0.8}}))
+        assert load_predictions(p) == {"a.pdb": MetalHawkPrediction(4, "tetrahedral", 0.8)}
 
 
 class TestEmptySite:

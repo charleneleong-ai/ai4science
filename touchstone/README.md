@@ -3,16 +3,19 @@
 A generator-agnostic **verifier** for designed metal-binding proteins. The generator
 (BoltzGen, RFdiffusionAA→LigandMPNN, Chai, …) proposes a metal-coordination site;
 touchstone judges whether that *predicted* site is real enough to make — a trust/weak/defer
-consensus across independent methods (defense-in-depth, ≥2 per stage):
+consensus that **by default runs four analytic geometry oracles** (defense-in-depth,
+deterministic, no licence or GPU), with deep-physics, licensed, and cross-check tiers layered
+on where their inputs are available:
 
-- **geometry** — z-score vs a CSD/PDB prior · bond-valence sum · Mogul CSD validation
-- **precedent** — CSD CrossMiner (is the motif seen in nature?)
-- **expression** — ESM-2 pseudo-perplexity · solubility
-- **physics / dynamics** — xtb GFN2 · MLIP (MACE · OrbMol · UMA) relaxation + MD
-- **thermostability** — site MLIP-MD · global Tm (TemStaPro)
-- **selectivity** — geometry profile · MLIP ΔE metal-swap
-- **cross-verification** — independent co-fold (Boltz-2 / Chai-1 / AllMetal3D): does the
-  generator's predicted site reproduce?
+- **default (anywhere)** — z-score vs a CSD/PDB prior · bond-valence sum · nVECSUM enclosure ·
+  polyhedron-RMSD shape (à la CheckMyMetal). These four form the consensus out of the box.
+- **deep (GPU, `--deep`)** — MLIP (MACE · OrbMol · UMA) relaxation + 300 K MD · xtb GFN2: does the
+  site survive physics?
+- **opt-in / licensed** — Mogul CSD validation · independent co-fold (Boltz-2 / Chai-1 / AllMetal3D) ·
+  expression (ESM-2 ppl · solubility) · thermostability (Tm) · selectivity (metal-swap ΔE) ·
+  precedent (CSD CrossMiner). Reachable via providers / the `pipeline`, not in the default consensus.
+- **experimental** — MetalHawk (learned ANN geometry class): confidently-OOD on de-novo designs,
+  so demoted — the analytic polyhedron-RMSD tier is its replacement.
 
 ![touchstone verifier stack](docs/verifier-stack.png)
 

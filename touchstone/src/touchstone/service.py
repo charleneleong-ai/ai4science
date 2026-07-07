@@ -26,6 +26,7 @@ from .cofold import CofoldCrossCheck
 from .core import BinderDesign, Verdict, element_symbol
 from .geometry.bond_valence import BondValenceVerifier
 from .geometry.coordination import CoordinationGeometryVerifier, CoordinationSymmetryVerifier
+from .geometry.metalhawk import MetalHawkVerifier
 from .geometry.parse import coordination_site
 from .geometry.reference import best_reference
 from .geometry.verifier import GeometryVerifier
@@ -45,7 +46,9 @@ _COORD_GEOMETRY = CoordinationGeometryVerifier()  # polyhedron shape vs ideal
 # scorer) — advertised so an agent knows the full stack and how to enable each.
 _NEEDS_INPUT = {
     "mogul": "a CSD licence (Mogul / CSD Python API)",
-    "trs": "an apo (unbound) structure to diff against (topology-reorganization on binding)",
+    "metalhawk": "MetalHawk geometry predictions (scripts/metalhawk_score.py — open, no licence; "
+                 "EXPERIMENTAL: the learned ANN is confidently-OOD on de-novo designs — coord_geometry "
+                 "is the analytic geometry oracle, see docs/experiments/2026-07-07-metalhawk-ood-designed-sites.md)",
     "cofold": "a co-fold prediction (scripts/chai_crosscheck, alphafold3_crosscheck, or allmetal3d_crosscheck)",
     "expression": "a sequence scorer (scripts/expression_score)",
     "thermostability": "an MD/Tm scorer (scripts/thermostability_score)",
@@ -62,8 +65,8 @@ def _as_dict(v: Verdict) -> dict:
 # the full verifier stack in cost order — the unified `stack` view lists every tier with its
 # status so the consensus is auditable, even tiers that didn't run on this input
 _STACK_ORDER = (
-    "geometry", "bond_valence", "coord_symmetry", "coord_geometry",
-    "mogul", "mlip", "mlip_md", "trs", "cofold", "expression", "thermostability",
+    "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "metalhawk",
+    "mogul", "mlip", "mlip_md", "cofold", "expression", "thermostability",
 )
 
 
@@ -98,16 +101,18 @@ def mlip_backbone():
 
 def verify_structure(
     structure: str | Path, metal: str = "Ni2+", deep: bool = False, cutoff: float = 2.8, stress: bool = False,
-    cofold_provider=None, calc=_AUTO,
+    cofold_provider=None, metalhawk_scorer=None, calc=_AUTO,
 ) -> dict:
     """Verify a metal-coordination structure. Returns per-verifier verdicts, a `not_run`
     map of stages needing inputs, and a trust/weak/defer consensus. With `stress`, also
     re-verify the site under extreme-condition perturbations (acidic-leachate bond stretch,
     low-pH donor protonation) → a `stress` map {neutral/leachate/low_pH: verdict}: does it
     hold up in the real recovery process? `cofold_provider` (a design → predicted
-    CoordinationSite callback, e.g. cofold.cif_provider over Chai-1 / AllMetal3D outputs)
-    adds the independent co-fold cross-check tier. `calc` is an internal knob for batch
-    callers (`rank_structures`) to share one MLIP backbone; leave it default."""
+    CoordinationSite callback over Chai-1 / AllMetal3D outputs) adds the independent co-fold
+    cross-check tier; `metalhawk_scorer` (a design → MetalHawkPrediction over
+    scripts/metalhawk_score.py output) adds the open geometry-distortion tier. `calc` is an
+    internal knob for batch callers (`rank_structures`) to share one MLIP backbone; leave it
+    default."""
     site = coordination_site(structure, element_symbol(metal).upper(), metal, cutoff)
     design = BinderDesign("", site, generator="external", generator_confidence=0.0, source=str(structure))
 
@@ -119,6 +124,8 @@ def verify_structure(
     }
     if cofold_provider is not None:  # independent predictor (Chai-1 / AllMetal3D) corroboration
         verifiers["cofold"] = CofoldCrossCheck(cofold_provider)
+    if metalhawk_scorer is not None:  # independent ANN geometry-distortion oracle
+        verifiers["metalhawk"] = MetalHawkVerifier(metalhawk_scorer)
     results: dict[str, dict] = {}
     if deep:
         if calc is _AUTO:  # single call ⇒ build per call; a batch hands in a shared backbone (or None)
