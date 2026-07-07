@@ -20,7 +20,7 @@ from touchstone import (
 )
 from touchstone.core import CoordinationSite
 from touchstone.geometry import reference as _ref_mod
-from touchstone.geometry.metalhawk import score_provider
+from touchstone.geometry.metalhawk import load_predictions, score_provider
 from touchstone.geometry.reference import _CSD_DATA, _METALPDB_DATA, best_reference
 
 
@@ -225,10 +225,16 @@ class TestMetalHawk:
         v = MetalHawkVerifier(lambda _d: MetalHawkPrediction(6, "octahedral", 0.9)).verify(self._design(6))
         assert v.trust and not v.ood and v.score > 0.8
 
-    def test_cn_mismatch_is_weak_not_trusted(self):
-        # MetalHawk confidently sees a different CN than the design ⇒ a distortion signal
-        v = MetalHawkVerifier(lambda _d: MetalHawkPrediction(4, "tetrahedral", 0.9)).verify(self._design(6))
+    def test_small_cn_mismatch_is_weak(self):
+        # Δcn == 1: MetalHawk confidently sees a mildly different geometry ⇒ a distortion signal, weak
+        v = MetalHawkVerifier(lambda _d: MetalHawkPrediction(5, "square pyramidal", 0.9)).verify(self._design(6))
         assert not v.trust and not v.ood and v.score < 0.6
+
+    def test_confident_large_mismatch_defers_off_manifold(self):
+        # Δcn >= ood_cn_gap at high confidence: MetalHawk grossly contradicts the physical shell
+        # ⇒ confidently off its training manifold, so it abstains rather than emit a spurious weak.
+        v = MetalHawkVerifier(lambda _d: MetalHawkPrediction(4, "tetrahedral", 0.99)).verify(self._design(6))
+        assert v.ood and not v.trust and "off-manifold" in v.reason
 
     def test_low_confidence_defers(self):
         # the ANN itself is unsure ⇒ off its training manifold, not judgeable
@@ -247,6 +253,12 @@ class TestMetalHawk:
         other = self._design(6)
         other.source = "unlisted.pdb"
         assert provide(other) is None  # no prediction for an unlisted structure
+
+    def test_load_predictions_round_trips(self, tmp_path):
+        # the loader that closes the metalhawk_score.py JSON → verifier loop
+        p = tmp_path / "scores.json"
+        p.write_text(json.dumps({"a.pdb": {"coordination_number": 4, "geometry": "tetrahedral", "confidence": 0.8}}))
+        assert load_predictions(p) == {"a.pdb": MetalHawkPrediction(4, "tetrahedral", 0.8)}
 
 
 class TestEmptySite:

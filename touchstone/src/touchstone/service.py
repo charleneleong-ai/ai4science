@@ -46,7 +46,9 @@ _COORD_GEOMETRY = CoordinationGeometryVerifier()  # polyhedron shape vs ideal
 # scorer) — advertised so an agent knows the full stack and how to enable each.
 _NEEDS_INPUT = {
     "mogul": "a CSD licence (Mogul / CSD Python API)",
-    "metalhawk": "MetalHawk geometry predictions (scripts/metalhawk_score.py — open, no licence)",
+    "metalhawk": "MetalHawk geometry predictions (scripts/metalhawk_score.py — open, no licence; "
+                 "EXPERIMENTAL: the learned ANN is confidently-OOD on de-novo designs — coord_geometry "
+                 "is the analytic geometry oracle, see docs/experiments/2026-07-07-metalhawk-ood-designed-sites.md)",
     "trs": "an apo (unbound) structure to diff against (topology-reorganization on binding)",
     "cofold": "a co-fold prediction (scripts/chai_crosscheck, alphafold3_crosscheck, or allmetal3d_crosscheck)",
     "expression": "a sequence scorer (scripts/expression_score)",
