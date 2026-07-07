@@ -49,7 +49,6 @@ _NEEDS_INPUT = {
     "metalhawk": "MetalHawk geometry predictions (scripts/metalhawk_score.py — open, no licence; "
                  "EXPERIMENTAL: the learned ANN is confidently-OOD on de-novo designs — coord_geometry "
                  "is the analytic geometry oracle, see docs/experiments/2026-07-07-metalhawk-ood-designed-sites.md)",
-    "trs": "an apo (unbound) structure to diff against (topology-reorganization on binding)",
     "cofold": "a co-fold prediction (scripts/chai_crosscheck, alphafold3_crosscheck, or allmetal3d_crosscheck)",
     "expression": "a sequence scorer (scripts/expression_score)",
     "thermostability": "an MD/Tm scorer (scripts/thermostability_score)",
@@ -67,7 +66,7 @@ def _as_dict(v: Verdict) -> dict:
 # status so the consensus is auditable, even tiers that didn't run on this input
 _STACK_ORDER = (
     "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "metalhawk",
-    "mogul", "mlip", "mlip_md", "trs", "cofold", "expression", "thermostability",
+    "mogul", "mlip", "mlip_md", "cofold", "expression", "thermostability",
 )
 
 

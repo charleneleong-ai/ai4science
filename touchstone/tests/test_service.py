@@ -34,7 +34,7 @@ class TestVerifyStructure:
         # the full stack appears in cost order, even tiers that didn't run on a bare structure
         assert [s["stage"] for s in r["stack"]] == [
             "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "metalhawk",
-            "mogul", "mlip", "mlip_md", "trs", "cofold", "expression", "thermostability",
+            "mogul", "mlip", "mlip_md", "cofold", "expression", "thermostability",
         ]
         assert by["geometry"]["status"] == "ran" and "strain_sigma" in by["geometry"]["metrics"]
         assert by["bond_valence"]["status"] == "ran" and "bvs" in by["bond_valence"]["metrics"]
@@ -42,7 +42,6 @@ class TestVerifyStructure:
         assert by["coord_geometry"]["status"] == "ran" and "angle_rmsd_deg" in by["coord_geometry"]["metrics"]
         assert by["metalhawk"]["status"] == "needs_input"  # MetalHawk predictions (open, no licence)
         assert by["mogul"]["status"] == "needs_input"  # CSD licence
-        assert by["trs"]["status"] == "needs_input"  # apo structure
         assert by["mlip"]["status"] == "needs_input"  # needs deep=True + a GPU
 
     def test_stress_adds_a_robustness_map_only_when_requested(self):
