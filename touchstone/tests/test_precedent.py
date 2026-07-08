@@ -1,6 +1,6 @@
 import numpy as np
 
-from touchstone import BinderDesign, PrecedentHits, PrecedentVerifier
+from touchstone import BinderDesign, PrecedentHits, PrecedentVerifier, metalpdb_precedent_search
 from touchstone.core import CoordinationSite
 
 _OCT = np.array([[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]], float)
@@ -38,3 +38,20 @@ class TestPrecedentVerifier:
 
         v = PrecedentVerifier(boom).verify(_design())
         assert v.ood and "failed" in v.reason
+
+
+class TestMetalPDBPrecedentSearch:
+    """The open, licence-free default searcher — reads the bundled MetalPDB motif→count table."""
+
+    def test_known_motif_has_precedents(self):
+        hits = metalpdb_precedent_search(_design(("N", "N", "N", "O", "O", "O")).site)  # Ni-N3O3
+        assert hits.motif == "Ni-N3O3" and hits.nhits > 0
+
+    def test_unseen_motif_has_zero_precedents(self):
+        hits = metalpdb_precedent_search(_design(("S", "S", "S", "S", "S", "S")).site)  # Ni-S6: not in the PDB
+        assert hits.nhits == 0
+
+    def test_default_verifier_runs_the_open_search(self):
+        # PrecedentVerifier() with no injected searcher judges against the bundled table
+        v = PrecedentVerifier().verify(_design(("N", "N", "N", "O", "O", "O")))  # Ni-N3O3, well-precedented
+        assert v.trust and not v.ood

@@ -24,14 +24,18 @@ from pathlib import Path
 
 from .cofold import CofoldCrossCheck
 from .core import BinderDesign, Verdict, element_symbol
+from .expression import ExpressionVerifier
 from .geometry.bond_valence import BondValenceVerifier
 from .geometry.coordination import CoordinationGeometryVerifier, CoordinationSymmetryVerifier
 from .geometry.metalhawk import MetalHawkVerifier
+from .geometry.mogul import MogulVerifier
 from .geometry.parse import coordination_site
+from .geometry.precedent import PrecedentVerifier
 from .geometry.reference import best_reference
 from .geometry.verifier import GeometryVerifier
 from .physics.mlip import MLIPDynamicsVerifier, MLIPVerifier, make_backbone  # light import; heavy load lazy
 from .pipeline import stress_profile
+from .thermostability import ThermostabilityVerifier
 
 # the lightweight verifiers are stateless over read-only package data — build once and reuse,
 # so a batch `rank` doesn't re-parse JSON per design. Geometry uses the sharpest reference on
@@ -45,6 +49,8 @@ _COORD_GEOMETRY = CoordinationGeometryVerifier()  # polyhedron shape vs ideal
 # stages with a library verifier but no inline-available input (licence / prediction /
 # scorer) — advertised so an agent knows the full stack and how to enable each.
 _NEEDS_INPUT = {
+    "precedent": "a coordination-motif precedent search — pass precedent_search (open MetalPDB is the "
+                 "built-in default; scripts/build_metalpdb_precedents.py bundles the motif→count table)",
     "mogul": "a CSD licence (Mogul / CSD Python API)",
     "metalhawk": "MetalHawk geometry predictions (scripts/metalhawk_score.py — open, no licence; "
                  "EXPERIMENTAL: the learned ANN is confidently-OOD on de-novo designs — coord_geometry "
@@ -65,7 +71,7 @@ def _as_dict(v: Verdict) -> dict:
 # the full verifier stack in cost order — the unified `stack` view lists every tier with its
 # status so the consensus is auditable, even tiers that didn't run on this input
 _STACK_ORDER = (
-    "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "metalhawk",
+    "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent", "metalhawk",
     "mogul", "mlip", "mlip_md", "cofold", "expression", "thermostability",
 )
 
@@ -101,7 +107,9 @@ def mlip_backbone():
 
 def verify_structure(
     structure: str | Path, metal: str = "Ni2+", deep: bool = False, cutoff: float = 2.8, stress: bool = False,
-    cofold_provider=None, metalhawk_scorer=None, calc=_AUTO,
+    cofold_provider=None, metalhawk_scorer=None,
+    precedent_search=None, expression_scorer=None, mogul_analyse=None, thermostability_predictor=None,
+    calc=_AUTO,
 ) -> dict:
     """Verify a metal-coordination structure. Returns per-verifier verdicts, a `not_run`
     map of stages needing inputs, and a trust/weak/defer consensus. With `stress`, also
@@ -110,9 +118,11 @@ def verify_structure(
     hold up in the real recovery process? `cofold_provider` (a design → predicted
     CoordinationSite callback over Chai-1 / AllMetal3D outputs) adds the independent co-fold
     cross-check tier; `metalhawk_scorer` (a design → MetalHawkPrediction over
-    scripts/metalhawk_score.py output) adds the open geometry-distortion tier. `calc` is an
-    internal knob for batch callers (`rank_structures`) to share one MLIP backbone; leave it
-    default."""
+    scripts/metalhawk_score.py output) adds the open geometry-distortion tier. Likewise
+    `precedent_search` (open MetalPDB motif search), `expression_scorer`, `mogul_analyse`
+    (licensed CSD), and `thermostability_predictor` each enable their tier — all opt-in, so an
+    absent backend never collapses the default 4-tier consensus. `calc` is an internal knob for
+    batch callers (`rank_structures`) to share one MLIP backbone; leave it default."""
     site = coordination_site(structure, element_symbol(metal).upper(), metal, cutoff)
     design = BinderDesign("", site, generator="external", generator_confidence=0.0, source=str(structure))
 
@@ -126,6 +136,14 @@ def verify_structure(
         verifiers["cofold"] = CofoldCrossCheck(cofold_provider)
     if metalhawk_scorer is not None:  # independent ANN geometry-distortion oracle
         verifiers["metalhawk"] = MetalHawkVerifier(metalhawk_scorer)
+    if precedent_search is not None:  # motif precedent (open MetalPDB, or CSD-CrossMiner)
+        verifiers["precedent"] = PrecedentVerifier(precedent_search)
+    if expression_scorer is not None:  # sequence expressibility (ESM-2 pseudo-ppl + solubility)
+        verifiers["expression"] = ExpressionVerifier(expression_scorer)
+    if mogul_analyse is not None:  # licensed CSD Mogul geometry validation
+        verifiers["mogul"] = MogulVerifier(mogul_analyse)
+    if thermostability_predictor is not None:  # whole-protein Tm (TemStaPro / DeepSTABp)
+        verifiers["thermostability"] = ThermostabilityVerifier(thermostability_predictor)
     results: dict[str, dict] = {}
     if deep:
         if calc is _AUTO:  # single call ⇒ build per call; a batch hands in a shared backbone (or None)

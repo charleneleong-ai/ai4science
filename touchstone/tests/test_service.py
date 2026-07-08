@@ -3,7 +3,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from touchstone import MetalHawkPrediction
+from touchstone import ExpressionSignals, MetalHawkPrediction, ThermostabilitySignal, metalpdb_precedent_search
 from touchstone.cli import app
 from touchstone.cofold import cif_provider
 from touchstone.service import verify_structure
@@ -33,7 +33,7 @@ class TestVerifyStructure:
         by = {s["stage"]: s for s in r["stack"]}
         # the full stack appears in cost order, even tiers that didn't run on a bare structure
         assert [s["stage"] for s in r["stack"]] == [
-            "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "metalhawk",
+            "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent", "metalhawk",
             "mogul", "mlip", "mlip_md", "cofold", "expression", "thermostability",
         ]
         assert by["geometry"]["status"] == "ran" and "strain_sigma" in by["geometry"]["metrics"]
@@ -65,6 +65,18 @@ class TestVerifyStructure:
         by = {s["stage"]: s for s in r["stack"]}
         assert by["metalhawk"]["status"] == "ran"  # was needs_input without a scorer
         assert r["verifiers"]["metalhawk"]["label"] == "trust"
+
+    def test_opt_in_kwargs_wire_their_tiers(self):
+        # each seam flips its advertised tier from needs_input to ran (precedent uses the open
+        # MetalPDB table; expression/thermostability take mock scorers)
+        r = verify_structure(
+            PACKED, "Ni2+",
+            precedent_search=metalpdb_precedent_search,
+            expression_scorer=lambda d: ExpressionSignals(8.0, 0.7),
+            thermostability_predictor=lambda d: ThermostabilitySignal(65.0),
+        )
+        by = {s["stage"]: s["status"] for s in r["stack"]}
+        assert by["precedent"] == "ran" and by["expression"] == "ran" and by["thermostability"] == "ran"
 
     def test_deep_without_backend_degrades_gracefully(self):
         # no GPU/mace here ⇒ mlip + mlip_md are skipped, consensus still decided by geometry+BV

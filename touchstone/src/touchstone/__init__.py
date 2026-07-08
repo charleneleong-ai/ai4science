@@ -41,7 +41,7 @@ from .geometry.conformer import conformer_seeds
 from .geometry.coordination import CoordinationGeometryVerifier, CoordinationSymmetryVerifier
 from .geometry.metalhawk import MetalHawkPrediction, MetalHawkVerifier, load_predictions
 from .geometry.mogul import MogulVerifier
-from .geometry.precedent import PrecedentHits, PrecedentVerifier
+from .geometry.precedent import PrecedentHits, PrecedentVerifier, metalpdb_precedent_search
 from .geometry.verifier import GeometryVerifier
 from .physics import (
     MLIPDynamicsVerifier,
@@ -96,6 +96,7 @@ __all__ = [
     "load_predictions",
     "PrecedentVerifier",
     "PrecedentHits",
+    "metalpdb_precedent_search",
     "conformer_seeds",
     "CofoldCrossCheck",
     "cofold_agreement",
