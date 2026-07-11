@@ -42,6 +42,7 @@ def verify(
     sequence: str = typer.Option("", "--sequence", help="the design's sequence — enables the expression / thermostability tiers (which key by sequence)"),
     expression_scores: Path = typer.Option(None, "--expression-scores", help="JSON {sequence: {pseudo_perplexity, solubility}} — enables the expression tier (needs --sequence)"),
     thermostability_scores: Path = typer.Option(None, "--thermostability-scores", help="JSON {sequence: Tm_celsius} — enables the thermostability tier (needs --sequence)"),
+    selectivity: str = typer.Option("", "--selectivity", help="comma-separated competing metals for the MLIP metal-swap ΔE selectivity tier (needs --deep), e.g. Ni2+,Cu2+,Co2+"),
     json: bool = typer.Option(False, "--json", help="emit JSON (for agents / piping)"),
 ) -> None:
     """Score a structure's metal site: trust / weak / defer + per-verifier breakdown."""
@@ -54,6 +55,7 @@ def verify(
         metalhawk_scorer=metalhawk_scorer,
         expression_scorer=expression_scorer,
         thermostability_predictor=tm_predictor,
+        selectivity_metals=selectivity.split(",") if selectivity else None,
     )
     if json:
         typer.echo(_json.dumps(result, indent=2))

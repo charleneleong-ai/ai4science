@@ -34,6 +34,7 @@ from .geometry.precedent import PrecedentVerifier
 from .geometry.reference import best_reference
 from .geometry.verifier import GeometryVerifier
 from .physics.mlip import MLIPDynamicsVerifier, MLIPVerifier, make_backbone  # light import; heavy load lazy
+from .physics.selectivity import MLIPSelectivityVerifier
 from .pipeline import stress_profile
 from .thermostability import ThermostabilityVerifier
 
@@ -58,6 +59,7 @@ _NEEDS_INPUT = {
     "cofold": "a co-fold prediction (scripts/chai_crosscheck, alphafold3_crosscheck, or allmetal3d_crosscheck)",
     "expression": "a sequence scorer (scripts/expression_score)",
     "thermostability": "an MD/Tm scorer (scripts/thermostability_score)",
+    "selectivity": "pass deep=True + selectivity_metals (MLIP metal-swap ΔE — does the target metal bind best?)",
 }
 
 
@@ -72,7 +74,7 @@ def _as_dict(v: Verdict) -> dict:
 # status so the consensus is auditable, even tiers that didn't run on this input
 _STACK_ORDER = (
     "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent", "metalhawk",
-    "mogul", "mlip", "mlip_md", "cofold", "expression", "thermostability",
+    "mogul", "mlip", "mlip_md", "selectivity", "cofold", "expression", "thermostability",
 )
 
 
@@ -110,7 +112,7 @@ def verify_structure(
     sequence: str = "",
     cofold_provider=None, metalhawk_scorer=None,
     precedent_search=None, expression_scorer=None, mogul_analyse=None, thermostability_predictor=None,
-    calc=_AUTO,
+    selectivity_metals=None, calc=_AUTO,
 ) -> dict:
     """Verify a metal-coordination structure. Returns per-verifier verdicts, a `not_run`
     map of stages needing inputs, and a trust/weak/defer consensus. With `stress`, also
@@ -123,7 +125,9 @@ def verify_structure(
     `precedent_search` (open MetalPDB motif search), `expression_scorer`, `mogul_analyse`
     (licensed CSD), and `thermostability_predictor` each enable their tier — all opt-in, so an
     absent backend never collapses the default 4-tier consensus. The expression / thermostability
-    scorers key by `sequence` (the site alone has none), so pass `sequence` to enable them. `calc`
+    scorers key by `sequence` (the site alone has none), so pass `sequence` to enable them.
+    `selectivity_metals` (e.g. ("Ni2+","Cu2+","Co2+")) adds the MLIP metal-swap ΔE selectivity tier
+    under `deep` — the physics discrimination geometry can't make (does the target bind best?). `calc`
     is an internal knob for batch callers (`rank_structures`) to share one MLIP backbone; leave it
     default."""
     site = coordination_site(structure, element_symbol(metal).upper(), metal, cutoff)
@@ -151,12 +155,15 @@ def verify_structure(
     if deep:
         if calc is _AUTO:  # single call ⇒ build per call; a batch hands in a shared backbone (or None)
             calc = mlip_backbone()
-        if calc is None:  # no backend ⇒ skip both (not a defer that tanks consensus)
-            for n in ("mlip", "mlip_md"):
+        deep_tiers = ("mlip", "mlip_md") + (("selectivity",) if selectivity_metals else ())
+        if calc is None:  # no backend ⇒ skip (not a defer that tanks consensus)
+            for n in deep_tiers:
                 results[n] = {"skipped": "no MLIP backend (install touchstone[mace])"}
-        else:  # share the one backbone across both MLIP verifiers (they protonate internally)
+        else:  # share the one backbone across the MLIP verifiers (they protonate internally)
             verifiers["mlip"] = MLIPVerifier(calculator=calc)
             verifiers["mlip_md"] = MLIPDynamicsVerifier(calculator=calc)
+            if selectivity_metals:  # MLIP metal-swap ΔE — does the target metal bind best?
+                verifiers["selectivity"] = MLIPSelectivityVerifier(calculator=calc, metals=tuple(selectivity_metals))
 
     counted: list[str] = []
     for name, verifier in verifiers.items():
