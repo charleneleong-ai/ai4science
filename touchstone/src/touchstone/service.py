@@ -35,6 +35,7 @@ from .geometry.reference import best_reference
 from .geometry.verifier import GeometryVerifier
 from .physics.mlip import MLIPDynamicsVerifier, MLIPVerifier, make_backbone  # light import; heavy load lazy
 from .physics.selectivity import MLIPSelectivityVerifier
+from .physics.trs import TrsVerifier
 from .pipeline import stress_profile
 from .thermostability import ThermostabilityVerifier
 
@@ -74,7 +75,7 @@ def _as_dict(v: Verdict) -> dict:
 # status so the consensus is auditable, even tiers that didn't run on this input
 _STACK_ORDER = (
     "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent", "metalhawk",
-    "mogul", "mlip", "mlip_md", "selectivity", "cofold", "expression", "thermostability",
+    "mogul", "mlip", "mlip_md", "trs", "selectivity", "cofold", "expression", "thermostability",
 )
 
 
@@ -89,7 +90,7 @@ def _stack(results: dict) -> list[dict]:
             rows.append({"stage": stage, "status": "skipped", "detail": results[stage]["skipped"]})
         elif stage in _NEEDS_INPUT:
             rows.append({"stage": stage, "status": "needs_input", "detail": _NEEDS_INPUT[stage]})
-        elif stage in ("mlip", "mlip_md"):  # only attempted with deep=True + a GPU backend
+        elif stage in ("mlip", "mlip_md", "trs"):  # only attempted with deep=True + a GPU backend
             rows.append({"stage": stage, "status": "needs_input", "detail": "pass deep=True (needs a GPU backend)"})
     return rows
 
@@ -155,13 +156,14 @@ def verify_structure(
     if deep:
         if calc is _AUTO:  # single call ⇒ build per call; a batch hands in a shared backbone (or None)
             calc = mlip_backbone()
-        deep_tiers = ("mlip", "mlip_md") + (("selectivity",) if selectivity_metals else ())
+        deep_tiers = ("mlip", "mlip_md", "trs") + (("selectivity",) if selectivity_metals else ())
         if calc is None:  # no backend ⇒ skip (not a defer that tanks consensus)
             for n in deep_tiers:
                 results[n] = {"skipped": "no MLIP backend (install touchstone[mace])"}
         else:  # share the one backbone across the MLIP verifiers (they protonate internally)
             verifiers["mlip"] = MLIPVerifier(calculator=calc)
             verifiers["mlip_md"] = MLIPDynamicsVerifier(calculator=calc)
+            verifiers["trs"] = TrsVerifier(calculator=calc)  # preorganization: reorganization on unbinding
             if selectivity_metals:  # MLIP metal-swap ΔE — does the target metal bind best?
                 verifiers["selectivity"] = MLIPSelectivityVerifier(calculator=calc, metals=tuple(selectivity_metals))
 
