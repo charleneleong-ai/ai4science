@@ -8,9 +8,10 @@ build/
 .env
 wandb/
 
-# package reference data is shipped (small, required by PDBReference at runtime)
+# package reference data is shipped (small, required at runtime) — open sources only
 !src/touchstone/data/
 !src/touchstone/data/pdb_reference.json
+!src/touchstone/data/metalpdb_precedents.json
 
 # CSD-derived reference is license-gated — never commit; rebuild via scripts/build_csd_reference.py
 src/touchstone/data/csd_reference.json
