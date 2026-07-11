@@ -34,6 +34,17 @@ class TestVerifyCLI:
         scores.write_text(json.dumps({FIXTURE: {"coordination_number": 6, "geometry": "octahedral", "confidence": 0.9}}))
         assert _status(_verify("--metalhawk-scores", str(scores)), "metalhawk") == "ran"
 
+    def test_sequence_enables_the_sequence_keyed_tiers(self, tmp_path):
+        # expression / thermostability key by sequence — --sequence bridges the score files to the design
+        seq = "MKVLAAA"
+        expr = tmp_path / "expr.json"
+        expr.write_text(json.dumps({seq: {"pseudo_perplexity": 8.0, "solubility": 0.7}}))
+        tm = tmp_path / "tm.json"
+        tm.write_text(json.dumps({seq: 65.0}))
+        r = _verify("--sequence", seq, "--expression-scores", str(expr), "--thermostability-scores", str(tm))
+        assert (_status(r, "expression"), r["verifiers"]["expression"]["label"]) == ("ran", "trust")
+        assert (_status(r, "thermostability"), r["verifiers"]["thermostability"]["label"]) == ("ran", "trust")
+
 
 class TestRankCLI:
     def test_rank_precedent_flag_folds_into_the_reward(self):

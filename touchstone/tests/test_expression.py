@@ -1,7 +1,9 @@
+import json
+
 import numpy as np
 import pytest
 
-from touchstone import BinderDesign, ExpressionSignals, ExpressionVerifier
+from touchstone import BinderDesign, ExpressionSignals, ExpressionVerifier, load_signals
 from touchstone.core import CoordinationSite
 
 
@@ -47,3 +49,10 @@ class TestExpressionVerifier:
 
         v = ExpressionVerifier(boom).verify(_design())
         assert v.ood and not v.trust and "failed" in v.reason
+
+
+def test_load_signals_round_trips(tmp_path):
+    # the loader that closes the expression-score JSON → verifier loop
+    p = tmp_path / "expr.json"
+    p.write_text(json.dumps({"SEQ": {"pseudo_perplexity": 7.0, "solubility": 0.8}}))
+    assert load_signals(p) == {"SEQ": ExpressionSignals(7.0, 0.8)}
