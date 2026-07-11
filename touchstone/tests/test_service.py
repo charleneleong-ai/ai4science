@@ -34,7 +34,7 @@ class TestVerifyStructure:
         # the full stack appears in cost order, even tiers that didn't run on a bare structure
         assert [s["stage"] for s in r["stack"]] == [
             "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent", "metalhawk",
-            "mogul", "mlip", "mlip_md", "cofold", "expression", "thermostability",
+            "mogul", "mlip", "mlip_md", "selectivity", "cofold", "expression", "thermostability",
         ]
         assert by["geometry"]["status"] == "ran" and "strain_sigma" in by["geometry"]["metrics"]
         assert by["bond_valence"]["status"] == "ran" and "bvs" in by["bond_valence"]["metrics"]
@@ -43,6 +43,7 @@ class TestVerifyStructure:
         assert by["metalhawk"]["status"] == "needs_input"  # MetalHawk predictions (open, no licence)
         assert by["mogul"]["status"] == "needs_input"  # CSD licence
         assert by["mlip"]["status"] == "needs_input"  # needs deep=True + a GPU
+        assert by["selectivity"]["status"] == "needs_input"  # needs deep=True + selectivity_metals
 
     def test_stress_adds_a_robustness_map_only_when_requested(self):
         assert "stress" not in verify_structure(PACKED, "Ni2+")
@@ -77,6 +78,14 @@ class TestVerifyStructure:
         )
         by = {s["stage"]: s["status"] for s in r["stack"]}
         assert by["precedent"] == "ran" and by["expression"] == "ran" and by["thermostability"] == "ran"
+
+    def test_selectivity_metals_wires_it_into_the_deep_family(self):
+        # off without a metals panel; with it (+ deep) it joins mlip/mlip_md. calc=None forces the
+        # no-backend path, so it's "skipped" (proving it's wired) rather than "needs_input".
+        default = {s["stage"]: s["status"] for s in verify_structure(PACKED, "Ni2+")["stack"]}
+        assert default["selectivity"] == "needs_input"
+        wired = verify_structure(PACKED, "Ni2+", deep=True, calc=None, selectivity_metals=("Ni2+", "Cu2+", "Co2+"))
+        assert {s["stage"]: s["status"] for s in wired["stack"]}["selectivity"] == "skipped"
 
     def test_deep_without_backend_degrades_gracefully(self):
         # no GPU/mace here ⇒ mlip + mlip_md are skipped, consensus still decided by geometry+BV
