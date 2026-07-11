@@ -18,7 +18,9 @@ precomputed {sequence: signals} map. Calibrate thresholds against wet-lab data.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable
 
 import numpy as np
@@ -72,3 +74,10 @@ def score_provider(scores: dict[str, ExpressionSignals]):
     """A scorer reading precomputed ExpressionSignals per design sequence (written by
     scripts/expression_score.py) — the in-library half of the expression stage."""
     return provider_from(scores)
+
+
+def load_signals(path: str | Path) -> dict[str, ExpressionSignals]:
+    """Load an expression-score JSON ({sequence: {pseudo_perplexity, solubility}}) into
+    {sequence: ExpressionSignals} for score_provider — the loader that closes the file→verifier loop."""
+    raw = json.loads(Path(path).read_text())
+    return {seq: ExpressionSignals(**v) for seq, v in raw.items()}

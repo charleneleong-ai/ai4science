@@ -15,10 +15,12 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from .expression import load_signals, score_provider as expression_score_provider
 from .geometry.metalhawk import load_predictions, score_provider as metalhawk_score_provider
 from .geometry.precedent import metalpdb_precedent_search
 from .reward import rank_structures
 from .service import verify_structure
+from .thermostability import tm_provider
 
 app = typer.Typer(add_completion=False, help="Generator-agnostic verifier for designed metal binders.")
 _COLOR = {"trust": "green", "weak": "yellow", "defer": "red"}
@@ -37,14 +39,21 @@ def verify(
     stress: bool = typer.Option(False, "--stress", help="also test robustness under acidic-leachate / low-pH stress"),
     precedent: bool = typer.Option(False, "--precedent", help="enable the open MetalPDB coordination-motif precedent tier"),
     metalhawk_scores: Path = typer.Option(None, "--metalhawk-scores", help="JSON of precomputed MetalHawk predictions (scripts/metalhawk_score.py) — enables the experimental MetalHawk tier"),
+    sequence: str = typer.Option("", "--sequence", help="the design's sequence — enables the expression / thermostability tiers (which key by sequence)"),
+    expression_scores: Path = typer.Option(None, "--expression-scores", help="JSON {sequence: {pseudo_perplexity, solubility}} — enables the expression tier (needs --sequence)"),
+    thermostability_scores: Path = typer.Option(None, "--thermostability-scores", help="JSON {sequence: Tm_celsius} — enables the thermostability tier (needs --sequence)"),
     json: bool = typer.Option(False, "--json", help="emit JSON (for agents / piping)"),
 ) -> None:
     """Score a structure's metal site: trust / weak / defer + per-verifier breakdown."""
     metalhawk_scorer = metalhawk_score_provider(load_predictions(metalhawk_scores)) if metalhawk_scores else None
+    expression_scorer = expression_score_provider(load_signals(expression_scores)) if expression_scores else None
+    tm_predictor = tm_provider(_json.loads(Path(thermostability_scores).read_text())) if thermostability_scores else None
     result = verify_structure(
-        structure, metal, deep, stress=stress,
+        structure, metal, deep, stress=stress, sequence=sequence,
         precedent_search=metalpdb_precedent_search if precedent else None,
         metalhawk_scorer=metalhawk_scorer,
+        expression_scorer=expression_scorer,
+        thermostability_predictor=tm_predictor,
     )
     if json:
         typer.echo(_json.dumps(result, indent=2))

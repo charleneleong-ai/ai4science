@@ -107,6 +107,7 @@ def mlip_backbone():
 
 def verify_structure(
     structure: str | Path, metal: str = "Ni2+", deep: bool = False, cutoff: float = 2.8, stress: bool = False,
+    sequence: str = "",
     cofold_provider=None, metalhawk_scorer=None,
     precedent_search=None, expression_scorer=None, mogul_analyse=None, thermostability_predictor=None,
     calc=_AUTO,
@@ -121,10 +122,12 @@ def verify_structure(
     scripts/metalhawk_score.py output) adds the open geometry-distortion tier. Likewise
     `precedent_search` (open MetalPDB motif search), `expression_scorer`, `mogul_analyse`
     (licensed CSD), and `thermostability_predictor` each enable their tier — all opt-in, so an
-    absent backend never collapses the default 4-tier consensus. `calc` is an internal knob for
-    batch callers (`rank_structures`) to share one MLIP backbone; leave it default."""
+    absent backend never collapses the default 4-tier consensus. The expression / thermostability
+    scorers key by `sequence` (the site alone has none), so pass `sequence` to enable them. `calc`
+    is an internal knob for batch callers (`rank_structures`) to share one MLIP backbone; leave it
+    default."""
     site = coordination_site(structure, element_symbol(metal).upper(), metal, cutoff)
-    design = BinderDesign("", site, generator="external", generator_confidence=0.0, source=str(structure))
+    design = BinderDesign(sequence, site, generator="external", generator_confidence=0.0, source=str(structure))
 
     verifiers = {
         "geometry": _GEOMETRY,

@@ -55,7 +55,7 @@ from .physics import (
     protonate,
     relax_site,
 )
-from .expression import ExpressionSignals, ExpressionVerifier, score_provider
+from .expression import ExpressionSignals, ExpressionVerifier, load_signals, score_provider
 from .thermostability import ThermostabilitySignal, ThermostabilityVerifier, tm_provider
 from .pipeline import CascadeResult, cascade, design_and_rank, rank, selectivity_profile, stress_profile
 from .reward import best_of_n, rank_structures, reward_from_result
@@ -123,6 +123,7 @@ __all__ = [
     "verify_structure",
     "ExpressionVerifier",
     "ExpressionSignals",
+    "load_signals",
     "score_provider",
     "reward_from_result",
     "rank_structures",
