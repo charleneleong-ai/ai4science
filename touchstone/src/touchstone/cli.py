@@ -15,6 +15,8 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from .geometry.metalhawk import load_predictions, score_provider as metalhawk_score_provider
+from .geometry.precedent import metalpdb_precedent_search
 from .reward import rank_structures
 from .service import verify_structure
 
@@ -33,10 +35,17 @@ def verify(
     metal: str = typer.Option("Ni2+", help="target metal, e.g. Ni2+ / Cu2+ / Co2+"),
     deep: bool = typer.Option(False, "--deep", help="also run the MLIP relaxation + MD (needs a GPU backend)"),
     stress: bool = typer.Option(False, "--stress", help="also test robustness under acidic-leachate / low-pH stress"),
+    precedent: bool = typer.Option(False, "--precedent", help="enable the open MetalPDB coordination-motif precedent tier"),
+    metalhawk_scores: Path = typer.Option(None, "--metalhawk-scores", help="JSON of precomputed MetalHawk predictions (scripts/metalhawk_score.py) — enables the experimental MetalHawk tier"),
     json: bool = typer.Option(False, "--json", help="emit JSON (for agents / piping)"),
 ) -> None:
     """Score a structure's metal site: trust / weak / defer + per-verifier breakdown."""
-    result = verify_structure(structure, metal, deep, stress=stress)
+    metalhawk_scorer = metalhawk_score_provider(load_predictions(metalhawk_scores)) if metalhawk_scores else None
+    result = verify_structure(
+        structure, metal, deep, stress=stress,
+        precedent_search=metalpdb_precedent_search if precedent else None,
+        metalhawk_scorer=metalhawk_scorer,
+    )
     if json:
         typer.echo(_json.dumps(result, indent=2))
         return
@@ -70,11 +79,14 @@ def rank(
     structures: list[Path] = typer.Argument(..., help="designs to rank (.pdb/.cif; shell-glob expands)"),
     metal: str = typer.Option("Ni2+", help="target metal, e.g. Ni2+ / Cu2+ / Co2+"),
     deep: bool = typer.Option(False, "--deep", help="also run the MLIP relaxation + MD (needs a GPU backend)"),
+    precedent: bool = typer.Option(False, "--precedent", help="fold the open MetalPDB precedent tier into the reward"),
     top: int = typer.Option(0, "--top", help="show only the top N (0 = all)"),
     json: bool = typer.Option(False, "--json", help="emit JSON (for agents / piping)"),
 ) -> None:
     """Rank a batch of designs by verifier reward, best first (the best-of-N selection step)."""
-    ranked = rank_structures(structures, metal, deep)
+    ranked = rank_structures(
+        structures, metal, deep, precedent_search=metalpdb_precedent_search if precedent else None
+    )
     if top:
         ranked = ranked[:top]
     if json:

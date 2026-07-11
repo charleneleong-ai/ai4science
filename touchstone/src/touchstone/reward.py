@@ -25,25 +25,28 @@ def reward_from_result(result: dict) -> float:
 
 
 def rank_structures(
-    structures, metal: str = "Ni2+", deep: bool = False, gate_defer: bool = False, calc=_AUTO
+    structures, metal: str = "Ni2+", deep: bool = False, gate_defer: bool = False, calc=_AUTO,
+    precedent_search=None,
 ) -> list[dict]:
     """Verify each structure and return results (each with a `reward`) sorted best-first.
     A structure that can't be parsed/verified scores 0 with an `error` recorded. `calc` lets a
-    caller share one MLIP backbone (leave default to build per call). With `gate_defer`, run the
-    cheap geometry pass first and spend the deep MLIP tiers only on designs that don't already
-    defer on geometry — a geometry-defer scores reward 0 regardless (see `_CONSENSUS_WEIGHT`), and
-    MLIP can only add defers, so gating can't change the selection, only save GPU."""
+    caller share one MLIP backbone (leave default to build per call). `precedent_search` (e.g.
+    `metalpdb_precedent_search`) folds the open coordination-motif precedent tier into the reward.
+    With `gate_defer`, run the cheap geometry pass first and spend the deep MLIP tiers only on
+    designs that don't already defer on geometry — a geometry-defer scores reward 0 regardless
+    (see `_CONSENSUS_WEIGHT`), and MLIP can only add defers, so gating can't change the selection,
+    only save GPU."""
     if calc is _AUTO:
         calc = mlip_backbone() if deep else None  # build the MLIP backbone once, share across the batch
     scored: list[dict] = []
     for s in structures:
         try:
             if gate_defer and calc is not None:
-                result = verify_structure(s, metal)  # geometry-only first
+                result = verify_structure(s, metal, precedent_search=precedent_search)  # cheap pass first
                 if result["consensus"] != "defer":
-                    result = verify_structure(s, metal, deep=True, calc=calc)
+                    result = verify_structure(s, metal, deep=True, calc=calc, precedent_search=precedent_search)
             else:
-                result = verify_structure(s, metal, deep, calc=calc)
+                result = verify_structure(s, metal, deep, calc=calc, precedent_search=precedent_search)
         except Exception as e:  # unparseable / no metal ⇒ worst reward, recorded
             result = {"structure": str(s), "consensus": "defer", "verifiers": {}, "error": f"{type(e).__name__}: {e}"}
         result["reward"] = reward_from_result(result)
