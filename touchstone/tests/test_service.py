@@ -3,7 +3,7 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from touchstone import ExpressionSignals, MetalHawkPrediction, ThermostabilitySignal, metalpdb_precedent_search
+from touchstone import ExpressionSignals, MetalHawkPrediction, ThermostabilitySignal
 from touchstone.cli import app
 from touchstone.cofold import cif_provider
 from touchstone.service import verify_structure
@@ -17,7 +17,7 @@ class TestVerifyStructure:
     def test_returns_per_verifier_and_consensus(self):
         r = verify_structure(PACKED, "Ni2+")
         # the always-on pure-python tiers (no GPU): lengths, valence, symmetry, shape
-        assert set(r["verifiers"]) == {"geometry", "bond_valence", "coord_symmetry", "coord_geometry"}
+        assert set(r["verifiers"]) == {"geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent"}
         assert r["consensus"] in {"trust", "weak", "defer"}
         assert r["coordination_number"] >= 1
         assert r["reference"] in {"CSD", "PDB"}  # which geometry prior backed the z-score
@@ -68,16 +68,14 @@ class TestVerifyStructure:
         assert r["verifiers"]["metalhawk"]["label"] == "trust"
 
     def test_opt_in_kwargs_wire_their_tiers(self):
-        # each seam flips its advertised tier from needs_input to ran (precedent uses the open
-        # MetalPDB table; expression/thermostability take mock scorers)
+        # the sequence-keyed seams flip their tiers from needs_input to ran (precedent runs by default)
         r = verify_structure(
             PACKED, "Ni2+",
-            precedent_search=metalpdb_precedent_search,
             expression_scorer=lambda d: ExpressionSignals(8.0, 0.7),
             thermostability_predictor=lambda d: ThermostabilitySignal(65.0),
         )
         by = {s["stage"]: s["status"] for s in r["stack"]}
-        assert by["precedent"] == "ran" and by["expression"] == "ran" and by["thermostability"] == "ran"
+        assert by["expression"] == "ran" and by["thermostability"] == "ran"
 
     def test_selectivity_metals_wires_it_into_the_deep_family(self):
         # off without a metals panel; with it (+ deep) it joins mlip/mlip_md. calc=None forces the

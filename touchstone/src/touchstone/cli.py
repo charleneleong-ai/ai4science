@@ -17,7 +17,6 @@ from rich.table import Table
 
 from .expression import load_signals, score_provider as expression_score_provider
 from .geometry.metalhawk import load_predictions, score_provider as metalhawk_score_provider
-from .geometry.precedent import metalpdb_precedent_search
 from .reward import rank_structures
 from .service import verify_structure
 from .thermostability import tm_provider
@@ -37,7 +36,7 @@ def verify(
     metal: str = typer.Option("Ni2+", help="target metal, e.g. Ni2+ / Cu2+ / Co2+"),
     deep: bool = typer.Option(False, "--deep", help="also run the MLIP relaxation + MD (needs a GPU backend)"),
     stress: bool = typer.Option(False, "--stress", help="also test robustness under acidic-leachate / low-pH stress"),
-    precedent: bool = typer.Option(False, "--precedent", help="enable the open MetalPDB coordination-motif precedent tier"),
+    precedent: bool = typer.Option(True, "--precedent/--no-precedent", help="open MetalPDB coordination-motif precedent tier (on by default)"),
     metalhawk_scores: Path = typer.Option(None, "--metalhawk-scores", help="JSON of precomputed MetalHawk predictions (scripts/metalhawk_score.py) — enables the experimental MetalHawk tier"),
     sequence: str = typer.Option("", "--sequence", help="the design's sequence — enables the expression / thermostability tiers (which key by sequence)"),
     expression_scores: Path = typer.Option(None, "--expression-scores", help="JSON {sequence: {pseudo_perplexity, solubility}} — enables the expression tier (needs --sequence)"),
@@ -51,7 +50,7 @@ def verify(
     tm_predictor = tm_provider(_json.loads(Path(thermostability_scores).read_text())) if thermostability_scores else None
     result = verify_structure(
         structure, metal, deep, stress=stress, sequence=sequence,
-        precedent_search=metalpdb_precedent_search if precedent else None,
+        precedent=precedent,
         metalhawk_scorer=metalhawk_scorer,
         expression_scorer=expression_scorer,
         thermostability_predictor=tm_predictor,
@@ -90,13 +89,13 @@ def rank(
     structures: list[Path] = typer.Argument(..., help="designs to rank (.pdb/.cif; shell-glob expands)"),
     metal: str = typer.Option("Ni2+", help="target metal, e.g. Ni2+ / Cu2+ / Co2+"),
     deep: bool = typer.Option(False, "--deep", help="also run the MLIP relaxation + MD (needs a GPU backend)"),
-    precedent: bool = typer.Option(False, "--precedent", help="fold the open MetalPDB precedent tier into the reward"),
+    precedent: bool = typer.Option(True, "--precedent/--no-precedent", help="fold the open MetalPDB precedent tier into the reward (on by default)"),
     top: int = typer.Option(0, "--top", help="show only the top N (0 = all)"),
     json: bool = typer.Option(False, "--json", help="emit JSON (for agents / piping)"),
 ) -> None:
     """Rank a batch of designs by verifier reward, best first (the best-of-N selection step)."""
     ranked = rank_structures(
-        structures, metal, deep, precedent_search=metalpdb_precedent_search if precedent else None
+        structures, metal, deep, precedent=precedent
     )
     if top:
         ranked = ranked[:top]
