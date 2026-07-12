@@ -38,7 +38,7 @@ def load_designs(
     return designs
 
 # Idealised octahedral ligand directions (unit vectors along ±x, ±y, ±z).
-_OCTAHEDRON = np.array(
+OCTAHEDRON = np.array(
     [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]], dtype=float
 )
 
@@ -48,7 +48,7 @@ def octahedral_site(metal: str, bond: float = 2.09) -> CoordinationSite:
     return CoordinationSite(
         metal=metal,
         metal_xyz=c,
-        ligand_xyz=c + _OCTAHEDRON * bond,
+        ligand_xyz=c + OCTAHEDRON * bond,
         ligand_elems=("N", "N", "O", "O", "N", "O"),
     )
 

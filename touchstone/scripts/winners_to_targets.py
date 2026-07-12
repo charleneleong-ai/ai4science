@@ -27,7 +27,7 @@ from boltzgen.data.parse import mmcif
 MOLDIR = Path("~/.boltz/mols").expanduser()  # BoltzGen's CCD component cache (NI.pkl etc.)
 
 
-def _chain_info(chain, design_id: str) -> D.ChainInfo:
+def chain_info(chain, design_id: str) -> D.ChainInfo:
     return D.ChainInfo(
         chain_id=int(chain["asym_id"]),
         chain_name=str(chain["name"]),
@@ -48,7 +48,7 @@ def convert_one(cif: Path, struct_dir: Path, record_dir: Path, moldir: Path) -> 
     record = D.Record(
         id=design_id,
         structure=ps.info,
-        chains=[_chain_info(c, design_id) for c in ps.data.chains],
+        chains=[chain_info(c, design_id) for c in ps.data.chains],
         interfaces=[],
         templates=None,
     )

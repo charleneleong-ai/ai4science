@@ -17,7 +17,7 @@ from typing import Callable
 from ..core import BinderDesign
 
 
-def _ccdc_conformers(design: BinderDesign, n: int) -> list:
+def ccdc_conformers(design: BinderDesign, n: int) -> list:
     from ccdc.conformer import ConformerGenerator  # noqa: F401 — licence probe
 
     raise NotImplementedError(
@@ -33,4 +33,4 @@ def conformer_seeds(
 ) -> list:
     """Up to `n` CSD-likely conformer geometries to seed the MD tier from. `generate`
     is pluggable; the default drives CCDC's ConformerGenerator (licence-gated)."""
-    return (generate or _ccdc_conformers)(design, n)
+    return (generate or ccdc_conformers)(design, n)

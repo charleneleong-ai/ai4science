@@ -21,7 +21,7 @@ DONOR_ELEMENTS = frozenset({"N", "O", "S"})
 Atom = tuple[str, np.ndarray]  # (element symbol, xyz)
 
 
-def _pdb_element(line: str) -> str:
+def pdb_element(line: str) -> str:
     """PDB element symbol (cols 77–78), falling back to the atom name."""
     el = line[76:78].strip()
     if not el:  # some writers leave the element column blank
@@ -29,15 +29,15 @@ def _pdb_element(line: str) -> str:
     return el.upper()
 
 
-def _pdb_atoms(text: str) -> Iterator[Atom]:
+def pdb_atoms(text: str) -> Iterator[Atom]:
     for line in text.splitlines():
         if line.startswith(("ATOM", "HETATM")):
-            yield _pdb_element(line), np.array(
+            yield pdb_element(line), np.array(
                 [float(line[30:38]), float(line[38:46]), float(line[46:54])]
             )
 
 
-def _cif_atoms(text: str) -> Iterator[Atom]:
+def cif_atoms(text: str) -> Iterator[Atom]:
     """Minimal mmCIF `_atom_site` loop reader (element + coordinates)."""
     lines = text.splitlines()
     i = 0
@@ -62,7 +62,7 @@ def _cif_atoms(text: str) -> Iterator[Atom]:
         i = j
 
 
-def _site_from_atoms(
+def site_from_atoms(
     atoms: Iterator[Atom], metal_element: str, metal_label: str, cutoff: float, min_dist: float
 ) -> CoordinationSite:
     metal_xyz: np.ndarray | None = None
@@ -94,8 +94,8 @@ def coordination_site_from_pdb(
     is a physical floor — no metal–ligand bond is shorter than ~1 Å — so it also drops
     unplaced placeholder atoms some generators park on top of the metal.
     """
-    return _site_from_atoms(
-        _pdb_atoms(Path(pdb_path).read_text()), pdb_element, metal_label, cutoff, min_dist
+    return site_from_atoms(
+        pdb_atoms(Path(pdb_path).read_text()), pdb_element, metal_label, cutoff, min_dist
     )
 
 
@@ -103,8 +103,8 @@ def coordination_site_from_cif(
     cif_path: str | Path, metal_element: str, metal_label: str, cutoff: float = 2.8, min_dist: float = 1.0
 ) -> CoordinationSite:
     """As `coordination_site_from_pdb`, for an mmCIF structure (e.g. BoltzGen output)."""
-    return _site_from_atoms(
-        _cif_atoms(Path(cif_path).read_text()), metal_element, metal_label, cutoff, min_dist
+    return site_from_atoms(
+        cif_atoms(Path(cif_path).read_text()), metal_element, metal_label, cutoff, min_dist
     )
 
 

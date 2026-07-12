@@ -14,7 +14,7 @@ import typer
 from .service import verify_structure
 
 
-def _serve(
+def serve(
     http: bool = typer.Option(False, "--http", help="serve over streamable-HTTP for remote hosting (default: stdio)"),
     host: str = typer.Option("127.0.0.1", help="bind address for --http (use 0.0.0.0 to expose)"),
     port: int = typer.Option(8000, help="port for --http"),
@@ -47,7 +47,7 @@ def _serve(
 
 
 def main() -> None:
-    typer.run(_serve)
+    typer.run(serve)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 
 
-def _best(npz, key: str) -> float | None:
+def best(npz, key: str) -> float | None:
     """Max of a per-refold-sample confidence array, or None if the key is absent."""
     if key not in npz:
         return None
@@ -27,7 +27,7 @@ def boltzgen_confidence(npz_path: str | Path) -> dict | None:
         return None
     npz = np.load(npz_path, allow_pickle=True)
     return {
-        "iptm": _best(npz, "design_to_target_iptm") or _best(npz, "ligand_iptm") or _best(npz, "iptm"),
-        "plddt": _best(npz, "complex_plddt"),
-        "ptm": _best(npz, "design_ptm") or _best(npz, "ptm"),
+        "iptm": best(npz, "design_to_target_iptm") or best(npz, "ligand_iptm") or best(npz, "iptm"),
+        "plddt": best(npz, "complex_plddt"),
+        "ptm": best(npz, "design_ptm") or best(npz, "ptm"),
     }

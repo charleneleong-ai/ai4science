@@ -75,10 +75,10 @@ class TestTemStaProScoring:
         ],
     )
     def test_tm_is_highest_passed_threshold(self, up_to, expected):
-        assert tsp._tm_from_thresholds(self._passed(*up_to)) == expected
+        assert tsp.tm_from_thresholds(self._passed(*up_to)) == expected
 
     def test_binary_columns_prefers_exact_over_raw(self):
         # mean-output carries a binary + a 'raw' probability column per threshold; pick the binary
         fields = ["sequence"] + [f"{t}" for t in tsp.THRESHOLDS] + [f"{t}_raw" for t in tsp.THRESHOLDS] + ["clash"]
-        cols = tsp._binary_columns(fields)
+        cols = tsp.binary_columns(fields)
         assert cols == {t: str(t) for t in tsp.THRESHOLDS}

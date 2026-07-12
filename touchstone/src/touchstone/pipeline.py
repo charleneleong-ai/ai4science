@@ -27,7 +27,7 @@ class CascadeResult:
         return self.verdicts[-1][1]
 
 
-def _advances(verdict: Verdict) -> bool:
+def advances(verdict: Verdict) -> bool:
     """Default gate: a design advances to the next tier unless flagged off-manifold."""
     return not verdict.ood
 
@@ -36,7 +36,7 @@ def cascade(
     designs: list[BinderDesign],
     tiers: list[tuple[str, Verifier]],
     *,
-    advances: Callable[[Verdict], bool] = _advances,
+    advances: Callable[[Verdict], bool] = advances,
 ) -> list[CascadeResult]:
     """Run verifier `tiers` (label, verifier) cheap→expensive; each design advances only
     while `advances(verdict)` holds, stopping at the first tier that rejects it — so the

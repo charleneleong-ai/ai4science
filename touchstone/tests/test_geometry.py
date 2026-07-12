@@ -21,7 +21,7 @@ from touchstone import (
 from touchstone.core import CoordinationSite
 from touchstone.geometry import reference as _ref_mod
 from touchstone.geometry.metalhawk import load_predictions, score_provider
-from touchstone.geometry.reference import _CSD_DATA, _METALPDB_DATA, best_reference
+from touchstone.geometry.reference import CSD_DATA, METALPDB_DATA, best_reference
 
 
 def _boom(_design):  # a scorer that fails — module-level so it's not a lambda
@@ -174,7 +174,7 @@ class TestCSDReference:
     def test_best_reference_falls_back_when_no_metalpdb(self):
         # with no MetalPDB file (the repo default), pick CSD if its data exists, else PDB
         ref = best_reference()
-        assert ref.source == ("CSD" if _CSD_DATA.exists() else "PDB")
+        assert ref.source == ("CSD" if CSD_DATA.exists() else "PDB")
         assert ref.geometry("Ni2+").coordination_number >= 1  # whichever it is, it's usable
 
 
@@ -207,7 +207,7 @@ class TestMetalPDBReference:
         # once the open MetalPDB file exists it wins over CSD/PDB — the licence-free default
         p = tmp_path / "metalpdb_reference.json"
         p.write_text(json.dumps(self._JSON))
-        monkeypatch.setattr(_ref_mod, "_METALPDB_DATA", p)
+        monkeypatch.setattr(_ref_mod, "METALPDB_DATA", p)
         ref = best_reference()
         assert ref.source == "MetalPDB" and ref.geometry("Ni2+").bond_length_mean == 2.11
 

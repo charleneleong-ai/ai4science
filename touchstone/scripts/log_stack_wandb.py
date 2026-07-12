@@ -18,7 +18,7 @@ from rich.table import Table
 from touchstone import BinderDesign, GeometryVerifier, PDBReference, coordination_site_from_pdb, tracking
 
 console = Console()
-_STYLE = {"trust": "green", "weak": "yellow", "defer": "red", "no site": "red"}
+STYLE = {"trust": "green", "weak": "yellow", "defer": "red", "no site": "red"}
 
 
 def main(pack_pdb: str, boltz_pdb: str, opt_pdb: str, name: str = "design_4",
@@ -44,7 +44,7 @@ def main(pack_pdb: str, boltz_pdb: str, opt_pdb: str, name: str = "design_4",
             bonds = str(np.round(np.sort(site.bond_lengths()), 2).tolist())
             wb_table.add_data(stage, role, site.coordination_number, vd.label, bonds, vd.reason)
             rich_table.add_row(stage, role, str(site.coordination_number), vd.label, bonds,
-                               style=_STYLE.get(vd.label))
+                               style=STYLE.get(vd.label))
         except ValueError as e:
             wb_table.add_data(stage, role, 0, "no site", "[]", str(e))
             rich_table.add_row(stage, role, "0", "no site", "[]", style="red")

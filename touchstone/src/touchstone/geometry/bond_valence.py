@@ -16,11 +16,11 @@ from pathlib import Path
 
 from ..core import BinderDesign, Verdict, oxidation_state
 
-_PARAMS = Path(__file__).parent.parent / "data" / "bond_valence_params.json"
+PARAMS = Path(__file__).parent.parent / "data" / "bond_valence_params.json"
 
 
-def _load_params() -> dict:
-    return json.loads(_PARAMS.read_text())
+def load_params() -> dict:
+    return json.loads(PARAMS.read_text())
 
 
 class BondValenceVerifier:
@@ -31,7 +31,7 @@ class BondValenceVerifier:
     """
 
     def __init__(self, params: dict | None = None, trust_tol: float = 0.4, ood_tol: float = 0.8):
-        self.params = params or _load_params()
+        self.params = params or load_params()
         self.trust_tol = trust_tol
         self.ood_tol = ood_tol
 

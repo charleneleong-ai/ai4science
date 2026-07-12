@@ -23,7 +23,7 @@ from .core import BinderDesign, CoordinationSite, Verdict, provider_from
 from .geometry.parse import coordination_site
 
 
-def _donor_overlap(a: tuple[str, ...], b: tuple[str, ...]) -> float:
+def donor_overlap(a: tuple[str, ...], b: tuple[str, ...]) -> float:
     """Fraction of the larger donor multiset matched element-for-element."""
     if not a or not b:
         return 0.0
@@ -49,7 +49,7 @@ def cofold_agreement(
         return Verdict.defer("design has no coordinating atoms")
 
     cn_delta = abs(reference.coordination_number - predicted.coordination_number)
-    overlap = _donor_overlap(reference.ligand_elems, predicted.ligand_elems)
+    overlap = donor_overlap(reference.ligand_elems, predicted.ligand_elems)
     bond_delta = abs(float(reference.bond_lengths().mean()) - float(predicted.bond_lengths().mean()))
 
     score = float(overlap * np.exp(-0.5 * (cn_delta / cn_tol) ** 2) * np.exp(-0.5 * (bond_delta / bond_tol) ** 2))

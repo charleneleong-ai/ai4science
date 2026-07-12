@@ -7,7 +7,7 @@ metal swapped to each competitor, and trust a design only if its *target* metal
 binds most favourably. Differential ΔE is exactly the donor-identity/HSAB signal
 geometry lacks.
 
-Reuses the MLIP plumbing (`_MLIPBase`) and `relax_site` — the same backbone and
+Reuses the MLIP plumbing (`MLIPBase`) and `relax_site` — the same backbone and
 cluster extraction as the static/dynamics verifiers.
 """
 
@@ -18,9 +18,9 @@ from dataclasses import dataclass
 import numpy as np
 
 from ..core import BinderDesign, Verdict, element_symbol
-from .mlip import _MLIPBase, relax_site
+from .mlip import MLIPBase, relax_site
 
-_MARGIN_SCALE = 0.3  # eV; fixes the score's sensitivity, independent of the trust cutoff
+MARGIN_SCALE = 0.3  # eV; fixes the score's sensitivity, independent of the trust cutoff
 
 
 @dataclass
@@ -42,7 +42,7 @@ class SelectivityProfile:
         return (min(competitors) - self.energies[self.target]) if competitors else 0.0
 
 
-def _swap_metal(atoms, from_el: str, to_el: str):
+def swap_metal(atoms, from_el: str, to_el: str):
     a = atoms.copy()
     syms = a.get_chemical_symbols()
     syms[syms.index(from_el)] = to_el
@@ -50,7 +50,7 @@ def _swap_metal(atoms, from_el: str, to_el: str):
     return a
 
 
-class MLIPSelectivityVerifier(_MLIPBase):
+class MLIPSelectivityVerifier(MLIPBase):
     """Trusts a design whose target metal binds most favourably (by ΔE) among the
     competitors — the discrimination geometry can't make."""
 
@@ -74,7 +74,7 @@ class MLIPSelectivityVerifier(_MLIPBase):
         metals = tuple(dict.fromkeys((design.site.metal, *self.metals)))
         energies = {
             m: relax_site(
-                _swap_metal(base, from_el, element_symbol(m)), self.calc,
+                swap_metal(base, from_el, element_symbol(m)), self.calc,
                 metal=element_symbol(m), interaction=True,
             ).interaction_energy
             for m in metals
@@ -91,6 +91,6 @@ class MLIPSelectivityVerifier(_MLIPBase):
 
         margin = prof.margin
         trust = prof.preferred == prof.target and margin >= self.trust_margin
-        score = float(1.0 / (1.0 + np.exp(-margin / _MARGIN_SCALE)))  # 0.5 at margin 0
+        score = float(1.0 / (1.0 + np.exp(-margin / MARGIN_SCALE)))  # 0.5 at margin 0
         reason = f"ΔE favours {prof.preferred} (target {prof.target}, margin {margin:+.2f} eV)"
         return Verdict(score, trust=trust, ood=False, reason=reason)
