@@ -51,12 +51,40 @@ Unchanged from the Ni arc — only the reward's metal + the selectivity tier dif
     BoltzGen generate (Cu-native motif)  →  rlvr_select --metal Cu2+ --selectivity …  →
     winners_to_targets  →  BoltzGen resume-train  →  re-verify a fresh pool  →  repeat
 
-## Open items before a real run
+## A Cu-native motif is required
 
-- **A Cu-native motif spec** for generation (N-rich square-planar / type-1), not the `ni_motif`
-  theozyme. The reward can only select from what the generator proposes.
-- **Audit the Cu²⁺ geometry prior.** The active CSD reference reports Cu²⁺ modal **CN = 3** (vs Ni/Co
-  at 6), which looks wrong — Cu²⁺ is typically 4–6. A bad prior blunts the geometry tier for Cu;
-  rebuild from MetalPDB ([`scripts/build_metalpdb_reference.py`](../../scripts/build_metalpdb_reference.py)).
-- **Jahn-Teller-aware ideal geometry** — [`coord_geometry`](../../src/touchstone/geometry/coordination.py)
-  scores against symmetric ideal polyhedra; a JT-elongated octahedron would judge Cu fairly.
+The reward can only select from what the generator proposes, and the `ni_motif` theozyme
+(octahedral His/His/Asp/Cys) is a *Ni* site. A Cu spec should target Cu²⁺'s actual preferences:
+
+- **Type-2 / square-planar**: N-rich (His₃, His₄, or His₂ + Asp/Glu) — the common Cu²⁺ protein site.
+- **Type-1 "blue copper"**: His₂Cys + axial Met/Gln — high covalency, strongly Cu-preferring, and
+  the donor set most likely to *discriminate* Cu from Ni/Co (soft Cys/Met thiolate/thioether).
+
+The type-1 donor set is the one to try first: selectivity is a **donor-identity (HSAB)** effect, so a
+soft-donor motif is what gives the metal-swap ΔE tier something to reward.
+
+## Audit of the Cu²⁺ geometry prior (done — two real findings)
+
+| prior | Cu²⁺ modal CN | bond mean ± std | Ni²⁺ std (for scale) |
+|---|---|---|---|
+| **CSD** (active) | **3** | 2.118 ± **0.211** | 0.108 |
+| PDB | 4 | 2.144 ± 0.179 | 0.183 |
+
+1. **Cu's bond-length std is ~2× Ni's — that is the Jahn-Teller signature.** A JT-elongated Cu²⁺
+   octahedron has *bimodal* bonds (≈4 short + 2 long), and the prior crushes them into one Gaussian.
+   The result isn't a wrong mean so much as a **blunt** one: the std is so wide that almost any Cu
+   bond length passes the z-score, so the geometry tier barely discriminates for Cu.
+   *Correction to an earlier note in this doc:* the fix is **not** a JT-elongated ideal in
+   [`coord_geometry`](../../src/touchstone/geometry/coordination.py) — JT changes bond **lengths**, not
+   **angles** (a JT octahedron still has ~90°/180°), so the angular tier is already fine. The gap is
+   the single-Gaussian **bond-length** model in the geometry tier.
+2. **The active prior is the wrong domain.** [`best_reference`](../../src/touchstone/geometry/reference.py)
+   already prefers MetalPDB → CSD → PDB, but `metalpdb_reference.json` was never built/bundled — so
+   touchstone verifies **protein** metal sites against a **small-molecule crystal** (CSD) prior. That
+   also explains the odd Cu modal CN=3: CSD Cu²⁺ is full of low-coordinate chelates, whereas protein
+   Cu²⁺ is typically 4–5.
+
+**Next step (its own PR — it changes the active prior for every metal and every verdict):** run
+[`scripts/build_metalpdb_reference.py`](../../scripts/build_metalpdb_reference.py) and bundle
+`metalpdb_reference.json`, giving Ni/Cu/Co metalloprotein-specific priors. Model the Cu bond length
+bimodally (or widen only the axial component) rather than with one Gaussian.
