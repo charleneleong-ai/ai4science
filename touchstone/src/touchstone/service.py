@@ -51,8 +51,6 @@ _COORD_GEOMETRY = CoordinationGeometryVerifier()  # polyhedron shape vs ideal
 # stages with a library verifier but no inline-available input (licence / prediction /
 # scorer) — advertised so an agent knows the full stack and how to enable each.
 _NEEDS_INPUT = {
-    "precedent": "a coordination-motif precedent search — pass precedent_search (open MetalPDB is the "
-                 "built-in default; scripts/build_metalpdb_precedents.py bundles the motif→count table)",
     "mogul": "a CSD licence (Mogul / CSD Python API)",
     "metalhawk": "MetalHawk geometry predictions (scripts/metalhawk_score.py — open, no licence; "
                  "EXPERIMENTAL: the learned ANN is confidently-OOD on de-novo designs — coord_geometry "
@@ -112,7 +110,8 @@ def verify_structure(
     structure: str | Path, metal: str = "Ni2+", deep: bool = False, cutoff: float = 2.8, stress: bool = False,
     sequence: str = "",
     cofold_provider=None, metalhawk_scorer=None,
-    precedent_search=None, expression_scorer=None, mogul_analyse=None, thermostability_predictor=None,
+    precedent: bool = True, precedent_search=None,
+    expression_scorer=None, mogul_analyse=None, thermostability_predictor=None,
     selectivity_metals=None, calc=_AUTO,
 ) -> dict:
     """Verify a metal-coordination structure. Returns per-verifier verdicts, a `not_run`
@@ -122,11 +121,12 @@ def verify_structure(
     hold up in the real recovery process? `cofold_provider` (a design → predicted
     CoordinationSite callback over Chai-1 / AllMetal3D outputs) adds the independent co-fold
     cross-check tier; `metalhawk_scorer` (a design → MetalHawkPrediction over
-    scripts/metalhawk_score.py output) adds the open geometry-distortion tier. Likewise
-    `precedent_search` (open MetalPDB motif search), `expression_scorer`, `mogul_analyse`
-    (licensed CSD), and `thermostability_predictor` each enable their tier — all opt-in, so an
-    absent backend never collapses the default 4-tier consensus. The expression / thermostability
-    scorers key by `sequence` (the site alone has none), so pass `sequence` to enable them.
+    scripts/metalhawk_score.py output) adds the open geometry-distortion tier. The open MetalPDB
+    **precedent** tier runs by default — disable with `precedent=False`, override the searcher with
+    `precedent_search`. `expression_scorer`, `mogul_analyse` (licensed CSD), and
+    `thermostability_predictor` each enable their opt-in tier — an absent backend never collapses the
+    default consensus. The expression / thermostability scorers key by `sequence` (the site alone has
+    none), so pass `sequence` to enable them.
     `selectivity_metals` (e.g. ("Ni2+","Cu2+","Co2+")) adds the MLIP metal-swap ΔE selectivity tier
     under `deep` — the physics discrimination geometry can't make (does the target bind best?). `calc`
     is an internal knob for batch callers (`rank_structures`) to share one MLIP backbone; leave it
@@ -140,12 +140,12 @@ def verify_structure(
         "coord_symmetry": _COORD_SYMMETRY,
         "coord_geometry": _COORD_GEOMETRY,
     }
+    if precedent:  # open MetalPDB coordination-motif precedent — default on (disable with precedent=False)
+        verifiers["precedent"] = PrecedentVerifier(precedent_search)
     if cofold_provider is not None:  # independent predictor (Chai-1 / AllMetal3D) corroboration
         verifiers["cofold"] = CofoldCrossCheck(cofold_provider)
     if metalhawk_scorer is not None:  # independent ANN geometry-distortion oracle
         verifiers["metalhawk"] = MetalHawkVerifier(metalhawk_scorer)
-    if precedent_search is not None:  # motif precedent (open MetalPDB, or CSD-CrossMiner)
-        verifiers["precedent"] = PrecedentVerifier(precedent_search)
     if expression_scorer is not None:  # sequence expressibility (ESM-2 pseudo-ppl + solubility)
         verifiers["expression"] = ExpressionVerifier(expression_scorer)
     if mogul_analyse is not None:  # licensed CSD Mogul geometry validation

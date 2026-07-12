@@ -8,12 +8,13 @@ deterministic, no licence or GPU), with deep-physics, licensed, and cross-check 
 on where their inputs are available:
 
 - **default (anywhere)** — z-score vs a CSD/PDB prior · bond-valence sum · nVECSUM enclosure ·
-  polyhedron-RMSD shape (à la CheckMyMetal). These four form the consensus out of the box.
+  polyhedron-RMSD shape (à la CheckMyMetal) · open MetalPDB coordination-motif precedent. These form
+  the consensus out of the box (no GPU, no licence); disable precedent with `--no-precedent`.
 - **deep (GPU, `--deep`)** — MLIP (MACE · OrbMol · UMA): site relaxation + 300 K MD + preorganization
   (`trs`, metal-off reorganization), plus metal-swap ΔE selectivity when given a competitor panel; xtb GFN2.
-- **opt-in** — open MetalPDB precedent · independent co-fold (Boltz-2 / Chai-1 / AllMetal3D) ·
-  expression (ESM-2 ppl · solubility) · thermostability (Tm); Mogul CSD validation (licensed).
-  Reachable via providers / the `pipeline` / CLI flags, not in the default consensus.
+- **opt-in** — independent co-fold (Boltz-2 / Chai-1 / AllMetal3D) · expression (ESM-2 ppl ·
+  solubility) · thermostability (Tm); Mogul CSD validation (licensed). Reachable via providers /
+  the `pipeline` / CLI flags, not in the default consensus.
 - **experimental** — MetalHawk (learned ANN geometry class): confidently-OOD on de-novo designs,
   so demoted — the analytic polyhedron-RMSD tier is its replacement.
 

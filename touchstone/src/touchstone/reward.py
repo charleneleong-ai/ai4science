@@ -26,7 +26,7 @@ def reward_from_result(result: dict) -> float:
 
 def rank_structures(
     structures, metal: str = "Ni2+", deep: bool = False, gate_defer: bool = False, calc=_AUTO,
-    precedent_search=None,
+    precedent: bool = True, precedent_search=None,
 ) -> list[dict]:
     """Verify each structure and return results (each with a `reward`) sorted best-first.
     A structure that can't be parsed/verified scores 0 with an `error` recorded. `calc` lets a
@@ -42,11 +42,11 @@ def rank_structures(
     for s in structures:
         try:
             if gate_defer and calc is not None:
-                result = verify_structure(s, metal, precedent_search=precedent_search)  # cheap pass first
+                result = verify_structure(s, metal, precedent=precedent, precedent_search=precedent_search)  # cheap pass first
                 if result["consensus"] != "defer":
-                    result = verify_structure(s, metal, deep=True, calc=calc, precedent_search=precedent_search)
+                    result = verify_structure(s, metal, deep=True, calc=calc, precedent=precedent, precedent_search=precedent_search)
             else:
-                result = verify_structure(s, metal, deep, calc=calc, precedent_search=precedent_search)
+                result = verify_structure(s, metal, deep, calc=calc, precedent=precedent, precedent_search=precedent_search)
         except Exception as e:  # unparseable / no metal ⇒ worst reward, recorded
             result = {"structure": str(s), "consensus": "defer", "verifiers": {}, "error": f"{type(e).__name__}: {e}"}
         result["reward"] = reward_from_result(result)

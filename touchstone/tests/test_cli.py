@@ -20,14 +20,15 @@ def _status(r: dict, stage: str) -> str:
 
 
 class TestVerifyCLI:
-    """The opt-in tier flags on `touchstone verify` (site/path-based tiers only)."""
+    """Tier flags on `touchstone verify` — precedent on by default, the others opt-in (site/path-based)."""
 
-    def test_precedent_flag_enables_the_open_tier(self):
-        r = _verify("--precedent")
+    def test_precedent_on_by_default(self):
+        r = _verify()  # open MetalPDB precedent runs out of the box
         assert _status(r, "precedent") == "ran" and "precedent(s)" in r["verifiers"]["precedent"]["reason"]
 
-    def test_precedent_off_by_default(self):
-        assert _status(_verify(), "precedent") == "needs_input"
+    def test_no_precedent_disables_it(self):
+        r = _verify("--no-precedent")
+        assert "precedent" not in {s["stage"] for s in r["stack"]}
 
     def test_metalhawk_scores_enables_the_tier(self, tmp_path):
         scores = tmp_path / "mh.json"
