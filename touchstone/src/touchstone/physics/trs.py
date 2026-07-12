@@ -15,10 +15,10 @@ from __future__ import annotations
 import numpy as np
 
 from ..core import BinderDesign, Verdict
-from .mlip import _MLIPBase, relax_apo
+from .mlip import MLIPBase, relax_apo
 
 
-class TrsVerifier(_MLIPBase):
+class TrsVerifier(MLIPBase):
     """Trusts a preorganized site — first-shell donors barely move (≤ `trust_drift` Å) when the
     metal is removed and relaxed; `weak` when they reorganize moderately; `defer` when the shell
     fully collapses (> `ood_drift`) or the relaxation fails."""

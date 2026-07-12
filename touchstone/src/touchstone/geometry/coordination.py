@@ -40,7 +40,7 @@ class CoordinationSymmetryVerifier:
 
 # candidate ideal L–M–L angle multisets (degrees) per coordination number; each has
 # C(cn,2) entries, matching `site.bond_angles()`. Multiple isomers per CN ⇒ best fit wins.
-_IDEAL_ANGLES = {
+IDEAL_ANGLES = {
     2: [[180.0]],
     3: [[120.0] * 3],
     4: [[109.47] * 6, [90.0] * 4 + [180.0] * 2],  # tetrahedral, square-planar
@@ -64,7 +64,7 @@ class CoordinationGeometryVerifier:
         site = design.site
         if site.is_empty:
             return Verdict.defer("no coordinating atoms")
-        ideals = _IDEAL_ANGLES.get(site.coordination_number)
+        ideals = IDEAL_ANGLES.get(site.coordination_number)
         if not ideals:
             return Verdict.defer(f"no ideal polyhedron for CN={site.coordination_number}")
         observed = np.sort(site.bond_angles())

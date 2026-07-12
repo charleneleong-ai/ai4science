@@ -24,7 +24,7 @@ from pathlib import Path
 
 import typer
 
-_CCD = {"Ni2+": "NI", "Cu2+": "CU", "Co2+": "CO", "Zn2+": "ZN", "Fe2+": "FE", "Mn2+": "MN"}
+CCD = {"Ni2+": "NI", "Cu2+": "CU", "Co2+": "CO", "Zn2+": "ZN", "Fe2+": "FE", "Mn2+": "MN"}
 
 
 def main(
@@ -37,7 +37,7 @@ def main(
     run_alphafold: Path = typer.Option("run_alphafold.py", help="path to AF3's run_alphafold.py"),
     seed: int = 42,
 ) -> None:
-    ccd = _CCD.get(metal, metal).upper()  # accept either a CCD code or a touchstone metal label
+    ccd = CCD.get(metal, metal).upper()  # accept either a CCD code or a touchstone metal label
     out.mkdir(parents=True, exist_ok=True)
     spec = {
         "name": name,

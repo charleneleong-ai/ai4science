@@ -17,22 +17,22 @@ import math
 
 import typer
 
-_KD = {  # Kyte–Doolittle hydropathy
+KD = {  # Kyte–Doolittle hydropathy
     "A": 1.8, "R": -4.5, "N": -3.5, "D": -3.5, "C": 2.5, "Q": -3.5, "E": -3.5,
     "G": -0.4, "H": -3.2, "I": 4.5, "L": 3.8, "K": -3.9, "M": 1.9, "F": 2.8,
     "P": -1.6, "S": -0.8, "T": -0.7, "W": -0.9, "Y": -1.3, "V": 4.2,
 }
 
 
-def _solubility(seq: str) -> float:
+def solubility(seq: str) -> float:
     """PLACEHOLDER: GRAVY (lower → more soluble) blended with charged-residue fraction.
     Returns 0..1. Replace with NetSolP/CamSol."""
-    gravy = sum(_KD.get(a, 0.0) for a in seq) / max(len(seq), 1)
+    gravy = sum(KD.get(a, 0.0) for a in seq) / max(len(seq), 1)
     charged = sum(a in "DEKR" for a in seq) / max(len(seq), 1)
     return min(max(0.5 - 0.15 * gravy + 0.5 * charged, 0.0), 1.0)
 
 
-def _pseudo_perplexity(seq: str, device: str = "cuda") -> float:
+def pseudo_perplexity(seq: str, device: str = "cuda") -> float:
     import esm
     import torch
 
@@ -55,8 +55,8 @@ def _pseudo_perplexity(seq: str, device: str = "cuda") -> float:
 
 
 def main(seq: str = typer.Option(..., help="protein sequence (one-letter)")) -> None:
-    ppl = _pseudo_perplexity(seq)
-    sol = _solubility(seq)
+    ppl = pseudo_perplexity(seq)
+    sol = solubility(seq)
     print(f"pseudo_perplexity={ppl:.3f}")
     print(f"solubility={sol:.3f}")
 

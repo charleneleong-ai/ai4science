@@ -17,7 +17,7 @@ import gemmi
 import typer
 
 
-def _sequence(path: Path) -> str:
+def sequence(path: Path) -> str:
     """The design's protein sequence: the longest polymer chain, one-letter, gaps removed."""
     st = gemmi.read_structure(str(path))
     st.setup_entities()
@@ -31,7 +31,7 @@ def main(
 ) -> None:
     records = []
     for p in sorted(Path().glob(glob)):
-        if seq := _sequence(p):
+        if seq := sequence(p):
             records.append((p.stem, seq))
         else:
             print(f"skip {p.name}: no protein chain")

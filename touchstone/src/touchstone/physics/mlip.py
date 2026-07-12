@@ -26,16 +26,16 @@ import numpy as np
 from ..core import BinderDesign, Verdict, element_symbol
 from ..geometry.parse import DONOR_ELEMENTS
 
-_H_CACHE: dict[tuple[str, float], str] = {}  # (source, pH) → protonated path; dedups across verifiers/batches
-_H_DIR: str | None = None  # one temp dir for all protonated copies, removed at process exit
+H_CACHE: dict[tuple[str, float], str] = {}  # (source, pH) → protonated path; dedups across verifiers/batches
+H_DIR: str | None = None  # one temp dir for all protonated copies, removed at process exit
 
 
-def _h_dir() -> str:
-    global _H_DIR
-    if _H_DIR is None:
-        _H_DIR = tempfile.mkdtemp(prefix="touchstone_h_")
-        atexit.register(shutil.rmtree, _H_DIR, ignore_errors=True)
-    return _H_DIR
+def h_dir() -> str:
+    global H_DIR
+    if H_DIR is None:
+        H_DIR = tempfile.mkdtemp(prefix="touchstone_h_")
+        atexit.register(shutil.rmtree, H_DIR, ignore_errors=True)
+    return H_DIR
 
 
 def protonate(structure: str | Path, pH: float = 7.4) -> str | None:
@@ -56,16 +56,16 @@ def protonate(structure: str | Path, pH: float = 7.4) -> str | None:
 
     structure = Path(structure)
     key = (str(structure), pH)
-    if key not in _H_CACHE:
-        mol = next(pybel.readfile("pdb", _normalize(structure)))
+    if key not in H_CACHE:
+        mol = next(pybel.readfile("pdb", normalize(structure)))
         mol.OBMol.AddHydrogens(False, True, pH)  # (polar-only=False, correct-for-pH=True, pH)
-        out = str(Path(_h_dir()) / f"{len(_H_CACHE)}_{structure.stem}_H.pdb")
+        out = str(Path(h_dir()) / f"{len(H_CACHE)}_{structure.stem}_H.pdb")
         mol.write("pdb", out, overwrite=True)
-        _H_CACHE[key] = out
-    return _H_CACHE[key]
+        H_CACHE[key] = out
+    return H_CACHE[key]
 
 
-def _normalize(structure: Path) -> str:
+def normalize(structure: Path) -> str:
     """Rewrite to a clean PDB via gemmi so OpenBabel/ASE can type the metal — BoltzGen
     mmCIFs encode the cation as element `*`/unknown (→ downstream KeyError); gemmi reads it.
     Falls back to the raw path if gemmi is absent (fine for PDBs; CIF metals may be lost)."""
@@ -74,7 +74,7 @@ def _normalize(structure: Path) -> str:
     except ImportError:
         return str(structure)
     st = gemmi.read_structure(str(structure))
-    out = str(Path(_h_dir()) / f"{structure.stem}_norm.pdb")
+    out = str(Path(h_dir()) / f"{structure.stem}_norm.pdb")
     st.write_pdb(out)
     return out
 
@@ -120,13 +120,13 @@ class SiteRelaxation:
         return max(0, self.cn_before - self.cn_after)
 
 
-def _metal_index(symbols: list[str], metal: str) -> int:
+def metal_index(symbols: list[str], metal: str) -> int:
     if metal not in symbols:
         raise ValueError(f"no {metal} atom in cluster")
     return symbols.index(metal)
 
 
-def _shell(positions: np.ndarray, symbols: list[str], mi: int, cutoff: float) -> dict[int, float]:
+def shell(positions: np.ndarray, symbols: list[str], mi: int, cutoff: float) -> dict[int, float]:
     """{donor index: distance} for N/O/S within cutoff of the metal."""
     d = np.linalg.norm(positions - positions[mi], axis=1)
     return {
@@ -136,12 +136,12 @@ def _shell(positions: np.ndarray, symbols: list[str], mi: int, cutoff: float) ->
     }
 
 
-def _energy(atoms, calc) -> float:
+def potential_energy(atoms, calc) -> float:
     atoms.calc = calc
     return float(atoms.get_potential_energy())
 
 
-def _freeze_scaffold(atoms, free: set[int]) -> None:
+def freeze_scaffold(atoms, free: set[int]) -> None:
     """Position-restrain every atom outside `free` (the metal + first shell). A
     metal-centred cluster is a cut-out of a protein: without the backbone holding the
     donors, free relaxation lets the whole fragment disperse (donors drift many Å,
@@ -154,21 +154,21 @@ def _freeze_scaffold(atoms, free: set[int]) -> None:
         atoms.set_constraint(FixAtoms(indices=frozen))
 
 
-def _single_point(atoms, calc) -> float:
+def single_point(atoms, calc) -> float:
     """Constraint-free single-point energy of a freshly-sliced cluster. Callers pass
     `atoms[...]` slices (already independent copies); a slice carries stale FixAtoms
     indices, so clear them in place — irrelevant to a single point anyway."""
     atoms.set_constraint()
-    return _energy(atoms, calc)
+    return potential_energy(atoms, calc)
 
 
-def _interaction_energy(atoms, calc, mi: int, e_complex: float) -> float | None:
+def interaction_energy(atoms, calc, mi: int, e_complex: float) -> float | None:
     """Crude metal binding energy: E(complex) − E(apo, frozen) − E(metal). Ranking
     only — no apo relaxation, no solvation, reference-state-naive. Reuses the
     already-relaxed complex energy rather than recomputing it."""
     keep = [i for i in range(len(atoms)) if i != mi]
     try:
-        return e_complex - _single_point(atoms[keep], calc) - _single_point(atoms[[mi]], calc)
+        return e_complex - single_point(atoms[keep], calc) - single_point(atoms[[mi]], calc)
     except (RuntimeError, ValueError, FloatingPointError):
         return None
 
@@ -189,12 +189,12 @@ def relax_site(
     from ase.optimize import LBFGS
 
     symbols = atoms.get_chemical_symbols()
-    mi = _metal_index(symbols, metal)
+    mi = metal_index(symbols, metal)
     start = atoms.get_positions().copy()
-    pre = _shell(start, symbols, mi, cutoff)
+    pre = shell(start, symbols, mi, cutoff)
 
     if restrain:
-        _freeze_scaffold(atoms, {mi, *pre})
+        freeze_scaffold(atoms, {mi, *pre})
     atoms.calc = calc
     converged = bool(LBFGS(atoms, logfile=None).run(fmax=fmax, steps=steps))
     energy = float(atoms.get_potential_energy())  # cached at the converged geometry
@@ -205,11 +205,11 @@ def relax_site(
     max_force = float(np.linalg.norm(atoms.get_forces(), axis=1).max())
 
     pos = atoms.get_positions()
-    post = _shell(pos, symbols, mi, cutoff)
+    post = shell(pos, symbols, mi, cutoff)
     site = [mi, *pre]  # metal + atoms that started in the first shell
     drift = float(np.linalg.norm(pos[site] - start[site], axis=1).max())
     mean_bond = float(np.mean(list(post.values()))) if post else 0.0
-    de = _interaction_energy(atoms, calc, mi, energy) if interaction else None
+    de = interaction_energy(atoms, calc, mi, energy) if interaction else None
 
     return SiteRelaxation(len(pre), len(post), drift, mean_bond, de, converged, max_force)
 
@@ -230,15 +230,15 @@ def relax_apo(
     from ase.optimize import LBFGS
 
     symbols = atoms.get_chemical_symbols()
-    mi = _metal_index(symbols, metal)
+    mi = metal_index(symbols, metal)
     start = atoms.get_positions().copy()
-    pre = list(_shell(start, symbols, mi, cutoff))  # holo first-shell donor indices
+    pre = list(shell(start, symbols, mi, cutoff))  # holo first-shell donor indices
     if not pre:
         raise ValueError("no first-shell donors to track")
     holo = start[pre]  # holo donor positions
     apo = atoms[[i for i in range(len(atoms)) if i != mi]]  # independent copy without the metal
     donors = [i - (i > mi) for i in pre]  # reindex donors after dropping the metal
-    _freeze_scaffold(apo, set(donors))  # only the donors relax, against the frozen backbone
+    freeze_scaffold(apo, set(donors))  # only the donors relax, against the frozen backbone
     apo.calc = calc
     LBFGS(apo, logfile=None).run(fmax=fmax, steps=steps)
     drift = float(np.linalg.norm(apo.get_positions()[donors] - holo, axis=1).max())
@@ -273,26 +273,26 @@ def md_site(
     from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
     symbols = atoms.get_chemical_symbols()
-    mi = _metal_index(symbols, metal)
-    shell0 = _shell(atoms.get_positions(), symbols, mi, cutoff)
+    mi = metal_index(symbols, metal)
+    shell0 = shell(atoms.get_positions(), symbols, mi, cutoff)
     cn0 = len(shell0)
 
     if restrain:
-        _freeze_scaffold(atoms, {mi, *shell0})
+        freeze_scaffold(atoms, {mi, *shell0})
     atoms.calc = calc
     MaxwellBoltzmannDistribution(atoms, temperature_K=temperature)
     dyn = Langevin(atoms, timestep * units.fs, temperature_K=temperature, friction=friction)
     kept: list[bool] = []
 
     def sample():
-        kept.append(len(_shell(atoms.get_positions(), symbols, mi, cutoff)) >= cn0)
+        kept.append(len(shell(atoms.get_positions(), symbols, mi, cutoff)) >= cn0)
 
     dyn.attach(sample, interval=sample_every)
     dyn.run(steps)
     return SiteDynamics(cn0, sum(kept) / len(kept) if kept else 0.0)
 
 
-class _MLIPBase:
+class MLIPBase:
     """Shared plumbing for MLIP verifiers: a lazily-built, pluggable backbone and
     the metal-centred cluster pulled from a design's structure file.
 
@@ -351,7 +351,7 @@ class _MLIPBase:
         # site (geometry/bond-valence) is unaffected — only this MLIP cluster sees the H.
         # normalize either way (protonate does it internally; the no-protonation fallback
         # needs it too, else a BoltzGen CIF's untyped metal breaks the ASE read below)
-        source = (self.protonate and protonate(design.source)) or _normalize(design.source)
+        source = (self.protonate and protonate(design.source)) or normalize(design.source)
         atoms = read(source)
         # PDBs (incl. BoltzGen's) carry a CRYST1 1 Å cell, so ase.io.read marks the
         # structure periodic. Treated as a crystal, an MLIP builds a vast periodic
@@ -359,7 +359,7 @@ class _MLIPBase:
         atoms.set_pbc(False)
         atoms.set_cell(None)
         pos = atoms.get_positions()
-        mi = _metal_index(atoms.get_chemical_symbols(), self._metal(design))
+        mi = metal_index(atoms.get_chemical_symbols(), self._metal(design))
         cluster = atoms[np.linalg.norm(pos - pos[mi], axis=1) <= self.radius]
         # Standard ASE per-structure metadata; consumed only by charge/spin-aware
         # backbones (OrbMol), ignored by the rest. Written only when set — absence, not
@@ -371,7 +371,7 @@ class _MLIPBase:
         return cluster
 
 
-class MLIPVerifier(_MLIPBase):
+class MLIPVerifier(MLIPBase):
     """Trusts a design whose metal site holds its coordination under an MLIP
     relaxation; defers when the site collapses or the relaxation cannot run."""
 
@@ -423,7 +423,7 @@ class MLIPVerifier(_MLIPBase):
         return Verdict(score, trust=held and r.site_drift <= self.trust_drift, ood=False, reason=reason, metrics=metrics)
 
 
-class MLIPDynamicsVerifier(_MLIPBase):
+class MLIPDynamicsVerifier(MLIPBase):
     """Trusts a design whose coordination survives short MLIP molecular dynamics —
     a thermal-stability check. The dynamic counterpart to MLIPVerifier's static
     relax, and an independent second method to the xtb cluster-MD tier."""

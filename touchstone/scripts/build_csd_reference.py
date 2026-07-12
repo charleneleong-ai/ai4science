@@ -32,7 +32,7 @@ SHELL = (1.0, 2.8)  # first-shell distance window, Å
 MIN_CN = 3  # ignore adventitious ions with < 3 contacts
 
 
-def _entries_with(metal_symbol: str, max_hits: int) -> list[str]:
+def entries_with(metal_symbol: str, max_hits: int) -> list[str]:
     """CSD refcodes whose structures contain the metal (element substructure search)."""
     from ccdc.search import SMARTSSubstructure, SubstructureSearch
 
@@ -41,7 +41,7 @@ def _entries_with(metal_symbol: str, max_hits: int) -> list[str]:
     return [hit.identifier for hit in search.search(max_hit_structures=max_hits)]
 
 
-def _sites(molecule, metal_symbol: str):
+def sites(molecule, metal_symbol: str):
     """Per metal atom in a CSD molecule, the first-shell donor bond lengths (Å)."""
     atoms = [(a.atomic_symbol, np.array(a.coordinates)) for a in molecule.atoms if a.coordinates]
     metals = [xyz for el, xyz in atoms if el == metal_symbol]
@@ -58,14 +58,14 @@ def build_metal(metal_symbol: str, label: str, max_hits: int) -> dict:
 
     bonds: list[float] = []
     counts: list[int] = []
-    refcodes = _entries_with(metal_symbol, max_hits)
+    refcodes = entries_with(metal_symbol, max_hits)
     with io.EntryReader("CSD") as reader:
         for refcode in refcodes:
             try:
                 mol = reader.entry(refcode).molecule
             except Exception:
                 continue
-            for shell in _sites(mol, metal_symbol):
+            for shell in sites(mol, metal_symbol):
                 bonds.extend(shell.tolist())
                 counts.append(len(shell))
     return {

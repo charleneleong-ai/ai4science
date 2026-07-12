@@ -28,10 +28,10 @@ from rich.table import Table
 from touchstone import BinderDesign, GeometryVerifier, PDBReference, coordination_site_from_pdb
 
 console = Console()
-_STYLE = {"both ✓": "green", "boltz-only": "yellow", "geom-only": "cyan", "neither": "red"}
+STYLE = {"both ✓": "green", "boltz-only": "yellow", "geom-only": "cyan", "neither": "red"}
 
 
-def _label(boltz_ok: bool, any_trust: bool, any_coord: bool) -> str:
+def label(boltz_ok: bool, any_trust: bool, any_coord: bool) -> str:
     if boltz_ok and any_trust:
         return "both ✓"
     if boltz_ok:
@@ -64,9 +64,9 @@ def main(predictions_dir: str, metal_element: str = "NI", metal_label: str = "Ni
         coord = sum(1 for r in rows if r[2])
         ptm = max(r[3]["ptm"] for r in rows)
         lig = max(r[3]["ligand_iptm"] for r in rows)
-        agree = _label(ptm > 0.7 and lig > 0.6, any_trust, coord > 0)
+        agree = label(ptm > 0.7 and lig > 0.6, any_trust, coord > 0)
         table.add_row(design, str(len(rows)), str(max(r[0] for r in rows)), f"{coord}/{len(rows)}",
-                      str(any_trust), f"{ptm:.2f}", f"{lig:.2f}", agree, style=_STYLE.get(agree))
+                      str(any_trust), f"{ptm:.2f}", f"{lig:.2f}", agree, style=STYLE.get(agree))
     console.print(table)
 
 

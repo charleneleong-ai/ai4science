@@ -8,7 +8,7 @@ Any agent can call it over Bash; the MCP server (touchstone-mcp) wraps the same 
 
 from __future__ import annotations
 
-import json as _json
+import json as jsonlib
 from pathlib import Path
 
 import typer
@@ -22,11 +22,11 @@ from .service import verify_structure
 from .thermostability import tm_provider
 
 app = typer.Typer(add_completion=False, help="Generator-agnostic verifier for designed metal binders.")
-_COLOR = {"trust": "green", "weak": "yellow", "defer": "red"}
+COLOR = {"trust": "green", "weak": "yellow", "defer": "red"}
 
 
 @app.callback()
-def _root() -> None:
+def root() -> None:
     """Generator-agnostic verifier for designed metal binders."""  # forces `touchstone verify ...`
 
 
@@ -47,7 +47,7 @@ def verify(
     """Score a structure's metal site: trust / weak / defer + per-verifier breakdown."""
     metalhawk_scorer = metalhawk_score_provider(load_predictions(metalhawk_scores)) if metalhawk_scores else None
     expression_scorer = expression_score_provider(load_signals(expression_scores)) if expression_scores else None
-    tm_predictor = tm_provider(_json.loads(Path(thermostability_scores).read_text())) if thermostability_scores else None
+    tm_predictor = tm_provider(jsonlib.loads(Path(thermostability_scores).read_text())) if thermostability_scores else None
     result = verify_structure(
         structure, metal, deep, stress=stress, sequence=sequence,
         precedent=precedent,
@@ -57,7 +57,7 @@ def verify(
         selectivity_metals=selectivity.split(",") if selectivity else None,
     )
     if json:
-        typer.echo(_json.dumps(result, indent=2))
+        typer.echo(jsonlib.dumps(result, indent=2))
         return
 
     console = Console()  # created here so CliRunner/redirected stdout is captured
@@ -66,18 +66,18 @@ def verify(
         table.add_column(col)
     for name, r in result["verifiers"].items():
         if "label" in r:
-            table.add_row(name, f"[{_COLOR[r['label']]}]{r['label']}[/]", f"{r['score']:.3f}", r["reason"])
+            table.add_row(name, f"[{COLOR[r['label']]}]{r['label']}[/]", f"{r['score']:.3f}", r["reason"])
         else:
             table.add_row(name, "[dim]skipped[/]", "—", f"[dim]{r.get('skipped') or r.get('error')}[/]")
     console.print(table)
     c = result["consensus"]
     console.print(
-        f"consensus: [{_COLOR[c]}]{c.upper()}[/]  "
+        f"consensus: [{COLOR[c]}]{c.upper()}[/]  "
         f"(CN {result['coordination_number']}, donors {result['donors'] or '—'})"
     )
     if result.get("stress"):
         conditions = ", ".join(
-            f"{cond} [{_COLOR[v['label']]}]{v['label']}[/]" for cond, v in result["stress"].items()
+            f"{cond} [{COLOR[v['label']]}]{v['label']}[/]" for cond, v in result["stress"].items()
         )
         console.print(f"robustness: {conditions}")
     if result.get("not_run"):
@@ -100,7 +100,7 @@ def rank(
     if top:
         ranked = ranked[:top]
     if json:
-        typer.echo(_json.dumps(ranked, indent=2))
+        typer.echo(jsonlib.dumps(ranked, indent=2))
         return
 
     console = Console()
@@ -113,7 +113,7 @@ def rank(
             table.add_row(str(i), name, "0.000", "[dim]error[/]", "—")
         else:
             c = r["consensus"]
-            table.add_row(str(i), name, f"{r['reward']:.3f}", f"[{_COLOR[c]}]{c}[/]", str(r["coordination_number"]))
+            table.add_row(str(i), name, f"{r['reward']:.3f}", f"[{COLOR[c]}]{c}[/]", str(r["coordination_number"]))
     console.print(table)
 
 

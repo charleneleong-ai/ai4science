@@ -12,9 +12,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
 
-_PDB_DATA = Path(__file__).parent.parent / "data" / "pdb_reference.json"
-_CSD_DATA = Path(__file__).parent.parent / "data" / "csd_reference.json"
-_METALPDB_DATA = Path(__file__).parent.parent / "data" / "metalpdb_reference.json"
+PDB_DATA = Path(__file__).parent.parent / "data" / "pdb_reference.json"
+CSD_DATA = Path(__file__).parent.parent / "data" / "csd_reference.json"
+METALPDB_DATA = Path(__file__).parent.parent / "data" / "metalpdb_reference.json"
 
 
 @dataclass(frozen=True)
@@ -56,7 +56,7 @@ class MockReference:
         return self._TABLE[metal]
 
 
-class _JsonReference:
+class JsonReference:
     """A reference distribution loaded from a {metal: geometry} JSON file. The PDB
     and CSD/Mogul providers share this — they differ only in the source data, so the
     loading and lookup live in one place behind the `ReferenceDistribution` interface.
@@ -84,7 +84,7 @@ class _JsonReference:
         return self._table[metal]
 
 
-class PDBReference(_JsonReference):
+class PDBReference(JsonReference):
     """Empirical geometry from a pull of metal sites from the public PDB
     (scripts/build_pdb_reference.py: mean/std of real first-shell metal–donor bonds
     + modal coordination number). Same interface as MockReference — the verifier is
@@ -93,11 +93,11 @@ class PDBReference(_JsonReference):
 
     source = "PDB"
 
-    def __init__(self, path: str | Path = _PDB_DATA):
+    def __init__(self, path: str | Path = PDB_DATA):
         super().__init__(path)
 
 
-class CSDReference(_JsonReference):
+class CSDReference(JsonReference):
     """Empirical geometry from a CSD pull of metal–organic coordination (license-gated).
     Populate data/csd_reference.json via scripts/build_csd_reference.py once a CSD licence
     is available; the schema matches PDBReference, so it drops in behind the same
@@ -112,11 +112,11 @@ class CSDReference(_JsonReference):
 
     source = "CSD"
 
-    def __init__(self, path: str | Path = _CSD_DATA):
+    def __init__(self, path: str | Path = CSD_DATA):
         super().__init__(path)
 
 
-class MetalPDBReference(_JsonReference):
+class MetalPDBReference(JsonReference):
     """Empirical geometry from MetalPDB — the open, licence-free curation of every metal
     site in the PDB (metalpdb.cerm.unifi.it). Populate data/metalpdb_reference.json via
     scripts/build_metalpdb_reference.py; same schema, so it drops in behind `geometry()`.
@@ -128,7 +128,7 @@ class MetalPDBReference(_JsonReference):
 
     source = "MetalPDB"
 
-    def __init__(self, path: str | Path = _METALPDB_DATA):
+    def __init__(self, path: str | Path = METALPDB_DATA):
         super().__init__(path)
 
 
@@ -137,8 +137,8 @@ def best_reference() -> ReferenceDistribution:
     metalloprotein sites) → CSD (small-molecule metal–organic prior, if built) → the
     committed PDB pull. Each is just a JSON at runtime, so none needs a licence — the tool
     always works, and prefers the open metalloprotein-specific evidence when present."""
-    if _METALPDB_DATA.exists():
-        return MetalPDBReference(_METALPDB_DATA)
-    if _CSD_DATA.exists():
-        return CSDReference(_CSD_DATA)
+    if METALPDB_DATA.exists():
+        return MetalPDBReference(METALPDB_DATA)
+    if CSD_DATA.exists():
+        return CSDReference(CSD_DATA)
     return PDBReference()

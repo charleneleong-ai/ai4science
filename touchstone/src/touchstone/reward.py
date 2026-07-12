@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from statistics import fmean
 
-from .core import _CONSENSUS_WEIGHT
-from .service import _AUTO, mlip_backbone, verify_structure
+from .core import CONSENSUS_WEIGHT
+from .service import AUTO, mlip_backbone, verify_structure
 
 
 def reward_from_result(result: dict) -> float:
@@ -21,11 +21,11 @@ def reward_from_result(result: dict) -> float:
     scores = [v["score"] for v in result.get("verifiers", {}).values() if "score" in v]
     if not scores:
         return 0.0
-    return round(_CONSENSUS_WEIGHT[result["consensus"]] * fmean(scores), 4)
+    return round(CONSENSUS_WEIGHT[result["consensus"]] * fmean(scores), 4)
 
 
 def rank_structures(
-    structures, metal: str = "Ni2+", deep: bool = False, gate_defer: bool = False, calc=_AUTO,
+    structures, metal: str = "Ni2+", deep: bool = False, gate_defer: bool = False, calc=AUTO,
     precedent: bool = True, precedent_search=None,
 ) -> list[dict]:
     """Verify each structure and return results (each with a `reward`) sorted best-first.
@@ -34,9 +34,9 @@ def rank_structures(
     `metalpdb_precedent_search`) folds the open coordination-motif precedent tier into the reward.
     With `gate_defer`, run the cheap geometry pass first and spend the deep MLIP tiers only on
     designs that don't already defer on geometry — a geometry-defer scores reward 0 regardless
-    (see `_CONSENSUS_WEIGHT`), and MLIP can only add defers, so gating can't change the selection,
+    (see `CONSENSUS_WEIGHT`), and MLIP can only add defers, so gating can't change the selection,
     only save GPU."""
-    if calc is _AUTO:
+    if calc is AUTO:
         calc = mlip_backbone() if deep else None  # build the MLIP backbone once, share across the batch
     scored: list[dict] = []
     for s in structures:

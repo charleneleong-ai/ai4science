@@ -25,7 +25,7 @@ from touchstone.geometry.parse import DONOR_ELEMENTS
 
 OUT = Path(__file__).parent.parent / "src" / "touchstone" / "data" / "metalpdb_precedents.json"
 # element → verifier label; the metal element symbol is also the motif prefix (matches
-# precedent._motif, which keys on element_symbol(metal)).
+# precedent.motif, which keys on element_symbol(metal)).
 METALS = {
     "Ni": "Ni2+", "Cu": "Cu2+", "Co": "Co2+",  # metal-recovery targets
     "Zn": "Zn2+", "Fe": "Fe3+", "Mn": "Mn2+",  # common biological transition metals
@@ -37,7 +37,7 @@ SHELL = (1.0, 2.8)  # first-shell distance window, Å
 MIN_CN = 3  # ignore adventitious ions with < 3 contacts
 
 
-def _fetch(metal_symbol: str) -> list[dict]:
+def fetch(metal_symbol: str) -> list[dict]:
     """MetalPDB representative sites for a metal element."""
     q = urllib.parse.quote(f"metal:{metal_symbol},representative:TRUE")
     with urllib.request.urlopen(API + q, timeout=120) as resp:
@@ -45,7 +45,7 @@ def _fetch(metal_symbol: str) -> list[dict]:
     return data if isinstance(data, list) else data.get("sites", data.get("results", []))
 
 
-def _motifs(records: list[dict], metal_symbol: str):
+def site_motifs(records: list[dict], metal_symbol: str):
     """Per metal site, its first-shell donor-composition motif (e.g. 'Ni-N3O2')."""
     for rec in records:
         for m in rec.get("metals", []):
@@ -69,7 +69,7 @@ def main(max_sites: int = 5000) -> None:
     for symbol, label in METALS.items():
         print(f"mining {label} ({symbol}) precedents from MetalPDB ...", flush=True)
         try:
-            motifs = list(_motifs(_fetch(symbol), symbol))[:max_sites]
+            motifs = list(site_motifs(fetch(symbol), symbol))[:max_sites]
         except Exception as e:  # a per-metal network/parse failure shouldn't sink the batch
             print(f"  {label}: fetch failed ({type(e).__name__}) — skipped", flush=True)
             continue

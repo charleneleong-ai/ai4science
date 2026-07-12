@@ -26,7 +26,7 @@ import numpy as np
 import typer
 
 
-def _apo(pdb: Path, out: Path) -> None:
+def write_apo(pdb: Path, out: Path) -> None:
     """Strip metals/waters → apo backbone (AllMetal3D predicts where metals go)."""
     st = gemmi.read_structure(str(pdb))
     st.setup_entities()
@@ -35,7 +35,7 @@ def _apo(pdb: Path, out: Path) -> None:
     st.write_pdb(str(out))
 
 
-def _top_metal(metals_pdb: Path) -> tuple[float, np.ndarray | None]:
+def top_metal(metals_pdb: Path) -> tuple[float, np.ndarray | None]:
     """Highest-probability predicted metal (AllMetal3D writes prob in occupancy)."""
     xs = []
     for line in metals_pdb.read_text().splitlines():
@@ -48,7 +48,7 @@ def _top_metal(metals_pdb: Path) -> tuple[float, np.ndarray | None]:
 def main(pdb: Path, out: Path, pthreshold: float = 0.25) -> None:
     work = Path(tempfile.mkdtemp())
     apo = work / "apo.pdb"
-    _apo(pdb, apo)
+    write_apo(pdb, apo)
     # run AllMetal3D at a low floor so it emits the density peaks; gate on pthreshold below
     subprocess.run(
         [str(Path(sys.executable).with_name("allmetal3d")), "-i", str(apo),
@@ -56,7 +56,7 @@ def main(pdb: Path, out: Path, pthreshold: float = 0.25) -> None:
         check=True,
     )
     metals = next(work.glob("*_metals.pdb"), None)
-    prob, xyz = _top_metal(metals) if metals else (0.0, None)
+    prob, xyz = top_metal(metals) if metals else (0.0, None)
     if xyz is None or prob < pthreshold:
         print(f"no confident metal (top prob {prob:.2f} < {pthreshold}) — no prediction emitted")
         return

@@ -45,7 +45,7 @@ SHELL = (1.0, 2.8)  # first-shell distance window, Å
 MIN_CN = 3  # ignore adventitious ions with < 3 contacts
 
 
-def _fetch(metal_symbol: str) -> list[dict]:
+def fetch(metal_symbol: str) -> list[dict]:
     """MetalPDB representative sites for a metal element."""
     q = urllib.parse.quote(f"metal:{metal_symbol},representative:TRUE")
     with urllib.request.urlopen(API + q, timeout=120) as resp:
@@ -53,7 +53,7 @@ def _fetch(metal_symbol: str) -> list[dict]:
     return data if isinstance(data, list) else data.get("sites", data.get("results", []))
 
 
-def _shells(records: list[dict], metal_symbol: str):
+def donor_shells(records: list[dict], metal_symbol: str):
     """Per metal site, the first-shell N/O/S donor distances (Å)."""
     for rec in records:
         for m in rec.get("metals", []):
@@ -90,7 +90,7 @@ def main(max_sites: int = 2000) -> None:
     for symbol, label in METALS.items():
         print(f"building {label} from MetalPDB element {symbol} ...", flush=True)
         try:
-            shells = list(_shells(_fetch(symbol), symbol))[:max_sites]
+            shells = list(donor_shells(fetch(symbol), symbol))[:max_sites]
         except Exception as e:  # a per-metal network/parse failure shouldn't sink the batch
             print(f"  {label}: fetch failed ({type(e).__name__}) — skipped", flush=True)
             continue

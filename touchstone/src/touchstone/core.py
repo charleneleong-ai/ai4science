@@ -16,7 +16,7 @@ import numpy as np
 
 # consensus → reward weight: a single defer collapses the reward (defense-in-depth).
 # Shared source of truth for reward.py and tracking.py.
-_CONSENSUS_WEIGHT = {"trust": 1.0, "weak": 0.5, "defer": 0.0}
+CONSENSUS_WEIGHT = {"trust": 1.0, "weak": 0.5, "defer": 0.0}
 
 
 def element_symbol(metal: str) -> str:

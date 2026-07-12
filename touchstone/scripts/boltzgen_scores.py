@@ -27,10 +27,10 @@ from touchstone.boltzgen import boltzgen_confidence
 from touchstone.reward import reward_from_result
 from touchstone.service import verify_structure
 
-_COLOR = {"trust": "green", "weak": "yellow", "defer": "red"}
+COLOR = {"trust": "green", "weak": "yellow", "defer": "red"}
 
 
-def _rows(npz_dir: Path, cif_dir: Path, metal: str) -> list[dict]:
+def score_rows(npz_dir: Path, cif_dir: Path, metal: str) -> list[dict]:
     """One row per design: BoltzGen confidence (best refold sample) + touchstone verdict."""
     rows = []
     for npz_path in sorted(npz_dir.glob("*.npz")):
@@ -53,7 +53,7 @@ def _rows(npz_dir: Path, cif_dir: Path, metal: str) -> list[dict]:
     return rows
 
 
-def _print(rows: list[dict], metal: str) -> None:
+def print(rows: list[dict], metal: str) -> None:
     console = Console()
     table = Table(title=f"BoltzGen confidence  vs  touchstone verdict · {metal}")
     for col in ("design", "iPTM↑", "pLDDT↑", "pTM↑", "touchstone", "reward", "why (touchstone)"):
@@ -61,14 +61,14 @@ def _print(rows: list[dict], metal: str) -> None:
     fmt = lambda x: f"{x:.2f}" if isinstance(x, float) else "—"
     for r in rows:
         c = r["consensus"]
-        verdict = f"[{_COLOR[c]}]{c.upper()}[/]" if c in _COLOR else "[dim]error[/]"
+        verdict = f"[{COLOR[c]}]{c.upper()}[/]" if c in COLOR else "[dim]error[/]"
         table.add_row(r["design"], fmt(r["iptm"]), fmt(r["plddt"]), fmt(r["ptm"]), verdict, fmt(r["reward"]), r["why"])
     console.print(table)
     console.print("[dim]BoltzGen iPTM/pLDDT/pTM = generator self-confidence (best refold sample); "
                   "touchstone = independent chemistry verdict on the same structure.[/]")
 
 
-def _to_wandb(rows: list[dict], metal: str, project: str | None) -> None:
+def to_wandb(rows: list[dict], metal: str, project: str | None) -> None:
     import wandb
 
     from touchstone import tracking
@@ -97,10 +97,10 @@ def main(
     wandb: bool = typer.Option(False, "--wandb", help="also log the table + plots to Weights & Biases"),
     project: str = typer.Option(None, help="W&B project (default: WANDB_PROJECT or 'touchstone')"),
 ) -> None:
-    rows = _rows(npz_dir, cif_dir, metal)
-    _print(rows, metal)
+    rows = score_rows(npz_dir, cif_dir, metal)
+    print(rows, metal)
     if wandb:
-        _to_wandb(rows, metal, project)
+        to_wandb(rows, metal, project)
 
 
 if __name__ == "__main__":

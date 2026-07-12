@@ -25,7 +25,7 @@ from touchstone.service import mlip_backbone, verify_structure
 console = Console()
 
 
-def _cofold_provider(paths: list[str], cofold_dir: str, metal: str):
+def cofold_provider(paths: list[str], cofold_dir: str, metal: str):
     """Map each design to its predicted structure in `cofold_dir` (matched by filename
     stem — e.g. ni_motif_02.pdb → cofold_dir/ni_motif_02_m3d.pdb from AllMetal3D/Chai-1)
     and build the CofoldCrossCheck provider over it."""
@@ -53,7 +53,7 @@ def main(
 
     cofold = None
     if cofold_dir:
-        cofold, n = _cofold_provider(paths, cofold_dir, metal)
+        cofold, n = cofold_provider(paths, cofold_dir, metal)
         console.log(f"co-fold tier on: {n}/{len(paths)} designs have a prediction in {cofold_dir}")
 
     calc = None

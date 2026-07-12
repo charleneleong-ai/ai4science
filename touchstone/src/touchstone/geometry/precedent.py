@@ -7,7 +7,7 @@ expensive tiers only run on designs with structural precedent.
 
 The default searcher is **open**: `metalpdb_precedent_search` reads a bundled motif→count table mined
 from MetalPDB (scripts/build_metalpdb_precedents.py) — the licence-free, metalloprotein-specific
-analog of a CSD search. A CSD-CrossMiner searcher (`_crossminer_search`, licence-gated) is
+analog of a CSD search. A CSD-CrossMiner searcher (`crossminer_search`, licence-gated) is
 provided for CSD users. The searcher is pluggable (inject one for tests or a different source).
 """
 
@@ -22,7 +22,7 @@ from typing import Callable
 
 from ..core import BinderDesign, CoordinationSite, Verdict, element_symbol
 
-_PRECEDENTS_DATA = Path(__file__).parent.parent / "data" / "metalpdb_precedents.json"
+PRECEDENTS_DATA = Path(__file__).parent.parent / "data" / "metalpdb_precedents.json"
 
 
 @dataclass
@@ -33,32 +33,32 @@ class PrecedentHits:
     motif: str  # e.g. "Ni-N3O2"
 
 
-def _motif(site: CoordinationSite) -> str:
+def motif_label(site: CoordinationSite) -> str:
     """A compact label for a coordination environment, e.g. 'Ni-N3O2'."""
     donors = "".join(f"{el}{n}" for el, n in sorted(Counter(site.ligand_elems).items()))
     return f"{element_symbol(site.metal)}-{donors}"
 
 
 @lru_cache(maxsize=1)
-def _precedents_table() -> dict[str, int]:
+def precedents_table() -> dict[str, int]:
     """The bundled MetalPDB motif→count table (built by scripts/build_metalpdb_precedents.py)."""
-    return json.loads(_PRECEDENTS_DATA.read_text())
+    return json.loads(PRECEDENTS_DATA.read_text())
 
 
 def metalpdb_precedent_search(site: CoordinationSite) -> PrecedentHits:
     """Open precedent via the bundled MetalPDB motif→count table — licence-free, the
     metalloprotein analog of a CSD-CrossMiner search. Raises if the table isn't bundled."""
-    motif = _motif(site)
-    return PrecedentHits(nhits=int(_precedents_table().get(motif, 0)), motif=motif)
+    label = motif_label(site)
+    return PrecedentHits(nhits=int(precedents_table().get(label, 0)), motif=label)
 
 
-def _crossminer_search(site: CoordinationSite) -> PrecedentHits:
+def crossminer_search(site: CoordinationSite) -> PrecedentHits:
     """Search CSD-CrossMiner for the coordination motif. Requires `ccdc` + a licence;
     the pharmacophore/connectivity query should be confirmed against the installed API."""
     from ccdc.search import SubstructureSearch  # noqa: F401 — licence probe
 
     raise NotImplementedError(
-        f"wire the CrossMiner query for {_motif(site)} against the licensed CSD API"
+        f"wire the CrossMiner query for {motif_label(site)} against the licensed CSD API"
     )
 
 
@@ -73,12 +73,12 @@ class PrecedentVerifier:
         *,
         min_hits: int = 5,
     ):
-        self._search = search or metalpdb_precedent_search
+        self.search = search or metalpdb_precedent_search
         self.min_hits = min_hits
 
     def verify(self, design: BinderDesign) -> Verdict:
         try:
-            hits = self._search(design.site)
+            hits = self.search(design.site)
         except Exception as e:  # search / data / licence failure ⇒ can't judge
             return Verdict.defer(f"precedent search failed: {type(e).__name__}")
 

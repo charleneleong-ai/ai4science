@@ -30,7 +30,7 @@ SHELL = (1.0, 2.8)  # first-shell distance window
 MIN_CN = 3  # ignore adventitious ions with < 3 contacts
 
 
-def _search(comp_id: str, n_structures: int, max_res: float) -> list[str]:
+def search(comp_id: str, n_structures: int, max_res: float) -> list[str]:
     query = {
         "query": {
             "type": "group",
@@ -53,7 +53,7 @@ def _search(comp_id: str, n_structures: int, max_res: float) -> list[str]:
     return [hit["identifier"] for hit in res["result_set"]]
 
 
-def _atoms(pdb_text: str):
+def parse_atoms(pdb_text: str):
     """Yield (element, xyz, altloc) for ATOM/HETATM records."""
     for line in pdb_text.splitlines():
         if not line.startswith(("ATOM", "HETATM")):
@@ -63,9 +63,9 @@ def _atoms(pdb_text: str):
         yield el, xyz, line[16]
 
 
-def _sites(pdb_text: str, comp_id: str):
+def sites(pdb_text: str, comp_id: str):
     """Per metal atom, the first-shell donor bond lengths (skips alt confs)."""
-    atoms = [(el, xyz) for el, xyz, alt in _atoms(pdb_text) if alt in " A"]
+    atoms = [(el, xyz) for el, xyz, alt in parse_atoms(pdb_text) if alt in " A"]
     metals = [xyz for el, xyz in atoms if el == comp_id]
     donors = [xyz for el, xyz in atoms if el in DONOR_ELEMENTS]
     for m in metals:
@@ -78,7 +78,7 @@ def _sites(pdb_text: str, comp_id: str):
 def build_metal(comp_id: str, label: str, n_structures: int, max_res: float) -> dict:
     bonds: list[float] = []
     counts: list[int] = []
-    ids = _search(comp_id, n_structures, max_res)
+    ids = search(comp_id, n_structures, max_res)
     for pid in ids:
         try:
             text = urllib.request.urlopen(
@@ -86,7 +86,7 @@ def build_metal(comp_id: str, label: str, n_structures: int, max_res: float) -> 
             ).read().decode()
         except Exception:
             continue
-        for shell in _sites(text, comp_id):
+        for shell in sites(text, comp_id):
             bonds.extend(shell.tolist())
             counts.append(len(shell))
     return {

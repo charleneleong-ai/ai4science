@@ -44,27 +44,27 @@ CLASS = {
 MAX_ENTROPY = math.log(len(CLASS))  # max Shannon entropy over the geometry classes → confidence floor
 
 
-def _normalize(src: str, pdb_dir: Path) -> str:
+def normalize(src: str, pdb_dir: Path) -> str:
     """gemmi-normalize a structure (CIF/PDB) to a clean PDB pymol can parse; returns its stem."""
     stem = Path(src).stem
     gemmi.read_structure(src).write_pdb(str(pdb_dir / f"{stem}.pdb"))
     return stem
 
 
-def _extract(repo: Path, pdb_dir: Path, sph_dir: Path) -> None:
+def extract(repo: Path, pdb_dir: Path, sph_dir: Path) -> None:
     py = sys.executable  # the metalhawk env's interpreter (conda run selects it)
     subprocess.run([py, str(repo / "extract_metal_sites.py"),
                     "--inputdir", str(pdb_dir), "--outputdir", str(sph_dir)], check=True)
 
 
-def _predict(repo: Path, sph_dir: Path, pred_dir: Path, csd: bool) -> None:
+def predict(repo: Path, sph_dir: Path, pred_dir: Path, csd: bool) -> None:
     py = sys.executable
     model_flag = "--csd" if csd else "--no-csd"
     subprocess.run([py, str(repo / "metalhawk.py"), "-f", *glob.glob(f"{sph_dir}/*.pdb"),
                     model_flag, "-o", str(pred_dir)], check=True)
 
 
-def _parse(pred_dir: Path) -> dict[str, dict]:
+def parse(pred_dir: Path) -> dict[str, dict]:
     """MetalHawk CSVs → {design_stem: {coordination_number, geometry, confidence}}. Each sphere
     file is '<stem>_<siteidx>'; per design we keep the most confident (lowest-entropy) site."""
     best: dict[str, tuple[float, dict]] = {}
@@ -92,12 +92,12 @@ def main(pattern: str, repo: Path = typer.Option(...),
     stem_to_path: dict[str, str] = {}
     for s in designs:
         try:
-            stem_to_path[_normalize(s, pdb_dir)] = s
+            stem_to_path[normalize(s, pdb_dir)] = s
         except Exception as e:  # unreadable structure ⇒ no prediction for this design
             print(f"{Path(s).name}: normalize failed ({type(e).__name__}) — skipped", flush=True)
-    _extract(repo, pdb_dir, sph_dir)
-    _predict(repo, sph_dir, pred_dir, csd)
-    by_stem = _parse(pred_dir)
+    extract(repo, pdb_dir, sph_dir)
+    predict(repo, sph_dir, pred_dir, csd)
+    by_stem = parse(pred_dir)
 
     scores = {stem_to_path[stem]: pred for stem, pred in by_stem.items() if stem in stem_to_path}
     for path, pred in scores.items():

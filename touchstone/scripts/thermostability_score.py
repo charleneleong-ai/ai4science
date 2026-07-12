@@ -3,7 +3,7 @@
 Real predictor: **TemStaPro** (Pudžiuvelytė et al. 2024) — ProtT5 embeddings + an
 ensemble of binary classifiers for thermostability at 40/45/50/55/60/65 °C. Its
 `--mean-output` TSV gives, per sequence, a "stable above T?" call at each threshold;
-`_tm_from_thresholds` collapses that monotonic profile to one Tm estimate (the highest
+`tm_from_thresholds` collapses that monotonic profile to one Tm estimate (the highest
 threshold the protein is predicted to stay folded above) — the single number the
 `ThermostabilityVerifier` / `tm_provider` consume. So TemStaPro's native classification
 drives the verdict directly, just summarised to a Tm.
@@ -31,7 +31,7 @@ import typer
 THRESHOLDS = (40, 45, 50, 55, 60, 65)  # TemStaPro's binary-classifier temperatures, °C
 
 
-def _tm_from_thresholds(passed: dict[int, bool]) -> float:
+def tm_from_thresholds(passed: dict[int, bool]) -> float:
     """Collapse TemStaPro's per-threshold 'stable above T?' calls into one Tm estimate:
     the highest threshold the protein is predicted to stay folded above. Below the lowest
     threshold ⇒ ~37 °C (mesophilic/unstable); above the highest ⇒ ~70 °C (thermophilic —
@@ -44,14 +44,14 @@ def _tm_from_thresholds(passed: dict[int, bool]) -> float:
     return float(highest)
 
 
-def _placeholder_tm(seq: str) -> float:
+def placeholder_tm(seq: str) -> float:
     """No-model smoke-test Tm (°C): charged/polar fraction proxy. NOT for quantitative use."""
     charged = sum(a in "DEKR" for a in seq) / max(len(seq), 1)
     polar = sum(a in "STNQHY" for a in seq) / max(len(seq), 1)
     return min(max(35.0 + 60.0 * charged + 20.0 * polar, 0.0), 110.0)
 
 
-def _binary_columns(fieldnames: list[str]) -> dict[int, str]:
+def binary_columns(fieldnames: list[str]) -> dict[int, str]:
     """Map each threshold to its binary-prediction column in the mean-output TSV. TemStaPro
     names the binary calls by the threshold number; prefer an exact `str(T)` match, else the
     column that mentions T and isn't the 'raw'/probability one. Validate against a real run."""
@@ -64,7 +64,7 @@ def _binary_columns(fieldnames: list[str]) -> dict[int, str]:
     return cols
 
 
-def _run_temstapro(fasta: Path, temstapro_dir: Path, prottrans_dir: Path, cache_dir: Path) -> dict[str, float]:
+def run_temstapro(fasta: Path, temstapro_dir: Path, prottrans_dir: Path, cache_dir: Path) -> dict[str, float]:
     """Run TemStaPro `--mean-output` over a FASTA and return {sequence-id: Tm °C}."""
     out_tsv = cache_dir / "mean_output.tsv"
     cache_dir.mkdir(parents=True, exist_ok=True)
@@ -75,12 +75,12 @@ def _run_temstapro(fasta: Path, temstapro_dir: Path, prottrans_dir: Path, cache_
     )
     with out_tsv.open() as fh:
         reader = csv.DictReader(fh, delimiter="\t")
-        cols = _binary_columns(reader.fieldnames or [])
+        cols = binary_columns(reader.fieldnames or [])
         if len(cols) != len(THRESHOLDS):
             raise ValueError(f"could not map all thresholds to TSV columns: got {cols} from {reader.fieldnames}")
         id_col = (reader.fieldnames or ["sequence"])[0]
         return {
-            row[id_col]: _tm_from_thresholds({t: str(row[c]).strip() in ("1", "1.0", "True") for t, c in cols.items()})
+            row[id_col]: tm_from_thresholds({t: str(row[c]).strip() in ("1", "1.0", "True") for t, c in cols.items()})
             for row in reader
         }
 
@@ -97,11 +97,11 @@ def main(
     if placeholder or (seq and not temstapro_dir):
         if not seq:
             raise typer.BadParameter("--placeholder needs --seq")
-        print(f"tm={_placeholder_tm(seq):.1f}")
+        print(f"tm={placeholder_tm(seq):.1f}")
         return
     if not (fasta and temstapro_dir):
         raise typer.BadParameter("real prediction needs --fasta and --temstapro-dir")
-    tms = _run_temstapro(fasta, temstapro_dir, prottrans_dir, cache_dir)
+    tms = run_temstapro(fasta, temstapro_dir, prottrans_dir, cache_dir)
     if out:
         out.write_text(json.dumps(tms, indent=2) + "\n")
         print(f"wrote {out} ({len(tms)} sequences)")

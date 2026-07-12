@@ -22,7 +22,7 @@ import numpy as np
 
 from .core import BinderDesign, Verdict, provider_from
 
-_TM_SCALE = 10.0  # °C; fixes the score's sensitivity, independent of the trust cutoff
+TM_SCALE = 10.0  # °C; fixes the score's sensitivity, independent of the trust cutoff
 
 
 @dataclass
@@ -54,7 +54,7 @@ class ThermostabilityVerifier:
         if s is None:
             return Verdict.defer("no thermostability prediction available")
 
-        score = float(1.0 / (1.0 + np.exp(-(s.tm - self.min_tm) / _TM_SCALE)))  # 0.5 at min_tm
+        score = float(1.0 / (1.0 + np.exp(-(s.tm - self.min_tm) / TM_SCALE)))  # 0.5 at min_tm
         reason = f"predicted Tm {s.tm:.0f} °C"
         if s.tm < self.ood_tm:  # unfolded near room temperature — off-manifold
             return Verdict.defer(reason, score=score)
