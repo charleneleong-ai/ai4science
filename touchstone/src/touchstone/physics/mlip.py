@@ -73,6 +73,7 @@ def normalize(structure: Path) -> str:
         import gemmi
     except ImportError:
         return str(structure)
+    structure = Path(structure)  # callers pass a str on the no-OpenBabel fallback path
     st = gemmi.read_structure(str(structure))
     out = str(Path(h_dir()) / f"{structure.stem}_norm.pdb")
     st.write_pdb(out)
@@ -162,13 +163,36 @@ def single_point(atoms, calc) -> float:
     return potential_energy(atoms, calc)
 
 
+# Unpaired d-electrons of the high-spin divalent first-row transition ions. The spin state IS
+# the ligand-field physics behind metal preference (the Irving–Williams series): swapping the
+# metal *element* without updating the spin compares physically different electronic systems,
+# and a backbone with no spin/charge state cannot represent the effect at all.
+UNPAIRED_D = {"Mn": 5, "Fe": 4, "Co": 3, "Ni": 2, "Cu": 1, "Zn": 0}
+
+
+def multiplicity(metal: str) -> int | None:
+    """Spin multiplicity (2S+1) of a high-spin divalent 3d ion, or None if not tabulated."""
+    n = UNPAIRED_D.get(element_symbol(metal))
+    return None if n is None else n + 1
+
+
 def interaction_energy(atoms, calc, mi: int, e_complex: float) -> float | None:
     """Crude metal binding energy: E(complex) − E(apo, frozen) − E(metal). Ranking
     only — no apo relaxation, no solvation, reference-state-naive. Reuses the
-    already-relaxed complex energy rather than recomputing it."""
+    already-relaxed complex energy rather than recomputing it.
+
+    Each leg carries its own charge/spin: the free ion holds the +2 and the metal's d-electron
+    spin; the apo ligand set is closed-shell and keeps the remaining charge. Backbones with no
+    charge/spin state ignore these; charge-aware ones (OrbMol) refuse to run without them."""
     keep = [i for i in range(len(atoms)) if i != mi]
     try:
-        return e_complex - single_point(atoms[keep], calc) - single_point(atoms[[mi]], calc)
+        apo, ion = atoms[keep], atoms[[mi]]
+        total_q = atoms.info.get("charge")
+        if total_q is not None:  # charge-aware backbone ⇒ give each leg its own state
+            mult = multiplicity(atoms.get_chemical_symbols()[mi]) or 1
+            ion.info["charge"], ion.info["spin"] = 2, mult
+            apo.info["charge"], apo.info["spin"] = total_q - 2, 1  # closed-shell ligands
+        return e_complex - single_point(apo, calc) - single_point(ion, calc)
     except (RuntimeError, ValueError, FloatingPointError):
         return None
 
