@@ -215,6 +215,37 @@ def relax_site(
 
 
 @dataclass
+class SitePreorganization:
+    """How the coordination shell reorganizes when the metal is removed (apo) and relaxed."""
+
+    donor_drift: float  # max first-shell donor displacement from the holo positions (Å)
+    donors: int  # first-shell donor count in the holo
+
+
+def relax_apo(
+    atoms, calc, metal: str = "Ni", cutoff: float = 2.8, fmax: float = 0.05, steps: int = 200,
+) -> SitePreorganization:
+    """Remove the metal, relax the freed first-shell donors against the frozen backbone, and
+    return the max donor drift from the holo positions (the metal-off reorganization)."""
+    from ase.optimize import LBFGS
+
+    symbols = atoms.get_chemical_symbols()
+    mi = _metal_index(symbols, metal)
+    start = atoms.get_positions().copy()
+    pre = list(_shell(start, symbols, mi, cutoff))  # holo first-shell donor indices
+    if not pre:
+        raise ValueError("no first-shell donors to track")
+    holo = start[pre]  # holo donor positions
+    apo = atoms[[i for i in range(len(atoms)) if i != mi]]  # independent copy without the metal
+    donors = [i - (i > mi) for i in pre]  # reindex donors after dropping the metal
+    _freeze_scaffold(apo, set(donors))  # only the donors relax, against the frozen backbone
+    apo.calc = calc
+    LBFGS(apo, logfile=None).run(fmax=fmax, steps=steps)
+    drift = float(np.linalg.norm(apo.get_positions()[donors] - holo, axis=1).max())
+    return SitePreorganization(drift, len(pre))
+
+
+@dataclass
 class SiteDynamics:
     """Metal-site coordination across a short MLIP molecular-dynamics run."""
 

@@ -34,7 +34,7 @@ class TestVerifyStructure:
         # the full stack appears in cost order, even tiers that didn't run on a bare structure
         assert [s["stage"] for s in r["stack"]] == [
             "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent", "metalhawk",
-            "mogul", "mlip", "mlip_md", "selectivity", "cofold", "expression", "thermostability",
+            "mogul", "mlip", "mlip_md", "trs", "selectivity", "cofold", "expression", "thermostability",
         ]
         assert by["geometry"]["status"] == "ran" and "strain_sigma" in by["geometry"]["metrics"]
         assert by["bond_valence"]["status"] == "ran" and "bvs" in by["bond_valence"]["metrics"]
