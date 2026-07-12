@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest.mock import Mock
 
+import pytest
 from typer.testing import CliRunner
 
 from touchstone import reward
@@ -55,6 +56,21 @@ class TestRankStructures:
     def test_non_deep_never_touches_the_backbone(self, monkeypatch):
         monkeypatch.setattr(reward, "mlip_backbone", Mock(side_effect=AssertionError("built for a non-deep rank")))
         rank_structures(DESIGNS, "Ni2+")
+
+    @pytest.mark.parametrize("gate_defer", [False, True])
+    def test_selectivity_metals_reaches_the_deep_verify(self, monkeypatch, gate_defer):
+        # the selective reward only bites if selectivity_metals actually reaches the *deep* pass —
+        # in both the gated and ungated paths
+        calls = []
+
+        def spy(s, metal, deep=False, **kw):
+            calls.append((deep, kw.get("selectivity_metals")))
+            return {"structure": str(s), "consensus": "trust", "verifiers": {}}
+
+        monkeypatch.setattr(reward, "verify_structure", spy)
+        rank_structures(DESIGNS[:1], "Cu2+", deep=True, gate_defer=gate_defer, calc=object(),
+                        selectivity_metals=("Ni2+", "Cu2+", "Co2+"))
+        assert ("Ni2+", "Cu2+", "Co2+") in [metals for is_deep, metals in calls if is_deep]
 
 
 def test_cli_rank_runs():

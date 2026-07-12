@@ -30,6 +30,11 @@ class TestVerifyCLI:
         r = _verify("--no-precedent")
         assert "precedent" not in {s["stage"] for s in r["stack"]}
 
+    def test_selectivity_without_deep_is_rejected(self):
+        # an MLIP tier: without --deep it would silently never run, so fail loudly instead
+        res = runner.invoke(app, ["verify", FIXTURE, "--metal", "Ni2+", "--selectivity", "Ni2+,Cu2+"])
+        assert res.exit_code != 0
+
     def test_metalhawk_scores_enables_the_tier(self, tmp_path):
         scores = tmp_path / "mh.json"
         scores.write_text(json.dumps({FIXTURE: {"coordination_number": 6, "geometry": "octahedral", "confidence": 0.9}}))

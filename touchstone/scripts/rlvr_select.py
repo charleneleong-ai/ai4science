@@ -17,6 +17,9 @@ training data — which is why this works for a *protein* generator. See docs/sp
     # --deep  → also run the MLIP relax+MD tiers, so the reward selects for dynamically-stable
     #           sites, not just geometrically-clean ones (needs a GPU; only spends MLIP on
     #           geometry-plausible designs). Run in the mace env on the GPU box.
+    # --selectivity Ni2+,Cu2+,Co2+  → fold the metal-swap ΔE tier into the reward, selecting designs
+    #           whose *target* metal binds most favourably — the lever for *selective* binders (e.g.
+    #           Cu2+ over Ni2+/Co2+ in a mixed leachate). Needs --deep.
 """
 
 from __future__ import annotations
@@ -39,17 +42,22 @@ def main(
     metal: str = typer.Option("Ni2+", help="target metal"),
     keep: str = typer.Option("trust", help="'trust' (only TRUST designs) or an int N (top-N by reward)"),
     deep: bool = typer.Option(False, "--deep", help="fold the MLIP relax+MD tiers into the reward (needs a GPU + touchstone[mace])"),
+    selectivity: str = typer.Option("", "--selectivity", help="comma-separated competing metals for the MLIP metal-swap ΔE selectivity tier (needs --deep), e.g. Ni2+,Cu2+,Co2+"),
 ) -> None:
-    out.mkdir(parents=True, exist_ok=True)
-    dataset = out / "dataset"
-    dataset.mkdir(exist_ok=True)
-
+    # validate before touching the filesystem — a bad flag combination shouldn't leave an empty out/
+    if selectivity and not deep:  # selectivity is an MLIP tier — it needs the backbone
+        raise typer.Exit("--selectivity needs --deep (the MLIP metal-swap backbone)")
     calc = mlip_backbone() if deep else None  # build the MACE backbone once, share across the batch
     if deep and calc is None:  # honor an explicit --deep: never silently ship a geometry-only reward as "deep"
         raise typer.Exit("--deep needs a GPU + touchstone[mace]; refusing to score geometry-only")
 
+    out.mkdir(parents=True, exist_ok=True)
+    dataset = out / "dataset"
+    dataset.mkdir(exist_ok=True)
+
     # rank_structures does the batch verify+reward+sort; gate_defer spends MLIP only on geometry-plausible designs
-    ranked = rank_structures(sorted(cif_dir.glob("*.cif")), metal, deep=deep, gate_defer=deep, calc=calc)
+    ranked = rank_structures(sorted(cif_dir.glob("*.cif")), metal, deep=deep, gate_defer=deep, calc=calc,
+                             selectivity_metals=selectivity.split(",") if selectivity else None)
     scored = []
     for r in ranked:
         cif = Path(r["structure"])
@@ -57,7 +65,8 @@ def main(
         scored.append({"design": cif.stem, "cif": str(cif), "reward": r["reward"],
                        "consensus": r["consensus"],
                        "boltzgen_iptm": (boltzgen_confidence(npz_dir / f"{cif.stem}.npz") or {}).get("iptm"),
-                       "mlip": v.get("mlip", {}).get("label"), "mlip_md": v.get("mlip_md", {}).get("label")})
+                       "mlip": v.get("mlip", {}).get("label"), "mlip_md": v.get("mlip_md", {}).get("label"),
+                       "selectivity": v.get("selectivity", {}).get("label")})
 
     if keep == "trust":
         winners = [s for s in scored if s["consensus"] == "trust"]
