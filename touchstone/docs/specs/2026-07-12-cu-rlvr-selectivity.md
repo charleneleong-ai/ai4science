@@ -1,5 +1,17 @@
 # Cu RLVR — a selectivity-aware reward (2026-07-12)
 
+> ## ⚠️ SUPERSEDED — the reward this spec is built on does not work
+>
+> The MLIP metal-swap selectivity tier **cannot rank metals**: MACE-MP and OrbMol both fail the
+> Irving–Williams series (neither puts Cu²⁺ at the peak), even given correct charge, per-metal spin
+> and full relaxation. Metal preference is a ligand-field effect these potentials do not carry.
+> The tier is now **gated off** and `defer`s, so `--selectivity` is inert — see
+> [**MLIPs cannot rank the divalent 3d series**](../experiments/2026-07-13-mlip-cannot-rank-metals.md).
+>
+> **The plan below is not executable as written.** The reward needs a backbone with ligand-field
+> physics (DFT with explicit spin states), not an MLIP. The Cu-native motif reasoning still stands;
+> the *selection signal* does not.
+
 Scaffold for applying the proven Ni RLVR loop
 ([`docs/experiments/2026-07-01-rlvr-boltzgen-round1.md`](../experiments/2026-07-01-rlvr-boltzgen-round1.md))
 to **Cu²⁺** — with the one lever the Ni rounds lacked: **selectivity in the reward**.

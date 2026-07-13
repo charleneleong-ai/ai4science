@@ -11,7 +11,12 @@ on where their inputs are available:
   polyhedron-RMSD shape (à la CheckMyMetal) · open MetalPDB coordination-motif precedent. These form
   the consensus out of the box (no GPU, no licence); disable precedent with `--no-precedent`.
 - **deep (GPU, `--deep`)** — MLIP (MACE · OrbMol · UMA): site relaxation + 300 K MD + preorganization
-  (`trs`, metal-off reorganization), plus metal-swap ΔE selectivity when given a competitor panel; xtb GFN2.
+  (`trs`, metal-off reorganization); xtb GFN2.
+- **selectivity (metal-swap ΔE) — currently inert.** The tier is gated on the Irving–Williams series
+  and every MLIP backbone we have fails it (neither MACE-MP nor OrbMol puts Cu²⁺ at the peak), so it
+  `defer`s rather than emit a meaningless metal ranking. Selectivity needs ligand-field physics (DFT
+  with explicit spin states), not an MLIP — see
+  [`docs/experiments/2026-07-13-mlip-cannot-rank-metals.md`](docs/experiments/2026-07-13-mlip-cannot-rank-metals.md).
 - **opt-in** — independent co-fold (Boltz-2 / Chai-1 / AllMetal3D) · expression (ESM-2 ppl ·
   solubility) · thermostability (Tm); Mogul CSD validation (licensed). Reachable via providers /
   the `pipeline` / CLI flags, not in the default consensus.
