@@ -1,0 +1,101 @@
+{
+  "Ni2+": {
+    "metal": "Ni2+",
+    "coordination_number": 4,
+    "cn_range": [
+      3,
+      6
+    ],
+    "bond_length_mean": 2.19,
+    "bond_length_std": 0.205,
+    "source": "MetalPDB representative sites (protein donors, solvent excluded), 349 sites, pulled 2026-07-13"
+  },
+  "Cu2+": {
+    "metal": "Cu2+",
+    "coordination_number": 3,
+    "cn_range": [
+      3,
+      5
+    ],
+    "bond_length_mean": 2.173,
+    "bond_length_std": 0.216,
+    "source": "MetalPDB representative sites (protein donors, solvent excluded), 309 sites, pulled 2026-07-13"
+  },
+  "Co2+": {
+    "metal": "Co2+",
+    "coordination_number": 4,
+    "cn_range": [
+      3,
+      6
+    ],
+    "bond_length_mean": 2.109,
+    "bond_length_std": 0.202,
+    "source": "MetalPDB representative sites (protein donors, solvent excluded), 319 sites, pulled 2026-07-13"
+  },
+  "Zn2+": {
+    "metal": "Zn2+",
+    "coordination_number": 4,
+    "cn_range": [
+      3,
+      5
+    ],
+    "bond_length_mean": 2.223,
+    "bond_length_std": 0.228,
+    "source": "MetalPDB representative sites (protein donors, solvent excluded), 2000 sites, pulled 2026-07-13"
+  },
+  "Fe3+": {
+    "metal": "Fe3+",
+    "coordination_number": 4,
+    "cn_range": [
+      4,
+      6
+    ],
+    "bond_length_mean": 2.202,
+    "bond_length_std": 0.164,
+    "source": "MetalPDB representative sites (protein donors, solvent excluded), 2000 sites, pulled 2026-07-13"
+  },
+  "Mn2+": {
+    "metal": "Mn2+",
+    "coordination_number": 4,
+    "cn_range": [
+      3,
+      6
+    ],
+    "bond_length_mean": 2.241,
+    "bond_length_std": 0.191,
+    "source": "MetalPDB representative sites (protein donors, solvent excluded), 775 sites, pulled 2026-07-13"
+  },
+  "Ca2+": {
+    "metal": "Ca2+",
+    "coordination_number": 3,
+    "cn_range": [
+      3,
+      6
+    ],
+    "bond_length_mean": 2.416,
+    "bond_length_std": 0.16,
+    "source": "MetalPDB representative sites (protein donors, solvent excluded), 2000 sites, pulled 2026-07-13"
+  },
+  "Mg2+": {
+    "metal": "Mg2+",
+    "coordination_number": 3,
+    "cn_range": [
+      3,
+      5
+    ],
+    "bond_length_mean": 2.231,
+    "bond_length_std": 0.232,
+    "source": "MetalPDB representative sites (protein donors, solvent excluded), 2000 sites, pulled 2026-07-13"
+  },
+  "Pt2+": {
+    "metal": "Pt2+",
+    "coordination_number": 3,
+    "cn_range": [
+      3,
+      4
+    ],
+    "bond_length_mean": 2.169,
+    "bond_length_std": 0.218,
+    "source": "MetalPDB representative sites (protein donors, solvent excluded), 53 sites, pulled 2026-07-13"
+  }
+}

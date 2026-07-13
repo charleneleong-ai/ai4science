@@ -17,8 +17,13 @@ from ..core import CoordinationSite
 
 # Protein/ligand atoms that typically donate to a metal centre.
 DONOR_ELEMENTS = frozenset({"N", "O", "S"})
+# Solvent is not a donor for our purposes. The geometry prior is built from protein donors only
+# (a designed structure carries no waters), so counting water oxygens here would compare a site
+# against a reference measured on a different donor set — the same domain error, mirrored. Designs
+# have no solvent, so this only bites on real/co-folded structures that do.
+SOLVENT_RESIDUES = frozenset({"HOH", "WAT", "DOD", "H2O"})
 
-Atom = tuple[str, np.ndarray]  # (element symbol, xyz)
+Atom = tuple[str, str, np.ndarray]  # (element symbol, residue name, xyz)
 
 
 def pdb_element(line: str) -> str:
@@ -32,13 +37,13 @@ def pdb_element(line: str) -> str:
 def pdb_atoms(text: str) -> Iterator[Atom]:
     for line in text.splitlines():
         if line.startswith(("ATOM", "HETATM")):
-            yield pdb_element(line), np.array(
+            yield pdb_element(line), line[17:20].strip().upper(), np.array(
                 [float(line[30:38]), float(line[38:46]), float(line[46:54])]
             )
 
 
 def cif_atoms(text: str) -> Iterator[Atom]:
-    """Minimal mmCIF `_atom_site` loop reader (element + coordinates)."""
+    """Minimal mmCIF `_atom_site` loop reader (element + residue + coordinates)."""
     lines = text.splitlines()
     i = 0
     while i < len(lines):
@@ -54,10 +59,12 @@ def cif_atoms(text: str) -> Iterator[Atom]:
             i = j
             continue
         ei, xi, yi, zi = (names.index(k) for k in ("type_symbol", "Cartn_x", "Cartn_y", "Cartn_z"))
+        ri = names.index("label_comp_id") if "label_comp_id" in names else None  # absent in minimal CIFs
         while j < len(lines) and lines[j].strip() and not lines[j].lstrip().startswith(("#", "_", "loop_")):
             f = lines[j].split()
             if len(f) > max(ei, xi, yi, zi):
-                yield f[ei].upper(), np.array([float(f[xi]), float(f[yi]), float(f[zi])])
+                res = f[ri].upper() if ri is not None and len(f) > ri else ""
+                yield f[ei].upper(), res, np.array([float(f[xi]), float(f[yi]), float(f[zi])])
             j += 1
         i = j
 
@@ -66,11 +73,11 @@ def site_from_atoms(
     atoms: Iterator[Atom], metal_element: str, metal_label: str, cutoff: float, min_dist: float
 ) -> CoordinationSite:
     metal_xyz: np.ndarray | None = None
-    donors: list[Atom] = []
-    for el, xyz in atoms:
+    donors: list[tuple[str, np.ndarray]] = []
+    for el, res, xyz in atoms:
         if el == metal_element.upper():
             metal_xyz = xyz
-        elif el in DONOR_ELEMENTS:
+        elif el in DONOR_ELEMENTS and res not in SOLVENT_RESIDUES:
             donors.append((el, xyz))
     if metal_xyz is None:
         raise ValueError(f"no {metal_element!r} atom found")

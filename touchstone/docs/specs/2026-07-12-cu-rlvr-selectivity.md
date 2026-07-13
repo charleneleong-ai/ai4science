@@ -82,21 +82,38 @@ soft-donor motif is what gives the metal-swap ΔE tier something to reward.
 | **CSD** (active) | **3** | 2.118 ± **0.211** | 0.108 |
 | PDB | 4 | 2.144 ± 0.179 | 0.183 |
 
-1. **Cu's bond-length std is ~2× Ni's — that is the Jahn-Teller signature.** A JT-elongated Cu²⁺
-   octahedron has *bimodal* bonds (≈4 short + 2 long), and the prior crushes them into one Gaussian.
-   The result isn't a wrong mean so much as a **blunt** one: the std is so wide that almost any Cu
-   bond length passes the z-score, so the geometry tier barely discriminates for Cu.
-   *Correction to an earlier note in this doc:* the fix is **not** a JT-elongated ideal in
-   [`coord_geometry`](../../src/touchstone/geometry/coordination.py) — JT changes bond **lengths**, not
-   **angles** (a JT octahedron still has ~90°/180°), so the angular tier is already fine. The gap is
-   the single-Gaussian **bond-length** model in the geometry tier.
+1. ~~**Cu's bond-length std is ~2× Ni's — that is the Jahn-Teller signature.**~~ **Retracted — this was
+   an artifact of the CSD prior, and it dissolves once the domain is fixed.**
+
+   JT elongation is a **six-coordinate** effect (≈4 short + 2 long bonds). In the *protein* domain
+   only **3 of 309 Cu²⁺ sites (1.0%)** are 6-coordinate — protein copper is 3–4 coordinate
+   (type-1/type-2), and 99% of it structurally *cannot* Jahn-Teller distort. The physics is real
+   where it can occur (in those 3 sites: 4 short bonds at 2.107 Å, 2 long at 2.630 Å — a textbook
+   **+0.52 Å** elongation), but it is not what makes the Cu prior wide.
+
+   The width (±0.216 Å) is **donor heterogeneity**: Cu–N 2.119, Cu–O 2.230, Cu–S 2.273 Å. The
+   distribution is broad-unimodal, not bimodal. CSD is full of octahedral Cu chelates, so the JT
+   reading was correct *there* — and irrelevant here. **Modelling Cu bimodally would be fixing a
+   small-molecule artifact inside a protein prior.** Item closed, not deferred.
 2. **The active prior is the wrong domain.** [`best_reference`](../../src/touchstone/geometry/reference.py)
    already prefers MetalPDB → CSD → PDB, but `metalpdb_reference.json` was never built/bundled — so
    touchstone verifies **protein** metal sites against a **small-molecule crystal** (CSD) prior. That
    also explains the odd Cu modal CN=3: CSD Cu²⁺ is full of low-coordinate chelates, whereas protein
    Cu²⁺ is typically 4–5.
 
-**Next step (its own PR — it changes the active prior for every metal and every verdict):** run
-[`scripts/build_metalpdb_reference.py`](../../scripts/build_metalpdb_reference.py) and bundle
-`metalpdb_reference.json`, giving Ni/Cu/Co metalloprotein-specific priors. Model the Cu bond length
-bimodally (or widen only the axial component) rather than with one Gaussian.
+   ✅ **Fixed and worse than suspected.** The MetalPDB prior is built and is now the default. Scored
+   against real metalloprotein sites, the old CSD prior trusted only **41% of real Ni²⁺ sites** and
+   deferred **19.5%** of them as off-manifold; the corrected prior trusts 96.6%. It was centred
+   0.116 Å short — over 1σ of its own std — so the RLVR reward had been steering BoltzGen toward
+   small-molecule bond lengths. See
+   [**the geometry prior was measuring the wrong domain**](../experiments/2026-07-13-geometry-prior-wrong-domain.md).
+
+   **This bites Cu hardest, which is not obvious from the trust rates.** CSD trusts 97% of real Cu²⁺
+   sites, so it *looks* fine — but only because it is too blunt to reject anything: its `cn_range`
+   runs to 6, while protein Cu²⁺ is 3–5 coordinate. Given an **octahedral CN6 copper** site (aqua
+   geometry; no protein Cu site is octahedral) the CSD prior returns `plausible (0.0σ)` — a perfect
+   score. So **the Cu geometry reward on the old prior would have rewarded octahedral copper**, when
+   the whole point of the Cu motif work below is square-planar / type-1 geometry. The corrected prior
+   rejects it (`coordination number outside observed range`).
+
+**Both items are now closed** — one fixed, one retracted. The prior audit is done.
