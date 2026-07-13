@@ -57,14 +57,51 @@ physics is required declines to guess. It still cannot rank the series.
 
 A tier that cannot reproduce a known reference trend has no business emitting verdicts.
 [`ranks_irving_williams`](../../src/touchstone/physics/selectivity.py) probes the backbone on
-[M(H₂O)₆]²⁺ and requires Cu²⁺ at the peak; the verifier `defer`s outright if it fails:
+[M(H₂O)₆]²⁺ and requires the **whole series** — stability rising Mn²⁺ < Fe²⁺ < Co²⁺ < Ni²⁺ < Cu²⁺,
+then dropping back at Zn²⁺ — and the verifier `defer`s outright if it fails:
 
-> `backbone cannot rank the divalent 3d series (fails Irving–Williams: Cu2+ is not the peak) — it
-> has no ligand-field/spin physics, so its metal ordering is meaningless`
+> `backbone cannot rank the divalent 3d series (fails Irving–Williams: stability must rise
+> Mn<Fe<Co<Ni<Cu and drop at Zn) — it has no ligand-field/spin physics, so its metal ordering is
+> meaningless`
+
+**Requiring the series rather than the peak matters.** An `argmin == Cu2+` check is one bit, and one
+bit is cheap to satisfy by accident: a backbone ranking Cu strongest but **Mn²⁺ second** — above Fe,
+Co and Ni — would sail through it while still being physically meaningless. Pinned as
+`CuPeakScrambledSpring` in [the tests](../../tests/test_selectivity.py).
 
 With MACE and OrbMol both failing, **the selectivity tier is now inert** — which is the correct
 behaviour. The `--selectivity` RLVR reward cannot steer a generator with a signal that ranks Mn²⁺
 above Cu²⁺.
+
+## Spin and charge follow the ion, not the element
+
+Two silent-wrong-answer bugs sat under the gate, dormant only because no backbone passes it:
+
+- **The d-count table was keyed by element**, so `Fe3+` (d⁵, 5 unpaired) was handed `Fe2+`'s spin
+  (d⁶, 4). Likewise `Cu1+`→`Cu2+`, `Mn3+`→`Mn2+`. Now keyed by `(element, oxidation state)`.
+- **The free-ion charge was hard-coded `+2`**, with the apo leg taking `total − 2`. For a trivalent
+  ion both legs are then wrong — and Pd²⁺/Pt²⁺/**Au³⁺** are in the project's own metal panel, they
+  are the e-waste recovery targets. `swap_metal` now moves element, oxidation state, charge and spin
+  together.
+
+And where the spin state genuinely isn't known — **Co³⁺ (d⁶) is high-spin in weak fields and low-spin
+in most complexes** — the table says nothing and the tier defers, rather than substituting a singlet.
+A wrong spin state doesn't crash; it just moves the ligand-field energy, which *is* the number this
+tier reports. That is the same failure mode as everything else in this document, so it gets the same
+answer: **refuse, don't guess.**
+
+## The gap that remains: the probe is all-oxygen
+
+The gate probes [M(H₂O)₆]²⁺ — hard, oxygen-only donors. The tier then judges **protein sites with N
+and S donors**, and metal selectivity is largely a *donor-identity* (HSAB) effect: soft Cys-thiolate
+and Met-thioether are exactly what a type-1 copper site uses to discriminate Cu from Ni/Co.
+
+So a backbone that passes this gate has been shown to rank metals **on hard-donor sites only**. It
+has not been shown to do so on the thiolate/imidazole chemistry the tier actually scores, and the
+gate says nothing at all about metals outside the divalent 3d series (Pd²⁺/Pt²⁺/Au³⁺). Closing that
+properly needs a soft-donor probe with reference data we don't have — so it is documented rather than
+papered over. **Probe domain ≠ judged domain** is precisely the error that broke the geometry prior
+([writeup](2026-07-13-geometry-prior-wrong-domain.md)); naming it here is cheaper than rediscovering it.
 
 ## Retractions
 
