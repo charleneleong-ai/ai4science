@@ -30,10 +30,13 @@ class TestVerifyCLI:
         r = _verify("--no-precedent")
         assert "precedent" not in {s["stage"] for s in r["stack"]}
 
-    def test_selectivity_without_deep_is_rejected(self):
-        # an MLIP tier: without --deep it would silently never run, so fail loudly instead
-        res = runner.invoke(app, ["verify", FIXTURE, "--metal", "Ni2+", "--selectivity", "Ni2+,Cu2+"])
-        assert res.exit_code != 0
+    def test_selectivity_runs_without_deep(self):
+        # --selectivity used to require --deep (it was MLIP-only). The MLIP tier is now inert, and
+        # the metal discrimination that actually works — MetalPDB motif enrichment — is CPU-only.
+        res = runner.invoke(app, ["verify", FIXTURE, "--metal", "Ni2+", "--selectivity", "Ni2+,Cu2+", "--json"])
+        assert res.exit_code == 0
+        by = {s["stage"]: s["status"] for s in json.loads(res.stdout)["stack"]}
+        assert by["motif_selectivity"] == "ran" and by["selectivity"] == "needs_input"
 
     def test_metalhawk_scores_enables_the_tier(self, tmp_path):
         scores = tmp_path / "mh.json"

@@ -30,7 +30,7 @@ from .geometry.coordination import CoordinationGeometryVerifier, CoordinationSym
 from .geometry.metalhawk import MetalHawkVerifier
 from .geometry.mogul import MogulVerifier
 from .geometry.parse import coordination_site
-from .geometry.precedent import PrecedentVerifier
+from .geometry.precedent import MotifSelectivityVerifier, PrecedentVerifier
 from .geometry.reference import best_reference
 from .geometry.verifier import GeometryVerifier
 from .physics.mlip import MLIPDynamicsVerifier, MLIPVerifier, make_backbone  # light import; heavy load lazy
@@ -58,6 +58,9 @@ NEEDS_INPUT = {
     "cofold": "a co-fold prediction (scripts/chai_crosscheck, alphafold3_crosscheck, or allmetal3d_crosscheck)",
     "expression": "a sequence scorer (scripts/expression_score)",
     "thermostability": "an MD/Tm scorer (scripts/thermostability_score)",
+    "motif_selectivity": "pass selectivity_metals (no GPU — MetalPDB donor-set enrichment: is this "
+                         "donor set characteristic of the target metal in real proteins? an occupancy "
+                         "prior, not a binding free energy)",
     "selectivity": "pass deep=True + selectivity_metals (MLIP metal-swap ΔE — does the target metal bind "
                    "best?). GATED + currently inert: every available MLIP backbone fails the Irving-Williams "
                    "series, so the tier defers rather than emit a meaningless metal ranking — see "
@@ -75,8 +78,9 @@ def as_dict(v: Verdict) -> dict:
 # the full verifier stack in cost order — the unified `stack` view lists every tier with its
 # status so the consensus is auditable, even tiers that didn't run on this input
 STACK_ORDER = (
-    "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent", "metalhawk",
-    "mogul", "mlip", "mlip_md", "trs", "selectivity", "cofold", "expression", "thermostability",
+    "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent", "motif_selectivity",
+    "metalhawk", "mogul", "mlip", "mlip_md", "trs", "selectivity", "cofold", "expression",
+    "thermostability",
 )
 
 
@@ -145,6 +149,8 @@ def verify_structure(
     }
     if precedent:  # open MetalPDB coordination-motif precedent — default on (disable with precedent=False)
         verifiers["precedent"] = PrecedentVerifier(precedent_search)
+    if selectivity_metals:  # metal discrimination from observed occupancy — CPU-only, no deep needed
+        verifiers["motif_selectivity"] = MotifSelectivityVerifier(tuple(selectivity_metals))
     if cofold_provider is not None:  # independent predictor (Chai-1 / AllMetal3D) corroboration
         verifiers["cofold"] = CofoldCrossCheck(cofold_provider)
     if metalhawk_scorer is not None:  # independent ANN geometry-distortion oracle

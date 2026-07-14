@@ -41,12 +41,10 @@ def verify(
     sequence: str = typer.Option("", "--sequence", help="the design's sequence — enables the expression / thermostability tiers (which key by sequence)"),
     expression_scores: Path = typer.Option(None, "--expression-scores", help="JSON {sequence: {pseudo_perplexity, solubility}} — enables the expression tier (needs --sequence)"),
     thermostability_scores: Path = typer.Option(None, "--thermostability-scores", help="JSON {sequence: Tm_celsius} — enables the thermostability tier (needs --sequence)"),
-    selectivity: str = typer.Option("", "--selectivity", help="comma-separated competing metals for the MLIP metal-swap ΔE selectivity tier (needs --deep), e.g. Ni2+,Cu2+,Co2+"),
+    selectivity: str = typer.Option("", "--selectivity", help="comma-separated competing metals for the selectivity tiers, e.g. Ni2+,Cu2+,Co2+ — motif enrichment (MetalPDB occupancy) runs on CPU; the MLIP metal-swap ΔE tier is added by --deep (and currently defers: no backbone passes the Irving-Williams gate)"),
     json: bool = typer.Option(False, "--json", help="emit JSON (for agents / piping)"),
 ) -> None:
     """Score a structure's metal site: trust / weak / defer + per-verifier breakdown."""
-    if selectivity and not deep:  # an MLIP tier — without --deep it would silently never run
-        raise typer.BadParameter("--selectivity needs --deep (the MLIP metal-swap backbone)")
     metalhawk_scorer = metalhawk_score_provider(load_predictions(metalhawk_scores)) if metalhawk_scores else None
     expression_scorer = expression_score_provider(load_signals(expression_scores)) if expression_scores else None
     tm_predictor = tm_provider(jsonlib.loads(Path(thermostability_scores).read_text())) if thermostability_scores else None

@@ -33,8 +33,9 @@ class TestVerifyStructure:
         by = {s["stage"]: s for s in r["stack"]}
         # the full stack appears in cost order, even tiers that didn't run on a bare structure
         assert [s["stage"] for s in r["stack"]] == [
-            "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent", "metalhawk",
-            "mogul", "mlip", "mlip_md", "trs", "selectivity", "cofold", "expression", "thermostability",
+            "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent",
+            "motif_selectivity", "metalhawk", "mogul", "mlip", "mlip_md", "trs", "selectivity",
+            "cofold", "expression", "thermostability",
         ]
         assert by["geometry"]["status"] == "ran" and "strain_sigma" in by["geometry"]["metrics"]
         assert by["bond_valence"]["status"] == "ran" and "bvs" in by["bond_valence"]["metrics"]
@@ -84,6 +85,16 @@ class TestVerifyStructure:
         assert default["selectivity"] == "needs_input"
         wired = verify_structure(PACKED, "Ni2+", deep=True, calc=None, selectivity_metals=("Ni2+", "Cu2+", "Co2+"))
         assert {s["stage"]: s["status"] for s in wired["stack"]}["selectivity"] == "skipped"
+
+    def test_motif_selectivity_needs_no_gpu(self):
+        # the MLIP selectivity tier is inert (no backbone passes Irving-Williams), so the metal
+        # discrimination that actually runs is the CPU-only occupancy prior — it must not require deep
+        default = {s["stage"]: s["status"] for s in verify_structure(PACKED, "Ni2+")["stack"]}
+        assert default["motif_selectivity"] == "needs_input"
+        r = verify_structure(PACKED, "Ni2+", selectivity_metals=("Ni2+", "Cu2+", "Co2+"))  # no deep=True
+        by = {s["stage"]: s["status"] for s in r["stack"]}
+        assert by["motif_selectivity"] == "ran" and by["mlip"] == "needs_input"
+        assert "enrichment" in r["verifiers"]["motif_selectivity"]["metrics"]
 
     def test_deep_without_backend_degrades_gracefully(self):
         # no GPU/mace here ⇒ mlip + mlip_md are skipped, consensus still decided by geometry+BV
