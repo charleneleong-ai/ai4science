@@ -23,7 +23,7 @@ from pathlib import Path
 
 import numpy as np
 
-from ..core import BinderDesign, Verdict, element_symbol
+from ..core import BinderDesign, Verdict, element_symbol, oxidation_state
 from ..geometry.parse import DONOR_ELEMENTS
 
 H_CACHE: dict[tuple[str, float], str] = {}  # (source, pH) → protonated path; dedups across verifiers/batches
@@ -73,6 +73,7 @@ def normalize(structure: Path) -> str:
         import gemmi
     except ImportError:
         return str(structure)
+    structure = Path(structure)  # callers pass a str on the no-OpenBabel fallback path
     st = gemmi.read_structure(str(structure))
     out = str(Path(h_dir()) / f"{structure.stem}_norm.pdb")
     st.write_pdb(out)
@@ -162,13 +163,61 @@ def single_point(atoms, calc) -> float:
     return potential_energy(atoms, calc)
 
 
+# Unpaired d-electrons of the high-spin divalent first-row transition ions. The spin state IS
+# the ligand-field physics behind metal preference (the Irving–Williams series): swapping the
+# metal *element* without updating the spin compares physically different electronic systems,
+# and a backbone with no spin/charge state cannot represent the effect at all.
+# Unpaired d-electrons, keyed by (element, oxidation state) — the d-count depends on BOTH, so an
+# element-keyed table silently hands Fe3+ (d5, 5 unpaired) the spin of Fe2+ (d6, 4). Spin state is
+# what sets ligand-field stabilisation, so a wrong one doesn't fail loudly: it shifts the energy.
+UNPAIRED_D = {
+    ("Mn", 2): 5, ("Mn", 3): 4,
+    ("Fe", 2): 4, ("Fe", 3): 5,
+    ("Co", 2): 3,
+    ("Ni", 2): 2,
+    ("Cu", 1): 0, ("Cu", 2): 1,
+    ("Zn", 2): 0,
+    # 4d/5d d8 — square-planar and low-spin under any ligand field (Δ is large), so diamagnetic.
+    ("Pd", 2): 0, ("Pt", 2): 0, ("Au", 3): 0,
+}
+# Deliberately absent: Co3+ (d6) — high-spin in weak fields, low-spin in most complexes, so its
+# multiplicity is 5 or 1 depending on the donors. We don't know which, so we don't say; the caller
+# defers. A table that guessed would be the same failure this whole tier exists to prevent.
+
+
+def multiplicity(metal: str) -> int | None:
+    """Spin multiplicity (2S+1) of the high-spin ion, or **None if we don't know it** — callers must
+    defer rather than substitute a default. 'Ni2+' -> 3 (d8, 2 unpaired); 'Fe3+' -> 6 (d5)."""
+    n = UNPAIRED_D.get((element_symbol(metal), oxidation_state(metal)))
+    return None if n is None else n + 1
+
+
 def interaction_energy(atoms, calc, mi: int, e_complex: float) -> float | None:
     """Crude metal binding energy: E(complex) − E(apo, frozen) − E(metal). Ranking
     only — no apo relaxation, no solvation, reference-state-naive. Reuses the
-    already-relaxed complex energy rather than recomputing it."""
+    already-relaxed complex energy rather than recomputing it.
+
+    Each leg carries its own charge/spin: the free ion holds its formal charge and d-electron spin;
+    the apo ligand set is closed-shell and keeps the remainder. Backbones with no charge/spin state
+    ignore these; charge-aware ones (OrbMol) refuse to run without them.
+
+    Both come from the ion label on `atoms.info["ion"]` ('Ni2+'), not from the ASE element symbol —
+    the element alone cannot tell Fe2+ from Fe3+, which differ in *both* charge and spin. If the ion
+    is untabulated we return None rather than defaulting: a guessed spin state doesn't fail loudly,
+    it just moves the ligand-field energy, which is precisely the number this tier reports."""
     keep = [i for i in range(len(atoms)) if i != mi]
     try:
-        return e_complex - single_point(atoms[keep], calc) - single_point(atoms[[mi]], calc)
+        apo, ion = atoms[keep], atoms[[mi]]
+        total_q = atoms.info.get("charge")
+        if total_q is not None:  # charge-aware backbone ⇒ give each leg its own state
+            label = atoms.info.get("ion")
+            mult = multiplicity(label) if label else None
+            if mult is None:  # unknown spin ⇒ no number is better than a wrong one
+                return None
+            q = oxidation_state(label)
+            ion.info["charge"], ion.info["spin"] = q, mult
+            apo.info["charge"], apo.info["spin"] = total_q - q, 1  # closed-shell ligands
+        return e_complex - single_point(apo, calc) - single_point(ion, calc)
     except (RuntimeError, ValueError, FloatingPointError):
         return None
 
@@ -368,6 +417,9 @@ class MLIPBase:
             cluster.info["charge"] = self.charge
         if self.spin is not None:
             cluster.info["spin"] = self.spin
+        # the ion label, not just the element: interaction_energy needs the oxidation state to
+        # give the free-ion leg its formal charge and d-electron spin (Fe2+ and Fe3+ differ in both)
+        cluster.info["ion"] = design.site.metal
         return cluster
 
 

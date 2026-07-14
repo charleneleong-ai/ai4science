@@ -58,7 +58,10 @@ NEEDS_INPUT = {
     "cofold": "a co-fold prediction (scripts/chai_crosscheck, alphafold3_crosscheck, or allmetal3d_crosscheck)",
     "expression": "a sequence scorer (scripts/expression_score)",
     "thermostability": "an MD/Tm scorer (scripts/thermostability_score)",
-    "selectivity": "pass deep=True + selectivity_metals (MLIP metal-swap ΔE — does the target metal bind best?)",
+    "selectivity": "pass deep=True + selectivity_metals (MLIP metal-swap ΔE — does the target metal bind "
+                   "best?). GATED + currently inert: every available MLIP backbone fails the Irving-Williams "
+                   "series, so the tier defers rather than emit a meaningless metal ranking — see "
+                   "docs/experiments/2026-07-13-mlip-cannot-rank-metals.md",
 }
 
 
