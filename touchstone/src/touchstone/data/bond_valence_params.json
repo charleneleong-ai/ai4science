@@ -1,9 +1,30 @@
 {
   "b": 0.37,
   "metals": {
-    "Ni2+": {"N": 1.647, "O": 1.654, "S": 2.040},
-    "Cu2+": {"N": 1.713, "O": 1.679, "S": 2.054},
-    "Co2+": {"N": 1.658, "O": 1.692, "S": 2.030}
+    "Ni2+": {
+      "N": 1.892,
+      "O": 1.899,
+      "S": 2.285,
+      "trust_tol": 1.01,
+      "ood_tol": 1.6,
+      "domain": "metalloprotein (MetalPDB, 349 sites, protein donors)"
+    },
+    "Cu2+": {
+      "N": 1.835,
+      "O": 1.801,
+      "S": 2.176,
+      "trust_tol": 0.54,
+      "ood_tol": 1.03,
+      "domain": "metalloprotein (MetalPDB, 309 sites, protein donors)"
+    },
+    "Co2+": {
+      "N": 1.789,
+      "O": 1.823,
+      "S": 2.161,
+      "trust_tol": 1.04,
+      "ood_tol": 1.58,
+      "domain": "metalloprotein (MetalPDB, 319 sites, protein donors)"
+    }
   },
-  "source": "Brese & O'Keeffe (1991) Acta Cryst. B47, 192-197; universal b=0.37. O values from Table 2 (oxide/fluoride/chloride). N/S are oxidation-state-II values cross-referenced to softBV — verify against the canonical bvparm2020.cif before quantitative use, as N/S parameters are oxidation-state-sensitive."
+  "source": "R0 recalibrated to the metalloprotein domain from MetalPDB, pulled 2026-07-17 (median-centred shift on Brese & O'Keeffe 1991 R0; per-metal tolerances from the real-site BVS scatter). BVS is a weak filter in this domain \u2014 it catches egregious over/under-bonding, not fine metal discrimination. See docs/experiments/2026-07-17-bond-valence-wrong-domain.md"
 }
