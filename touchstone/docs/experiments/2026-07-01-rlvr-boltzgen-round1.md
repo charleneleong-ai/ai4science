@@ -1,12 +1,14 @@
 # RLVR rounds 1–4 — does the touchstone reward improve BoltzGen? (Ni, 2026-07-01)
 
-> **Every geometry-TRUST number below is a CSD-prior number.** That prior was later found to be the
-> wrong domain — it scored *real* Ni metalloprotein sites as strained (41% trusted, 19.5% deferred)
-> because it is centred 0.116 Å short, on small-molecule crystals. The arc **replicates** under the
-> corrected MetalPDB prior (baseline 71.5% → r1 89.6% → r2 71.9% → r3 99.0%, same shape), so the
-> conclusions here stand — but the *magnitude* of the gains is inflated by the old yardstick, and the
-> reward was steering toward small-molecule bond lengths. See
-> [the geometry prior was measuring the wrong domain](2026-07-13-geometry-prior-wrong-domain.md).
+> **Every TRUST number in the body below is a stale-stack number.** Three tiers that produced them
+> were later found to be the wrong domain and corrected: the geometry prior (CSD → MetalPDB), the
+> precedent table (water-inflated → solvent-excluded), and the bond-valence params (small-molecule →
+> metalloprotein). The **conclusions stand** — the loop worked, the balanced-reward arc is real — but
+> **every absolute rate here is inflated by tiers that scored protein designs against the wrong
+> reference.** The pools re-scored under the corrected stack are in
+> [**Re-scored under the corrected stack**](#re-scored-under-the-corrected-stack-2026-07-17) at the
+> bottom; read that for what the numbers actually are now. Domain writeups:
+> [geometry](2026-07-13-geometry-prior-wrong-domain.md) · [bond-valence](2026-07-17-bond-valence-wrong-domain.md).
 
 First end-to-end run of the loop in [`docs/specs/2026-06-28-rlvr-boltzgen.md`](../specs/2026-06-28-rlvr-boltzgen.md):
 generate → [`rlvr_select`](../../scripts/rlvr_select.py) → [`winners_to_targets`](../../scripts/winners_to_targets.py)
@@ -125,3 +127,56 @@ reward signal), not more RAFT rounds on the same objective.
 - **Single seed per round**; effects are large but unreplicated.
 - **Small balanced sets** (8→20 dual-passers) — dual-passers are rare (~2–12 per 96-pool), so the
   fine-tuning sets are small and overfitting is a live risk; the fresh-pool re-verify is the guard.
+
+## Re-scored under the corrected stack (2026-07-17)
+
+The pools above were scored with three tiers now known to be the wrong domain (geometry CSD prior,
+water-inflated precedent, small-molecule bond-valence). Re-scoring the same pools under the corrected
+default stack — CPU-only; the MLIP tiers are unchanged and not re-run here — separates *what the loop
+did* from *what the broken yardstick added*.
+
+| pool | geom **CSD** (old) | geom **MetalPDB** | full corrected consensus (trust / weak / defer) | mean reward |
+|---|---|---|---|---|
+| baseline (288) | 6.2% | 71.5% | 3.8% / 29% / **67%** | 0.103 |
+| fine-tuned (ft2, 96) | 13.5% | 89.6% | 1.0% / 22% / **77%** | 0.068 |
+| fine-tuned (ft3, 96) | 4.2% | 71.9% | 8.3% / 30% / **62%** | 0.134 |
+| fine-tuned (ft4, 96) | 54.2% | 99.0% | 0.0% / 48% / **52%** | 0.148 |
+| fine-tuned (ft5, 96) | 45.8% | 99.0% | 0.0% / 54% / **46%** | 0.163 |
+
+Three things, in order of importance:
+
+**1. "geometry-TRUST" is no longer a meaningful headline — geometry is now a weak filter.** Under the
+MetalPDB prior it trusts 99% of the best pool (and 71% of *baseline*). The old CSD prior's tightness
+is what made geometry-TRUST look like a discriminating 5.9% → 72.9% signal; that discrimination was
+substantially the prior rejecting protein geometry as strained. The corrected geometry tier barely
+separates the pools — exactly as [its own writeup](2026-07-13-geometry-prior-wrong-domain.md) predicted.
+
+**2. The loop's improvement replicates under the corrected reward.** The continuous signal RLVR
+actually optimises — mean reward — rises across the fine-tuned rounds (**0.068 → 0.134 → 0.148 →
+0.163**, +58% over the ft2 dip), the `defer` fraction falls monotonically (**77% → 46%**), and `weak`
+rises to meet it. The ft2 dip and ft3+ recovery mirror the body's round-2-regresses / round-3-balanced
+arc. The designs genuinely improved *by the corrected, stricter measure* — not just by the old one.
+
+**3. The corrected consensus is far stricter, and honestly so.** Even the best round still `defer`s
+46% and trusts ~0%. The per-tier breakdown at ft5 shows why:
+
+| tier @ ft5 | trust | weak | defer |
+|---|---|---|---|
+| geometry | 99% | 1% | 0% |
+| coord_symmetry | 98% | 2% | 0% |
+| coord_geometry | 93% | 6% | 1% |
+| **bond_valence** | 15% | 41% | **45%** |
+| **precedent** | 0% | **99%** | 1% |
+
+The consensus is now gated by **bond_valence** (defers 45% — and it defers only ~10% of *real*
+metalloprotein sites, so it is discriminating: these designs are genuinely more often mis-bonded than
+real biochemistry) and **precedent** (99% *weak* — the `ni_motif` donor sets are precedented but below
+the ≥5-hit trust bar). Geometry and the coordination tiers pass almost everything. This is the
+defense-in-depth working as designed: the sharp tiers are physics/precedent, not geometry.
+
+**Bottom line.** The headline "5.9% → 21.9% → … → 72.9% geometry-TRUST" was inflated by a wrong-domain
+prior and should not be quoted as an absolute quality rate. The *conclusion* — verifier-as-reward is
+steerable and the balanced reward lifts real quality — survives: the corrected reward independently
+ranks the later rounds higher. Re-scoring is not re-training: the real test is an RLVR run whose
+reward *is* the corrected stack (the ft2 dip suggests a bond-valence-aware reward would steer
+differently), which is future work and needs the GPU.
