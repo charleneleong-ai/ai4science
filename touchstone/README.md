@@ -13,11 +13,17 @@ on where their inputs are available:
   `--no-precedent`.
 - **deep (GPU, `--deep`)** — MLIP (MACE · OrbMol · UMA): site relaxation + 300 K MD + preorganization
   (`trs`, metal-off reorganization); xtb GFN2.
-- **selectivity (metal-swap ΔE) — currently inert.** The tier is gated on the Irving–Williams series
-  and every MLIP backbone we have fails it (neither MACE-MP nor OrbMol puts Cu²⁺ at the peak), so it
-  `defer`s rather than emit a meaningless metal ranking. Selectivity needs ligand-field physics (DFT
-  with explicit spin states), not an MLIP — see
-  [`docs/experiments/2026-07-13-mlip-cannot-rank-metals.md`](docs/experiments/2026-07-13-mlip-cannot-rank-metals.md).
+- **metal selectivity** — pass a competitor panel (`--selectivity Ni2+,Cu2+,Co2+`):
+  - **motif enrichment (no GPU, runs today).** Of all the sites a metal occupies in the PDB, what
+    fraction use this donor set? Recovers HSAB by counting: N₂S₂ (His₂/Cys/Met) is most characteristic
+    of Cu²⁺, all-oxygen O₆ of Mn²⁺ with Cu²⁺ last, Cys₄ of Fe. An *occupancy* prior — "does this look
+    like a real Cu site?" — **not** a binding free energy.
+    See [`docs/experiments/2026-07-14-selectivity-from-occupancy.md`](docs/experiments/2026-07-14-selectivity-from-occupancy.md).
+  - **MLIP metal-swap ΔE — inert.** Gated on the Irving–Williams series, and every MLIP backbone fails
+    it (neither MACE-MP nor OrbMol reproduces the series), so it `defer`s rather than emit a
+    meaningless ranking. Thermodynamic metal ranking needs ligand-field physics (DFT with explicit
+    spin states), not an MLIP — see
+    [`docs/experiments/2026-07-13-mlip-cannot-rank-metals.md`](docs/experiments/2026-07-13-mlip-cannot-rank-metals.md).
 - **opt-in** — independent co-fold (Boltz-2 / Chai-1 / AllMetal3D) · expression (ESM-2 ppl ·
   solubility) · thermostability (Tm); Mogul CSD validation (licensed). Reachable via providers /
   the `pipeline` / CLI flags, not in the default consensus.

@@ -42,11 +42,9 @@ def main(
     metal: str = typer.Option("Ni2+", help="target metal"),
     keep: str = typer.Option("trust", help="'trust' (only TRUST designs) or an int N (top-N by reward)"),
     deep: bool = typer.Option(False, "--deep", help="fold the MLIP relax+MD tiers into the reward (needs a GPU + touchstone[mace])"),
-    selectivity: str = typer.Option("", "--selectivity", help="comma-separated competing metals for the MLIP metal-swap ΔE selectivity tier (needs --deep), e.g. Ni2+,Cu2+,Co2+"),
+    selectivity: str = typer.Option("", "--selectivity", help="comma-separated competing metals for the selectivity tiers, e.g. Ni2+,Cu2+,Co2+ — motif enrichment (MetalPDB occupancy) runs on CPU; the MLIP metal-swap ΔE tier is added by --deep (and currently defers: no backbone passes the Irving-Williams gate)"),
 ) -> None:
     # validate before touching the filesystem — a bad flag combination shouldn't leave an empty out/
-    if selectivity and not deep:  # selectivity is an MLIP tier — it needs the backbone
-        raise typer.Exit("--selectivity needs --deep (the MLIP metal-swap backbone)")
     calc = mlip_backbone() if deep else None  # build the MACE backbone once, share across the batch
     if deep and calc is None:  # honor an explicit --deep: never silently ship a geometry-only reward as "deep"
         raise typer.Exit("--deep needs a GPU + touchstone[mace]; refusing to score geometry-only")
