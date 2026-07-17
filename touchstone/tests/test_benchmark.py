@@ -9,7 +9,7 @@ from touchstone.reward import rank_structures, reward_from_result
 from touchstone.service import verify_structure
 
 FIX = Path(__file__).parent / "fixtures"
-IDEAL = FIX / "ideal_nickel_site.pdb"  # octahedral Ni²⁺ at the PDB mean bond (2.09 Å)
+IDEAL = FIX / "ideal_nickel_site.pdb"  # octahedral Ni²⁺ at the protein-domain bond (2.30 Å — geometry + BVS both trust)
 WEAK = FIX / "ligmpnn_nickel_packed.pdb"  # a strained CN-5 design
 
 
