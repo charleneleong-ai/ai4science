@@ -1,5 +1,13 @@
 # RLVR rounds 1–4 — does the touchstone reward improve BoltzGen? (Ni, 2026-07-01)
 
+> **Every geometry-TRUST number below is a CSD-prior number.** That prior was later found to be the
+> wrong domain — it scored *real* Ni metalloprotein sites as strained (41% trusted, 19.5% deferred)
+> because it is centred 0.116 Å short, on small-molecule crystals. The arc **replicates** under the
+> corrected MetalPDB prior (baseline 71.5% → r1 89.6% → r2 71.9% → r3 99.0%, same shape), so the
+> conclusions here stand — but the *magnitude* of the gains is inflated by the old yardstick, and the
+> reward was steering toward small-molecule bond lengths. See
+> [the geometry prior was measuring the wrong domain](2026-07-13-geometry-prior-wrong-domain.md).
+
 First end-to-end run of the loop in [`docs/specs/2026-06-28-rlvr-boltzgen.md`](../specs/2026-06-28-rlvr-boltzgen.md):
 generate → [`rlvr_select`](../../scripts/rlvr_select.py) → [`winners_to_targets`](../../scripts/winners_to_targets.py)
 → fine-tune → re-verify. All on `pi-a100-80gb`, Ni²⁺, the `ni_motif` theozyme spec.

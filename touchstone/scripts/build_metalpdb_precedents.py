@@ -21,7 +21,7 @@ from pathlib import Path
 
 import typer
 
-from touchstone.geometry.parse import DONOR_ELEMENTS
+from touchstone.geometry.parse import DONOR_ELEMENTS, SOLVENT_RESIDUES
 
 OUT = Path(__file__).parent.parent / "src" / "touchstone" / "data" / "metalpdb_precedents.json"
 # element → verifier label; the metal element symbol is also the motif prefix (matches
@@ -45,8 +45,15 @@ def fetch(metal_symbol: str) -> list[dict]:
     return data if isinstance(data, list) else data.get("sites", data.get("results", []))
 
 
-def site_motifs(records: list[dict], metal_symbol: str):
-    """Per metal site, its first-shell donor-composition motif (e.g. 'Ni-N3O2')."""
+def site_motifs(records: list[dict], metal_symbol: str) -> Iterator[str]:
+    """Per metal site, its first-shell donor-composition motif (e.g. 'Ni-N3O2'), protein donors only.
+
+    Solvent is excluded for the same reason as in the geometry prior: a design carries no waters, so
+    a motif it can never present must not compete for precedent counts. Counting them buries the real
+    protein motifs under aqua-padded variants — with waters in, `Ni-O6` (hexaaqua nickel, an ion
+    sitting in solvent) scores 22 hits while `Ni-S4`, the NiFe-hydrogenase Cys4 site, scores 3 and
+    fails the min_hits gate.
+    """
     for rec in records:
         for m in rec.get("metals", []):
             if (m.get("symbol") or "").capitalize() != metal_symbol:
@@ -54,6 +61,7 @@ def site_motifs(records: list[dict], metal_symbol: str):
             donors = [
                 (d.get("symbol") or "").upper()
                 for lig in m.get("ligands", [])
+                if (lig.get("residue") or "").upper() not in SOLVENT_RESIDUES
                 for d in lig.get("donors", [])
                 if (d.get("symbol") or "").upper() in DONOR_ELEMENTS
                 and isinstance(d.get("distance"), (int, float))

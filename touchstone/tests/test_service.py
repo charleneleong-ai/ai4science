@@ -20,7 +20,7 @@ class TestVerifyStructure:
         assert set(r["verifiers"]) == {"geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent"}
         assert r["consensus"] in {"trust", "weak", "defer"}
         assert r["coordination_number"] >= 1
-        assert r["reference"] in {"CSD", "PDB"}  # which geometry prior backed the z-score
+        assert r["reference"] in {"MetalPDB", "CSD", "PDB"}  # which geometry prior backed the z-score
         assert all("label" in v and "score" in v for v in r["verifiers"].values())
         assert {"mogul", "cofold", "expression", "thermostability"} <= set(r["not_run"])  # full stack advertised
 

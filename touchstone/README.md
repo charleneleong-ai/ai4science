@@ -7,9 +7,10 @@ consensus that **by default runs four analytic geometry oracles** (defense-in-de
 deterministic, no licence or GPU), with deep-physics, licensed, and cross-check tiers layered
 on where their inputs are available:
 
-- **default (anywhere)** — z-score vs a CSD/PDB prior · bond-valence sum · nVECSUM enclosure ·
-  polyhedron-RMSD shape (à la CheckMyMetal) · open MetalPDB coordination-motif precedent. These form
-  the consensus out of the box (no GPU, no licence); disable precedent with `--no-precedent`.
+- **default (anywhere)** — z-score vs the open **MetalPDB** metalloprotein prior · bond-valence sum ·
+  nVECSUM enclosure · polyhedron-RMSD shape (à la CheckMyMetal) · open MetalPDB coordination-motif
+  precedent. These form the consensus out of the box (no GPU, no licence); disable precedent with
+  `--no-precedent`.
 - **deep (GPU, `--deep`)** — MLIP (MACE · OrbMol · UMA): site relaxation + 300 K MD + preorganization
   (`trs`, metal-off reorganization); xtb GFN2.
 - **selectivity (metal-swap ΔE) — currently inert.** The tier is gated on the Irving–Williams series
@@ -141,10 +142,17 @@ claude mcp add --transport http touchstone http://<host>:8000/mcp   # on each cl
 
 ## Scope
 
-The trust threshold is grounded in CSD geometry + physics, **not yet calibrated to wet-lab
-outcomes** — `trust` means "physically / precedent-plausible," not a calibrated binding
-probability. Tiers without their model/licence available report as `not_run` rather than
-guessing.
+The trust threshold is grounded in metalloprotein geometry + physics, **not yet calibrated to
+wet-lab outcomes** — `trust` means "physically / precedent-plausible," not a calibrated binding
+probability. Tiers without their model/licence available report as `not_run` rather than guessing.
+
+**Geometry is a weak filter, by construction.** The prior is calibrated so that a 2σ gate admits
+~96% of *real* metalloprotein sites, which means it also admits most geometrically-plausible
+designs. That is the tier's true resolution: discrimination is supposed to come from bond-valence,
+the coordination tiers and MLIP, not from geometry alone. (The previous CSD prior looked far
+sharper — because it was scoring protein sites against small-molecule crystals and rejecting 1 in 5
+*real* Ni sites as off-manifold. See
+[`docs/experiments/2026-07-13-geometry-prior-wrong-domain.md`](docs/experiments/2026-07-13-geometry-prior-wrong-domain.md).)
 
 ## Develop
 
