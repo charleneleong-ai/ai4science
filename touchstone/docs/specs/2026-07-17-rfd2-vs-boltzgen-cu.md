@@ -60,18 +60,41 @@ I can't clone external repos. Run these on `pi-a100-80gb` (the `!`-prefix works,
 daemon per the long-job convention):
 
 ```bash
-# 1. clone + install RFdiffusion2 (weights ~30 min via setup.py)
+# 1. clone
 git clone https://github.com/RosettaCommons/RFdiffusion2.git ~/RFdiffusion2
-cd ~/RFdiffusion2 && conda env create -f env/... && python setup.py   # follow their README exactly
+
+# 2. weights (~30 min — "these files are quite large", per their README)
+cd ~/RFdiffusion2 && export PYTHONPATH=~/RFdiffusion2 && python setup.py
+
+# 3. Apptainer — RFD2 runs in a container, NOT a conda env
+sudo add-apt-repository -y ppa:apptainer/ppa && sudo apt update && sudo apt install -y apptainer
 ```
 
+## The run config — verified against the repo, not guessed
+
+Read from RFdiffusion2's own configs (`rf_diffusion/benchmark/open_source_demo.json`,
+`configs/inference/aa.yml`), so this is the real interface:
+
+| field | value | why |
+|---|---|---|
+| `inference.contig_as_guidepost` | `True` | **theozyme mode** — the `active_site_unindexed_atomic` pattern: rotamer-free atomic motif scaffolding, exactly what a metal site needs |
+| `contigmap.contig_atoms` | `{'A37':'ND1,CE1,CD2','A84':'SG,CB','A87':'ND1,CE1,CD2','A92':'SD,CE,CG'}` | only the coordinating functional groups are constrained — backbone + rotamer stay free |
+| `inference.ligand` | `CU` | **verified supported**: RF2AA's `chemical.py` lists `CU`/`CU1`/`CU2` in `METAL_RES_NAMES` (BioLiP metals-in-PDB) and `Cu` in its element vocabulary |
+| `contigmap.contigs` | `['10-30,A37-37,10-30,A84-84,10-30,A87-87,10-30,A92-92,10-30']` | variable linkers → scaffold diversity at fixed total length |
+
+Wrapped in [`scripts/rfd2_cu_design.sh`](../../scripts/rfd2_cu_design.sh). Note RFD2 runs via
+**Apptainer**, not conda — `apptainer exec --nv .../bakerlab_rf_diffusion_aa.sif`.
+
+**The one real unknown:** the open repo ships **no metal-ion benchmark** — every example ligand is
+organic (`LG1`, `NAD`, `OXM`, `PH2`). Zn metallohydrolases are published from this model so metals
+plainly work, but the metal path isn't exercised by any shipped config. Hence the script's stage-1
+smoke test: **generate 2 designs and confirm the Cu survives into the output** before committing a
+full batch.
+
 Then tell me it's installed and I'll:
-1. **Confirm the metal-motif input format** against the installed `RFdiffusion2` docs (its
-   `input.md` / example configs) — I will *not* guess the config (the metalhawk tier was once written
-   against a fictional CLI; not repeating that). The theozyme PDB above is format-neutral; only the
-   RFD2 wrapper config needs pinning down.
-2. Wire the run: theozyme → RFD2 (N scaffolds) → LigandMPNN (`ligmpnn` env) → Chai (`chai` env).
-3. Score the output through the corrected stack and fill in the A/B table below.
+1. Run the stage-1 smoke test and confirm the Cu is retained + the coordination geometry is sane.
+2. Scale to n=96 (matching the BoltzGen pool), then LigandMPNN (`ligmpnn` env) → Chai (`chai` env).
+3. Score through the corrected stack and fill in the A/B table below.
 
 ## A/B result (pending RFD2 run)
 
