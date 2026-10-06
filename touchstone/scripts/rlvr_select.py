@@ -14,6 +14,9 @@ training data — which is why this works for a *protein* generator. See docs/sp
         --npz-dir boltzgen_out/.../fold_out_npz --cif-dir boltzgen_out/.../refold_cif \
         --out rlvr_round1 --metal Ni2+ --keep trust      # strict: only TRUST designs
     # or --keep 8  → top-8 by reward (softer; use to bootstrap when the pool has few/no TRUST)
+    # --npz-dir is BoltzGen-only and optional: it adds the iPTM column, which is recorded next to
+    #           the reward but never part of it. Omit it to score any other generator's pool (e.g.
+    #           RFdiffusion2 → LigandMPNN → Chai), which has no npz.
     # --deep  → also run the MLIP relax+MD tiers, so the reward selects for dynamically-stable
     #           sites, not just geometrically-clean ones (needs a GPU; only spends MLIP on
     #           geometry-plausible designs). Run in the mace env on the GPU box.
@@ -36,7 +39,7 @@ from touchstone.service import mlip_backbone
 
 
 def main(
-    npz_dir: Path = typer.Option(..., help="BoltzGen fold_out_npz dir (confidence per design)"),
+    npz_dir: Path | None = typer.Option(None, help="BoltzGen fold_out_npz dir (confidence per design); omit for a non-BoltzGen pool — boltzgen_iptm is then null"),
     cif_dir: Path = typer.Option(..., help="matching refold_cif dir (structures to score)"),
     out: Path = typer.Option(..., help="output dir for the selected fine-tuning set + rewards"),
     metal: str = typer.Option("Ni2+", help="target metal"),
@@ -60,9 +63,13 @@ def main(
     for r in ranked:
         cif = Path(r["structure"])
         v = r.get("verifiers", {})
+        # iPTM is a BoltzGen artefact, recorded alongside the reward but never part of it. Other
+        # generators (RFdiffusion2 → LigandMPNN → Chai) produce no npz, so the column goes null
+        # rather than the pool being unscorable.
+        conf = boltzgen_confidence(npz_dir / f"{cif.stem}.npz") if npz_dir else None
         scored.append({"design": cif.stem, "cif": str(cif), "reward": r["reward"],
                        "consensus": r["consensus"],
-                       "boltzgen_iptm": (boltzgen_confidence(npz_dir / f"{cif.stem}.npz") or {}).get("iptm"),
+                       "boltzgen_iptm": (conf or {}).get("iptm"),
                        "mlip": v.get("mlip", {}).get("label"), "mlip_md": v.get("mlip_md", {}).get("label"),
                        "selectivity": v.get("selectivity", {}).get("label")})
 
