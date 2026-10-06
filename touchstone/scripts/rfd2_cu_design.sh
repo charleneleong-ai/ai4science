@@ -51,8 +51,9 @@ CONTIG_ATOMS="\"{'A37':'ND1,CE1,CD2','A84':'SG,CB','A87':'ND1,CE1,CD2','A92':'SD
 mkdir -p "$OUT"
 echo "[$(date -u +%FT%TZ)] RFD2 Cu2+ type-1: n=$N out=$OUT ckpt=$(basename "$CKPT")"
 
+# PYTHONPATH: run_inference.py imports its own package, and Python only adds the script's own dir.
 # -u: unbuffered, so a tailing monitor sees progress and a crash doesn't swallow the last buffer.
-apptainer exec --nv "$SIF" python -u "$RFD2_ROOT/rf_diffusion/run_inference.py" \
+apptainer exec --nv --env PYTHONPATH="$RFD2_ROOT" "$SIF" python -u "$RFD2_ROOT/rf_diffusion/run_inference.py" \
   --config-name=aa \
   inference.input_pdb="$THEOZYME" \
   inference.ligand=CU \
