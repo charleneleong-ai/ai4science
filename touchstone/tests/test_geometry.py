@@ -42,6 +42,13 @@ spec.loader.exec_module(bmp)
 
 FIX = Path(__file__).parent / "fixtures"
 
+# The CSD-derived prior is licence-gated and deliberately not shipped (see .gitignore), so the
+# tests that pin the wrong-domain finding against it only run where it has been built.
+needs_csd = pytest.mark.skipif(
+    not CSD_DATA.exists(),
+    reason="CSD prior absent — build with scripts/build_csd_reference.py (needs a CSD licence)",
+)
+
 
 def boom(_design):  # a scorer that fails — module-level so it's not a lambda
     raise RuntimeError("metalhawk exploded")
@@ -292,6 +299,7 @@ class TestShippedPriorCalibration:
         v = GeometryVerifier(best_reference()).verify(design(site_at("Ni2+", shell)))
         assert not v.trust, f"shipped prior trusts a Ni site with {why}"
 
+    @needs_csd
     def test_octahedral_copper_is_rejected(self):
         """Protein Cu2+ is 3-5 coordinate (type-1/type-2 copper is not octahedral); octahedral Cu is
         small-molecule/aqua geometry. The CSD prior rates this site `plausible (0.0σ)` — a *perfect*
@@ -302,6 +310,7 @@ class TestShippedPriorCalibration:
         assert GeometryVerifier(CSDReference()).verify(cu6).trust  # the bug, pinned
         assert not GeometryVerifier(best_reference()).verify(cu6).trust
 
+    @needs_csd
     def test_the_csd_prior_would_fail_this(self, real_sites):
         # the regression, stated as a test: the previous default rejects real nickel biochemistry.
         # If this ever starts passing, the CSD data changed domain and the finding needs revisiting.
