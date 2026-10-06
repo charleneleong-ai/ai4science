@@ -20,3 +20,8 @@ data/
 # ...but touchstone ships its reference tables as tracked package data
 !touchstone/src/touchstone/data/
 !touchstone/src/touchstone/data/**
+
+# Local scratch / staging for GPU-box runs — duplicates tracked inputs, not an artefact of record
+materialhack/
+# Nested worktrees: keep `git worktree add` under .claude/ from ever being committable
+.claude/worktrees/
