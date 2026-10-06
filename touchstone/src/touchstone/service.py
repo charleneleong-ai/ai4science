@@ -20,10 +20,12 @@ if any defers (or none ran), else `weak`.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
+from typing import Literal
 
 from .cofold import CofoldCrossCheck
-from .core import BinderDesign, Verdict, element_symbol
+from .core import BinderDesign, Verdict, Verifier, element_symbol
 from .expression import ExpressionVerifier
 from .geometry.bond_valence import BondValenceVerifier
 from .geometry.coordination import CoordinationGeometryVerifier, CoordinationSymmetryVerifier
@@ -75,6 +77,8 @@ def as_dict(v: Verdict) -> dict:
     return d
 
 
+MLIP_TIERS = ("mlip", "mlip_md", "trs")  # the deep tiers; `selectivity` joins them under selectivity_metals
+
 # the full verifier stack in cost order — the unified `stack` view lists every tier with its
 # status so the consensus is auditable, even tiers that didn't run on this input
 STACK_ORDER = (
@@ -95,12 +99,83 @@ def stack(results: dict) -> list[dict]:
             rows.append({"stage": stage, "status": "skipped", "detail": results[stage]["skipped"]})
         elif stage in NEEDS_INPUT:
             rows.append({"stage": stage, "status": "needs_input", "detail": NEEDS_INPUT[stage]})
-        elif stage in ("mlip", "mlip_md", "trs"):  # only attempted with deep=True + a GPU backend
+        elif stage in MLIP_TIERS:  # only attempted with deep=True + a GPU backend
             rows.append({"stage": stage, "status": "needs_input", "detail": "pass deep=True (needs a GPU backend)"})
     return rows
 
 
 AUTO = object()  # verify_structure default: build the MLIP backbone per call (a batch passes a shared one)
+
+# tiers that exist only when their input is supplied: name → verifier factory
+PROVIDED_TIERS: dict[str, Callable[[object], Verifier]] = {
+    "cofold": CofoldCrossCheck,
+    "metalhawk": MetalHawkVerifier,
+    "expression": ExpressionVerifier,
+    "mogul": MogulVerifier,
+    "thermostability": ThermostabilityVerifier,
+}
+
+NO_MLIP_BACKEND = "no MLIP backend (install touchstone[mace])"
+
+
+def default_verifiers(
+    precedent: bool, precedent_search: Callable[..., object] | None, selectivity_metals: tuple[str, ...]
+) -> dict[str, Verifier]:
+    """The analytic tiers that run anywhere — no GPU, no licence."""
+    tiers: dict[str, Verifier] = {
+        "geometry": GEOMETRY,
+        "bond_valence": BOND_VALENCE,
+        "coord_symmetry": COORD_SYMMETRY,
+        "coord_geometry": COORD_GEOMETRY,
+    }
+    if precedent:  # open MetalPDB coordination-motif precedent — default on (disable with precedent=False)
+        tiers["precedent"] = PrecedentVerifier(precedent_search)
+    if selectivity_metals:  # metal discrimination from observed occupancy — CPU-only, no deep needed
+        tiers["motif_selectivity"] = MotifSelectivityVerifier(selectivity_metals)
+    return tiers
+
+
+def mlip_tiers(calc: object, selectivity_metals: tuple[str, ...]) -> dict[str, Verifier]:
+    """The deep (GPU) tiers, sharing the one backbone (they protonate internally). Callers
+    handle an absent backend — see `deep_skipped`."""
+    tiers: dict[str, Verifier] = {
+        "mlip": MLIPVerifier(calculator=calc),
+        "mlip_md": MLIPDynamicsVerifier(calculator=calc),
+        "trs": TrsVerifier(calculator=calc),  # preorganization: reorganization on unbinding
+    }
+    if selectivity_metals:  # MLIP metal-swap ΔE — does the target metal bind best?
+        tiers["selectivity"] = MLIPSelectivityVerifier(calculator=calc, metals=selectivity_metals)
+    return tiers
+
+
+def deep_skipped(selectivity_metals: tuple[str, ...]) -> dict[str, dict]:
+    """The deep tiers named as *skipped* when no backend is installed — skipped, not deferred,
+    so an absent GPU never tanks the consensus."""
+    names = MLIP_TIERS + (("selectivity",) if selectivity_metals else ())
+    return {n: {"skipped": NO_MLIP_BACKEND} for n in names}
+
+
+def run_tiers(verifiers: dict[str, Verifier], design: BinderDesign) -> tuple[dict[str, dict], list[str]]:
+    """Run every tier → (results, the labels that count toward consensus). An unexpected
+    per-verifier failure is recorded as skipped and excluded from the verdict, never raised."""
+    results: dict[str, dict] = {}
+    counted: list[str] = []
+    for name, verifier in verifiers.items():
+        try:
+            verdict = verifier.verify(design)
+        except Exception as e:  # unexpected per-verifier failure ⇒ skipped, not counted
+            results[name] = {"skipped": f"{type(e).__name__}: {e}"}
+            continue
+        results[name] = as_dict(verdict)
+        counted.append(verdict.label)
+    return results, counted
+
+
+def consensus_of(counted: list[str]) -> Literal["trust", "weak", "defer"]:
+    """Aggregates the module docstring's rule over the tiers that actually ran."""
+    if not counted or "defer" in counted:
+        return "defer"
+    return "trust" if all(label == "trust" for label in counted) else "weak"
 
 
 def mlip_backbone():
@@ -141,56 +216,28 @@ def verify_structure(
     site = coordination_site(structure, element_symbol(metal).upper(), metal, cutoff)
     design = BinderDesign(sequence, site, generator="external", generator_confidence=0.0, source=str(structure))
 
-    verifiers = {
-        "geometry": GEOMETRY,
-        "bond_valence": BOND_VALENCE,
-        "coord_symmetry": COORD_SYMMETRY,
-        "coord_geometry": COORD_GEOMETRY,
-    }
-    if precedent:  # open MetalPDB coordination-motif precedent — default on (disable with precedent=False)
-        verifiers["precedent"] = PrecedentVerifier(precedent_search)
-    if selectivity_metals:  # metal discrimination from observed occupancy — CPU-only, no deep needed
-        verifiers["motif_selectivity"] = MotifSelectivityVerifier(tuple(selectivity_metals))
-    if cofold_provider is not None:  # independent predictor (Chai-1 / AllMetal3D) corroboration
-        verifiers["cofold"] = CofoldCrossCheck(cofold_provider)
-    if metalhawk_scorer is not None:  # independent ANN geometry-distortion oracle
-        verifiers["metalhawk"] = MetalHawkVerifier(metalhawk_scorer)
-    if expression_scorer is not None:  # sequence expressibility (ESM-2 pseudo-ppl + solubility)
-        verifiers["expression"] = ExpressionVerifier(expression_scorer)
-    if mogul_analyse is not None:  # licensed CSD Mogul geometry validation
-        verifiers["mogul"] = MogulVerifier(mogul_analyse)
-    if thermostability_predictor is not None:  # whole-protein Tm (TemStaPro / DeepSTABp)
-        verifiers["thermostability"] = ThermostabilityVerifier(thermostability_predictor)
-    results: dict[str, dict] = {}
+    metals = tuple(selectivity_metals or ())  # normalize once — both tier builders want a tuple
+    verifiers = default_verifiers(precedent, precedent_search, metals)
+    verifiers |= {name: PROVIDED_TIERS[name](p) for name, p in {
+        "cofold": cofold_provider,  # independent predictor (Chai-1 / AllMetal3D) corroboration
+        "metalhawk": metalhawk_scorer,  # independent ANN geometry-distortion oracle
+        "expression": expression_scorer,  # sequence expressibility (ESM-2 pseudo-ppl + solubility)
+        "mogul": mogul_analyse,  # licensed CSD Mogul geometry validation
+        "thermostability": thermostability_predictor,  # whole-protein Tm (TemStaPro / DeepSTABp)
+    }.items() if p is not None}
+
+    skipped: dict[str, dict] = {}
     if deep:
         if calc is AUTO:  # single call ⇒ build per call; a batch hands in a shared backbone (or None)
             calc = mlip_backbone()
-        deep_tiers = ("mlip", "mlip_md", "trs") + (("selectivity",) if selectivity_metals else ())
-        if calc is None:  # no backend ⇒ skip (not a defer that tanks consensus)
-            for n in deep_tiers:
-                results[n] = {"skipped": "no MLIP backend (install touchstone[mace])"}
-        else:  # share the one backbone across the MLIP verifiers (they protonate internally)
-            verifiers["mlip"] = MLIPVerifier(calculator=calc)
-            verifiers["mlip_md"] = MLIPDynamicsVerifier(calculator=calc)
-            verifiers["trs"] = TrsVerifier(calculator=calc)  # preorganization: reorganization on unbinding
-            if selectivity_metals:  # MLIP metal-swap ΔE — does the target metal bind best?
-                verifiers["selectivity"] = MLIPSelectivityVerifier(calculator=calc, metals=tuple(selectivity_metals))
+        if calc is None:  # no backend ⇒ skip, don't defer
+            skipped = deep_skipped(metals)
+        else:
+            verifiers |= mlip_tiers(calc, metals)
 
-    counted: list[str] = []
-    for name, verifier in verifiers.items():
-        try:
-            verdict = verifier.verify(design)
-        except Exception as e:  # unexpected per-verifier failure ⇒ skipped, not counted
-            results[name] = {"skipped": f"{type(e).__name__}: {e}"}
-            continue
-        results[name] = as_dict(verdict)
-        counted.append(verdict.label)
-
-    consensus = (
-        "defer" if (not counted or "defer" in counted)
-        else "trust" if all(label == "trust" for label in counted)
-        else "weak"
-    )
+    ran, counted = run_tiers(verifiers, design)
+    results = skipped | ran
+    consensus = consensus_of(counted)
     result = {
         "structure": str(structure),
         "metal": metal,

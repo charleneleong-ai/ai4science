@@ -1,0 +1,58 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: touchstone
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      # mace and uma pin conflicting e3nn versions ([tool.uv] conflicts) — never add either here.
+      # The MLIP tests drive a fake ASE calculator, so dev (pytest + ase) is enough.
+      - run: uv run --locked --extra dev pytest -q
+
+  package:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: touchstone
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+      - run: uv build --wheel
+      # src/touchstone/data/*.json ships only via the wheel build, so drive the installed
+      # console script rather than the source tree.
+      - name: install the wheel clean and verify a fixture through it
+        run: |
+          uv venv /tmp/wheeltest
+          VIRTUAL_ENV=/tmp/wheeltest uv pip install dist/*.whl
+          /tmp/wheeltest/bin/touchstone verify tests/fixtures/ligmpnn_nickel_packed.pdb \
+            --metal Ni2+ --json > /tmp/verdict.json
+          python -c "import json; d=json.load(open('/tmp/verdict.json')); assert d['consensus'] in {'trust','weak','defer'}, d; assert d['reference'], 'packaged reference data missing'"
+      # mcp_server imports mcp lazily, so resolving the extra is the only check that it installs
+      - run: uv run --locked --extra mcp python -c "import mcp.server.fastmcp"
+
+  complexity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: .pre-commit-config.yaml # the ruff pin, not the project deps
+      - run: uvx pre-commit run --all-files

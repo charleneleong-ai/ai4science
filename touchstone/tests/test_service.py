@@ -6,7 +6,7 @@ from typer.testing import CliRunner
 from touchstone import ExpressionSignals, MetalHawkPrediction, ThermostabilitySignal
 from touchstone.cli import app
 from touchstone.cofold import cif_provider
-from touchstone.service import verify_structure
+from touchstone.service import NEEDS_INPUT, PROVIDED_TIERS, STACK_ORDER, verify_structure
 
 FIX = Path(__file__).parent / "fixtures"
 PACKED = FIX / "ligmpnn_nickel_packed.pdb"
@@ -101,6 +101,20 @@ class TestVerifyStructure:
         r = verify_structure(PACKED, "Ni2+", deep=True)
         assert "skipped" in r["verifiers"]["mlip"] and "skipped" in r["verifiers"]["mlip_md"]
         assert r["consensus"] in {"trust", "weak", "defer"}
+
+
+class TestTierRegistries:
+    """The tier name lists are separate structures; a name missing from one goes silently wrong."""
+
+    def test_every_provided_tier_is_advertised_under_not_run(self):
+        # a PROVIDED_TIERS key with no NEEDS_INPUT entry builds fine but disappears from
+        # `not_run` and from stack(), so a caller can't discover how to enable it
+        assert PROVIDED_TIERS.keys() <= NEEDS_INPUT.keys()
+
+    def test_every_tier_appears_in_the_audit_order(self):
+        # a tier absent from STACK_ORDER runs but is invisible in the `stack` breakdown
+        assert PROVIDED_TIERS.keys() <= set(STACK_ORDER)
+        assert NEEDS_INPUT.keys() <= set(STACK_ORDER)
 
 
 class TestCLI:

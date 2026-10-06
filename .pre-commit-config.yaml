@@ -1,0 +1,12 @@
+# Complexity-only gate. Not in pyproject.toml on purpose: a committed [tool.ruff] block would
+# make editor-integrated ruff start applying its default E/F rules repo-wide.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.10
+    hooks:
+      - id: ruff-check
+        name: ruff (complexity gate)
+        args:
+          - --select=C901,PLR0915
+          - --config=lint.mccabe.max-complexity=10
+          - --config=lint.pylint.max-statements=50
