@@ -81,14 +81,16 @@ echo "ok: ${#designs[@]} designs in $OUT, Cu retained in all"
 # A Cu HETATM can still sit well off the motif, so the smoke run also faces the real verifier —
 # the same call that produced the committed BoltzGen baseline. --selectivity is what instantiates
 # the motif-selectivity tier; without it the two arms are scored over different tier sets.
+# --cutoff 2.9: the Met92 thioether sits at 2.82 A, so the 2.8 default drops it and the site scores
+# as N2S1/CN3 instead of the N2S2/CN4 the motif was chosen for. Measured on the input theozyme.
 if (( N <= 2 )); then
   command -v uv >/dev/null || {
     echo "BLOCKED: uv not found, so the geometry gate did not run. Before scaling up:" >&2
-    echo "  touchstone verify ${designs[0]} --metal Cu2+ --selectivity Ni2+,Cu2+,Co2+" >&2
+    echo "  touchstone verify ${designs[0]} --metal Cu2+ --cutoff 2.9 --selectivity Ni2+,Cu2+,Co2+" >&2
     exit 1
   }
   uv run --directory "$TOUCHSTONE" touchstone verify "${designs[0]}" \
-    --metal Cu2+ --selectivity Ni2+,Cu2+,Co2+
+    --metal Cu2+ --cutoff 2.9 --selectivity Ni2+,Cu2+,Co2+
 fi
 
 echo
@@ -96,4 +98,5 @@ echo "Next: LigandMPNN in REFINE mode — a full redesign discards the motif"
 echo "  (boltzgen-metal-design.md: 2/24 redesigned vs 8/24 with the coordinators fixed)."
 echo "  Pass --fixed_residues for the motif as numbered IN THE RFD2 OUTPUT — guideposted"
 echo "  residues are renumbered in the scaffold, so they are not the theozyme's 37/84/87/92."
-echo "Then: Chai fold (chai env) -> touchstone verify --metal Cu2+ --selectivity Ni2+,Cu2+,Co2+"
+echo "Then: Chai fold -> touchstone verify --metal Cu2+ --cutoff 2.9 --selectivity Ni2+,Cu2+,Co2+"
+echo "  (RFD2's setup.py ships chai.sif and mlfold.sif, so the downstream can stay containerised.)"

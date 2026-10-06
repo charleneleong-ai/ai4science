@@ -34,6 +34,7 @@ def root() -> None:
 def verify(
     structure: Path = typer.Argument(..., help="a metal-coordination structure (.pdb / .cif)"),
     metal: str = typer.Option("Ni2+", help="target metal, e.g. Ni2+ / Cu2+ / Co2+"),
+    cutoff: float = typer.Option(2.8, help="metal–donor distance cutoff in Å. Raise it for a long axial donor — a type-1 Cu Met thioether sits at ~2.82 Å and is excluded at the default, turning N2S2 into N2S1"),
     deep: bool = typer.Option(False, "--deep", help="also run the MLIP relaxation + MD (needs a GPU backend)"),
     stress: bool = typer.Option(False, "--stress", help="also test robustness under acidic-leachate / low-pH stress"),
     precedent: bool = typer.Option(True, "--precedent/--no-precedent", help="open MetalPDB coordination-motif precedent tier (on by default)"),
@@ -49,7 +50,7 @@ def verify(
     expression_scorer = expression_score_provider(load_signals(expression_scores)) if expression_scores else None
     tm_predictor = tm_provider(jsonlib.loads(Path(thermostability_scores).read_text())) if thermostability_scores else None
     result = verify_structure(
-        structure, metal, deep, stress=stress, sequence=sequence,
+        structure, metal, deep, cutoff=cutoff, stress=stress, sequence=sequence,
         precedent=precedent,
         metalhawk_scorer=metalhawk_scorer,
         expression_scorer=expression_scorer,
@@ -88,6 +89,7 @@ def verify(
 def rank(
     structures: list[Path] = typer.Argument(..., help="designs to rank (.pdb/.cif; shell-glob expands)"),
     metal: str = typer.Option("Ni2+", help="target metal, e.g. Ni2+ / Cu2+ / Co2+"),
+    cutoff: float = typer.Option(2.8, help="metal–donor distance cutoff in Å — must match the cutoff the pool is being compared against"),
     deep: bool = typer.Option(False, "--deep", help="also run the MLIP relaxation + MD (needs a GPU backend)"),
     precedent: bool = typer.Option(True, "--precedent/--no-precedent", help="fold the open MetalPDB precedent tier into the reward (on by default)"),
     top: int = typer.Option(0, "--top", help="show only the top N (0 = all)"),
@@ -95,7 +97,7 @@ def rank(
 ) -> None:
     """Rank a batch of designs by verifier reward, best first (the best-of-N selection step)."""
     ranked = rank_structures(
-        structures, metal, deep, precedent=precedent
+        structures, metal, deep, precedent=precedent, cutoff=cutoff
     )
     if top:
         ranked = ranked[:top]

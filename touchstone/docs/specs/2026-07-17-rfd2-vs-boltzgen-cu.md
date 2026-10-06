@@ -53,6 +53,30 @@ shows N₂S₂ is the most Cu-characteristic donor set (5.5%, ×3.8 over Ni/Co).
 physical: Cu–N 1.91/2.06 Å, Cu–S(Cys) 2.07 Å, Cu–S(Met) 2.82 Å (long axial). *(A low-resolution
 azurin structure was rejected first — its Cu–S(Cys) came out at 1.79 Å, physically impossible.)*
 
+**Score this site at `--cutoff 2.9`, not the 2.8 default.** The axial Cu–S(Met) bond is 2.82 Å, so
+the default parse cutoff drops Met92 and the verifier sees **N₂S₁ / CN 3**, not the N₂S₂ / CN 4 the
+motif was chosen for. Measured on this exact file:
+
+| cutoff | CN | donors |
+|---|---|---|
+| 2.80 (default) | 3 | N, S, N |
+| **2.85 – 3.00** | **4** | **N, S, N, S** |
+
+It is excluded by 0.02 Å. Three consequences if left at the default: `motif_selectivity` scores the
+N₂S₁ enrichment (×3.15) rather than the N₂S₂ one the occupancy analysis cites (×3.8);
+`coord_geometry` fits against ideal **CN 3**; and both A/B arms must use the same cutoff or their
+coordination numbers aren't comparable. `--cutoff` is exposed on `verify` and `rank`, and the
+default stays 2.8 so existing numbers don't move silently.
+
+At 2.9 Å the tiers do pick up the intended motif — `precedent` reports 17 precedents for **Cu-N₂S₂**
+and `motif_selectivity` the N₂S₂ enrichment, against Cu-N₂S₁ at the default.
+
+**Calibration note.** At *both* cutoffs this real plastocyanin site lands at **consensus `weak`**,
+held there by `bond_valence` (BVS 2.89 vs formal 2 at 2.9 Å; 2.71 at 2.8 Å — the axial S adds
+valence, so widening the cutoff makes that tier marginally worse). Worth remembering when reading
+the A/B: a *designed* site scoring `weak` is matching experimentally-determined copper, not failing
+— and it suggests the BVS tier may be worth re-checking against type-1 Cu specifically.
+
 ## The pipeline
 
     RFdiffusion2 (theozyme → scaffold)  →  LigandMPNN (sequence, metal-aware, REFINE mode)  →
