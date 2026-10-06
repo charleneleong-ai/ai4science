@@ -25,7 +25,8 @@ def serve(
 
     @mcp.tool()
     def verify_metal_binder(
-        structure_path: str, metal: str = "Ni2+", deep: bool = False, stress: bool = False
+        structure_path: str, metal: str = "Ni2+", deep: bool = False, stress: bool = False,
+        cutoff: float = 2.8,
     ) -> dict:
         """Verify a designed metal-binding site against the touchstone verifier stack.
 
@@ -37,11 +38,14 @@ def serve(
             stress: also re-verify under extreme operating conditions (acidic-leachate bond
                 stretch, low-pH donor protonation) → a `stress` map {neutral/leachate/low_pH}.
                 Use when the binder must survive a real recovery process, not just stand still.
+            cutoff: metal–donor distance cutoff in Å. Raise it when the site has a long axial
+                donor: a type-1 Cu Met thioether sits at ~2.82 Å and is dropped at the 2.8
+                default, scoring the site as N2S1/CN3 instead of N2S2/CN4.
 
         Returns a dict with per-verifier verdicts and a trust/weak/defer consensus (plus a
         `stress` robustness map when `stress=True`).
         """
-        return verify_structure(structure_path, metal, deep, stress=stress)
+        return verify_structure(structure_path, metal, deep, cutoff=cutoff, stress=stress)
 
     mcp.run(transport="streamable-http" if http else "stdio")
 

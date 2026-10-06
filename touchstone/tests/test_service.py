@@ -103,6 +103,29 @@ class TestVerifyStructure:
         assert r["consensus"] in {"trust", "weak", "defer"}
 
 
+class TestDonorCutoff:
+    """A long axial donor sits right at the default cutoff, so the cutoff picks the donor set."""
+
+    THEOZYME = Path(__file__).parent.parent / "examples" / "cu_type1_theozyme.pdb"
+
+    def test_default_cutoff_drops_the_axial_met_thioether(self):
+        # Cu-S(Met) is 2.82 A in 1PLC, so the 2.8 default scores the type-1 site as N2S1/CN3
+        r = verify_structure(self.THEOZYME, "Cu2+", selectivity_metals=("Ni2+", "Cu2+", "Co2+"))
+        assert r["coordination_number"] == 3 and r["donors"] == ["N", "S", "N"]
+
+    def test_widening_the_cutoff_recovers_n2s2(self):
+        # the donor set the motif was actually chosen for, and what the A/B must be scored on
+        r = verify_structure(self.THEOZYME, "Cu2+", cutoff=2.9, selectivity_metals=("Ni2+", "Cu2+", "Co2+"))
+        assert r["coordination_number"] == 4 and r["donors"] == ["N", "S", "N", "S"]
+        assert "N2S2" in r["verifiers"]["motif_selectivity"]["reason"]
+
+    def test_cli_exposes_cutoff(self):
+        # without the flag there is no way to score a long-axial-donor site correctly
+        res = runner.invoke(app, ["verify", str(self.THEOZYME), "--metal", "Cu2+", "--cutoff", "2.9", "--json"])
+        assert res.exit_code == 0
+        assert json.loads(res.stdout)["coordination_number"] == 4
+
+
 class TestTierRegistries:
     """The tier name lists are separate structures; a name missing from one goes silently wrong."""
 

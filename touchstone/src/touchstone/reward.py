@@ -26,7 +26,7 @@ def reward_from_result(result: dict) -> float:
 
 def rank_structures(
     structures, metal: str = "Ni2+", deep: bool = False, gate_defer: bool = False, calc=AUTO,
-    precedent: bool = True, precedent_search=None, selectivity_metals=None,
+    precedent: bool = True, precedent_search=None, selectivity_metals=None, cutoff: float = 2.8,
 ) -> list[dict]:
     """Verify each structure and return results (each with a `reward`) sorted best-first.
     A structure that can't be parsed/verified scores 0 with an `error` recorded. `calc` lets a
@@ -40,7 +40,8 @@ def rank_structures(
     if calc is AUTO:
         calc = mlip_backbone() if deep else None  # build the MLIP backbone once, share across the batch
     # the deep tiers are inert without `deep`, so one kwarg set serves every pass
-    tiers = dict(precedent=precedent, precedent_search=precedent_search, selectivity_metals=selectivity_metals)
+    tiers = dict(precedent=precedent, precedent_search=precedent_search, selectivity_metals=selectivity_metals,
+                 cutoff=cutoff)
     scored: list[dict] = []
     for s in structures:
         try:
