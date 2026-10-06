@@ -4,6 +4,20 @@ Dated, distilled entries — newest first. Each entry: what it is / why it matte
 
 <!-- NEW ENTRIES GO DIRECTLY BELOW THIS LINE (newest first) -->
 
+## 2026-10-06 — CASMI 2026: the public test set is duplicated in train, so the leaderboard measures lookup
+
+**Source:** measured directly on the competition data — [`train.parquet`](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra/data) (2,539,608 spectra / 275,810 unique `inchikey14`) vs `test.parquet` (1,213 spectra / 400 molecules), 2026-10-06
+
+**What it is:** Every one of the 400 public test molecules has a train spectrum at peak-cosine ≥0.95; the median best cosine is exactly **1.000**. Spot-checking five molecules against the full train scan: cosine 1.0000, identical peak counts (183/183, 219/219, 244/244, 31/31, 287/287), identical m/z values, all from the `enveda-180` library — and each match carries `normalized_smiles` and `inchikey14`, i.e. the answer. The public test spectra are duplicates of training rows.
+
+**Why it matters:** the public leaderboard is an **exact-lookup task**, not structure elucidation. Join test→train on precursor + peaks and read off the structure. This explains the ~0.87 MRR@25 figures in public repos — and inverts their meaning: they are evidence the join works, not that a model works. It also makes the public LB useless for model selection, because every comparison on it measures lookup ability. Only a molecule-disjoint split of train predicts private-set performance, which is why `inchikey14` already being a column matters: it *is* the metric's equivalence class, so the split is a groupby rather than a chemistry problem.
+
+**How it transfers:** this is the dataset-level version of the thing [[touchstone]] kept teaching today — *the measurement is only as good as the object it is measuring*. There, a 0.02 Å parse cutoff silently scored N₂S₁ while the spec claimed N₂S₂; here, a leaked duplicate silently scores lookup while the leaderboard claims elucidation. Both are verifier-integrity failures, not model failures, and both were invisible until something was actually run. The habit that catches them is the same: before trusting a number, establish what it is a number *of* — negative controls (random-pair cosine mean 0.0203, max 0.107) and self-controls (1.0000) before believing a headline.
+
+**The trap I nearly fell into:** my first verification sampled only early train batches, found 40/40 precursor-window matches were *different* molecules, and appeared to refute the leakage. Both results were true — most same-mass matches are different structures, while one identical spectrum exists somewhere in 2.5M rows. A verifier that examines the wrong subset produces a confident wrong answer, so scope the control to the same search space as the claim.
+
+**To learn next:** whether the private split is also leaked (if so the competition measures nothing, which seems unlikely); and the real dependency this exposes — a train-only candidate pool makes held-out structures absent by construction, so a realistic retrieval pool needs an external structure DB (PubChem/COCONUT). Until then the harness can measure ranking-given-truth-in-pool, but not recall.
+
 ## 2026-10-06 — MS/MS structure elucidation: the generator moved, the verifier is still the bottleneck
 
 **Source:** [MS-GPT 2607.23607](https://arxiv.org/abs/2607.23607) · [MARLIN 2607.04774](https://arxiv.org/abs/2607.04774) · [FlowMS 2603.18397](https://arxiv.org/html/2603.18397v1) · [DiffMS 2502.09571](https://arxiv.org/html/2502.09571v2) · [de-novo review, Molecules 31(5):769](https://www.mdpi.com/1420-3049/31/5/769) · [ms-pred/ICEBERG](https://github.com/coleygroup/ms-pred) (grounded 2026-10-06, for [Enveda CASMI 2026](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra))
