@@ -25,8 +25,8 @@ RFD2_ROOT=${RFD2_ROOT:?set RFD2_ROOT to the RFdiffusion2 clone}
 TOUCHSTONE=$(cd "$(dirname "$0")/.." && pwd)
 THEOZYME=${THEOZYME:-$TOUCHSTONE/examples/cu_type1_theozyme.pdb}
 SIF=${SIF:-$RFD2_ROOT/rf_diffusion/exec/bakerlab_rf_diffusion_aa.sif}
-# setup.py fetches both RFD_173 and RFD_140; config/inference/aa.yaml defaults to RFD_140.
-# Pinning 173 is a deliberate override — see the spec's ckpt_path row.
+# RFD_173 is upstream's one recommended weight (doc/source/usage/usage.rst) and what the README
+# demo uses; aa.yaml's RFD_140 default is stale, and upstream's own demo config overrides it too.
 CKPT=${CKPT:-$RFD2_ROOT/rf_diffusion/model_weights/RFD_173.pt}
 # Per-run dir: stage 2 must not overwrite the stage-1 designs that justified scaling up.
 RUN_ID=${RUN_ID:-n${N}_$(date -u +%Y%m%dT%H%M%SZ)}

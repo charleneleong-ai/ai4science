@@ -108,10 +108,30 @@ association:
 | `contigmap.contigs` | `['10-30,A37-37,10-30,A84-84,10-30,A87-87,10-30,A92-92,10-30']` | variable linkers → scaffold diversity. Passed as a *list*, unlike `contig_atoms` — the asymmetry is Hydra's, not an oversight |
 | `--config-name` | `aa` | resolves to `rf_diffusion/config/inference/aa.yaml`, which inherits `base.yaml` |
 | `contigmap.length` | `100-140` | real field (`base.yaml` defaults it to `null`); a range is upstream-attested — `open_source_demo.json` passes `contigmap.length=150-150`. Bounds the 54–154 the contig ranges alone permit |
-| `inference.ckpt_path` | `…/model_weights/RFD_173.pt` | **a deliberate override, not a default**: `aa.yaml` ships `RFD_140.pt`. `setup.py` downloads both, so either path resolves. Which checkpoint the published metal work used is *not* established — resolve this before the n=96 batch, since it changes the generator under test |
+| `inference.ckpt_path` | `…/model_weights/RFD_173.pt` | **a deliberate override, and the right one.** `aa.yaml` ships `RFD_140.pt`, but upstream's docs are explicit: *"there is one recommended model weight file located at `RFdiffusion2/rf_diffusion/model_weights/RFD_173.pt`. This is the set of weights used in the demo in the README"* (`doc/source/usage/usage.rst`). `benchmark/configs/open_source_demo.yaml` passes the same override, so `aa.yaml`'s default is stale and upstream overrides it too. `setup.py` fetches both |
 
 Wrapped in [`scripts/rfd2_cu_design.sh`](../../scripts/rfd2_cu_design.sh). Note RFD2 runs via
 **Apptainer**, not conda — `apptainer exec --nv .../bakerlab_rf_diffusion_aa.sif`.
+
+**Which recipe this follows.** Upstream ships *two* ways to scaffold an atomized motif, and they
+differ in more than the checkpoint:
+
+| | `open_source_demo.yaml` (what this script follows) | `enzyme_bench_n41.yaml` |
+|---|---|---|
+| checkpoint | `RFD_173.pt` (the recommended weight) | `RFD_140.pt` |
+| motif placement | explicit `contigs` with fixed linker ranges | `contigmap.intersperse='10-100'` + `reintersperse=True` |
+| extra | — | `++transforms.configs.CenterPostTransform.center_type='all'` |
+
+Most of the enzyme benchmark's other overrides (`diffuser.T=100`, `idealize_sidechain_outputs`,
+`str_self_cond=False`, `rots.sample_schedule=normed_exp`, `guidepost_xyz_as_design_bb`,
+`model_runner=NRBStyleSelfCond`) only restate what `aa.yaml` and `base.yaml` already default, so
+they are inherited either way — checked, not assumed.
+
+The demo recipe is the right starting point: it is the pattern the `active_site_unindexed_atomic`
+mode is documented against, and it uses the recommended weight. But the enzyme benchmark is the
+closer *scientific* analogue to a theozyme, and `center_type='all'` is the one flag it sets that
+this script does not and that is not an `aa.yaml` default. Worth an arm once stage 1 passes — not
+before, since nothing here has been run yet.
 
 **The one real unknown:** the open repo ships **no metal-ion benchmark** — every example ligand is
 organic (`LG1`, `NAD`, `OXM`, `PH2`). Zn metallohydrolases are published from this model so metals
