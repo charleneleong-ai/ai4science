@@ -164,11 +164,60 @@ gate, which **exits non-zero** rather than printing advice: every design must ca
 and for a smoke run the first design is put through `touchstone verify --metal Cu2+ --selectivity
 Ni2+,Cu2+,Co2+` — the Cu string being present does not mean it is coordinated.
 
-Then tell me it's installed and I'll:
-1. Run the stage-1 smoke test; the script's gate asserts Cu retention and the verifier judges the
-   geometry.
-2. Scale the batch, then LigandMPNN (`ligmpnn` env) → Chai (`chai` env).
-3. Score through the corrected stack and fill in the A/B table below.
+## Stage 1 — passed, 2026-10-06
+
+Installed on `pi-a100-80gb` and run at n=2. The config works end-to-end: RFD2 loaded our
+`ckpt_path` override (`RFD_173.pt`, confirmed in its own log), Hydra accepted the `contig_atoms`
+string and `contigs` list, diffusion completed, and **the Cu survives into both outputs**.
+
+Two bugs had to be fixed first, neither findable by reading configs:
+
+| | |
+|---|---|
+| `ModuleNotFoundError: rf_diffusion` | `run_inference.py` imports its own package, so the repo root must be on `PYTHONPATH`. Upstream's `exec/rf_diffusion_aa_shebang.sh` does this, but is unusable off-IPD — it prefers a sif name `setup.py` doesn't install, passes a `--slurm` flag apptainer 1.5.2 rejects, and otherwise falls back to the host python. Fixed with `--env PYTHONPATH`. |
+| `ORI HETATM token is required` | The theozyme was missing a **mandatory** input. Added at the Cu coordinates, so the scaffold's centre of mass sits on the metal. |
+
+### The two designs
+
+| | design 0 | design 1 | plastocyanin (reference) |
+|---|---|---|---|
+| donors | `N, S, S` — **N₁S₂** | `N, N, S` — **N₂S₁** | `N, S, N, S` — N₂S₂ |
+| CN | 3 | 3 | 4 |
+| geometry | weak (2.0σ) | trust (2.0σ) | trust (0.8σ) |
+| bond_valence | **trust (Δ0.15)** | weak (Δ0.64) | weak (Δ0.89) |
+| coord_symmetry | weak (0.37) | weak (0.51) | **trust (0.16)** |
+| coord_geometry | weak (20.2° vs CN3) | weak (24.6° vs CN3) | trust (14.7° vs CN4) |
+| precedent | trust (11× Cu-N1S2) | trust (17× Cu-N2S1) | trust (17× Cu-N2S2) |
+| consensus | WEAK | WEAK | WEAK |
+
+**Neither reproduced N₂S₂.** Both came out CN 3, losing a different donor each time — design 0 a
+histidine, design 1 the Met thioether. RFD2 scaffolds around the site but drops one donor. That is
+the first real signal from this arm, and it is a design-quality result rather than a config fault.
+
+**The sites are under-enclosed**: `coord_symmetry` 0.37 / 0.51 against plastocyanin's 0.16, i.e. the
+metal sits one-sided rather than buried. The ORI position is the obvious knob — it was placed on the
+Cu precisely to get an enclosed site, and these say it isn't enclosed yet. Now a sweep with a
+measurable target.
+
+**Design 0 beat the real protein on bond valence** (Δ0.15, `trust`, vs Δ0.89 `weak`). Together with
+the plastocyanin calibration above, that points at the BVS tier being mis-centred for type-1 Cu
+rather than the designs failing it.
+
+**Cost:** 939 s for 2 designs (469 s/design) while the GPU was at 100% utilisation from unrelated
+jobs. Upper-bound extrapolation: n=24 ≈ 3.1 h, n=96 ≈ 12.5 h.
+
+**What n=2 cannot say:** nothing about trust rate, nothing about the A/B. Two designs from a
+contended GPU establish that the pipeline runs and the metal path is real. That is all stage 1 was
+for.
+
+### Next
+1. ~~Stage-1 smoke test~~ — done.
+2. Sweep the ORI placement against `coord_symmetry`, and try the enzyme-benchmark recipe
+   (`center_type='all'` + `intersperse`) as a second arm. Note `center_type='all'` *requires* an ORI
+   token, which is now present.
+3. Scale to a matched n, then LigandMPNN in **refine** mode → Chai. RFD2's `setup.py` ships
+   `mlfold.sif` and `chai.sif`, so the downstream can stay containerised.
+4. **Blocker:** the BoltzGen Cu control arm has to be rebuilt before any A/B number means anything.
 
 ## A/B result (pending RFD2 run)
 
