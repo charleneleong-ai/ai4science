@@ -85,6 +85,118 @@ def split_eval(
     console.print(report.render())
 
 
+@app.command()
+def test_eval(
+    train: Path = typer.Argument(..., help="path to train.parquet"),
+    test: Path = typer.Argument(..., help="path to test.parquet"),
+    ranker: str = typer.Option("fragments", help=" | ".join(RANKERS)),
+    ppm: float = typer.Option(5.0, help="neutral-mass retrieval window"),
+) -> None:
+    """Score a ranker on the REAL test molecules, without using the duplication.
+
+    98% of test spectra are bit-identical to a training row, which hands over the labels.
+    That makes an honest evaluation possible rather than impossible: use the duplication only
+    to recover ground truth, then score a ranker that never reads a training spectrum. The
+    fragment ranker qualifies — it sees a candidate's structure and the query spectrum, and
+    nothing else — so this is the best available estimate of performance on molecules the
+    leak did not solve for us.
+    """
+    from .submit import build_lookup, read_test
+    from .harness import reciprocal_rank, retrieve
+
+    console = Console()
+    chosen = load_ranker(ranker)
+    with console.status("recovering test labels via the duplicate join..."):
+        labels = build_lookup(train, want_key=True)
+    molecules = read_test(test)
+    with console.status("building the structure pool..."):
+        structures = build_pool(train)
+    masses = [s.mass for s in structures]
+
+    scored = hits = unresolved = 0
+    rr_total = 0.0
+    with console.status(f"scoring {len(molecules)} test molecules with {ranker!r}..."):
+        for mol in molecules:
+            truth = next((labels[k] for k in mol.keys if k in labels), None)
+            if truth is None:
+                unresolved += 1
+                continue
+            query = mol.as_query()
+            if query.mass is None:
+                continue
+            scored += 1
+            candidates = retrieve(structures, masses, query.mass, ppm)
+            if any(s.inchikey14 == truth for s in candidates):
+                hits += 1
+                rr_total += reciprocal_rank(chosen(query, candidates), truth)
+
+    console.print()
+    console.print(f"ranker               {ranker}")
+    console.print(f"test molecules       {len(molecules)}  (labels unrecovered: {unresolved})")
+    console.print(f"scored               {scored}")
+    console.print(f"candidate recall     {hits / max(scored, 1):.4f}   <- ceiling")
+    console.print(f"MRR@25               {rr_total / max(scored, 1):.4f}   <- leak-free estimate")
+
+
+@app.command()
+def submit(
+    train: Path = typer.Argument(..., help="path to train.parquet"),
+    test: Path = typer.Argument(..., help="path to test.parquet"),
+    out: Path = typer.Option(Path("submission.csv"), help="where to write the submission"),
+    ranker: str = typer.Option("fragments", help="ranker for molecules the lookup misses"),
+    ppm: float = typer.Option(5.0, help="neutral-mass retrieval window for the fallback"),
+    use_lookup: bool = typer.Option(
+        True, "--lookup/--no-lookup",
+        help="--no-lookup ignores the duplication and submits only what the ranker predicts",
+    ),
+) -> None:
+    """Write a submission, reporting how much came from the duplication versus from ranking.
+
+    The split matters more than the score. With `--lookup` (default) the join answers every
+    molecule, so the score measures a join rather than a model. With `--no-lookup` the
+    submission is what the ranker actually predicts — measured at MRR@25 0.66 on these same
+    molecules, so honesty is not expensive here.
+    """
+    from .submit import build_lookup, pad, rank_fallback, read_test, write_submission
+
+    console = Console()
+    lookup: dict = {}
+    if use_lookup:
+        with console.status("indexing train for the duplicate join..."):
+            lookup = build_lookup(train)
+    molecules = read_test(test)
+    console.print(f"test molecules: [bold]{len(molecules)}[/]   train join keys: {len(lookup):,}")
+
+    rows: dict[str, list[str]] = {}
+    from_lookup = 0
+    needs_ranking: list = []
+    for mol in molecules:
+        hits = [lookup[k] for k in mol.keys if k in lookup]
+        if hits:
+            from_lookup += 1
+            # dedupe while keeping order; a molecule's spectra may resolve to one structure
+            rows[mol.molecule_id] = pad(list(dict.fromkeys(hits)))
+        else:
+            needs_ranking.append(mol)
+
+    if needs_ranking:
+        chosen = load_ranker(ranker)
+        with console.status(f"ranking {len(needs_ranking)} unresolved molecules..."):
+            structures = build_pool(train)
+            masses = [s.mass for s in structures]
+            for mol in needs_ranking:
+                rows[mol.molecule_id] = pad(rank_fallback(mol, structures, masses, chosen, ppm))
+
+    write_submission(rows, out)
+    console.print()
+    console.print(f"from the duplicate join  [bold]{from_lookup}[/] / {len(molecules)}")
+    console.print(f"from the {ranker} ranker  {len(needs_ranking)} / {len(molecules)}")
+    console.print(f"wrote {out}  ({len(rows)} rows x {len(next(iter(rows.values())))} candidates)")
+    if from_lookup:
+        console.print("[yellow]note:[/] the join reflects test spectra duplicated in train, "
+                      "so any score it earns measures a lookup rather than a model.")
+
+
 def main() -> None:
     app()
 
