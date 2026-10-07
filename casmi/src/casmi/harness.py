@@ -17,6 +17,7 @@ compares, so the split matches the equivalence class being scored.
 from __future__ import annotations
 
 import bisect
+import csv
 import hashlib
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass, field
@@ -31,9 +32,12 @@ QUERY_COLUMNS = ["inchikey14", "normalized_smiles", "adduct", "precursor_mz",
                  "ms2_mzs", "ms2_normalized_intensities", "instrument_type"]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Structure:
-    """A pool entry: a candidate the ranker may propose."""
+    """A pool entry: a candidate the ranker may propose.
+
+    Slotted because a realistic pool is ~740k of these and the per-object dict dominates.
+    """
 
     inchikey14: str
     smiles: str
@@ -96,6 +100,36 @@ def build_pool(path: Path) -> list[Structure]:
             mass = formula_mass(formula) if formula else None
             if mass is not None:
                 seen[key] = Structure(key, smi, mass)
+    return sorted(seen.values(), key=lambda s: s.mass)
+
+
+def build_coconut_pool(csv_path: Path) -> list[Structure]:
+    """COCONUT (CC0, ~740k natural products) as the candidate database.
+
+    The train-only pool is not a fair test: it holds the answers because they are in the same
+    file, and at 276k it is smaller than any database a real submission would search. This is
+    the realism check — masses still come from `molecular_formula`, so the two pools are
+    measured on one mass convention.
+    """
+    seen: dict[str, Structure] = {}
+    with csv_path.open(newline="", encoding="utf-8", errors="replace") as fh:
+        for row in csv.DictReader(fh):
+            key = (row.get("standard_inchi_key") or "")[:14]
+            smiles = row.get("canonical_smiles") or ""
+            if len(key) != 14 or not smiles or key in seen:
+                continue
+            mass = formula_mass(row.get("molecular_formula") or "")
+            if mass is not None:
+                seen[key] = Structure(key, smiles, mass)
+    return sorted(seen.values(), key=lambda s: s.mass)
+
+
+def merge_pools(*pools: Sequence[Structure]) -> list[Structure]:
+    """Union by inchikey14, mass-sorted. Earlier pools win on collision."""
+    seen: dict[str, Structure] = {}
+    for pool in pools:
+        for s in pool:
+            seen.setdefault(s.inchikey14, s)
     return sorted(seen.values(), key=lambda s: s.mass)
 
 

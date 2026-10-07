@@ -7,7 +7,16 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from .harness import Ranker, build_pool, collect_queries, evaluate, rank_by_mass_error
+from .harness import (
+    Ranker,
+    Structure,
+    build_coconut_pool,
+    build_pool,
+    collect_queries,
+    evaluate,
+    merge_pools,
+    rank_by_mass_error,
+)
 
 app = typer.Typer(add_completion=False, help="CASMI 2026 molecule-disjoint harness.")
 
@@ -28,10 +37,26 @@ def load_ranker(name: str) -> Ranker:
     raise typer.BadParameter(f"unknown ranker {name!r}; choose from {sorted(RANKERS)}")
 
 
+def assemble_pool(kind: str, train: Path, coconut: Path | None) -> list[Structure]:
+    """`train` holds the answers because they share a file; `coconut` is the realism check."""
+    if kind == "train":
+        return build_pool(train)
+    if coconut is None:
+        raise typer.BadParameter(f"pool={kind!r} needs --coconut pointing at the COCONUT csv")
+    external = build_coconut_pool(coconut)
+    if kind == "coconut":
+        return external
+    if kind == "both":
+        return merge_pools(build_pool(train), external)
+    raise typer.BadParameter(f"unknown pool {kind!r}; choose train, coconut or both")
+
+
 @app.command()
 def split_eval(
     train: Path = typer.Argument(..., help="path to train.parquet"),
     ranker: str = typer.Option("mass", help=" | ".join(f"{k}: {v}" for k, v in RANKERS.items())),
+    pool: str = typer.Option("train", help="train (holds the answers) | coconut (realism) | both"),
+    coconut: Path = typer.Option(None, help="COCONUT csv, required for pool=coconut|both"),
     frac: float = typer.Option(0.02, help="fraction of molecules held out (hashed on inchikey14, so stable)"),
     limit: int = typer.Option(500, help="cap on held-out molecules scored (0 = all)"),
     ppm: float = typer.Option(5.0, help="neutral-mass retrieval window"),
@@ -43,9 +68,9 @@ def split_eval(
     """
     console = Console()
     chosen = load_ranker(ranker)
-    with console.status("building the structure pool..."):
-        pool = build_pool(train)
-    console.print(f"pool: [bold]{len(pool):,}[/] unique structures")
+    with console.status(f"building the {pool!r} structure pool..."):
+        structures = assemble_pool(pool, train, coconut)
+    console.print(f"pool ({pool}): [bold]{len(structures):,}[/] unique structures")
 
     with console.status("collecting held-out queries..."):
         queries = collect_queries(train, frac, limit)
@@ -53,8 +78,9 @@ def split_eval(
                   f"({sum(len(q.spectra) for q in queries):,} spectra)")
 
     with console.status(f"scoring with the {ranker!r} ranker..."):
-        report = evaluate(queries, pool, ppm=ppm, ranker=chosen)
+        report = evaluate(queries, structures, ppm=ppm, ranker=chosen)
     console.print()
+    console.print(f"pool                 {pool} ({len(structures):,})")
     console.print(f"ranker               {ranker}")
     console.print(report.render())
 
