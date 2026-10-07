@@ -12,16 +12,23 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # one package failing should not hide the other's result
+      matrix:
+        package: [touchstone, casmi]
+    name: test (${{ matrix.package }})
     defaults:
       run:
-        working-directory: touchstone
+        working-directory: ${{ matrix.package }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           enable-cache: true
-      # mace and uma pin conflicting e3nn versions ([tool.uv] conflicts) — never add either here.
-      # The MLIP tests drive a fake ASE calculator, so dev (pytest + ase) is enough.
+          cache-dependency-glob: ${{ matrix.package }}/uv.lock
+      # touchstone: mace and uma pin conflicting e3nn versions ([tool.uv] conflicts) — never add
+      # either here; its MLIP tests drive a fake ASE calculator, so dev (pytest + ase) suffices.
+      # Both packages carry everything they need in `dev`.
       - run: uv run --locked --extra dev pytest -q
 
   package:
