@@ -22,6 +22,7 @@ InChIKey connectivity block. Code competition: notebook only, internet off. Entr
 |---|---|---|
 | fragments over a train-structure pool | **0.115** | 2397 / 2686 |
 | fragments over train + [PubChem tier](https://www.kaggle.com/datasets/ahmedberatozer/casmi26-pubchem-tier) (106M), 4000 nearest-mass per molecule | **0.049** | — |
+| train + 300 most-documented PubChem connectivities ([popularity prior](https://www.kaggle.com/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior)), fragments + 0.25 × popularity | **0.135** | — |
 | leaderboard top | 0.480 | 1 |
 | [public notebook, "v4n Fusion + PubChem"](https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421) | 0.421 | — |
 
@@ -105,8 +106,7 @@ trivial join scored ~1.0. That contradiction was explained away instead of inves
 1. **Calibrate the scorer first.** Reproduce 0.421 for the public notebook locally before any
    other number is trusted. Labels must come from somewhere other than train.
 2. ~~**PubChem-scale pool**~~ — done; 0.049 on its own.
-3. **A prior on which structures are likely**, not only which fit the spectrum — the 0.421
-   notebook attaches a PubChem popularity prior. Changed one variable at a time.
+3. ~~**A popularity prior**~~ — 0.135: best so far, still far below the field's 0.42.
 
 ## What is reusable
 
