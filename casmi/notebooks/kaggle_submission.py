@@ -3,8 +3,10 @@
 Code competition, so: notebook only, **internet disabled**, writes
 `/kaggle/working/submission.csv`. That constraint shapes the whole approach — no COCONUT or
 PubChem fetch at inference time, so the candidate pool must be something already mounted.
-It is: `train.parquet`'s own 275k structures, which is also the pool that gives recall 1.00
-on the test molecules.
+Here it is `train.parquet`'s own 275k structures — and that is the flaw. **This notebook
+scored 0.115 (rank 2397/2686).** The competition's answers are largely not train structures,
+so a train-only pool cannot contain them. A real submission needs a PubChem-scale pool
+attached as a Kaggle Dataset; the 0.421 public notebook does exactly that.
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -20,8 +22,10 @@ Approach, and why:
             this chemistry are ring bonds), and score the share of peak intensity a
             structure's fragments can explain.
 
-Local leak-free estimate on these 400 molecules: MRR@25 0.664, top-1 53.8%, truth in 25 for
-95.5%. Mass-error-only floor is 0.412.
+A "local estimate of 0.664" was quoted here before submission. It was wrong: it scored the
+ranker against labels drawn from the same train pool the ranker searched, a closed loop with
+no contact with ground truth. The same scorer rated the 0.421 public notebook at 0.030. The
+mechanics below are sound and reproduce exactly on Kaggle; the pool is what fails.
 """
 
 from __future__ import annotations
@@ -29,6 +33,8 @@ from __future__ import annotations
 import bisect
 import csv
 import re
+import subprocess
+import sys
 import time
 from collections import defaultdict
 from functools import lru_cache
@@ -36,7 +42,36 @@ from itertools import combinations
 from pathlib import Path
 
 import pyarrow.parquet as pq
-from rdkit import Chem, RDLogger
+
+
+def ensure_rdkit() -> None:
+    """Install rdkit from an attached wheel.
+
+    rdkit is NOT in Kaggle's image — the first run died on `ModuleNotFoundError: rdkit` — and
+    internet is off, so pip cannot reach PyPI. The wheel is attached as a dataset instead and
+    installed with --no-index, which needs no network. cp313 because the worker runs 3.13.
+    """
+    try:
+        import rdkit  # noqa: F401
+        return
+    except ModuleNotFoundError:
+        pass
+    wheels = sorted(Path("/kaggle/input").glob("**/rdkit-*.whl"))
+    if not wheels:
+        raise SystemExit(
+            "rdkit is absent and no rdkit wheel is attached. Add the wheel dataset to this "
+            "notebook's inputs — with internet off, pip cannot fetch it."
+        )
+    print(f"installing {wheels[0].name}", flush=True)
+    subprocess.run(
+        [sys.executable, "-m", "pip", "install", "--no-index", "--quiet", str(wheels[0])],
+        check=True,
+    )
+
+
+ensure_rdkit()
+
+from rdkit import Chem, RDLogger  # noqa: E402  (import follows the wheel install above)
 
 RDLogger.DisableLog("rdApp.*")
 
@@ -237,7 +272,7 @@ def rank_one(mol: dict, entries, pool_masses: list[float]) -> list[str]:
     # Sort on the score keys ONLY. A bare .sort() falls through to the SMILES string, breaking
     # ties alphabetically — and with ~29 isomers sharing an identical formula mass, ties are
     # the common case, so that silently diverged from the package (202/400 rows) and
-    # invalidated the measured 0.664. A stable sort on (-score, mass error) preserves the mass
+    # made the notebook submit something other than what was measured. A stable sort on (-score, mass error) preserves the mass
     # order the slice already has, matching casmi.fragments.rank_by_fragments exactly.
     scored.sort(key=lambda row: (row[0], row[1]))
     return [smi for _, _, smi in scored[:TOP_K]]

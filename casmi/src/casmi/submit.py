@@ -1,16 +1,10 @@
-"""Build a CASMI submission: 25 ranked SMILES per test molecule.
+"""Build a local CASMI submission CSV: 25 ranked SMILES per test molecule.
 
-Two sources, reported separately so a submission is never silently one thing when you
-believed it was the other:
-
-  lookup  — the test spectra are duplicated training rows (median peak-cosine 1.000 across
-            all 400 molecules), so a hash join on (adduct, precursor, n_peaks) reads the
-            answer straight out of train. This is the organiser's data-prep artefact, not a
-            model, and it is the only reason a submission scores well today.
-  ranked  — anything the join misses falls back to mass-window retrieval plus the fragment
-            ranker, which is the part that would generalise to an unleaked test set.
-
-The counts printed at the end are the honest description of what was submitted.
+An earlier version also offered a "lookup" source — joining test spectra to bit-identical
+train spectra and reading off their structures — on the belief that this recovered the
+answers. It did not. Those structures are mostly not the competition's answers: a submission
+whose top-1 matched them for 215 of 400 molecules scored 0.115, which bounds them correct
+for at most ~46. The lookup is removed rather than left as a trap.
 """
 
 from __future__ import annotations
@@ -25,35 +19,7 @@ import pyarrow.parquet as pq
 from .harness import Query, Structure, retrieve
 
 TOP_K = 25
-JOIN_COLUMNS = ["adduct", "precursor_mz", "ms2_mzs", "normalized_smiles"]
 TEST_COLUMNS = ["molecule_id", "adduct", "precursor_mz", "ms2_mzs", "ms2_normalized_intensities"]
-
-
-def join_key(adduct: str, precursor_mz: float, n_peaks: int) -> tuple[str, int, int]:
-    """Exact-duplicate key. Precursor is scaled to 1e-4 Da rather than compared as a float."""
-    return (adduct, round(precursor_mz * 1e4), n_peaks)
-
-
-def build_lookup(train: Path, want_key: bool = False) -> dict[tuple[str, int, int], str]:
-    """Map each train spectrum's join key to its SMILES, or to its inchikey14.
-
-    `want_key=True` gives the recovered *labels* for the test set, which is what makes a
-    leak-free evaluation on the real competition molecules possible: the duplication hands
-    over the answers, and a ranker that never reads train spectra can then be scored against
-    them honestly.
-    """
-    column = "inchikey14" if want_key else "normalized_smiles"
-    columns = ["adduct", "precursor_mz", "ms2_mzs", column]
-    table: dict[tuple[str, int, int], str] = {}
-    for batch in pq.ParquetFile(train).iter_batches(batch_size=200_000, columns=columns):
-        adducts = batch.column("adduct").to_pylist()
-        mzs = batch.column("precursor_mz").to_pylist()
-        for i, (adduct, mz) in enumerate(zip(adducts, mzs, strict=True)):
-            value = batch.column(column)[i].as_py()
-            if mz is None or not value:
-                continue
-            table.setdefault(join_key(adduct, mz, len(batch.column("ms2_mzs")[i])), value)
-    return table
 
 
 @dataclass
@@ -62,7 +28,6 @@ class TestMolecule:
     adduct: str
     precursor_mz: float
     spectra: list[tuple[list[float], list[float]]]
-    keys: list[tuple[str, int, int]]
 
     def as_query(self) -> Query:
         q = Query(self.molecule_id, "", self.adduct, self.precursor_mz)
@@ -80,9 +45,8 @@ def read_test(test: Path) -> list[TestMolecule]:
         mz = table.column("precursor_mz")[i].as_py()
         mzs = table.column("ms2_mzs")[i].as_py()
         intens = table.column("ms2_normalized_intensities")[i].as_py()
-        entry = molecules.setdefault(mol_id, TestMolecule(mol_id, adduct, mz, [], []))
+        entry = molecules.setdefault(mol_id, TestMolecule(mol_id, adduct, mz, []))
         entry.spectra.append((mzs, intens))
-        entry.keys.append(join_key(adduct, mz, len(mzs)))
     return list(molecules.values())
 
 

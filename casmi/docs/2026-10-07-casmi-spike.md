@@ -1,95 +1,112 @@
 # CASMI 2026 spike — findings and whether to commit
 
-**Verdict:** worth entering *only* if the goal is a demonstrable methodology piece. It is not a
-realistic medal push at ~9 weeks part-time against 2,520 teams, because the one thing standing
-between a working ranker and a real submission — a candidate pool that covers the test
-chemistry — is unsolved and is the largest remaining cost.
+> **Corrected 2026-10-08.** The first version of this writeup concluded that the public
+> leaderboard "measures an exact join" and that a train-structure pool was the winning design.
+> Both were wrong. A submission built on that premise scored **0.115 (rank 2397/2686)**
+> against a locally predicted 0.664. The corrections are recorded below rather than silently
+> overwritten, because how the error survived is the most useful thing here.
 
-Grounded 2026-10-07. [Competition](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra):
-predict up to 25 ranked SMILES per molecule from LC-MS/MS, scored MRR@25 on the
-tautomer-canonical InChIKey connectivity block. Entry closes 2026-12-07.
+**Verdict:** not a realistic medal push. The field sits at 0.42–0.48 by retrieving from
+PubChem; this work retrieved from train and scored 0.115. Closing that gap is a data-engineering
+task — attach a PubChem-scale pool as a Kaggle Dataset — and is exactly what the leading public
+notebooks already do. The fragment ranker may add something on top, but that is untested.
 
-## What was measured
+[Competition](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra):
+up to 25 ranked SMILES per molecule from LC-MS/MS, scored MRR@25 on the tautomer-canonical
+InChIKey connectivity block. Code competition: notebook only, internet off. Entry closes
+2026-12-07.
 
-| | recall | MRR@25 (mass floor) | MRR@25 (fragments) | median candidates |
-|---|---|---|---|---|
-| train pool (276k) | **0.9959** | 0.4119 | **0.7011** | 46 |
-| COCONUT (474k) | **0.0806** | 0.0363 | — | 10 |
+## The real result
 
-500 held-out molecules, split on `inchikey14`, 5 ppm window. Recall is the ceiling: ranking
-cannot exceed it.
+| | publicScore | rank |
+|---|---|---|
+| fragments over a train-structure pool | **0.115** | 2397 / 2686 |
+| leaderboard top | 0.480 | 1 |
+| [public notebook, "v4n Fusion + PubChem"](https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421) | 0.421 | — |
 
-## Three findings, in order of consequence
+## What went wrong
 
-### 1. The public leaderboard measures an exact join, not elucidation
+**The local scorer was never calibrated against ground truth.** It scored submissions against
+labels recovered by joining test spectra to bit-identical train spectra. Checked against the
+0.421 public notebook only *after* submitting:
 
-Every one of the 400 public test molecules has a train spectrum at peak-cosine ≥0.95, median
-exactly **1.000**. Confirmed twice by independent methods: full-scan cosine (identical peak
-counts and m/z, all from `enveda-180`), and a hash join on `(adduct, precursor, n_peaks)` that
-resolved **400/400**.
+| submission | local scorer | real score |
+|---|---|---|
+| public notebook | 0.030 | **0.421** |
+| this work | 0.664 | **0.115** |
 
-So the public test spectra are duplicated training rows. This explains the ~0.87 MRR figures in
-public repos and inverts their meaning — they are evidence the join works, not that a model
-does. **Every public-LB comparison is uninformative**, which is why evaluation lives in
-[`harness.py`](../src/casmi/harness.py) instead.
+A scorer that rates a known-good submission at 0.030 is not measuring the competition metric.
 
-This is the one genuine competitive edge the spike found: teams tuning against the public LB are
-optimising a lookup.
+**The labels were mostly wrong.** Our top-1 equalled the recovered label for 215 of 400
+molecules; had those been correct we would have scored at least 0.538. A 0.115 bounds them
+correct for **at most ~46**.
 
-### 2. No public natural-product database covers the test chemistry
+**And the loop was closed.** Labels came from train, the pool *was* train, so the label was in
+the pool by construction. "Recall 1.0000" was guaranteed, not measured — it was reported as a
+ceiling.
 
-COCONUT (CC0, 474k structures after collapsing to `inchikey14`) covers **0 of 400** test
-molecules, and only 8% of held-out train molecules.
+## What is still true
 
-The reason is that the test set is not natural products. All 400 resolve to a single library,
-`enveda-180`; **36% contain a halogen**; and the structures are plainly medicinal chemistry —
-brominated cyclopropyls, triazoles, spiro-morpholines. Despite the CASMI name and Enveda's
-natural-products business, the public test molecules are synthetic drug-like compounds.
+- **The spectra really are duplicated.** 1189 / 1213 test spectra are bit-identical to a train
+  row in both m/z and intensities. What is retracted is the inference drawn from it: the train
+  structures attached to those spectra are mostly *not* the answers. **Why** remains unexplained.
+- **A large share of answers lies outside train.** The 0.421 notebook's top-1 is present in
+  train for only 12 / 400 molecules. This doesn't give the exact in-train fraction — that
+  notebook is itself only partly right — but it rules out a train-only pool as a viable design.
+- **The identity chain is sound.** Train's `inchikey14` equals RDKit's InChIKey14 from
+  `normalized_smiles` on 3000 / 3000 rows checked. The failure was in labels, not keys.
 
-**Consequence:** a real submission needs PubChem-scale retrieval, not COCONUT. That is the
-dominant unsolved cost, and it will move the numbers — windows grow from ~46 to plausibly
-thousands.
+## A valid result, correctly scoped
 
-### 3. Ranking is the constraint, and combinatorics gets surprisingly far
+[`split-eval`](../src/casmi/cli.py) holds out *train* molecules and scores them against their
+own structures, so its labels are genuine:
 
-Recall is ~1.0 *when the pool contains the answer*, so retrieval is not the bottleneck. The real
-problem is that a 5 ppm window holds ~46 candidates of which **~29 share the truth's exact
-molecular formula** — mass accuracy is blind among them.
+| ranker | MRR@25 |
+|---|---|
+| mass-error floor | 0.4119 |
+| fragment explainability | **0.7011** |
 
-Fragment explainability ([`fragments.py`](../src/casmi/fragments.py)) takes MRR@25 from the
-**0.4119** mass floor to **0.7011**, with no training, no spectral library and no model weights.
+That is a real ranking improvement — among ~46 candidates of which ~29 share the truth's
+formula, with no training and no model weights. But it measures a regime where the answer is
+guaranteed to be in the pool, which the competition does not offer. It does not transfer.
 
-## What the 0.70 is and is not
+## Retracted claims
 
-It is ranking performance *within train's own chemical space*, on a pool that holds the answers
-because it is the same file. It is **not** comparable to any leaderboard number, and it will fall
-against a pool that covers `enveda-180`-like space at PubChem scale.
+| claimed | status |
+|---|---|
+| the public LB measures an exact join; teams are "optimising a lookup" | **wrong** — the joined structures are mostly not answers |
+| local leak-free estimate MRR@25 0.664 | **wrong** — scored against wrong labels in a closed loop |
+| a train-structure pool gives recall 1.00 on the test set | **circular** — guaranteed by construction |
+| COCONUT covers 0 / 400 test molecules | **no valid basis** — measured against the wrong labels |
+| the test set is synthetic drug-like, 36% halogen | **no valid basis** — described the wrong labels; true answers' chemistry unknown |
+| the duplication is a "data-prep error" | **unsupported** — duplication is a fact; intent was never knowable |
 
-## Premises this spike overturned
-
-Three things believed at the start proved wrong on contact with data, which is the main argument
-for having run it at all:
+## Premises overturned along the way
 
 | believed | measured |
 |---|---|
-| retrieval + rerank is the research frontier | de-novo generation is; graph diffusion broke 0% exact-match on MassSpecGym first |
-| ICEBERG is right *because* CASMI is natural products | the test set is synthetic drug-like; the natural-product argument does not apply |
-| fragment enumeration cannot separate branching isomers | it can — that was a hydrogen-accounting bug in RDKit's fragmenter |
+| retrieval + rerank is the research frontier | de-novo generation is; graph diffusion first broke 0% exact-match on MassSpecGym |
+| fragment enumeration cannot separate branching isomers | it can — a hydrogen-accounting bug in RDKit's fragmenter |
+| the leaderboard's tight 0.43–0.48 band hid a field missing a free win | it was the honest difficulty of the task |
 
-Two were my own errors, found by a result being implausibly good or a fixture failing.
+The last one is the most instructive. 2,685 teams clustered at 0.43–0.48 while I believed a
+trivial join scored ~1.0. That contradiction was explained away instead of investigated.
 
 ## If continuing, in order
 
-1. **PubChem-scale pool.** Everything else is uninterpretable without it; the 0.70 has no meaning
-   against a pool that cannot contain the answers.
-2. **Then** a learned reranker. ICEBERG remains plausible but its stated natural-product
-   advantage is now irrelevant here, and its pretrained weights are described as NIST'23 — a
-   licensed library, so usability needs checking before any plan depends on it.
-3. Private-set composition is unknowable directly, but is presumably drawn like the public set.
+1. **Calibrate the scorer first.** Reproduce 0.421 for the public notebook locally before any
+   other number is trusted. Labels must come from somewhere other than train.
+2. **PubChem-scale pool**, attached as a Kaggle Dataset since internet is off.
+3. **Then** test whether fragment explainability improves on what that pool already gets.
 
-## Reusable regardless of the decision
+## What is reusable
 
-The harness is the asset: molecule-disjoint splitting on the metric's own equivalence class, and
-recall reported **separately** from ranking so it is visible which one binds. Both leakage
-findings came from that separation — the first because recall was impossibly perfect, the second
-because a ranker using no spectral information scored 0.94.
+The **mechanics**: the [notebook](../notebooks/kaggle_submission.py) runs in Kaggle's sandbox
+in 266 s with rdkit installed offline from an attached wheel, and reproduces the package
+pipeline byte-for-byte on all 400 rows; the [fragment ranker](../src/casmi/fragments.py) is
+tested against isomers and ring cleavage.
+
+The **lesson** is the larger asset. Every component here was verified — 93 tests, parity checks,
+negative controls, bit-identity checks — and the composite was never checked against the one
+external ground truth available for free: a public submission with a known score. That check
+took two minutes and was done last.
