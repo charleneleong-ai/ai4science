@@ -7,7 +7,7 @@ Scores so far, each changing one thing:
   0.115  train's 275k structures only — the answers are largely not train structures
   0.049  + the 106M-structure PubChem tier, 4000 nearest-mass per molecule — arbitrary among
          same-formula isomers, and fragments alone cannot find the answer among thousands
-  this   PubChem shortlist chosen by a popularity prior, ranked by fragments + prior
+  0.135  PubChem shortlist chosen by a popularity prior, ranked by fragments + prior
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
