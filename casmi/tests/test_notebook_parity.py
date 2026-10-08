@@ -8,6 +8,7 @@ describing the submission.
 import importlib.util
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from casmi.adducts import ADDUCTS as PKG_ADDUCTS
@@ -128,3 +129,44 @@ class TestBehaviourMatches:
         assert nb.explained_fraction(mzs, intens, frags, True) == pytest.approx(
             pkg_explained(mzs, intens, frozenset(frags), True)
         )
+
+
+class TestPopularityPrior:
+    """Shortlisting and blending against the PubChem popularity prior."""
+
+    def test_top_distinct_keeps_most_popular_per_connectivity(self):
+        pop = np.array([1.0, 5.0, 3.0, 4.0, 2.0], dtype=np.float32)
+        keys = np.array([b"A", b"A", b"B", b"", b""], dtype="S14")
+        # A's best is row 1; keyless rows have no prior and are dropped
+        assert nb.top_distinct(pop, keys, 1) == [1]
+        assert nb.top_distinct(pop, keys, 10) == [1, 2]
+
+    def test_blend_lets_popularity_outrank_a_small_spectral_edge(self):
+        explained = np.array([0.50, 0.49, 0.10])
+        pop = np.array([0.0, 12.0, 24.0])
+        assert list(np.argsort(-nb.blend(explained, pop))) == [2, 1, 0]
+
+    def test_blend_without_prior_preserves_spectral_order(self):
+        explained = np.array([0.2, 0.7, 0.4, 0.4])
+        order = np.argsort(-nb.blend(explained, np.zeros(4)), kind="stable")
+        assert list(order) == [1, 2, 3, 0]
+
+    def test_blend_constant_spectral_scores_is_zero(self):
+        assert not nb.blend(np.full(3, 0.3), np.zeros(3)).any()
+
+    def test_train_candidate_takes_popularity_from_outside_the_shortlist(self, monkeypatch):
+        monkeypatch.setattr(nb, "SHORTLIST", 1)
+        smiles = [b"CCO", b"OCC", b"COC"]
+        tier = object.__new__(nb.PubChemTier)
+        tier.mass = np.array([46.0, 46.0, 46.0])
+        tier.off = np.cumsum([0] + [len(x) for x in smiles])
+        tier.smiles = np.frombuffer(b"".join(smiles), dtype=np.uint8)
+        tier.lsid = np.array([9.0, 2.0, 1.0], dtype=np.float16)
+        tier.lpmid = np.zeros(3, dtype=np.float16)
+        tier.ik14 = np.array([b"POPULAR", b"TRAINKEY", b"OTHER"], dtype="S14")
+        entries = [("TRAINKEY", ("OCC", 46.0)), ("NOTINPUBCHEM", ("CCC", 46.0))]
+
+        cands = nb.candidates_for(46.0, entries, [46.0, 46.0], tier)
+
+        assert {k: c.pop for k, c in cands.items()} == {
+            "POPULAR": 9.0, "TRAINKEY": 2.0, "NOTINPUBCHEM": 0.0}

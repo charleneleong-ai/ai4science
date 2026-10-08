@@ -1,31 +1,27 @@
 """CASMI 2026 Kaggle notebook — paste as a Script-type notebook and Submit.
 
 Code competition, so: notebook only, **internet disabled**, writes
-`/kaggle/working/submission.csv`. That constraint shapes the whole approach — no COCONUT or
-PubChem fetch at inference time, so the candidate pool must be something already mounted.
-Here it is `train.parquet`'s own 275k structures — and that is the flaw. **This notebook
-scored 0.115 (rank 2397/2686).** The competition's answers are largely not train structures,
-so a train-only pool cannot contain them. A real submission needs a PubChem-scale pool
-attached as a Kaggle Dataset; the 0.421 public notebook does exactly that.
+`/kaggle/working/submission.csv`. Every pool must therefore be mounted as a dataset.
+
+Scores so far, each changing one thing:
+  0.115  train's 275k structures only — the answers are largely not train structures
+  0.049  + the 106M-structure PubChem tier, 4000 nearest-mass per molecule — arbitrary among
+         same-formula isomers, and fragments alone cannot find the answer among thousands
+  this   PubChem shortlist chosen by a popularity prior, ranked by fragments + prior
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
 copy against the package so the two cannot drift silently.
 
-Approach, and why:
-  pool      every unique structure in train, mass from `molecular_formula` — NEVER from an
-            observed precursor m/z, which would make the true candidate float-identical to
-            the query and score a measurement identity rather than chemistry.
-  retrieve  5 ppm neutral-mass window. ~46 candidates, of which ~29 share the truth's exact
-            formula, so mass accuracy is blind among them and ranking has to do the work.
-  rank      fragment explainability: cut <= 2 bonds (ring bonds included — 68% of bonds in
-            this chemistry are ring bonds), and score the share of peak intensity a
-            structure's fragments can explain.
+Approach:
+  pool      train (mass from `molecular_formula`, never an observed precursor m/z) plus the
+            SHORTLIST most-documented PubChem connectivities inside 5 ppm.
+  rank      z-scored fragment explainability (<= 2 bond cuts, ring bonds included) plus
+            POP_WEIGHT x log1p(substances) + log1p(PubMed articles). Compounds that reach a mass
+            spectrometer are usually ones that were bought, isolated and written about.
 
-A "local estimate of 0.664" was quoted here before submission. It was wrong: it scored the
-ranker against labels drawn from the same train pool the ranker searched, a closed loop with
-no contact with ground truth. The same scorer rated the 0.421 public notebook at 0.030. The
-mechanics below are sound and reproduce exactly on Kaggle; the pool is what fails.
+The local scorer once quoted 0.664 for a submission that scored 0.115; it was never calibrated
+and nothing here is scored locally. Only the leaderboard measures this notebook.
 """
 
 from __future__ import annotations
@@ -40,6 +36,7 @@ from collections import defaultdict
 from functools import lru_cache
 from itertools import combinations
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 import pyarrow.parquet as pq
@@ -79,7 +76,8 @@ RDLogger.DisableLog("rdApp.*")
 
 PPM = 5.0
 TOP_K = 25
-MAX_CANDIDATES = 4000  # per window; logged when it triggers, since truncation can drop the truth
+SHORTLIST = 300  # distinct connectivities per molecule, chosen by popularity
+POP_WEIGHT = 0.25  # on a z-scored spectral score, as in the published prior's recipe
 MAX_BREAKS = 2
 MAX_BONDS = 60
 TOL_DA = 0.01
@@ -257,35 +255,63 @@ def read_test(test: Path) -> dict[str, dict]:
     return molecules
 
 
-class PubChemTier:
-    """The community `casmi26-pubchem-tier` dataset: ~106M structures, mass-sorted.
+class Candidate(NamedTuple):
+    smiles: str
+    mass: float
+    pop: float
 
-    Three arrays, memory-mapped so 7.2 GB never has to fit in RAM: `pc_mass` (sorted), `pc_off`
-    (N+1 byte offsets) and `pc_smiles` (one flat byte buffer). A window is a bisect on the masses
-    plus a slice of the buffer. This is the pool the leading public notebooks retrieve from;
-    a train-only pool scored 0.115 because it cannot contain most of the answers.
+
+class PubChemTier:
+    """The community `casmi26-pubchem-tier` (~106M structures, mass-sorted) with its popularity prior.
+
+    Memory-mapped so 7.2 GB never has to fit in RAM: `pc_mass` (sorted), `pc_off` (N+1 byte
+    offsets), `pc_smiles` (one flat byte buffer). `casmi26-pubchem-popularity-prior` adds row-aligned
+    `pc_lsid` / `pc_lpmid` (log1p of PubChem substance records / PubMed articles) and `pc_ik14`.
+
+    A 5 ppm window holds more than 4000 structures for 297/400 molecules. Cutting it by mass
+    error is arbitrary among same-formula isomers and scored 0.049; the prior picks instead.
     """
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, prior: Path) -> None:
         self.mass = np.load(root / "pc_mass.npy", mmap_mode="r")
         self.off = np.load(root / "pc_off.npy", mmap_mode="r")
         self.smiles = np.load(root / "pc_smiles.npy", mmap_mode="r")
+        self.lsid = np.load(prior / "pc_lsid.npy", mmap_mode="r")
+        self.lpmid = np.load(prior / "pc_lpmid.npy", mmap_mode="r")
+        self.ik14 = np.load(prior / "pc_ik14.npy", mmap_mode="r")
         assert len(self.off) == len(self.mass) + 1, "expected N+1 offsets for N structures"
+        assert len(self.lsid) == len(self.lpmid) == len(self.ik14) == len(self.mass), \
+            "prior arrays are not row-aligned with the tier"
 
     def smiles_at(self, i: int) -> str:
         return bytes(self.smiles[int(self.off[i]):int(self.off[i + 1])]).decode()
 
-    def window(self, lo: float, hi: float) -> list[tuple[str, float]]:
+    def window(self, lo: float, hi: float,
+               train_keys: list[str]) -> tuple[dict[str, Candidate], dict[str, float]]:
+        """The SHORTLIST most popular connectivities in [lo, hi], and the popularity of each
+        train key found anywhere in the window — not only in the shortlist, or every train
+        structure outside it would be ranked as if PubChem had never heard of it."""
         a = int(np.searchsorted(self.mass, lo, "left"))
         b = int(np.searchsorted(self.mass, hi, "right"))
-        return [(self.smiles_at(i), float(self.mass[i])) for i in range(a, b)]
+        keys = np.asarray(self.ik14[a:b])
+        masses = self.mass[a:b]
+        pop = np.add(self.lsid[a:b], self.lpmid[a:b], dtype=np.float32)
+        shortlist = {
+            keys[j].decode(): Candidate(self.smiles_at(a + j), float(masses[j]), float(pop[j]))
+            for j in top_distinct(pop, keys, SHORTLIST)
+        }
+        train_pop: dict[str, float] = {}
+        want = np.array([k.encode() for k in train_keys], dtype="S14")
+        for j in np.flatnonzero(np.isin(keys, want)):
+            key = keys[j].decode()
+            train_pop[key] = max(train_pop.get(key, 0.0), float(pop[j]))
+        return shortlist, train_pop
 
     def mass_convention_error(self, samples: int = 60) -> float:
         """Median |pc_mass - RDKit exact mass| over a spread sample, in Da.
 
-        "CID-Mass" could be average molecular weight rather than monoisotopic mass. If it is,
-        every ppm window lands in the wrong place and retrieval silently misses, so this is
-        checked before anything is ranked rather than assumed.
+        If pc_mass were average molecular weight, every ppm window would land in the wrong
+        place and retrieval would silently miss, so this is checked rather than assumed.
         """
         errors = []
         for i in np.linspace(0, len(self.mass) - 1, samples, dtype=np.int64):
@@ -295,43 +321,76 @@ class PubChemTier:
         return float(np.median(errors)) if errors else float("inf")
 
 
+def top_distinct(pop: np.ndarray, keys: np.ndarray, k: int) -> list[int]:
+    """Indices of the k most popular rows with distinct keys; the first (most popular) row wins.
+
+    The metric scores InChIKey14, so stereoisomers and tautomers sharing one would only take
+    each other's slots. Rows without a key have no prior and are left out.
+    """
+    picked: list[int] = []
+    seen: set[bytes] = {b""}
+    for j in np.argsort(-pop, kind="stable"):
+        if keys[j] in seen:
+            continue
+        seen.add(keys[j])
+        picked.append(int(j))
+        if len(picked) == k:
+            break
+    return picked
+
+
 def find_pubchem() -> PubChemTier | None:
-    hits = sorted(Path("/kaggle/input").glob("**/pc_mass.npy"))
-    return PubChemTier(hits[0].parent) if hits else None
+    tier = sorted(Path("/kaggle/input").glob("**/pc_mass.npy"))
+    prior = sorted(Path("/kaggle/input").glob("**/pc_lsid.npy"))
+    if not tier:
+        return None
+    if not prior:
+        raise SystemExit("PubChem tier attached without casmi26-pubchem-popularity-prior.")
+    return PubChemTier(tier[0].parent, prior[0].parent)
 
 
 def candidates_for(mass: float, entries, pool_masses: list[float],
-                   pubchem: PubChemTier | None) -> tuple[list[tuple[str, float]], bool]:
-    """Train window, plus the PubChem window when attached, deduplicated by SMILES.
+                   pubchem: PubChemTier | None) -> dict[str, Candidate]:
+    """ik14 -> Candidate: the prior's PubChem shortlist plus the train window.
 
-    PubChem is stereo-stripped, so stereoisomer CIDs collapse to identical strings and would
-    otherwise fill slots with copies. Returns (candidates, was_capped).
+    Train structures keep their own SMILES and take their popularity from PubChem (0 if absent).
     """
     tol = mass * PPM * 1e-6
     lo = bisect.bisect_left(pool_masses, mass - tol)
     hi = bisect.bisect_right(pool_masses, mass + tol)
-    merged: dict[str, float] = {smi: m for _key, (smi, m) in entries[lo:hi]}
+    train = entries[lo:hi]
+    out: dict[str, Candidate] = {}
+    train_pop: dict[str, float] = {}
     if pubchem is not None:
-        for smi, m in pubchem.window(mass - tol, mass + tol):
-            merged.setdefault(smi, m)
-    ranked = sorted(merged.items(), key=lambda kv: abs(kv[1] - mass))
-    return ranked[:MAX_CANDIDATES], len(ranked) > MAX_CANDIDATES
+        out, train_pop = pubchem.window(mass - tol, mass + tol, [key for key, _ in train])
+    for key, (smi, m) in train:
+        out[key] = Candidate(smi, m, train_pop.get(key, 0.0))
+    return out
 
 
-def rank_candidates(mol: dict, mass: float, candidates: list[tuple[str, float]]) -> list[str]:
-    """Order by explained peak intensity, mass error breaking ties."""
+def blend(explained: np.ndarray, pop: np.ndarray) -> np.ndarray:
+    """z-scored explained intensity plus POP_WEIGHT * raw popularity, the published recipe.
+
+    Popularity is not z-scored, so across a shortlist spanning ~5-20 it dominates and fragments
+    mostly reorder near-ties. That is the hypothesis under test, not a tuned balance.
+    """
+    sd = explained.std()
+    z = (explained - explained.mean()) / sd if sd > 0 else np.zeros_like(explained)
+    return z + POP_WEIGHT * pop
+
+
+def rank_candidates(mol: dict, mass: float, candidates: dict[str, Candidate]) -> list[str]:
+    """Order by blended score, mass error breaking ties."""
     positive = mol["adduct"].endswith("+")
-    scored = []
-    for smi, cand_mass in candidates:
-        frags = fragment_masses(smi)
-        best = max((explained_fraction(mzs, ins, frags, positive)
-                    for mzs, ins in mol["spectra"]), default=0.0)
-        scored.append((-best, abs(cand_mass - mass), smi))
-    # Sort on the score keys only. A bare .sort() falls through to the SMILES string and breaks
-    # ties alphabetically; with many isomers sharing one formula mass, ties are common, and that
-    # once made this notebook submit something other than what the package computed.
-    scored.sort(key=lambda row: (row[0], row[1]))
-    return [smi for _, _, smi in scored[:TOP_K]]
+    rows = list(candidates.values())
+    explained = np.zeros(len(rows))
+    for i, c in enumerate(rows):
+        frags = fragment_masses(c.smiles)
+        explained[i] = max((explained_fraction(mzs, ins, frags, positive)
+                            for mzs, ins in mol["spectra"]), default=0.0)
+    score = blend(explained, np.array([c.pop for c in rows]))
+    order = sorted(range(len(rows)), key=lambda i: (-score[i], abs(rows[i].mass - mass)))
+    return [rows[i].smiles for i in order[:TOP_K]]
 
 
 def pad(picks: list[str]) -> list[str]:
@@ -388,23 +447,20 @@ def main() -> None:
 
     rows: dict[str, list[str]] = {}
     sizes: list[int] = []
-    capped = 0
     for n, (mol_id, mol) in enumerate(molecules.items(), 1):
         mass = neutral_mass(mol["mz"], mol["adduct"]) if mol["mz"] else None
         picks: list[str] = []
         if mass is not None:
-            cands, was_capped = candidates_for(mass, entries, pool_masses, pubchem)
+            cands = candidates_for(mass, entries, pool_masses, pubchem)
             sizes.append(len(cands))
-            capped += was_capped
             picks = rank_candidates(mol, mass, cands)
         rows[mol_id] = pad(picks)
         if n % 25 == 0:
-            print(f"  ranked {n}/{len(molecules)}  median window {int(np.median(sizes))}  "
-                  f"capped {capped}  ({time.time()-t0:.0f}s)", flush=True)
+            print(f"  ranked {n}/{len(molecules)}  median candidates {int(np.median(sizes))}  "
+                  f"({time.time()-t0:.0f}s)", flush=True)
 
     out = write_submission(rows, len(molecules))
-    print(f"windows: median {int(np.median(sizes))}, max {max(sizes)}, capped {capped}/{len(sizes)}",
-          flush=True)
+    print(f"candidates: median {int(np.median(sizes))}, max {max(sizes)}", flush=True)
     print(f"wrote {out}: {len(rows)} rows x {TOP_K}  ({time.time()-t0:.0f}s total)", flush=True)
 
 
