@@ -21,8 +21,16 @@ InChIKey connectivity block. Code competition: notebook only, internet off. Entr
 | | publicScore | rank |
 |---|---|---|
 | fragments over a train-structure pool | **0.115** | 2397 / 2686 |
+| fragments over train + [PubChem tier](https://www.kaggle.com/datasets/ahmedberatozer/casmi26-pubchem-tier) (106M), 4000 nearest-mass per molecule | **0.049** | — |
 | leaderboard top | 0.480 | 1 |
 | [public notebook, "v4n Fusion + PubChem"](https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421) | 0.421 | — |
+
+**A bigger pool alone made it worse.** With PubChem attached, 297 / 400 molecules have more
+than 4000 structures inside 5 ppm; the cut keeps the nearest by mass, which is arbitrary among
+same-formula isomers. Fragment explainability — 0.70 among ~46 train candidates — does not pick
+the answer out of thousands. Run: 7767 s, PubChem mass convention matches RDKit exact mass
+(median error 0.000000 Da). Which of the cut or the ranker loses more is not separable from one
+score.
 
 ## What went wrong
 
@@ -96,8 +104,9 @@ trivial join scored ~1.0. That contradiction was explained away instead of inves
 
 1. **Calibrate the scorer first.** Reproduce 0.421 for the public notebook locally before any
    other number is trusted. Labels must come from somewhere other than train.
-2. **PubChem-scale pool**, attached as a Kaggle Dataset since internet is off.
-3. **Then** test whether fragment explainability improves on what that pool already gets.
+2. ~~**PubChem-scale pool**~~ — done; 0.049 on its own.
+3. **A prior on which structures are likely**, not only which fit the spectrum — the 0.421
+   notebook attaches a PubChem popularity prior. Changed one variable at a time.
 
 ## What is reusable
 
