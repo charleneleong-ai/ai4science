@@ -1,17 +1,20 @@
-"""Molecule-disjoint evaluation for CASMI 2026.
+"""Molecule-disjoint evaluation for CASMI 2026 — within train's own chemical space only.
 
-The public leaderboard cannot be used for model selection: every public test spectrum is
-duplicated in train (median peak-cosine 1.000 across all 400 molecules), so a score there
-measures an exact join, not structure elucidation. See the 2026-10-06 learning-log entry.
+Read this before trusting any number it prints. A submission ranked by this harness's best
+configuration scored **0.115** on the real leaderboard, against a locally measured 0.664.
+Every query and every candidate here comes from train, so a held-out molecule's structure is
+in the pool by construction: recall is guaranteed rather than measured, and the MRR describes
+ranking among train's own structures. The competition's answers are largely not train
+structures, so these numbers do not transfer. See casmi/docs/2026-10-07-casmi-spike.md.
 
-So evaluation happens here instead, and it separates the two failure modes that a single
-MRR number hides:
+What it is still good for is a controlled comparison of rankers on a fixed pool. It
+separates the two failure modes a single MRR hides:
 
   recall  — is the true structure in the candidate pool at all? (a retrieval problem)
-  ranking — given it is, does the scorer put it near the top? (the actual contest)
+  ranking — given it is, does the scorer put it near the top?
 
-Splitting is on `inchikey14`, which is the connectivity block the competition metric itself
-compares, so the split matches the equivalence class being scored.
+Splitting is on `inchikey14`, the connectivity block the competition metric compares, so the
+split matches the equivalence class being scored.
 """
 
 from __future__ import annotations
