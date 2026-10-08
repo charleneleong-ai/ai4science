@@ -41,6 +41,7 @@ from functools import lru_cache
 from itertools import combinations
 from pathlib import Path
 
+import numpy as np
 import pyarrow.parquet as pq
 
 
@@ -72,11 +73,13 @@ def ensure_rdkit() -> None:
 ensure_rdkit()
 
 from rdkit import Chem, RDLogger  # noqa: E402  (import follows the wheel install above)
+from rdkit.Chem.Descriptors import ExactMolWt  # noqa: E402
 
 RDLogger.DisableLog("rdApp.*")
 
 PPM = 5.0
 TOP_K = 25
+MAX_CANDIDATES = 4000  # per window; logged when it triggers, since truncation can drop the truth
 MAX_BREAKS = 2
 MAX_BONDS = 60
 TOL_DA = 0.01
@@ -254,26 +257,79 @@ def read_test(test: Path) -> dict[str, dict]:
     return molecules
 
 
-def rank_one(mol: dict, entries, pool_masses: list[float]) -> list[str]:
-    """Retrieve by neutral-mass window, then order by explained intensity."""
-    mass = neutral_mass(mol["mz"], mol["adduct"]) if mol["mz"] else None
-    if mass is None:
-        return []
+class PubChemTier:
+    """The community `casmi26-pubchem-tier` dataset: ~106M structures, mass-sorted.
+
+    Three arrays, memory-mapped so 7.2 GB never has to fit in RAM: `pc_mass` (sorted), `pc_off`
+    (N+1 byte offsets) and `pc_smiles` (one flat byte buffer). A window is a bisect on the masses
+    plus a slice of the buffer. This is the pool the leading public notebooks retrieve from;
+    a train-only pool scored 0.115 because it cannot contain most of the answers.
+    """
+
+    def __init__(self, root: Path) -> None:
+        self.mass = np.load(root / "pc_mass.npy", mmap_mode="r")
+        self.off = np.load(root / "pc_off.npy", mmap_mode="r")
+        self.smiles = np.load(root / "pc_smiles.npy", mmap_mode="r")
+        assert len(self.off) == len(self.mass) + 1, "expected N+1 offsets for N structures"
+
+    def smiles_at(self, i: int) -> str:
+        return bytes(self.smiles[int(self.off[i]):int(self.off[i + 1])]).decode()
+
+    def window(self, lo: float, hi: float) -> list[tuple[str, float]]:
+        a = int(np.searchsorted(self.mass, lo, "left"))
+        b = int(np.searchsorted(self.mass, hi, "right"))
+        return [(self.smiles_at(i), float(self.mass[i])) for i in range(a, b)]
+
+    def mass_convention_error(self, samples: int = 60) -> float:
+        """Median |pc_mass - RDKit exact mass| over a spread sample, in Da.
+
+        "CID-Mass" could be average molecular weight rather than monoisotopic mass. If it is,
+        every ppm window lands in the wrong place and retrieval silently misses, so this is
+        checked before anything is ranked rather than assumed.
+        """
+        errors = []
+        for i in np.linspace(0, len(self.mass) - 1, samples, dtype=np.int64):
+            mol = Chem.MolFromSmiles(self.smiles_at(int(i)))
+            if mol is not None:
+                errors.append(abs(float(self.mass[i]) - ExactMolWt(mol)))
+        return float(np.median(errors)) if errors else float("inf")
+
+
+def find_pubchem() -> PubChemTier | None:
+    hits = sorted(Path("/kaggle/input").glob("**/pc_mass.npy"))
+    return PubChemTier(hits[0].parent) if hits else None
+
+
+def candidates_for(mass: float, entries, pool_masses: list[float],
+                   pubchem: PubChemTier | None) -> tuple[list[tuple[str, float]], bool]:
+    """Train window, plus the PubChem window when attached, deduplicated by SMILES.
+
+    PubChem is stereo-stripped, so stereoisomer CIDs collapse to identical strings and would
+    otherwise fill slots with copies. Returns (candidates, was_capped).
+    """
     tol = mass * PPM * 1e-6
     lo = bisect.bisect_left(pool_masses, mass - tol)
     hi = bisect.bisect_right(pool_masses, mass + tol)
+    merged: dict[str, float] = {smi: m for _key, (smi, m) in entries[lo:hi]}
+    if pubchem is not None:
+        for smi, m in pubchem.window(mass - tol, mass + tol):
+            merged.setdefault(smi, m)
+    ranked = sorted(merged.items(), key=lambda kv: abs(kv[1] - mass))
+    return ranked[:MAX_CANDIDATES], len(ranked) > MAX_CANDIDATES
+
+
+def rank_candidates(mol: dict, mass: float, candidates: list[tuple[str, float]]) -> list[str]:
+    """Order by explained peak intensity, mass error breaking ties."""
     positive = mol["adduct"].endswith("+")
     scored = []
-    for _key, (smi, cand_mass) in entries[lo:hi]:
+    for smi, cand_mass in candidates:
         frags = fragment_masses(smi)
         best = max((explained_fraction(mzs, ins, frags, positive)
                     for mzs, ins in mol["spectra"]), default=0.0)
         scored.append((-best, abs(cand_mass - mass), smi))
-    # Sort on the score keys ONLY. A bare .sort() falls through to the SMILES string, breaking
-    # ties alphabetically — and with ~29 isomers sharing an identical formula mass, ties are
-    # the common case, so that silently diverged from the package (202/400 rows) and
-    # made the notebook submit something other than what was measured. A stable sort on (-score, mass error) preserves the mass
-    # order the slice already has, matching casmi.fragments.rank_by_fragments exactly.
+    # Sort on the score keys only. A bare .sort() falls through to the SMILES string and breaks
+    # ties alphabetically; with many isomers sharing one formula mass, ties are common, and that
+    # once made this notebook submit something other than what the package computed.
     scored.sort(key=lambda row: (row[0], row[1]))
     return [smi for _, _, smi in scored[:TOP_K]]
 
@@ -303,24 +359,52 @@ def write_submission(rows: dict[str, list[str]], expected: int) -> Path:
     return out
 
 
+def open_pubchem() -> PubChemTier | None:
+    """Attach the PubChem tier if present, refusing to run on a mass convention that is wrong."""
+    pubchem = find_pubchem()
+    if pubchem is None:
+        print("PubChem tier NOT attached — train-only pool, which scored 0.115", flush=True)
+        return None
+    err = pubchem.mass_convention_error()
+    print(f"pubchem: {len(pubchem.mass):,} structures; median |pc_mass - exact| = {err:.6f} Da",
+          flush=True)
+    if err > 0.005:
+        raise SystemExit(f"pc_mass is not monoisotopic (median error {err:.4f} Da); every ppm "
+                         "window would miss. Stopping rather than ranking the wrong candidates.")
+    return pubchem
+
+
 def main() -> None:
     t0 = time.time()
     data = find_input()
     print(f"input: {data}", flush=True)
 
     entries, pool_masses = build_pool(data / "train.parquet")
-    print(f"pool: {len(entries):,} structures  ({time.time()-t0:.0f}s)", flush=True)
+    print(f"train pool: {len(entries):,} structures  ({time.time()-t0:.0f}s)", flush=True)
+    pubchem = open_pubchem()
 
     molecules = read_test(data / "test.parquet")
     print(f"test molecules: {len(molecules)}", flush=True)
 
     rows: dict[str, list[str]] = {}
+    sizes: list[int] = []
+    capped = 0
     for n, (mol_id, mol) in enumerate(molecules.items(), 1):
-        rows[mol_id] = pad(rank_one(mol, entries, pool_masses))
-        if n % 50 == 0:
-            print(f"  ranked {n}/{len(molecules)}  ({time.time()-t0:.0f}s)", flush=True)
+        mass = neutral_mass(mol["mz"], mol["adduct"]) if mol["mz"] else None
+        picks: list[str] = []
+        if mass is not None:
+            cands, was_capped = candidates_for(mass, entries, pool_masses, pubchem)
+            sizes.append(len(cands))
+            capped += was_capped
+            picks = rank_candidates(mol, mass, cands)
+        rows[mol_id] = pad(picks)
+        if n % 25 == 0:
+            print(f"  ranked {n}/{len(molecules)}  median window {int(np.median(sizes))}  "
+                  f"capped {capped}  ({time.time()-t0:.0f}s)", flush=True)
 
     out = write_submission(rows, len(molecules))
+    print(f"windows: median {int(np.median(sizes))}, max {max(sizes)}, capped {capped}/{len(sizes)}",
+          flush=True)
     print(f"wrote {out}: {len(rows)} rows x {TOP_K}  ({time.time()-t0:.0f}s total)", flush=True)
 
 
