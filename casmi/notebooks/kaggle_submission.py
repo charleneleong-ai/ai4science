@@ -8,6 +8,7 @@ Scores so far, each changing one thing:
   0.049  + the 106M-structure PubChem tier, 4000 nearest-mass per molecule — arbitrary among
          same-formula isomers, and fragments alone cannot find the answer among thousands
   0.135  PubChem shortlist chosen by a popularity prior, ranked by fragments + prior
+  this   the same, with the public FPNet's fingerprint score in place of fragments
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -16,9 +17,11 @@ copy against the package so the two cannot drift silently.
 Approach:
   pool      train (mass from `molecular_formula`, never an observed precursor m/z) plus the
             SHORTLIST most-documented PubChem connectivities inside 5 ppm.
-  rank      z-scored fragment explainability (<= 2 bond cuts, ring bonds included) plus
-            POP_WEIGHT x log1p(substances) + log1p(PubMed articles). Compounds that reach a mass
-            spectrometer are usually ones that were bought, isolated and written about.
+  rank      z-scored spectral score plus POP_WEIGHT x log1p(substances) + log1p(PubMed
+            articles). The spectral score is FPNet's fingerprint match when its datasets are
+            attached, else fragment explainability (<= 2 bond cuts, ring bonds included).
+            Compounds that reach a mass spectrometer are usually ones that were bought,
+            isolated and written about.
 
 The local scorer once quoted 0.664 for a submission that scored 0.115; it was never calibrated
 and nothing here is scored locally. Only the leaderboard measures this notebook.
@@ -241,17 +244,22 @@ def build_pool(train: Path) -> tuple[list[tuple[str, tuple[str, float]]], list[f
 
 
 def read_test(test: Path) -> dict[str, dict]:
-    """Test spectra grouped by molecule — the metric scores per molecule, not per spectrum."""
-    t = pq.read_table(test, columns=["molecule_id", "adduct", "precursor_mz",
-                                     "ms2_mzs", "ms2_normalized_intensities"])
+    """Test spectra grouped by molecule — the metric scores per molecule, not per spectrum.
+
+    `records` carries what FPNet conditions on (precursor, adduct, polarity, collision energy),
+    in the shape the public pipeline builds them.
+    """
+    cols = ["molecule_id", "adduct", "precursor_mz", "ms2_mzs", "ms2_normalized_intensities",
+            "ionization_mode", "collision_energy_ev"]
     molecules: dict[str, dict] = {}
-    for i in range(t.num_rows):
-        mol_id = t.column("molecule_id")[i].as_py()
-        entry = molecules.setdefault(mol_id, {"adduct": t.column("adduct")[i].as_py(),
-                                              "mz": t.column("precursor_mz")[i].as_py(),
-                                              "spectra": []})
-        entry["spectra"].append((t.column("ms2_mzs")[i].as_py(),
-                                 t.column("ms2_normalized_intensities")[i].as_py()))
+    for r in pq.read_table(test, columns=cols).to_pylist():
+        entry = molecules.setdefault(r["molecule_id"], {"adduct": r["adduct"], "mz": r["precursor_mz"],
+                                                        "records": []})
+        ces = r["collision_energy_ev"] or []
+        entry["records"].append(dict(
+            mz=r["ms2_mzs"], it=r["ms2_normalized_intensities"], prec=float(r["precursor_mz"]),
+            adduct=r["adduct"], mode=1 if r["ionization_mode"] == "positive" else -1,
+            ce=float(np.mean(ces)) if ces else None, ce_n=len(ces) or 1))
     return molecules
 
 
@@ -349,6 +357,79 @@ def find_pubchem() -> PubChemTier | None:
     return PubChemTier(tier[0].parent, prior[0].parent)
 
 
+class FPNetScorer:
+    """Spectrum -> fingerprint logits z (the public FPNet); a candidate with fingerprint f scores f.z.
+
+    Model code is the public `casmi` package in casmi26-v4b-models, the checkpoint is
+    casmi26-fpnet-full1 (the 0.421 notebook's default), and the 10,226 informative fingerprint bits
+    come from casmi26-v2-pool. Single-spectrum and per-polarity merged logits are averaged, as in
+    that package's Engine. Imported in __init__, not at the top: torch, numba and that package exist
+    only where the datasets are mounted.
+    """
+
+    def __init__(self, code: Path, ckpt: Path, bits: Path) -> None:
+        sys.path.insert(0, str(code))
+        import torch
+        from casmi import chem, fpnet
+        from casmi.spectra import merge_spectra
+
+        self.chem, self.fpnet, self.merge = chem, fpnet, merge_spectra
+        self.bank = fpnet.ModelBank([str(ckpt)], device="cuda" if torch.cuda.is_available() else "cpu")
+        self.bits = np.load(bits)
+        assert len(self.bits) == self.bank.nbits, "fp_bits does not match the checkpoint's output"
+        self._fp: dict[str, np.ndarray] = {}  # SMILES -> packed selected bits
+
+    def item(self, mz, it, prec: float, adduct: str, ce: list[float], n: int, mode: float) -> dict:
+        pm, pi = self.fpnet.prep_peaks(np.asarray(mz, np.float64), np.asarray(it, np.float64), prec)
+        return dict(mz=pm, it=pi, prec=prec, adduct_ix=self.chem.adduct_index(adduct),
+                    ce=float(np.mean(ce)) if ce else 0.0, ce_known=1.0 if ce else 0.0,
+                    n_merged=min(n, 8), mode=mode)
+
+    def logits(self, records: list[dict]) -> np.ndarray:
+        single = [self.item(r["mz"], r["it"], r["prec"], r["adduct"],
+                            [r["ce"]] if r["ce"] is not None else [], r["ce_n"], float(r["mode"]))
+                  for r in records]
+        merged = []
+        for mode in (1, -1):
+            grp = [r for r in records if r["mode"] == mode]
+            if not grp:
+                continue
+            mz, it = self.merge([(r["mz"], r["it"]) for r in grp])
+            adducts = [r["adduct"] for r in grp]
+            merged.append(self.item(mz, it, float(np.median([r["prec"] for r in grp])),
+                                    max(set(adducts), key=adducts.count),
+                                    [r["ce"] for r in grp if r["ce"] is not None],
+                                    sum(r["ce_n"] for r in grp), float(mode)))
+        z = self.bank.logits(single + merged)
+        return 0.5 * (z[:len(single)].mean(0) + z[len(single):].mean(0))
+
+    def fingerprint(self, smi: str) -> np.ndarray:
+        if smi not in self._fp:
+            fp = self.chem.raw_fingerprint(smi)
+            self._fp[smi] = np.packbits(fp[self.bits] if fp is not None else np.zeros(len(self.bits), np.uint8))
+        return self._fp[smi]
+
+    def fingerprints(self, smiles: list[str]) -> np.ndarray:
+        packed = np.stack([self.fingerprint(s) for s in smiles])
+        return np.unpackbits(packed, axis=1)[:, :len(self.bits)].astype(np.float32)
+
+    def scores(self, records: list[dict], smiles: list[str]) -> np.ndarray:
+        return self.fingerprints(smiles) @ self.logits(records)
+
+
+def find_fpnet() -> FPNetScorer | None:
+    """All three datasets or none: a partial attachment would silently fall back to fragments."""
+    root = Path("/kaggle/input")
+    found = [sorted(root.glob(pat)) for pat in
+             ("**/code/casmi/fpnet.py", "**/fpnet_full1.pt", "**/casmi26-v2-pool/**/fp_bits.npy")]
+    if not any(found):
+        return None
+    if not all(found):
+        raise SystemExit("FPNet partly attached: need casmi26-v4b-models, casmi26-fpnet-full1 and "
+                         "casmi26-v2-pool together.")
+    return FPNetScorer(found[0][0].parent.parent, found[1][0], found[2][0])
+
+
 def candidates_for(mass: float, entries, pool_masses: list[float],
                    pubchem: PubChemTier | None) -> dict[str, Candidate]:
     """ik14 -> Candidate: the prior's PubChem shortlist plus the train window.
@@ -368,27 +449,35 @@ def candidates_for(mass: float, entries, pool_masses: list[float],
     return out
 
 
-def blend(explained: np.ndarray, pop: np.ndarray) -> np.ndarray:
-    """z-scored explained intensity plus POP_WEIGHT * raw popularity, the published recipe.
+def blend(spectral: np.ndarray, pop: np.ndarray) -> np.ndarray:
+    """z-scored spectral score plus POP_WEIGHT * raw popularity, the published recipe.
 
-    Popularity is not z-scored, so across a shortlist spanning ~5-20 it dominates and fragments
-    mostly reorder near-ties. That is the hypothesis under test, not a tuned balance.
+    Popularity is not z-scored, so across a shortlist spanning ~5-20 it dominates and the spectral
+    score mostly reorders near-ties. That is the hypothesis under test, not a tuned balance.
     """
-    sd = explained.std()
-    z = (explained - explained.mean()) / sd if sd > 0 else np.zeros_like(explained)
+    sd = spectral.std()
+    z = (spectral - spectral.mean()) / sd if sd > 0 else np.zeros_like(spectral)
     return z + POP_WEIGHT * pop
 
 
-def rank_candidates(mol: dict, mass: float, candidates: dict[str, Candidate]) -> list[str]:
-    """Order by blended score, mass error breaking ties."""
+def explained_scores(mol: dict, smiles: list[str]) -> np.ndarray:
     positive = mol["adduct"].endswith("+")
+    out = np.zeros(len(smiles))
+    for i, smi in enumerate(smiles):
+        frags = fragment_masses(smi)
+        out[i] = max((explained_fraction(r["mz"], r["it"], frags, positive)
+                      for r in mol["records"]), default=0.0)
+    return out
+
+
+def rank_candidates(mol: dict, mass: float, candidates: dict[str, Candidate],
+                    fpnet: FPNetScorer | None = None) -> list[str]:
+    """Order by blended score — FPNet's f.z when attached, else fragment explainability — with
+    mass error breaking ties."""
     rows = list(candidates.values())
-    explained = np.zeros(len(rows))
-    for i, c in enumerate(rows):
-        frags = fragment_masses(c.smiles)
-        explained[i] = max((explained_fraction(mzs, ins, frags, positive)
-                            for mzs, ins in mol["spectra"]), default=0.0)
-    score = blend(explained, np.array([c.pop for c in rows]))
+    smiles = [c.smiles for c in rows]
+    spectral = fpnet.scores(mol["records"], smiles) if fpnet else explained_scores(mol, smiles)
+    score = blend(spectral, np.array([c.pop for c in rows]))
     order = sorted(range(len(rows)), key=lambda i: (-score[i], abs(rows[i].mass - mass)))
     return [rows[i].smiles for i in order[:TOP_K]]
 
@@ -441,6 +530,8 @@ def main() -> None:
     entries, pool_masses = build_pool(data / "train.parquet")
     print(f"train pool: {len(entries):,} structures  ({time.time()-t0:.0f}s)", flush=True)
     pubchem = open_pubchem()
+    fpnet = find_fpnet()
+    print(f"spectral score: {'FPNet' if fpnet else 'fragment explainability'}", flush=True)
 
     molecules = read_test(data / "test.parquet")
     print(f"test molecules: {len(molecules)}", flush=True)
@@ -453,7 +544,7 @@ def main() -> None:
         if mass is not None:
             cands = candidates_for(mass, entries, pool_masses, pubchem)
             sizes.append(len(cands))
-            picks = rank_candidates(mol, mass, cands)
+            picks = rank_candidates(mol, mass, cands, fpnet)
         rows[mol_id] = pad(picks)
         if n % 25 == 0:
             print(f"  ranked {n}/{len(molecules)}  median candidates {int(np.median(sizes))}  "
