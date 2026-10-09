@@ -9,6 +9,7 @@ Scores so far, each changing one thing:
          same-formula isomers, and fragments alone cannot find the answer among thousands
   0.135  PubChem shortlist chosen by a popularity prior, ranked by fragments + prior
   0.250  the same, with the public FPNet's fingerprint score in place of fragments
+  this   the same, averaging two FPNet checkpoints (full1 + FPNet A)
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -360,21 +361,23 @@ def find_pubchem() -> PubChemTier | None:
 class FPNetScorer:
     """Spectrum -> fingerprint logits z (the public FPNet); a candidate with fingerprint f scores f.z.
 
-    Model code is the public `casmi` package in casmi26-v4b-models, the checkpoint is
-    casmi26-fpnet-full1 (the 0.421 notebook's default), and the 10,226 informative fingerprint bits
+    Model code is the public `casmi` package in casmi26-v4b-models; the checkpoints are
+    casmi26-fpnet-full1 and that package's FPNet A, whose logits ModelBank averages (the 0.421
+    notebook's 'ens' bank); the 10,226 informative fingerprint bits
     come from casmi26-v2-pool. Single-spectrum and per-polarity merged logits are averaged, as in
     that package's Engine. Imported in __init__, not at the top: torch, numba and that package exist
     only where the datasets are mounted.
     """
 
-    def __init__(self, code: Path, ckpt: Path, bits: Path) -> None:
+    def __init__(self, code: Path, ckpts: list[Path], bits: Path) -> None:
         sys.path.insert(0, str(code))
         import torch
         from casmi import chem, fpnet
         from casmi.spectra import merge_spectra
 
         self.chem, self.fpnet, self.merge = chem, fpnet, merge_spectra
-        self.bank = fpnet.ModelBank([str(ckpt)], device="cuda" if torch.cuda.is_available() else "cpu")
+        self.bank = fpnet.ModelBank([str(c) for c in ckpts],
+                                    device="cuda" if torch.cuda.is_available() else "cpu")
         self.bits = np.load(bits)
         assert len(self.bits) == self.bank.nbits, "fp_bits does not match the checkpoint's output"
         self._fp: dict[str, np.ndarray] = {}  # SMILES -> packed selected bits
@@ -418,16 +421,17 @@ class FPNetScorer:
 
 
 def find_fpnet() -> FPNetScorer | None:
-    """All three datasets or none: a partial attachment would silently fall back to fragments."""
+    """All the pieces or none: a partial attachment would silently fall back to fragments."""
     root = Path("/kaggle/input")
     found = [sorted(root.glob(pat)) for pat in
-             ("**/code/casmi/fpnet.py", "**/fpnet_full1.pt", "**/casmi26-v2-pool/**/fp_bits.npy")]
+             ("**/code/casmi/fpnet.py", "**/fpnet_full1.pt", "**/casmi26-v4b-models/**/fpnet_0.pt",
+              "**/casmi26-v2-pool/**/fp_bits.npy")]
     if not any(found):
         return None
     if not all(found):
         raise SystemExit("FPNet partly attached: need casmi26-v4b-models, casmi26-fpnet-full1 and "
                          "casmi26-v2-pool together.")
-    return FPNetScorer(found[0][0].parent.parent, found[1][0], found[2][0])
+    return FPNetScorer(found[0][0].parent.parent, [found[1][0], found[2][0]], found[3][0])
 
 
 def candidates_for(mass: float, entries, pool_masses: list[float],
