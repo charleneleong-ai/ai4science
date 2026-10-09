@@ -9,7 +9,7 @@ Scores so far, each changing one thing:
          same-formula isomers, and fragments alone cannot find the answer among thousands
   0.135  PubChem shortlist chosen by a popularity prior, ranked by fragments + prior
   0.250  the same, with the public FPNet's fingerprint score in place of fragments
-  this   the same, averaging two FPNet checkpoints (full1 + FPNet A)
+  0.258  the same, averaging two FPNet checkpoints (full1 + FPNet A)
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
