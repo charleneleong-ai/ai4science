@@ -13,6 +13,7 @@ Scores so far, each changing one thing:
   0.258  the same, averaging two FPNet checkpoints (full1 + FPNet A)
   0.254    with popularity weight 0.15 instead of 0.25 — kept at 0.25
   0.261    with a 1000-connectivity shortlist instead of 300 — adopted
+  this   the same, never proposing the train structure behind a copied spectrum
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -437,9 +438,38 @@ def find_fpnet() -> FPNetScorer | None:
     return FPNetScorer(found[0][0].parent.parent, [found[1][0], found[2][0]], found[3][0])
 
 
-def candidates_for(mass: float, entries, pool_masses: list[float],
-                   pubchem: PubChemTier | None) -> dict[str, Candidate]:
-    """ik14 -> Candidate: the prior's PubChem shortlist plus the train window.
+def copied_parents(train: Path, molecules: dict[str, dict]) -> dict[str, set[str]]:
+    """molecule_id -> InChIKey14s of the train rows whose spectrum is bit-identical to one of its own.
+
+    1189 / 1213 test spectra are copies of train rows, but the train structure attached is the
+    answer for at most ~46 of 400 molecules. FPNet full1 was trained on those very rows, so it
+    returns the copied structure with confidence: the 0.261 submission's top-1 was the copied
+    structure for 267 / 400, while the 0.421 public notebook's was for 12 / 400.
+    """
+    want: dict[tuple, set[str]] = {}
+    for mol_id, mol in molecules.items():
+        for r in mol["records"]:
+            key = (r["adduct"], round(r["prec"] * 1e4), tuple(r["mz"]), tuple(r["it"]))
+            want.setdefault(key, set()).add(mol_id)
+    coarse = {k[:2] for k in want}
+    out: dict[str, set[str]] = defaultdict(set)
+    cols = ["inchikey14", "adduct", "precursor_mz", "ms2_mzs", "ms2_normalized_intensities"]
+    for batch in pq.ParquetFile(train).iter_batches(batch_size=200_000, columns=cols):
+        adducts = batch.column("adduct").to_pylist()
+        precs = batch.column("precursor_mz").to_pylist()
+        for i, (adduct, prec) in enumerate(zip(adducts, precs)):
+            if prec is None or (adduct, round(prec * 1e4)) not in coarse:
+                continue
+            key = (adduct, round(prec * 1e4), tuple(batch.column("ms2_mzs")[i].as_py()),
+                   tuple(batch.column("ms2_normalized_intensities")[i].as_py()))
+            for mol_id in want.get(key, ()):
+                out[mol_id].add(batch.column("inchikey14")[i].as_py())
+    return dict(out)
+
+
+def candidates_for(mass: float, entries, pool_masses: list[float], pubchem: PubChemTier | None,
+                   exclude: set[str] = frozenset()) -> dict[str, Candidate]:
+    """ik14 -> Candidate: the prior's PubChem shortlist plus the train window, minus `exclude`.
 
     Train structures keep their own SMILES and take their popularity from PubChem (0 if absent).
     """
@@ -453,7 +483,7 @@ def candidates_for(mass: float, entries, pool_masses: list[float],
         out, train_pop = pubchem.window(mass - tol, mass + tol, [key for key, _ in train])
     for key, (smi, m) in train:
         out[key] = Candidate(smi, m, train_pop.get(key, 0.0))
-    return out
+    return {k: c for k, c in out.items() if k not in exclude}
 
 
 def blend(spectral: np.ndarray, pop: np.ndarray) -> np.ndarray:
@@ -542,6 +572,9 @@ def main() -> None:
 
     molecules = read_test(data / "test.parquet")
     print(f"test molecules: {len(molecules)}", flush=True)
+    copied = copied_parents(data / "train.parquet", molecules)
+    print(f"copied train structures excluded for {len(copied)} molecules "
+          f"({sum(map(len, copied.values()))} in all)  ({time.time()-t0:.0f}s)", flush=True)
 
     rows: dict[str, list[str]] = {}
     sizes: list[int] = []
@@ -549,7 +582,7 @@ def main() -> None:
         mass = neutral_mass(mol["mz"], mol["adduct"]) if mol["mz"] else None
         picks: list[str] = []
         if mass is not None:
-            cands = candidates_for(mass, entries, pool_masses, pubchem)
+            cands = candidates_for(mass, entries, pool_masses, pubchem, copied.get(mol_id, set()))
             sizes.append(len(cands))
             picks = rank_candidates(mol, mass, cands, fpnet)
         rows[mol_id] = pad(picks)
