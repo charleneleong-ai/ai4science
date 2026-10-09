@@ -1,4 +1,5 @@
-"""CASMI 2026 Kaggle notebook — paste as a Script-type notebook and Submit.
+"""CASMI 2026 Kaggle notebook. Push with `kaggle kernels push -p casmi/notebooks`; the inputs it
+needs are listed in `kernel-metadata.json` beside it.
 
 Code competition, so: notebook only, **internet disabled**, writes
 `/kaggle/working/submission.csv`. Every pool must therefore be mounted as a dataset.
