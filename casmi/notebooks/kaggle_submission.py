@@ -10,6 +10,8 @@ Scores so far, each changing one thing:
   0.135  PubChem shortlist chosen by a popularity prior, ranked by fragments + prior
   0.250  the same, with the public FPNet's fingerprint score in place of fragments
   0.258  the same, averaging two FPNet checkpoints (full1 + FPNet A)
+  0.254    with popularity weight 0.15 instead of 0.25 — kept at 0.25
+  0.261    with a 1000-connectivity shortlist instead of 300 — adopted
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -80,7 +82,7 @@ RDLogger.DisableLog("rdApp.*")
 
 PPM = 5.0
 TOP_K = 25
-SHORTLIST = 300  # distinct connectivities per molecule, chosen by popularity
+SHORTLIST = 1000  # distinct connectivities per molecule, chosen by popularity; 300 scored 0.258
 POP_WEIGHT = 0.25  # on a z-scored spectral score, as in the published prior's recipe
 MAX_BREAKS = 2
 MAX_BONDS = 60
