@@ -170,3 +170,23 @@ class TestPopularityPrior:
 
         assert {k: c.pop for k, c in cands.items()} == {
             "POPULAR": 9.0, "TRAINKEY": 2.0, "NOTINPUBCHEM": 0.0}
+
+    def test_candidates_drop_excluded_keys(self):
+        entries = [("PARENT", ("CCO", 46.0)), ("OTHER", ("OCC", 46.0))]
+        cands = nb.candidates_for(46.0, entries, [46.0, 46.0], None, {"PARENT"})
+        assert list(cands) == ["OTHER"]
+
+    def test_copied_parents_match_bit_identical_spectra_only(self, tmp_path):
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        rows = [  # (inchikey14, adduct, precursor, mzs, intensities)
+            ("COPIED", "[M+H]+", 100.0, [50.0, 60.0], [1.0, 0.5]),
+            ("NEARMISS", "[M+H]+", 100.0, [50.0, 60.0], [1.0, 0.4999]),
+            ("OTHERADDUCT", "[M+Na]+", 100.0, [50.0, 60.0], [1.0, 0.5]),
+        ]
+        cols = ["inchikey14", "adduct", "precursor_mz", "ms2_mzs", "ms2_normalized_intensities"]
+        pq.write_table(pa.table({c: [r[i] for r in rows] for i, c in enumerate(cols)}), tmp_path / "t.parquet")
+        mol = {"records": [dict(mz=[50.0, 60.0], it=[1.0, 0.5], prec=100.0, adduct="[M+H]+")]}
+
+        assert nb.copied_parents(tmp_path / "t.parquet", {"m1": mol}) == {"m1": {"COPIED"}}
