@@ -1,0 +1,24 @@
+{
+  "id": "charyeezy/casmi-fragments-v1-nolookup",
+  "title": "CASMI fragments v1 nolookup",
+  "code_file": "kaggle_submission.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "false",
+  "enable_tpu": "false",
+  "enable_internet": "false",
+  "dataset_sources": [
+    "charyeezy/rdkit-2025-9-3-cp313-wheel",
+    "ahmedberatozer/casmi26-pubchem-tier",
+    "dmitriigluzdov/casmi26-pubchem-popularity-prior",
+    "ahmedberatozer/casmi26-v4b-models",
+    "ahmedberatozer/casmi26-fpnet-full1",
+    "ahmedberatozer/casmi26-v2-pool"
+  ],
+  "competition_sources": [
+    "enveda-CASMI26-molecule-id-mass-spectra"
+  ],
+  "kernel_sources": [],
+  "model_sources": []
+}
