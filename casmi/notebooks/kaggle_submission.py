@@ -14,6 +14,7 @@ Scores so far, each changing one thing:
   0.254    with popularity weight 0.15 instead of 0.25 — kept at 0.25
   0.261    with a 1000-connectivity shortlist instead of 300 — adopted
   0.262  the same, never proposing the train structure behind a copied spectrum
+  this   the same, with ICEBERG re-ordering same-formula groups in the top 60
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -55,18 +56,20 @@ def ensure_rdkit() -> None:
 
     rdkit is NOT in Kaggle's image — the first run died on `ModuleNotFoundError: rdkit` — and
     internet is off, so pip cannot reach PyPI. The wheel is attached as a dataset instead and
-    installed with --no-index, which needs no network. cp313 because the worker runs 3.13.
+    installed with --no-index, which needs no network. The wheel must match the interpreter: the
+    pinned image (kernel-metadata.json) runs the 3.12 that ICEBERG's own wheels need.
     """
     try:
         import rdkit  # noqa: F401
         return
     except ModuleNotFoundError:
         pass
-    wheels = sorted(Path("/kaggle/input").glob("**/rdkit-*.whl"))
+    tag = f"cp{sys.version_info.major}{sys.version_info.minor}"
+    wheels = sorted(Path("/kaggle/input").glob(f"**/rdkit-*-{tag}-{tag}-*.whl"))
     if not wheels:
         raise SystemExit(
-            "rdkit is absent and no rdkit wheel is attached. Add the wheel dataset to this "
-            "notebook's inputs — with internet off, pip cannot fetch it."
+            f"rdkit is absent and no {tag} rdkit wheel is attached. Add the wheel dataset to "
+            "this notebook's inputs — with internet off, pip cannot fetch it."
         )
     print(f"installing {wheels[0].name}", flush=True)
     subprocess.run(
@@ -85,6 +88,9 @@ RDLogger.DisableLog("rdApp.*")
 PPM = 5.0
 TOP_K = 25
 SHORTLIST = 1000  # distinct connectivities per molecule, chosen by popularity; 300 scored 0.258
+RERANK_N = 60  # ranked list depth handed to ICEBERG; the dataset README's recommendation
+ICE_LAMBDA = 0.5  # weight on ICEBERG's z-score within a same-formula group, as recommended
+ICE_BUDGET_S = 6 * 3600  # a cap: ~25-30 min on a T4, hours on CPU; the runner stops cleanly at it
 POP_WEIGHT = 0.25  # on a z-scored spectral score, as in the published prior's recipe
 MAX_BREAKS = 2
 MAX_BONDS = 60
@@ -508,7 +514,7 @@ def explained_scores(mol: dict, smiles: list[str]) -> np.ndarray:
 
 
 def rank_candidates(mol: dict, mass: float, candidates: dict[str, Candidate],
-                    fpnet: FPNetScorer | None = None) -> list[str]:
+                    fpnet: FPNetScorer | None = None) -> list[tuple[str, float]]:
     """Order by blended score — FPNet's f.z when attached, else fragment explainability — with
     mass error breaking ties."""
     rows = list(candidates.values())
@@ -516,7 +522,62 @@ def rank_candidates(mol: dict, mass: float, candidates: dict[str, Candidate],
     spectral = fpnet.scores(mol["records"], smiles) if fpnet else explained_scores(mol, smiles)
     score = blend(spectral, np.array([c.pop for c in rows]))
     order = sorted(range(len(rows)), key=lambda i: (-score[i], abs(rows[i].mass - mass)))
-    return [rows[i].smiles for i in order[:TOP_K]]
+    return [(rows[i].smiles, float(score[i])) for i in order[:RERANK_N]]
+
+
+class IcebergRescorer:
+    """ICEBERG forward model (casmi26-iceberg): predicts each candidate's spectrum and compares it
+    with the query, re-ordering same-formula groups inside the top RERANK_N.
+
+    The dataset's `fuse` glue runs ICEBERG in a subprocess with its own wheels, including a cp312
+    RDKit, and on any failure returns null scores without raising. The counts logged here are
+    therefore the only evidence it worked. Imported in __init__: the package exists only on Kaggle.
+    """
+
+    def __init__(self, pkg: Path) -> None:
+        sys.path.append(str(pkg))
+        import fuse
+
+        self.pkg, self.fuse = pkg, fuse
+
+    def rerank(self, test: Path, ranked: dict[str, list[tuple[str, float]]]) -> dict[str, list[str]]:
+        import pandas as pd
+        from rdkit.Chem.rdMolDescriptors import CalcMolFormula
+
+        def formula(smi: str) -> str:  # an unparsable SMILES becomes its own group, so rerank never moves it
+            mol = Chem.MolFromSmiles(smi)
+            return CalcMolFormula(mol) if mol else smi
+
+        formulas = {m: [formula(s) for s, _ in r] for m, r in ranked.items()}
+        cands = {}
+        for m, r in ranked.items():  # only groups with a member in the top TOP_K can change the submission
+            smis = [s for s, _ in r]
+            reachable = set(formulas[m][:TOP_K])
+            group = set(self.fuse.ice_candidates(smis, formulas[m], RERANK_N))
+            cands[m] = [s for s, f in zip(smis, formulas[m]) if s in group and f in reachable]
+        items = self.fuse.build_ice_input(pd.read_parquet(test), {m: c for m, c in cands.items() if c})
+        import torch
+
+        ice = self.fuse.run_ice(str(self.pkg), items, workdir="/tmp/ice_work",
+                                device="cuda" if torch.cuda.is_available() else "cpu",
+                                budget_s=ICE_BUDGET_S, site="/tmp/ice_site")
+        scored = sum(v is not None for per in ice.values() for v in per.values())
+        print(f"ICEBERG: {sum(bool(i['spectra']) for i in items)} molecules with covered spectra, "
+              f"{scored} candidate scores returned", flush=True)
+        out = {}
+        for m, r in ranked.items():
+            smis = [s for s, _ in r]
+            order = self.fuse.rerank(smis, None, [sc for _, sc in r], formulas[m], ice.get(m, {}),
+                                     lam=ICE_LAMBDA, top_n=RERANK_N)
+            out[m] = [smis[i] for i in order]
+        print(f"ICEBERG changed the top-1 for "
+              f"{sum(out[m][:1] != [s for s, _ in ranked[m][:1]] for m in ranked)} molecules", flush=True)
+        return out
+
+
+def find_iceberg() -> IcebergRescorer | None:
+    hits = sorted(Path("/kaggle/input").glob("**/casmi26-iceberg/**/ice_runner.py"))
+    return IcebergRescorer(hits[0].parent) if hits else None
 
 
 def pad(picks: list[str]) -> list[str]:
@@ -528,14 +589,15 @@ def pad(picks: list[str]) -> list[str]:
     return out
 
 
-def write_submission(rows: dict[str, list[str]], expected: int) -> Path:
-    """Validate against the stated rejection rules, then write."""
+def write_submission(rows: dict[str, list[str]], expected: int, name: str = "submission.csv") -> Path:
+    """Pad each row to TOP_K, validate against the stated rejection rules, then write."""
+    rows = {m: pad(p) for m, p in rows.items()}
     assert rows, "no rows produced"
     assert len(rows) == expected, "molecule_id count changed"
     for mol_id, picks in rows.items():
         assert mol_id and len(picks) == TOP_K, f"bad row for {mol_id}"
         assert all(p for p in picks), f"empty candidate for {mol_id}"
-    out = output_dir() / "submission.csv"
+    out = output_dir() / name
     with out.open("w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["molecule_id", "smiles"])
@@ -559,6 +621,25 @@ def open_pubchem() -> PubChemTier | None:
     return pubchem
 
 
+def rank_all(molecules: dict[str, dict], entries, pool_masses: list[float], pubchem: PubChemTier | None,
+             fpnet: FPNetScorer | None, copied: dict[str, set[str]]) -> dict[str, list[tuple[str, float]]]:
+    t0 = time.time()
+    ranked: dict[str, list[tuple[str, float]]] = {}
+    sizes: list[int] = []
+    for n, (mol_id, mol) in enumerate(molecules.items(), 1):
+        mass = neutral_mass(mol["mz"], mol["adduct"]) if mol["mz"] else None
+        ranked[mol_id] = []
+        if mass is not None:
+            cands = candidates_for(mass, entries, pool_masses, pubchem, copied.get(mol_id, set()))
+            sizes.append(len(cands))
+            ranked[mol_id] = rank_candidates(mol, mass, cands, fpnet)
+        if n % 25 == 0:
+            print(f"  ranked {n}/{len(molecules)}  median candidates {int(np.median(sizes))}  "
+                  f"({time.time()-t0:.0f}s)", flush=True)
+    print(f"candidates: median {int(np.median(sizes))}, max {max(sizes)}", flush=True)
+    return ranked
+
+
 def main() -> None:
     t0 = time.time()
     data = find_input()
@@ -569,6 +650,8 @@ def main() -> None:
     pubchem = open_pubchem()
     fpnet = find_fpnet()
     print(f"spectral score: {'FPNet' if fpnet else 'fragment explainability'}", flush=True)
+    iceberg = find_iceberg()
+    print(f"forward model: {'ICEBERG' if iceberg else 'none'}", flush=True)
 
     molecules = read_test(data / "test.parquet")
     print(f"test molecules: {len(molecules)}", flush=True)
@@ -576,23 +659,13 @@ def main() -> None:
     print(f"copied train structures excluded for {len(copied)} molecules "
           f"({sum(map(len, copied.values()))} in all)  ({time.time()-t0:.0f}s)", flush=True)
 
-    rows: dict[str, list[str]] = {}
-    sizes: list[int] = []
-    for n, (mol_id, mol) in enumerate(molecules.items(), 1):
-        mass = neutral_mass(mol["mz"], mol["adduct"]) if mol["mz"] else None
-        picks: list[str] = []
-        if mass is not None:
-            cands = candidates_for(mass, entries, pool_masses, pubchem, copied.get(mol_id, set()))
-            sizes.append(len(cands))
-            picks = rank_candidates(mol, mass, cands, fpnet)
-        rows[mol_id] = pad(picks)
-        if n % 25 == 0:
-            print(f"  ranked {n}/{len(molecules)}  median candidates {int(np.median(sizes))}  "
-                  f"({time.time()-t0:.0f}s)", flush=True)
-
-    out = write_submission(rows, len(molecules))
-    print(f"candidates: median {int(np.median(sizes))}, max {max(sizes)}", flush=True)
-    print(f"wrote {out}: {len(rows)} rows x {TOP_K}  ({time.time()-t0:.0f}s total)", flush=True)
+    ranked = rank_all(molecules, entries, pool_masses, pubchem, fpnet, copied)
+    final = {m: [s for s, _ in r] for m, r in ranked.items()}
+    if iceberg:
+        write_submission(final, len(molecules), "pre_iceberg.csv")
+        final = iceberg.rerank(data / "test.parquet", ranked)
+    out = write_submission(final, len(molecules))
+    print(f"wrote {out}: {len(final)} rows x {TOP_K}  ({time.time()-t0:.0f}s total)", flush=True)
 
 
 if __name__ == "__main__":
