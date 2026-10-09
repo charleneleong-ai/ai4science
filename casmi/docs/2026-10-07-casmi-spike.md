@@ -24,6 +24,7 @@ InChIKey connectivity block. Code competition: notebook only, internet off. Entr
 | fragments over train + [PubChem tier](https://www.kaggle.com/datasets/ahmedberatozer/casmi26-pubchem-tier) (106M), 4000 nearest-mass per molecule | **0.049** | — |
 | train + 300 most-documented PubChem connectivities ([popularity prior](https://www.kaggle.com/datasets/dmitriigluzdov/casmi26-pubchem-popularity-prior)), fragments + 0.25 × popularity | **0.135** | — |
 | same shortlist and prior, [public FPNet](https://www.kaggle.com/datasets/ahmedberatozer/casmi26-fpnet-full1) fingerprint score in place of fragments | **0.250** | — |
+| same, averaging two FPNet checkpoints (full1 + FPNet A) | **0.258** | — |
 | leaderboard top | 0.480 | 1 |
 | [public notebook, "v4n Fusion + PubChem"](https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421) | 0.421 | — |
 
@@ -109,6 +110,7 @@ trivial join scored ~1.0. That contradiction was explained away instead of inves
 2. ~~**PubChem-scale pool**~~ — done; 0.049 on its own.
 3. ~~**A popularity prior**~~ — 0.135.
 4. ~~**A learned spectral model**~~ — FPNet in place of fragments: 0.250, the largest single gain.
+5. ~~**An FPNet ensemble**~~ — 0.258; a second checkpoint adds little.
 
 ## What is reusable
 
