@@ -8,7 +8,7 @@ Scores so far, each changing one thing:
   0.049  + the 106M-structure PubChem tier, 4000 nearest-mass per molecule — arbitrary among
          same-formula isomers, and fragments alone cannot find the answer among thousands
   0.135  PubChem shortlist chosen by a popularity prior, ranked by fragments + prior
-  this   the same, with the public FPNet's fingerprint score in place of fragments
+  0.250  the same, with the public FPNet's fingerprint score in place of fragments
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
