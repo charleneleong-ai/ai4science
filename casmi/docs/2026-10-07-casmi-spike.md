@@ -27,6 +27,7 @@ InChIKey connectivity block. Code competition: notebook only, internet off. Entr
 | same, averaging two FPNet checkpoints (full1 + FPNet A) | **0.258** | — |
 | same, popularity weight 0.15 instead of 0.25 | 0.254 | — |
 | same as 0.258, shortlist 1000 instead of 300 | **0.261** | — |
+| same, never proposing the train structure behind a copied spectrum | **0.262** | — |
 | leaderboard top | 0.480 | 1 |
 | [public notebook, "v4n Fusion + PubChem"](https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421) | 0.421 | — |
 
@@ -115,6 +116,12 @@ trivial join scored ~1.0. That contradiction was explained away instead of inves
 5. ~~**An FPNet ensemble**~~ — 0.258; a second checkpoint adds little.
 6. ~~**Tuning the prior**~~ — weight 0.15: 0.254; shortlist 1000: 0.261. Both moves are
    within ~0.005 of 0.258, so the shortlist and the prior are no longer the bottleneck.
+7. ~~**Excluding copied structures**~~ — 0.262. The 0.261 submission's top-1 was the train
+   structure behind a copied spectrum for 267 / 400 molecules (FPNet full1 trained on those rows);
+   the 0.421 notebook's was for 12 / 400, at median Tanimoto 0.05 to it. Excluding them changed
+   all 267 top-1s and the score by 0.001: what replaced them is as rarely right. The copied
+   structures also rule out library and analog search over train as built — its top hit is that
+   structure, and the 0.421 answers are not its relatives.
 
 ## What is reusable
 
