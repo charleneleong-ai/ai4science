@@ -28,6 +28,7 @@ InChIKey connectivity block. Code competition: notebook only, internet off. Entr
 | same, popularity weight 0.15 instead of 0.25 | 0.254 | — |
 | same as 0.258, shortlist 1000 instead of 300 | **0.261** | — |
 | same, never proposing the train structure behind a copied spectrum | **0.262** | — |
+| same, [ICEBERG](https://www.kaggle.com/datasets/ahmedberatozer/casmi26-iceberg) re-ordering same-formula groups in the top 60 (CPU, 269 / 400 molecules scored) | **0.286** | — |
 | leaderboard top | 0.480 | 1 |
 | [public notebook, "v4n Fusion + PubChem"](https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421) | 0.421 | — |
 
@@ -122,6 +123,10 @@ trivial join scored ~1.0. That contradiction was explained away instead of inves
    all 267 top-1s and the score by 0.001: what replaced them is as rarely right. The copied
    structures also rule out library and analog search over train as built — its top hit is that
    structure, and the 0.421 answers are not its relatives.
+8. ~~**A forward model**~~ — ICEBERG: 0.286, the second-largest gain after FPNet, and only
+   269 / 400 molecules were scored (CPU, 1.6 predictions/s, 6 h budget; the GPU quota was spent).
+   Changed 72 top-1s. Not separable from the switch to the pinned Python 3.12 image and RDKit
+   2026.03 made in the same run: v11's output was not kept to compare against.
 
 ## What is reusable
 
