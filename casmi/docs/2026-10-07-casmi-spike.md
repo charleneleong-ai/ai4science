@@ -31,6 +31,7 @@ InChIKey connectivity block. Code competition: notebook only, internet off. Entr
 | same, [ICEBERG](https://www.kaggle.com/datasets/ahmedberatozer/casmi26-iceberg) re-ordering same-formula groups in the top 60 (CPU, 269 / 400 molecules scored) | **0.286** | — |
 | same on a T4: ICEBERG scores all 371 molecules it can cover | **0.292** | — |
 | same, [GLACIER](https://www.kaggle.com/datasets/ahmedberatozer/casmi26-glacier) fused beside ICEBERG (0.5 / 0.5) | **0.320** | — |
+| same, forward-model weights 1.0 / 1.0 (the 0.421 notebook's setting) | **0.349** | — |
 | leaderboard top | 0.480 | 1 |
 | [public notebook, "v4n Fusion + PubChem"](https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421) | 0.421 | — |
 
