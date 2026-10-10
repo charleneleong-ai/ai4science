@@ -16,6 +16,7 @@ Scores so far, each changing one thing:
   0.262  the same, never proposing the train structure behind a copied spectrum
   0.286  the same, with ICEBERG re-ordering same-formula groups in the top 60 (CPU: 269 / 400
          molecules scored inside the 6 h budget)
+  this   the same on a T4 (all 371 coverable molecules), with GLACIER fused beside ICEBERG
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -83,6 +84,7 @@ ensure_rdkit()
 
 from rdkit import Chem, RDLogger  # noqa: E402  (import follows the wheel install above)
 from rdkit.Chem.Descriptors import ExactMolWt  # noqa: E402
+from rdkit.Chem.rdMolDescriptors import CalcMolFormula  # noqa: E402
 
 RDLogger.DisableLog("rdApp.*")
 
@@ -90,8 +92,10 @@ PPM = 5.0
 TOP_K = 25
 SHORTLIST = 1000  # distinct connectivities per molecule, chosen by popularity; 300 scored 0.258
 RERANK_N = 60  # ranked list depth handed to ICEBERG; the dataset README's recommendation
-ICE_LAMBDA = 0.5  # weight on ICEBERG's z-score within a same-formula group, as recommended
-ICE_BUDGET_S = 6 * 3600  # a cap: ~25-30 min on a T4, hours on CPU; the runner stops cleanly at it
+ICE_LAMBDA = 0.5  # weights on each forward model's z-score within a same-formula group, as recommended
+GL_LAMBDA = 0.5
+ICE_BUDGET_S = 6 * 3600  # caps: ICEBERG took 20 min on a T4 and covered 269 / 371 in 6 h on CPU;
+GL_BUDGET_S = 3 * 3600  # the runners stop cleanly at them. GLACIER runs only on a GPU.
 POP_WEIGHT = 0.25  # on a z-scored spectral score, as in the published prior's recipe
 MAX_BREAKS = 2
 MAX_BONDS = 60
@@ -526,59 +530,101 @@ def rank_candidates(mol: dict, mass: float, candidates: dict[str, Candidate],
     return [(rows[i].smiles, float(score[i])) for i in order[:RERANK_N]]
 
 
-class IcebergRescorer:
-    """ICEBERG forward model (casmi26-iceberg): predicts each candidate's spectrum and compares it
-    with the query, re-ordering same-formula groups inside the top RERANK_N.
+class ForwardRescorer:
+    """Forward models re-order same-formula groups inside the top RERANK_N: ICEBERG (casmi26-iceberg)
+    and, when attached, GLACIER (casmi26-glacier). Each predicts every candidate's spectrum and scores
+    it against the query; the fusion is z(score) + ICE_LAMBDA z(ICEBERG) + GL_LAMBDA z(GLACIER)
+    within each group, the datasets' recommended recipe.
 
-    The dataset's `fuse` glue runs ICEBERG in a subprocess with its own wheels, including a cp312
-    RDKit, and on any failure returns null scores without raising. The counts logged here are
-    therefore the only evidence it worked. Imported in __init__: the package exists only on Kaggle.
+    Both run in subprocesses with ICEBERG's wheels, including a cp312 RDKit, and return null scores
+    on any failure without raising, so the logged counts are the only evidence they worked.
+    Imported in __init__: the packages exist only on Kaggle.
     """
 
-    def __init__(self, pkg: Path) -> None:
-        sys.path.append(str(pkg))
+    def __init__(self, ice_pkg: Path, gl_pkg: Path | None) -> None:
+        sys.path.append(str(ice_pkg))
         import fuse
 
-        self.pkg, self.fuse = pkg, fuse
+        self.ice_pkg, self.gl_pkg, self.fuse, self.gl_fuse = ice_pkg, gl_pkg, fuse, None
+        if gl_pkg:
+            sys.path.append(str(gl_pkg))
+            import gl_fuse
 
-    def rerank(self, test: Path, ranked: dict[str, list[tuple[str, float]]]) -> dict[str, list[str]]:
+            self.gl_fuse = gl_fuse
+
+    @property
+    def names(self) -> str:
+        return "ICEBERG + GLACIER" if self.gl_fuse else "ICEBERG"
+
+    @staticmethod
+    def formula(smi: str) -> str:  # an unparsable SMILES becomes its own group, so rerank never moves it
+        mol = Chem.MolFromSmiles(smi)
+        return CalcMolFormula(mol) if mol else smi
+
+    def items(self, test: Path, ranked: dict[str, list[tuple[str, float]]],
+              formulas: dict[str, list[str]]) -> list[dict]:
+        """Runner input: only groups with a member in the top TOP_K can change the submission."""
         import pandas as pd
-        from rdkit.Chem.rdMolDescriptors import CalcMolFormula
 
-        def formula(smi: str) -> str:  # an unparsable SMILES becomes its own group, so rerank never moves it
-            mol = Chem.MolFromSmiles(smi)
-            return CalcMolFormula(mol) if mol else smi
-
-        formulas = {m: [formula(s) for s, _ in r] for m, r in ranked.items()}
         cands = {}
-        for m, r in ranked.items():  # only groups with a member in the top TOP_K can change the submission
+        for m, r in ranked.items():
             smis = [s for s, _ in r]
             reachable = set(formulas[m][:TOP_K])
             group = set(self.fuse.ice_candidates(smis, formulas[m], RERANK_N))
             cands[m] = [s for s, f in zip(smis, formulas[m]) if s in group and f in reachable]
-        items = self.fuse.build_ice_input(pd.read_parquet(test), {m: c for m, c in cands.items() if c})
+        return self.fuse.build_ice_input(pd.read_parquet(test), {m: c for m, c in cands.items() if c})
+
+    def score(self, items: list[dict]) -> list[dict[str, dict[str, float | None]]]:
+        """Scores per model that returned any; a model returning none is reported and left out of the fusion."""
         import torch
 
-        ice = self.fuse.run_ice(str(self.pkg), items, workdir="/tmp/ice_work",
-                                device="cuda" if torch.cuda.is_available() else "cpu",
-                                budget_s=ICE_BUDGET_S, site="/tmp/ice_site")
-        scored = sum(v is not None for per in ice.values() for v in per.values())
-        print(f"ICEBERG: {sum(bool(i['spectra']) for i in items)} molecules with covered spectra, "
-              f"{scored} candidate scores returned", flush=True)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"forward models: {sum(bool(i['spectra']) for i in items)} molecules with covered spectra", flush=True)
+        runs = [("ICEBERG", self.fuse.run_ice(str(self.ice_pkg), items, workdir="/tmp/ice_work", device=device,
+                                              budget_s=ICE_BUDGET_S, site="/tmp/ice_site"))]
+        if self.gl_fuse and device == "cuda":
+            runs.append(("GLACIER", self.gl_fuse.run_gl(str(self.gl_pkg), items, workdir="/tmp/gl_work",
+                                                        device=device, budget_s=GL_BUDGET_S, site="/tmp/ice_site",
+                                                        wheels=str(self.ice_pkg / "wheels"))))
+        kept = []
+        for name, scores in runs:
+            returned = sum(v is not None for per in scores.values() for v in per.values())
+            print(f"{name}: {returned} candidate scores returned{'' if returned else ' — FAILED, left out'}",
+                  flush=True)
+            if returned:
+                kept.append(scores)
+        return kept
+
+    def reorder(self, ranked: dict[str, list[tuple[str, float]]], formulas: dict[str, list[str]],
+                runs: list[dict[str, dict[str, float | None]]]) -> dict[str, list[str]]:
+        lams = [ICE_LAMBDA, GL_LAMBDA][:len(runs)]
         out = {}
         for m, r in ranked.items():
             smis = [s for s, _ in r]
-            order = self.fuse.rerank(smis, None, [sc for _, sc in r], formulas[m], ice.get(m, {}),
-                                     lam=ICE_LAMBDA, top_n=RERANK_N)
+            dicts = [run.get(m, {}) for run in runs] or [{}]
+            order = (self.gl_fuse.rerank_multi(smis, None, [sc for _, sc in r], formulas[m], dicts, lams, top_n=RERANK_N)
+                     if len(runs) > 1 else
+                     self.fuse.rerank(smis, None, [sc for _, sc in r], formulas[m], dicts[0], lam=lams[0], top_n=RERANK_N))
             out[m] = [smis[i] for i in order]
-        print(f"ICEBERG changed the top-1 for "
+        return out
+
+    def rerank(self, test: Path, ranked: dict[str, list[tuple[str, float]]]) -> dict[str, list[str]]:
+        formulas = {m: [self.formula(s) for s, _ in r] for m, r in ranked.items()}
+        runs = self.score(self.items(test, ranked, formulas))
+        if len(runs) > 1:  # ICEBERG alone, for comparison with the ICEBERG-only runs
+            write_submission(self.reorder(ranked, formulas, runs[:1]), len(ranked), "iceberg_only.csv")
+        out = self.reorder(ranked, formulas, runs)
+        print(f"{self.names} changed the top-1 for "
               f"{sum(out[m][:1] != [s for s, _ in ranked[m][:1]] for m in ranked)} molecules", flush=True)
         return out
 
 
-def find_iceberg() -> IcebergRescorer | None:
-    hits = sorted(Path("/kaggle/input").glob("**/casmi26-iceberg/**/ice_runner.py"))
-    return IcebergRescorer(hits[0].parent) if hits else None
+def find_forward() -> ForwardRescorer | None:
+    ice = sorted(Path("/kaggle/input").glob("**/casmi26-iceberg/**/ice_runner.py"))
+    gl = sorted(Path("/kaggle/input").glob("**/casmi26-glacier/**/gl_runner.py"))
+    if gl and not ice:
+        raise SystemExit("GLACIER attached without casmi26-iceberg, whose wheels and glue it needs.")
+    return ForwardRescorer(ice[0].parent, gl[0].parent if gl else None) if ice else None
 
 
 def pad(picks: list[str]) -> list[str]:
@@ -651,8 +697,8 @@ def main() -> None:
     pubchem = open_pubchem()
     fpnet = find_fpnet()
     print(f"spectral score: {'FPNet' if fpnet else 'fragment explainability'}", flush=True)
-    iceberg = find_iceberg()
-    print(f"forward model: {'ICEBERG' if iceberg else 'none'}", flush=True)
+    forward = find_forward()
+    print(f"forward model: {forward.names if forward else 'none'}", flush=True)
 
     molecules = read_test(data / "test.parquet")
     print(f"test molecules: {len(molecules)}", flush=True)
@@ -662,9 +708,9 @@ def main() -> None:
 
     ranked = rank_all(molecules, entries, pool_masses, pubchem, fpnet, copied)
     final = {m: [s for s, _ in r] for m, r in ranked.items()}
-    if iceberg:
-        write_submission(final, len(molecules), "pre_iceberg.csv")
-        final = iceberg.rerank(data / "test.parquet", ranked)
+    if forward:
+        write_submission(final, len(molecules), "pre_forward.csv")
+        final = forward.rerank(data / "test.parquet", ranked)
     out = write_submission(final, len(molecules))
     print(f"wrote {out}: {len(final)} rows x {TOP_K}  ({time.time()-t0:.0f}s total)", flush=True)
 
