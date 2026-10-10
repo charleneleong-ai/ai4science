@@ -4,7 +4,21 @@ Dated, distilled entries — newest first. Each entry: what it is / why it matte
 
 <!-- NEW ENTRIES GO DIRECTLY BELOW THIS LINE (newest first) -->
 
+## 2026-10-08 — CASMI 2026: an uncalibrated verifier, and the two days of conclusions built on it
+
+**Source:** the real leaderboard — submission `56908784`, publicScore **0.115**, rank 2397 / 2686 — against the [0.421 public notebook](https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421); corrected writeup in [`casmi/docs/2026-10-07-casmi-spike.md`](casmi/docs/2026-10-07-casmi-spike.md) (2026-10-08)
+
+**What it is:** I predicted MRR@25 0.664 and first place; it scored 0.115. Scoring the 0.421 public notebook with the same local scorer gave **0.030**. The scorer used labels recovered by joining test spectra to bit-identical train spectra, and those labels were mostly wrong — our top-1 matched them for 215 molecules, so had they been right we'd have scored ≥0.538. The pool was train, the labels were from train: "recall 1.0000" was guaranteed by construction and I reported it as a ceiling.
+
+**Why it matters:** two entries below are built on that scorer and are now superseded. The spectra genuinely are duplicated (1189/1213 bit-identical); every *inference* drawn from the duplication was wrong. And the tell was in plain sight: 2,685 teams clustered at 0.43–0.48 while I believed a trivial join scored ~1.0. I explained that contradiction away instead of investigating it.
+
+**How it transfers:** this is the thesis of this repo, demonstrated by counterexample. Every component was verified — 93 tests, parity checks, negative controls, bit-identity checks — and the composite verifier was never checked against the one external ground truth available for free: a public submission with a known score. Two minutes, done last. *Calibrate the verifier against an independent known answer before trusting anything it says* — the same move [[touchstone]] makes against real plastocyanin, which I applied there and skipped here. A verifier you have not verified is a feeling with a test suite.
+
+**To learn next:** why spectra bit-identical to train rows carry non-answer structures — data-assembly artefact, deliberate, or mislabelled train rows; and whether a PubChem-scale pool plus fragment explainability beats the field's 0.48.
+
 ## 2026-10-07 — CASMI 2026: no public database covers the test chemistry, because it isn't natural products
+
+> **Superseded 2026-10-08 — the central claim of this entry is wrong.** See the 2026-10-08 entry. Kept as written, because what was believed and why is the point.
 
 **Source:** measured — [COCONUT 2.0](https://coconut.naturalproducts.net/download) (CC0, 474k structures after collapsing to `inchikey14`) against the competition data; writeup in [`casmi/docs/2026-10-07-casmi-spike.md`](casmi/docs/2026-10-07-casmi-spike.md) (grounded 2026-10-07)
 
@@ -17,6 +31,8 @@ Dated, distilled entries — newest first. Each entry: what it is / why it matte
 **To learn next:** whether the private split is drawn like the public one (presumably, but unverifiable); and what a PubChem-scale pool does to a candidate window currently at ~46 — that number decides whether the 0.70 ranking result means anything outside train's own chemical space.
 
 ## 2026-10-06 — CASMI 2026: the public test set is duplicated in train, so the leaderboard measures lookup
+
+> **Superseded 2026-10-08 — the central claim of this entry is wrong.** See the 2026-10-08 entry. Kept as written, because what was believed and why is the point.
 
 **Source:** measured directly on the competition data — [`train.parquet`](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra/data) (2,539,608 spectra / 275,810 unique `inchikey14`) vs `test.parquet` (1,213 spectra / 400 molecules), 2026-10-06
 
@@ -38,7 +54,7 @@ Dated, distilled entries — newest first. Each entry: what it is / why it matte
 
 **Why it matters:** I had assumed retrieval+rerank was the winning shape and de novo a niche for novel structures. Half wrong. De novo is where the research frontier moved — graph-native models were the first to break 0% exact-match on leakage-controlled MassSpecGym. But the *competition*-relevant claim survives and sharpens: **candidate recall is ~solved (≈100% within a mass window) and ranking is the whole problem.** The published winning CASMI shape is a three-class hybrid — library search, fingerprint retrieval, de novo for the tail — not any one family. So "generator vs verifier" doesn't map onto "de novo vs retrieval"; the generator is candidate *supply*, and the verifier is the ranker, whichever family supplied them.
 
-**How it transfers:** This is the verification-first thesis in a domain with a free, cheap, *physics-adjacent* verifier — a forward model. ICEBERG predicts a spectrum from a candidate structure, so you can score any candidate by round-tripping it back to the observed spectrum, exactly the recursive check in the [[touchstone]] stack (generator proposes a site → independent oracle judges it). ICEBERG 2.1 (2026-07-07) ships a GPU-fast pretrained NIST'23 model, so it's a reranker you rent rather than train. **Correction (2026-10-07):** I also argued for it because it beats MassFormer *specifically on natural products* (0.627 vs 0.568 cosine) "which is CASMI's domain". Measured on the data, that premise is wrong — all 400 public test molecules come from `enveda-180`, 36% carry a halogen, and COCONUT covers 0 of them. The test set is synthetic drug-like chemistry, so the natural-product advantage is irrelevant here and NIST'23's licensing needs checking before any plan leans on it. The OOD-switching instinct also ports: when no library neighbour exists, fall back from cosine to fragment-explainability and de-novo candidates — a when-to-trust-imagination crossover, same as the [[touchstone]] cutoff lesson that a 0.1 Å parse choice silently changes which object you are scoring.
+**How it transfers:** This is the verification-first thesis in a domain with a free, cheap, *physics-adjacent* verifier — a forward model. ICEBERG predicts a spectrum from a candidate structure, so you can score any candidate by round-tripping it back to the observed spectrum, exactly the recursive check in the [[touchstone]] stack (generator proposes a site → independent oracle judges it). ICEBERG 2.1 (2026-07-07) ships a GPU-fast pretrained NIST'23 model, so it's a reranker you rent rather than train. **Correction (2026-10-07):** I also argued for it because it beats MassFormer *specifically on natural products* (0.627 vs 0.568 cosine) "which is CASMI's domain". I then "corrected" that by measuring the test set as synthetic drug-like (`enveda-180`, 36% halogen, 0/400 in COCONUT) — **but those measurements described leak-recovered labels that turned out to be mostly wrong** (see 2026-10-08). So whether the natural-product advantage applies is *undetermined*: the true answers' chemistry is unknown. NIST'23 licensing still needs checking. The OOD-switching instinct also ports: when no library neighbour exists, fall back from cosine to fragment-explainability and de-novo candidates — a when-to-trust-imagination crossover, same as the [[touchstone]] cutoff lesson that a 0.1 Å parse choice silently changes which object you are scoring.
 
 **The number that matters, and a caution:** public-leaderboard scores are reportedly ~**0.33** MRR@25, against **0.87** self-reported in public repos on 50-query subsets. Treat every repo README figure as unanchored until reproduced — the same trap as the BoltzGen Cu baseline whose provenance evaporated. *(The 0.33 is from a search summary of a third-party repo, not the leaderboard; unverified.)*
 

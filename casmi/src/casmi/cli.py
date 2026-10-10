@@ -85,6 +85,38 @@ def split_eval(
     console.print(report.render())
 
 
+@app.command()
+def submit(
+    train: Path = typer.Argument(..., help="path to train.parquet"),
+    test: Path = typer.Argument(..., help="path to test.parquet"),
+    out: Path = typer.Option(Path("submission.csv"), help="where to write the submission"),
+    ranker: str = typer.Option("fragments", help=" | ".join(RANKERS)),
+    ppm: float = typer.Option(5.0, help="neutral-mass retrieval window"),
+) -> None:
+    """Write a local submission CSV from the ranker over a train-structure pool.
+
+    Local only: CASMI is a code competition, so this file cannot be uploaded — the Kaggle
+    notebook in notebooks/ is the submission path. And the pool is train's own structures,
+    which do not contain most of the competition's answers: this configuration scored 0.115
+    on the leaderboard. A realistic submission needs a PubChem-scale pool.
+    """
+    from .submit import pad, rank_fallback, read_test, write_submission
+
+    console = Console()
+    chosen = load_ranker(ranker)
+    molecules = read_test(test)
+    with console.status("building the structure pool..."):
+        structures = build_pool(train)
+        masses = [s.mass for s in structures]
+    with console.status(f"ranking {len(molecules)} molecules with {ranker!r}..."):
+        rows = {
+            mol.molecule_id: pad(rank_fallback(mol, structures, masses, chosen, ppm))
+            for mol in molecules
+        }
+    write_submission(rows, out)
+    console.print(f"wrote {out}  ({len(rows)} rows x {len(next(iter(rows.values())))} candidates)")
+
+
 def main() -> None:
     app()
 
