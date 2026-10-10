@@ -18,7 +18,8 @@ Scores so far, each changing one thing:
          molecules scored inside the 6 h budget)
   0.292  the same on a T4: all 371 coverable molecules scored by ICEBERG
   0.320  with GLACIER fused beside ICEBERG
-  this   with both forward-model weights at 1.0 instead of 0.5
+  0.349  with both forward-model weights at 1.0 instead of 0.5
+  this   with GLACIER scoring [M+H]+ spectra only
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -585,7 +586,11 @@ class ForwardRescorer:
         runs = [("ICEBERG", self.fuse.run_ice(str(self.ice_pkg), items, workdir="/tmp/ice_work", device=device,
                                               budget_s=ICE_BUDGET_S, site="/tmp/ice_site"))]
         if self.gl_fuse and device == "cuda":
-            runs.append(("GLACIER", self.gl_fuse.run_gl(str(self.gl_pkg), items, workdir="/tmp/gl_work",
+            # GLACIER on [M+H]+ spectra only: a public variant (wangpenghua v29) reports +0.006 over all covered
+            mh = [dict(it, spectra=[sp for sp in it["spectra"] if sp.get("adduct") == "[M+H]+"]) for it in items]
+            print(f"GLACIER [M+H]+ only: {sum(bool(it['spectra']) for it in mh)} molecules", flush=True)
+            runs.append(("GLACIER", self.gl_fuse.run_gl(str(self.gl_pkg), [it for it in mh if it["spectra"]],
+                                                        workdir="/tmp/gl_work",
                                                         device=device, budget_s=GL_BUDGET_S, site="/tmp/ice_site",
                                                         wheels=str(self.ice_pkg / "wheels"))))
         kept = []
