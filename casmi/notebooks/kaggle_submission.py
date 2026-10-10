@@ -17,7 +17,7 @@ Scores so far, each changing one thing:
   0.286  the same, with ICEBERG re-ordering same-formula groups in the top 60 (CPU: 269 / 400
          molecules scored inside the 6 h budget)
   0.292  the same on a T4: all 371 coverable molecules scored by ICEBERG
-  this   with GLACIER fused beside ICEBERG
+  0.320  with GLACIER fused beside ICEBERG
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
