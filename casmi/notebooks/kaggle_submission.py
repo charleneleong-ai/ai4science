@@ -14,7 +14,8 @@ Scores so far, each changing one thing:
   0.254    with popularity weight 0.15 instead of 0.25 — kept at 0.25
   0.261    with a 1000-connectivity shortlist instead of 300 — adopted
   0.262  the same, never proposing the train structure behind a copied spectrum
-  this   the same, with ICEBERG re-ordering same-formula groups in the top 60
+  0.286  the same, with ICEBERG re-ordering same-formula groups in the top 60 (CPU: 269 / 400
+         molecules scored inside the 6 h budget)
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
