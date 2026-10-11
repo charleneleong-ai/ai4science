@@ -1,0 +1,117 @@
+\documentclass[11pt]{article}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage[hidelinks]{hyperref}
+
+\title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.349}
+\author{Charlene Leong}
+\date{11 October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We rank candidate structures for 400 molecules from their tandem mass spectra in the CASMI 2026
+Kaggle competition, scored by MRR@25 on the InChIKey connectivity block. The first submission
+scored 0.115 against a local estimate of 0.664; the estimate came from labels drawn from the same
+data as the candidates, and was retracted. Since then every number reported is a public
+leaderboard score, and each of the 14 submissions changed one thing. A PubChem-scale pool with a
+popularity prior, a learned spectrum-to-fingerprint model, and two forward models that predict each
+candidate's spectrum take the score to 0.349, against 0.421 for the public notebook these
+components come from. No local estimate of the score exists.
+\end{abstract}
+
+\section{Task}
+Each test molecule has one or more LC-MS/MS spectra (400 molecules, 1213 spectra). A submission
+lists up to 25 SMILES per molecule; the score is the mean reciprocal rank of the answer, matched on
+the first 14 characters of the InChIKey. The competition runs notebooks offline, so every database
+and model is attached as a dataset. Only the public split of the leaderboard is visible.
+
+\section{Method}
+\begin{enumerate}
+  \item \textbf{Candidates.} Within a 5 ppm window of the molecule's neutral mass, the 1000
+    best-documented PubChem connectivities (by $\log(1+\text{substances}) + \log(1+\text{PubMed})$)
+    from a 106-million-structure tier, plus train structures in the window.
+  \item \textbf{Copied spectra.} 1189 of 1213 test spectra are bit-identical to a train row; every
+    molecule has at least one. The train structure behind it is removed from the candidates.
+  \item \textbf{Ranking.} An ensemble of two public FPNet checkpoints predicts fingerprint logits
+    $z$ per spectrum and per polarity-merged spectrum; a candidate with fingerprint $f$ scores
+    $f\cdot z$, z-scored within the molecule, plus $0.25 \times$ popularity.
+  \item \textbf{Forward models.} For the top 60, ICEBERG and GLACIER predict every candidate's
+    spectrum. Within each same-formula group reaching the top 25 the order becomes
+    $z(\text{score}) + \lambda\, z(\text{ICEBERG}) + \lambda\, z(\text{GLACIER})$, with $\lambda = 1$.
+\end{enumerate}
+
+\section{The funnel}
+\begin{center}
+\begin{tabular}{lr}
+\toprule
+stage & surviving \\
+\midrule
+test molecules & 400 \\
+candidates per molecule (median, max) & 1038, 1445 \\
+copied train structures removed & 400 (one per molecule) \\
+molecules with $[\mathrm{M{+}H}]^+$ / $[\mathrm{M{+}Na}]^+$ spectra (forward-model coverage) & 371 \\
+candidates scored by each forward model & 21{,}865 of 23{,}552 sent \\
+molecules whose top-1 the forward models change ($\lambda=1$) & 208 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Results}
+Every score is the public leaderboard's. Fourteen submissions were made; all were scored; none
+is omitted.
+
+\begin{center}
+\begin{tabular}{rlr}
+\toprule
+v & change from the previous kept version & public MRR@25 \\
+\midrule
+1  & fragment explainability over train's 275{,}798 structures & 0.115 \\
+4  & + PubChem tier, 4000 nearest-mass per molecule & 0.049 \\
+5  & popularity shortlist of 300, $+0.25\times$ popularity & 0.135 \\
+6  & FPNet in place of fragment explainability & 0.250 \\
+7  & FPNet ensemble (two checkpoints) & 0.258 \\
+8  & popularity weight 0.15 (not kept) & 0.254 \\
+9  & shortlist 1000 & 0.261 \\
+11 & copied train structures removed & 0.262 \\
+12 & ICEBERG, CPU, 269 of 371 molecules scored & 0.286 \\
+13 & ICEBERG on a T4, all 371 & 0.292 \\
+14 & + GLACIER, $\lambda = 0.5$ & 0.320 \\
+15 & $\lambda = 1.0$ & \textbf{0.349} \\
+16 & GLACIER on $[\mathrm{M{+}H}]^+$ only (not kept) & 0.345 \\
+17 & $\lambda = 1.5$ (not kept) & 0.346 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Two levers account for almost all of the gain: the learned spectrum model ($+0.115$, v5 to v6)
+and the forward models ($+0.087$, v11 to v15). Tuning the shortlist and the prior's weight (v8, v9)
+moved the score by under $0.01$, as did removing the copied structures, although that changed 267 top-1 picks:
+FPNet, trained on the copied rows, had returned their structures, and what replaced them was as
+rarely right. Identical runs differ by about $\pm 0.005$; v16 and v17 fall inside it and were
+reverted.
+
+\section{What is not established}
+\begin{itemize}
+  \item \textbf{A local estimate of the score.} Train-derived labels rated the 0.421 public notebook
+    at 0.030; consensus labels from ten public notebooks collapsed into three lineages agreeing on
+    12 of 400 top-1 picks. Each submission is the only measurement.
+  \item \textbf{The private score.} Three choices --- the shortlist size, $\lambda$, and GLACIER's
+    input --- were selected on the public split, so 0.349 is optimistic.
+  \item \textbf{Candidate recall.} Whether the answer is among the candidates cannot be separated
+    from ranking with one MRR.
+  \item \textbf{Why the data is shaped as it is.} The copied train structures are the answer for at
+    most $\sim$46 of 400 molecules.
+  \item \textbf{The environment switch alone.} The move to a pinned Python 3.12 image and RDKit
+    2026.3 (v12) was not measured separately.
+  \item \textbf{29 molecules} receive no forward-model evidence.
+\end{itemize}
+
+\section*{Sources}
+Code and history: \url{https://github.com/charleneleong-ai/ai4science/pull/80}. Every input and
+checkpoint with its version: \texttt{casmi/docs/experiment-card.md}. Competition:
+\url{https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra}.
+
+\end{document}
