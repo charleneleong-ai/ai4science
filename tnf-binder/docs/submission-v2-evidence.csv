@@ -1,13 +1,13 @@
-name,design,chassis,length,his_count,pka_measured_in_combination,ideal_window_his,interface_area_a2,cross_reactivity,binder_to_target_iptm,clashes,cysteines,fold_similarity,proteinbase_novelty,predicted_fold_similarity_ours
-tnf2_01,free1_T73H,free_1,74,1,6.27,0,923,0.79,0.634,0,0,moderate,4,moderate
-tnf2_02,helix0_R21H_E67H_E70H,helix_0,91,3,7.05 7.05 6.43,3,748,0.64,0.153,0,1,moderate,3,moderate
-tnf2_03,helix0_E67H_R72H,helix_0,91,2,7.12 6.66,2,528,0.7,0.159,0,1,moderate,3,moderate
-tnf2_04,helix0_R72H,helix_0,91,1,6.66,1,600,0.78,0.22,0,1,moderate,3,moderate
-tnf2_05,helix0_R35H_R72H,helix_0,91,2,6.07 6.66,1,694,0.89,0.216,2,1,moderate,3,moderate
-tnf2_06,helix0_R21H,helix_0,91,1,7.05,1,509,0.84,0.262,1,1,moderate,3,moderate
-tnf2_07,helix0_R21H_E67H_R72H,helix_0,91,3,7.10 7.12 6.65,3,777,0.8,0.162,2,1,moderate,3,moderate
-tnf2_08,helix0_E70H,helix_0,91,1,6.44,1,743,0.76,0.176,1,1,moderate,3,moderate
-tnf2_09,helix0_E67H,helix_0,91,1,7.11,1,644,0.73,0.166,2,1,moderate,3,moderate
-tnf2_10,helix0_E67H_E70H,helix_0,91,2,7.05 6.44,2,716,0.74,0.151,2,1,moderate,3,moderate
-tnf2_11,helix0_R21H_E70H,helix_0,91,2,7.04 6.44,2,889,0.7,0.175,3,1,moderate,3,moderate
-tnf2_12,free1_parent,free_1,74,0,,0,802,0.77,0.497,0,0,moderate,3,moderate
+name,design,chassis,length,his_count,pka_measured_in_combination,ideal_window_his,interface_area_a2,cross_reactivity,binder_to_target_iptm,clashes,cysteines,fold_similarity,proteinbase_novelty,predicted_fold_similarity_ours,delta_q_floor,his_robust
+tnf2_01,helix0_R21H_E67H_E70H,helix_0,91,3,7.05 7.05 6.43,3,748,0.64,0.153,0,1,moderate,3,moderate,1.38,3/3
+tnf2_02,helix0_R21H_E67H_R72H,helix_0,91,3,7.10 7.12 6.65,3,777,0.8,0.162,2,1,moderate,3,moderate,1.14,2/3
+tnf2_03,helix0_E67H_R72H,helix_0,91,2,7.12 6.66,2,528,0.7,0.159,0,1,moderate,3,moderate,1.03,1/2
+tnf2_04,helix0_R21H_E70H,helix_0,91,2,7.04 6.44,2,889,0.7,0.175,3,1,moderate,3,moderate,0.99,2/2
+tnf2_05,helix0_E67H_E70H,helix_0,91,2,7.05 6.44,2,716,0.74,0.151,2,1,moderate,3,moderate,0.89,2/2
+tnf2_06,free1_T73H,free_1,74,1,6.27,0,923,0.79,0.634,0,0,moderate,4,moderate,0.37,0/1
+tnf2_07,free1_parent,free_1,74,0,,0,802,0.77,0.497,0,0,moderate,3,moderate,0.0,n/a
+tnf2_08,helix0_R35H_R72H,helix_0,91,2,6.07 6.66,1,694,0.89,0.216,2,1,moderate,3,moderate,0.73,1/2
+tnf2_09,helix0_R72H,helix_0,91,1,6.66,1,600,0.78,0.22,0,1,moderate,3,moderate,0.57,1/1
+tnf2_10,helix0_E67H,helix_0,91,1,7.11,1,644,0.73,0.166,2,1,moderate,3,moderate,0.47,1/1
+tnf2_11,helix0_E70H,helix_0,91,1,6.44,1,743,0.76,0.176,1,1,moderate,3,moderate,0.25,0/1
+tnf2_12,helix0_R21H,helix_0,91,1,7.05,1,509,0.84,0.262,1,1,moderate,3,moderate,0.01,0/1
