@@ -63,6 +63,7 @@ from .physics import (
     protonate,
     relax_site,
 )
+from .boltz import BoltzConfidence, DesignConfidence, rank_designs
 from .composition import CompositionVerifier
 from .expression import ExpressionSignals, ExpressionVerifier, load_signals, score_provider
 from .thermostability import ThermostabilitySignal, ThermostabilityVerifier, tm_provider
@@ -134,7 +135,9 @@ __all__ = [
     "cascade",
     "CascadeResult",
     "verify_structure",
+    "BoltzConfidence",
     "CompositionVerifier",
+    "DesignConfidence",
     "ExpressionVerifier",
     "ExpressionSignals",
     "load_signals",
@@ -142,4 +145,5 @@ __all__ = [
     "reward_from_result",
     "rank_structures",
     "best_of_n",
+    "rank_designs",
 ]

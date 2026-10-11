@@ -5,6 +5,11 @@ geometry; Boltz-2 then co-folds the same sequence WITH the metal ion, an indepen
 predictor. Across Boltz's diffusion samples we compare its confidence (ptm / ligand_iptm)
 against the touchstone geometry verdict on Boltz's OWN structures.
 
+Confidence is aggregated on the MEAN across those samples, with best-of-n shown beside it.
+Taking the best sample -- which this script used to do -- ranks on sampling variance rather
+than design quality: best and mean differ by up to 0.35 within a single design, and the
+ordering changes. Same rule as boltzgen.py, and boltz.py does the pair-chain split.
+
 Agreement = two independent verifiers both like it. The signal is disagreement — most
 informative is `boltz-only`: Boltz folds the complex confidently but leaves the metal
 loosely coordinated, so the geometry verifier won't trust it. Even the verifier gets
@@ -26,6 +31,7 @@ from rich.console import Console
 from rich.table import Table
 
 from touchstone import BinderDesign, GeometryVerifier, PDBReference, coordination_site_from_pdb
+from touchstone.boltz import mean_or_zero
 
 console = Console()
 STYLE = {"both ✓": "green", "boltz-only": "yellow", "geom-only": "cyan", "neither": "red"}
@@ -56,17 +62,20 @@ def main(predictions_dir: str, metal_element: str = "NI", metal_label: str = "Ni
             by_design[design].append((0, False, False, conf))
 
     table = Table(title=f"Boltz-2 co-fold vs touchstone geometry ({metal_label}) — over diffusion samples")
-    for col in ("design", "n", "best CN", "coord", "trust", "ptm", "lig_iptm", "agree"):
+    for col in ("design", "n", "best CN", "coord", "trust", "ptm", "lig_iptm",
+                "lig best", "agree"):
         table.add_column(col, justify="left" if col == "design" else "right")
     for design in sorted(by_design):
         rows = by_design[design]
         any_trust = any(r[1] for r in rows)
         coord = sum(1 for r in rows if r[2])
-        ptm = max(r[3]["ptm"] for r in rows)
-        lig = max(r[3]["ligand_iptm"] for r in rows)
+        ptm = mean_or_zero(r[3]["ptm"] for r in rows)
+        lig = mean_or_zero(r[3]["ligand_iptm"] for r in rows)
+        best_lig = max((r[3]["ligand_iptm"] for r in rows), default=0.0)
         agree = label(ptm > 0.7 and lig > 0.6, any_trust, coord > 0)
         table.add_row(design, str(len(rows)), str(max(r[0] for r in rows)), f"{coord}/{len(rows)}",
-                      str(any_trust), f"{ptm:.2f}", f"{lig:.2f}", agree, style=STYLE.get(agree))
+                      str(any_trust), f"{ptm:.2f}", f"{lig:.2f}", f"{best_lig:.2f}", agree,
+                      style=STYLE.get(agree))
     console.print(table)
 
 
