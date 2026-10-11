@@ -1,0 +1,50 @@
+flowchart TB
+    subgraph T["Target definition — computed, not cited"]
+        PDB["3ALQ · TNF-α + TNFR2"] --> EPI["33 contact positions<br/>within 4.5 Å"]
+        ALN["human/mouse alignment<br/>124/157 = 79.0%"] --> EPI
+        EPI --> CONS["24 conserved · 9 divergent<br/><b>R31→Q is the trap</b>"]
+    end
+
+    CONS --> G
+
+    subgraph G["Generators — interchangeable"]
+        BG["BoltzGen 0.1.4<br/>sampling"]
+        BC["BindCraft 1.5.3<br/>AF2 backprop"]
+        BC2["BindCraft2<br/>dual-ortholog"]
+    end
+
+    G -->|"57 constructs"| V1
+
+    subgraph V["Verifiers — where candidates die"]
+        V1["<b>Composition</b><br/>model-free"]
+        V2["<b>Sequence novelty</b><br/>exact 20-mer vs PDB+SwissProt"]
+        V3["<b>Interface</b><br/>buried area, not contact counts"]
+        V4["<b>Fold novelty</b><br/>FoldSeek + TM-align"]
+        V5["<b>pKa switch</b><br/>PROPKA per position"]
+    end
+
+    V1 -->|"7 survive"| V2
+    V1 -.->|"50 killed<br/>poly-Ala, A=59-76%"| X1[["eliminated"]]
+    V2 -->|"53 survive"| V3
+    V2 -.->|"4 killed<br/><b>incl. the top-ranked:<br/>verbatim ubiquitin</b>"| X2[["eliminated"]]
+    V3 -->|"3 survive"| V4
+    V3 -.->|"clash / off-epitope"| X3[["eliminated"]]
+    V4 -->|"2 pass ≥3/4"| V5
+    V4 -.->|"1 killed<br/>β-sandwich CATH 2.60.40<br/>TM 0.893"| X4[["eliminated"]]
+    V5 -->|"18 ideal + 17 usable<br/>of 200 scanned"| SUB
+
+    SUB["Ranked submission<br/>pH → cross-reactivity → affinity"]
+
+    subgraph CM["Cross-model check — no single score is truth"]
+        AF2["AF2 on its own designs<br/>i_pTM 0.92"]
+        BZ["Boltz-2 independent<br/>i_pTM 0.21"]
+        AF2 -.->|"self-confirmation"| BZ
+    end
+    CM -.->|"report the range"| SUB
+
+    classDef kill fill:#3b1f1f,stroke:#a33,color:#eee
+    classDef verify fill:#1f2d3b,stroke:#49f,color:#eee
+    classDef gen fill:#2b2b1f,stroke:#aa3,color:#eee
+    class X1,X2,X3,X4 kill
+    class V1,V2,V3,V4,V5 verify
+    class BG,BC,BC2 gen

@@ -1,0 +1,292 @@
+<title>The Verifier Is The Asset</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column, with the funnel breaking wider as the page's one figure. */
+:root{
+  --bg:#f7f6f3; --surface:#fffefc; --ink:#191714; --muted:#6c6459;
+  --rule:#ded8cf; --kill:#a6332e; --pass:#1f6b5c; --accent:#8a5a2b;
+  --display:"Fraunces",ui-serif,Georgia,serif;
+  --body:"Inter",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14130f; --surface:#1c1a16; --ink:#eceae4; --muted:#9a9287;
+  --rule:#332f28; --kill:#e0736b; --pass:#5fc0a8; --accent:#d2a06a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14130f; --surface:#1c1a16; --ink:#eceae4; --muted:#9a9287;
+  --rule:#332f28; --kill:#e0736b; --pass:#5fc0a8; --accent:#d2a06a; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.6;
+  padding-block:clamp(2rem,6vw,4.5rem);padding-left:16px;padding-right:16px}
+.wrap{max-width:68ch;margin:0 auto;display:flex;flex-direction:column;gap:2.75rem}
+.wide{max-width:94ch;margin:0 auto;width:100%}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(2rem,6vw,3.1rem);
+  line-height:1.08;margin:0;text-wrap:balance;letter-spacing:-.02em}
+h2{font-family:var(--display);font-weight:600;font-size:clamp(1.3rem,3.4vw,1.65rem);
+  margin:0 0 .6rem;text-wrap:balance;letter-spacing:-.01em}
+h3{font-size:.82rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);
+  margin:0 0 .5rem;font-weight:600}
+p{margin:0 0 1rem}
+.lede{font-size:1.1rem;color:var(--muted);margin:0}
+.eyebrow{font-family:var(--mono);font-size:.75rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--accent);margin:0}
+section{display:flex;flex-direction:column}
+.rule{height:1px;background:var(--rule);border:0;margin:0}
+code,.mono{font-family:var(--mono);font-size:.88em}
+strong{font-weight:600}
+.kill{color:var(--kill)} .pass{color:var(--pass)}
+
+/* funnel */
+.funnel{display:flex;flex-direction:column;gap:.4rem;margin:.5rem 0 0}
+.step{display:grid;grid-template-columns:5.5rem 1fr;gap:1rem;align-items:start;
+  padding:.7rem .9rem;background:var(--surface);border:1px solid var(--rule);border-radius:3px}
+.step .n{font-family:var(--mono);font-size:1.35rem;font-weight:500;
+  font-variant-numeric:tabular-nums;line-height:1.1}
+.step .lab{font-size:.9rem}
+.step .sub{font-size:.82rem;color:var(--muted);margin-top:.15rem}
+.drop{display:grid;grid-template-columns:5.5rem 1fr;gap:1rem;padding:0 .9rem;
+  font-size:.82rem;color:var(--kill)}
+.drop .n{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th{text-align:left;font-weight:600;font-size:.74rem;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--muted);padding:.45rem .7rem .45rem 0;
+  border-bottom:1px solid var(--rule);vertical-align:bottom}
+td{padding:.5rem .7rem .5rem 0;border-bottom:1px solid var(--rule);vertical-align:top}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto;min-width:0}
+
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:1.1rem 1.2rem}
+.card.flag{border-left:3px solid var(--kill)}
+.grid{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}
+.vlist{display:flex;flex-direction:column;gap:.9rem}
+.v{display:grid;grid-template-columns:auto 1fr;gap:.9rem;align-items:baseline}
+.v .tag{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;color:var(--accent);
+  text-transform:uppercase;white-space:nowrap}
+footer{font-size:.84rem;color:var(--muted);border-top:1px solid var(--rule);padding-top:1.2rem}
+pre.mermaid{background:var(--surface);border:1px solid var(--rule);border-radius:3px;
+  padding:1rem;overflow-x:auto;min-width:0}
+@media (max-width:30rem){
+  .step,.drop{grid-template-columns:3.6rem 1fr;gap:.7rem}
+  .v{grid-template-columns:1fr;gap:.2rem}
+}
+</style>
+
+<div class="wrap">
+
+  <section>
+    <p class="eyebrow">Adaptyv × Anthropic · Challenge 02 · TNF-α</p>
+    <h1>The verifier is the asset</h1>
+    <p class="lede">Four generative pipelines produced candidate binders to TNF-α. They were
+    close to interchangeable. What decided the outcome was the stack of checks behind them —
+    and the single highest-scoring design in the whole campaign turned out to be ubiquitin.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>57 constructs in, 3 out</h2>
+    <p>Each gate below ran on designs that had already passed everything above it. The
+    attrition is the result; the three survivors alone would be marketing.</p>
+
+    <div class="funnel">
+      <div class="step"><span class="n">57</span>
+        <span><span class="lab">Constructs entering the gates</span>
+        <span class="sub">BoltzGen parents and engineered histidine variants</span></span></div>
+      <div class="drop"><span class="n">−4</span>
+        <span>memorised natural sequences — two verbatim ubiquitin, two VHH framework</span></div>
+      <div class="step"><span class="n">53</span>
+        <span><span class="lab">Passed sequence novelty</span>
+        <span class="sub">exact 20-mer against 1.17M PDB chains + 576k Swiss-Prot</span></span></div>
+      <div class="drop"><span class="n">−46</span>
+        <span>composition collapse — alanine 59–76%, fewer than 12 distinct residues</span></div>
+      <div class="step"><span class="n">7</span>
+        <span><span class="lab">Passed composition</span>
+        <span class="sub">model-free check on amino-acid usage</span></span></div>
+      <div class="drop"><span class="n">−4</span>
+        <span>steric clash, interface under 350 Å², or bound off the intended epitope</span></div>
+      <div class="step"><span class="n">3</span>
+        <span><span class="lab">Passed interface quality</span>
+        <span class="sub">buried surface area, not contact counts</span></span></div>
+      <div class="drop"><span class="n">−1</span>
+        <span>failed the organiser's automatic novelty check on <em>fold</em> similarity</span></div>
+      <div class="step"><span class="n pass">2</span>
+        <span><span class="lab">Survived everything</span>
+        <span class="sub">3.5% yield from generation</span></span></div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>What each verifier caught</h2>
+    <div class="vlist">
+      <div class="v"><span class="tag">Composition</span>
+        <span>A sequence that is <strong>59% alanine</strong> scored 0.556 binder-to-target ipTM
+        and ranked first in a 40-design shortlist. Confidence models score degenerate sequences
+        confidently, so this check deliberately uses no model at all.</span></div>
+      <div class="v"><span class="tag">Seq novelty</span>
+        <span>The <strong>top-ranked construct of the campaign</strong> — best interface score,
+        lowest interface PDE at 0.89 Å, carrying an ideal-pKa histidine — was verbatim human
+        ubiquitin. Every metric said submit it first.</span></div>
+      <div class="v"><span class="tag">Interface</span>
+        <span>Contact-pair counting was implemented first and was actively misleading: counts
+        scale with interpenetration, so clashing poly-alanine out-scored real designs. Replaced
+        with buried surface area.</span></div>
+      <div class="v"><span class="tag">Fold novelty</span>
+        <span>Predicted the one real-world novelty failure: a β-sandwich matching
+        <code>CATH 2.60.40</code> at TM-score <strong>0.893</strong> over 88.8% coverage.</span></div>
+      <div class="v"><span class="tag">pKa switch</span>
+        <span>Histidines placed by first-principles reasoning were <strong>all dead</strong> —
+        predicted pKa 3.15, 4.70 and 5.71 against a window of 6.0–7.4.</span></div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Fold, not sequence, is the constraint</h2>
+    <p>One design was submitted and failed the organiser's automatic novelty check; two passed.
+    They differ by <strong>0.6 percentage points</strong> of sequence identity, so sequence
+    novelty cannot explain the split.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Design</th><th>Outcome</th><th>Identity</th><th>Fold</th>
+          <th>TM</th><th>Coverage</th></tr></thead>
+        <tbody>
+          <tr><td>β-sandwich</td><td class="kill"><strong>failed</strong></td>
+            <td class="num">37.5%</td><td>high</td><td class="num">0.893</td><td class="num">0.888</td></tr>
+          <tr><td>α-bundle variant</td><td class="pass">passed</td>
+            <td class="num">38.1%</td><td>moderate</td><td class="num">0.776</td><td class="num">0.802</td></tr>
+          <tr><td>α-bundle parent</td><td class="pass">passed</td>
+            <td class="num">38.1%</td><td>moderate</td><td class="num">0.759</td><td class="num">0.802</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:1rem">An exact k-mer screen is blind to this. The failing design shares
+    no 20-mer with any natural protein — it simply has an immunoglobulin fold.</p>
+    <div class="card flag" style="margin-top:.5rem">
+      <h3>Correction</h3>
+      <p style="margin:0">This gate was first reported as reproducing all three verdicts. That
+      was wrong: the two passes scored correctly only because a missing sequence-identity value
+      defaulted to zero. With the real 38.1% it returns 2 where the organiser returned ≥3. It is
+      a <strong>conservative</strong> pre-filter — decisive on failure, advisory on borderline.</p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Eight hypotheses, eight refutations</h2>
+    <p>Everything reasoned from first principles was overturned by measurement. Everything that
+    survived came from testing against a control.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Hypothesis</th><th>What the data said</th></tr></thead>
+        <tbody>
+          <tr><td>Buried His pays a desolvation penalty on protonation</td>
+            <td>Burial <em>lowers</em> pKa, <span class="mono">r = −0.37</span>; buried sites land at 3.1–3.6</td></tr>
+          <tr><td>His beside a cation is repelled when protonated</td>
+            <td>Cation count has the <strong>wrong sign</strong>, <span class="mono">r = +0.11</span></td></tr>
+          <tr><td>Carboxylate proximity raises pKa into the window</td>
+            <td><span class="mono">r = +0.21</span>; a site with net +6 carboxylates sits at pKa 3.6</td></tr>
+          <tr><td>Nanobody grafting is the safer architecture</td>
+            <td>Statistically identical to de novo (0.164 vs 0.159)</td></tr>
+          <tr><td>Pre-fold geometry can prioritise which designs to fold</td>
+            <td>Anti-correlated — best geometry ranked 5th of 6; flagged junk ranked 1st</td></tr>
+          <tr><td>A concavity heuristic picks a better epitope</td>
+            <td>Null: 0.198 for both the new pocket and the original lobe</td></tr>
+          <tr><td>Truncating the trimer to a dimer is harmless</td>
+            <td>Cost 0.11 interface confidence — more than any deliberate design choice gained</td></tr>
+          <tr><td>The fold gate reproduced all three novelty verdicts</td>
+            <td>Artefact of a value defaulting to zero</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>No single score is truth</h2>
+    <p>The predictors disagree on <em>identical structures</em>, so interface confidence is
+    reported as a range with the models named.</p>
+    <div class="grid">
+      <div class="card">
+        <h3>Self-confirmation</h3>
+        <p style="margin:0">AlphaFold2 rated its own gradient-optimised designs at
+        <strong>i_pTM 0.92</strong>. An independent predictor rated the same structures
+        <strong>0.21</strong>.</p>
+      </div>
+      <div class="card">
+        <h3>Global ipTM is unusable here</h3>
+        <p style="margin:0">The TNF trimer's own internal interfaces score ~0.88 and dominate
+        the mean. Swapping dimer for trimer lifted global ipTM 0.20 → 0.52 while the binder
+        interface stayed flat.</p>
+      </div>
+      <div class="card">
+        <h3>Best-of-n inflates</h3>
+        <p style="margin:0">Metrics are stored per diffusion sample. n attempts give the oracle
+        n chances to pass a design, so ranking uses the mean.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>The epitope, computed</h2>
+    <p>TNF-α residues within 4.5 Å of TNFR2 in <code>3ALQ</code>, intersected with a human/mouse
+    alignment (124/157 = <strong>79.0%</strong>, reproducing the stated figure): 33 contact
+    positions, 24 conserved and 9 divergent.</p>
+    <div class="card">
+      <h3>R31→Q is the trap</h3>
+      <p style="margin:0">It carries the largest solvent-accessible surface in the entire epitope
+      — <strong>193 Å²</strong> — and sits beside R32 in the 29–33 loop that adalimumab and
+      infliximab engage. That is why neither drug is mouse cross-reactive. Any design gripping
+      that loop wins objective 1 and forfeits objective 2.</p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Pipeline</h2>
+    <pre class="mermaid">
+flowchart TB
+  EPI["3ALQ contacts ∩ human/mouse<br/>24 conserved · 9 divergent"] --> GEN
+  GEN["Generators<br/>BoltzGen · BindCraft · BindCraft2"] -->|57| C
+  C["Composition<br/>model-free"] -->|7| N
+  C -.->|46 killed| X1[["poly-Ala"]]
+  N["Sequence novelty<br/>exact 20-mer"] -->|53| I
+  N -.->|4 killed| X2[["ubiquitin"]]
+  I["Interface<br/>buried area"] -->|3| F
+  I -.->|clash / off-epitope| X3[["eliminated"]]
+  F["Fold novelty<br/>FoldSeek + TM-align"] -->|2| P
+  F -.->|1 killed| X4[["CATH 2.60.40"]]
+  P["pKa switch<br/>PROPKA per position"] --> S["Ranked submission"]
+    </pre>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>What is not established</h2>
+    <p>No expression, no size-exclusion chromatography, no thermal stability, no SPR or BLI.
+    <strong>There is no measured binding of any kind.</strong> pH selectivity rests on predicted
+    pKa — no folding model represents protonation, and the assay is not simulated. Mouse
+    cross-reactivity rests on a predicted structure and conserved-epitope coverage. The three
+    refuted pH mechanisms have no validated replacement; switch positions come from an
+    exhaustive scan of 200 substitutions, which found 18 ideal and 17 usable.</p>
+    <p style="margin:0">A generated sequence that passes computational checks is a candidate.
+    A result is a measured biological endpoint. This work produced the former.</p>
+  </section>
+
+  <footer>
+    Adaptyv × Anthropic Protein Design Competition, Challenge 02 · conditional TNF-α binder.
+    Stack: BoltzGen 0.1.4 · BindCraft 1.5.3 · BindCraft2 · Boltz-2 2.2.1 · PyRosetta 2026.29 ·
+    PROPKA 3.5.1 · MMseqs2 · FoldSeek over CATH50.
+  </footer>
+
+</div>
