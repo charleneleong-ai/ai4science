@@ -1,12 +1,12 @@
 # Conditional TNF-α binder — methodology
 
-## This is a designed series, not 12 independent guesses
+## This is a designed series, not 13 independent guesses
 
-The set is built to be **informative whichever way it reads in the lab**. Ten designs are a
+The set is built to be **informative whichever way it reads in the lab**. Eleven designs are a
 histidine titration on one backbone spanning predicted pKa 6.07–7.12, with one, two or three
-histidines; two more are a **matched pair on a second backbone — `tnf2_01` carries the switch,
-`tnf2_12` is the identical sequence with zero histidines.** That pair is the control: if
-`tnf2_01` shows pH-dependent release and `tnf2_12` does not, the switch is the cause, and if
+histidines; two more are a **matched pair on a second backbone — `tnf2_09` carries a single
+histidine, `tnf2_10` is the identical sequence with zero.** That pair is the control: if
+`tnf2_09` shows pH-dependent release and `tnf2_10` does not, the switch is the cause, and if
 neither does, pKa-engineered switching is ruled out on this scaffold rather than left ambiguous.
 
 ## Method: what is different here
@@ -68,7 +68,7 @@ mouse TNF-α trimer** (P06804, the sequence on the challenge page) and its inter
 with the human one under the identical protocol — a within-model ratio, which is what this
 comparison can legitimately support.
 
-**9 of 12 retain ≥70 % of their human interface confidence on mouse**, median 86 %, and four
+**10 of 13 retain ≥70 % of their human interface confidence on mouse**, median 86 %, and four
 score higher on mouse than on human. The proxy and the direct prediction disagree in one place
 that matters: the design with among the highest conserved-epitope coverage (0.79) retains only
 **47 %** on mouse, and its control 41 %. Both were demoted. Designing against the conserved
@@ -105,7 +105,7 @@ pKa 3.6. The positions here are empirical, from an exhaustive scan plus a physic
 ## The verifier stack
 
 Each tier judges something the tier above cannot see, and tiers **drop** candidates rather than
-down-rank them. Counts are for this round: 16 folded parent designs in, 12 submitted.
+down-rank them. Counts are for this round: 16 folded parent designs in, 13 submitted.
 
 ```mermaid
 flowchart TB
@@ -125,16 +125,21 @@ flowchart TB
     V2 -->|"2 chassis"| V3
     V2 -.->|"7 killed · high fold similarity"| X2[["eliminated"]]
     V3 -->|"15 His variants built"| V4
-    V4 -->|"12 submitted"| V5
+    V4 -->|"13 submitted"| V5
     V4 -.->|"3 killed · <0.6, incl. best interface<br/>at 59% on divergent residues"| X4[["eliminated"]]
     V5 -->|"41 combinations measured"| V6
     V6 -->|"5 hold every His<br/>in window on all 3"| V7
-    V6 -.->|"8 of 23 His are<br/>structure-dependent"| DEMOTE[["demoted, not dropped"]]
-    V7 -->|"ranked on the<br/>guaranteed swing"| OUT["ranked submission"]
+    V6 -.->|"9 of 26 His are<br/>structure-dependent"| DEMOTE[["demoted, not dropped"]]
+    V7 -->|"ranked on the<br/>guaranteed swing"| OUT["ranked submission<br/>13 designs"]
+    F0["8 further 3-His combinations<br/>on helix_0, all in window<br/>on their design structure"] --> F1
+    F1["re-folded vs human + mouse,<br/>same gates as the set"]
+    F1 -.->|"6 killed · clashes, or interface<br/>moved off the epitope"| XF1[["eliminated"]]
+    F1 -.->|"1 killed · 56% mouse retained"| XF2[["eliminated"]]
+    F1 -->|"1 survives → tnf2_13"| OUT
 ```
 
 **Tier 6 is the one that changed the answer.** Every pKa originally came from a single predicted
-structure. Re-scoring each histidine against all three Boltz diffusion samples showed **8 of 23
+structure. Re-scoring each histidine against all three Boltz diffusion samples showed **9 of 26
 are structure-dependent** — including the design this submission originally led with, whose
 switch reads 6.27 on one structure and 5.92 averaged over three. The ranking below is the
 corrected one; nothing was dropped on this basis, because a structure-dependent prediction is
@@ -165,8 +170,9 @@ structures gives the smaller swing. That is a lower bound on the switch, not a b
 | | ΔQ floor | robust His |
 | --- | --- | --- |
 | `tnf2_01` (3 His) | **1.38** | 3/3 |
+| `tnf2_13` (3 His) | **1.35** | 2/3 — A70 spread 0.04, the tightest measured |
 | `tnf2_04`, `tnf2_05` (2 His) | 0.89–0.99 | 2/2 |
-| `tnf2_09` (1 His) | 0.57 | 1/1 — most reproducible single, spread 0.27 |
+| `tnf2_07` (1 His) | 0.57 | 1/1 — most reproducible single, spread 0.27 |
 | `tnf2_12` (1 His) | **0.01** | 0/1 — the switch vanishes on its worst structure |
 
 One ideally-placed histidine can contribute at most ~0.62, so the three-histidine lead design
@@ -178,9 +184,11 @@ binding outright, and only the multi-histidine designs at the top of the table c
 guaranteed swing to be plausible candidates for a full switch. The single-histidine designs are
 included to locate the threshold, not because we expect each to abolish binding.
 
-`tnf2_06` is ranked above its ΔQ (0.37) deliberately: it is the only design with a credible
+`tnf2_09` is ranked above its ΔQ (0.37) deliberately: it is the only design with a credible
 measured interface (923 Å² buried, zero cysteines, novelty 4/4), and **a design that does not
-bind cannot show pH-dependent release at all**. `tnf2_07` follows it as its matched control.
+bind cannot show pH-dependent release at all**. `tnf2_10` follows it as its matched control.
+Both were nonetheless demoted from the top of the list once the mouse fold put them at 47 %
+and 41 % retained — the proxy that promoted them was wrong about them.
 
 Cross-reactivity, not affinity, did the discriminating: it ranged 0.41–0.89 across variants. One
 design with the family's best interface confidence put **59 % of that interface on
