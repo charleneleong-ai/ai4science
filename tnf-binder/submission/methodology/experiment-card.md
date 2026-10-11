@@ -152,6 +152,44 @@ combination rather than composed from singles — which was necessary: `A35H+A38
   is a gate already cleared at 3/4 by everything else. Novelty and naturalness are measured
   against overlapping databases and pull against each other; neither is calibrated to
   expression here.
+- **Both liabilities this card previously registered are refuted against measured outcomes.**
+  Proteinbase's full export carries `expressed` as an experimental boolean for **4065 designs**,
+  which is the first wet-lab calibration this campaign has had, and it contradicts both claims:
+  - *The unpaired cysteine.* Eleven of the thirteen carry one cysteine, inherited from position
+    34 of the `helix_0` chassis, and this card called the odd count a liability because it
+    cannot form a disulphide. Oddness does nothing: designs with an odd count express at
+    **86.7 %** and those with an even non-zero count at **86.7 %**, identically. What matters is
+    how many, and the effect is small until there are several — within the 60–100 aa band these
+    designs occupy, one cysteine costs **0.7 percentage points** (95.5 % against 96.2 % for
+    none, n=133 and n=1018). Two or more does cost real yield (88.7 % in the same band, 69.7 %
+    above 150 aa), which retrospectively supports dropping `free_4` for carrying three — but
+    one cysteine is not the liability this card claimed.
+  - *The aggregation axis.* Expression is flat in hydrophobicity across the whole export
+    (89.7–93.2 % from GRAVY −2.0 to +2.0, and not monotonic), so `free_1` being near-neutral and
+    hydrophobic does not predict that it fails to yield material.
+
+  The feature that does predict expression is **length**, which this card never mentioned:
+  96.8 % at 60–80 aa, 95.2 % at 80–100, 91.5 % at 100–150, and 79.6 % above 150. At 74 and 91
+  residues both chassis sit in the best bands, against a base rate of **91.6 %**. So the honest
+  expectation is that essentially all of these express, and that expression is not where this
+  submission is likely to fail. Caveats: the export pools competitions, targets and expression
+  systems; these are single-variable rates with one confound controlled, not a model; and none
+  of these designs is in that dataset.
+- **touchstone's `ExpressionVerifier` returns `trust` for all thirteen, which is not evidence.**
+  Its thresholds are library defaults — `max_perplexity` 12.0, `min_solubility` 0.4 — and this
+  set runs 6.3–10.5 and 0.51–0.78, so nothing here can fail it. A gate that passes 13/13 at
+  untouched defaults has measured nothing; only its *score* is usable, and that score (0.77–0.78
+  for `helix_0`, 0.51 for `free_1`) just restates the chassis split below. The solubility half is
+  touchstone's own declared placeholder (GRAVY + charge, pending NetSolP/CamSol), so half the
+  input is a heuristic and the thresholds were never calibrated against an expression outcome.
+- **ESM-2 pseudo-perplexity separates the two chassis and nothing else.** `helix_0` sits at
+  6.29–7.26 (mean 6.79, n=11) and `free_1` at 10.10–10.48 (n=2): no overlap, and a gap roughly
+  ten times the spread any substitution produces. Lower is more natural, so `free_1` is the
+  less protein-like of the two by this proxy — which compounds its 41–47 % mouse retention and
+  its near-neutral, hydrophobic surface. Its one advantage, the campaign's only 4/4 novelty,
+  is a gate already cleared at 3/4 by everything else. Novelty and naturalness are measured
+  against overlapping databases and pull against each other; neither is calibrated to
+  expression here.
 - **Eleven of the thirteen carry one cysteine, an odd and therefore unpairable count.** It is
   at position 34 of the `helix_0` chassis, so every design on that chassis inherits it rather
   than choosing it. A lone surface cysteine invites disulfide scrambling, covalent dimers and
