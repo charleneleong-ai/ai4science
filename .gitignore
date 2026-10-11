@@ -29,3 +29,6 @@ materialhack/
 # tnf-binder local env
 tnf-binder/.venv/
 tnf-binder/.pytest_cache/
+
+# W&B local run cache (runs live at wandb.ai/chaleong/tnf-conditional-binder)
+wandb/

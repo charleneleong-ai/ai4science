@@ -17,7 +17,8 @@ We designed candidate binders to human TNF-$\alpha$ required to satisfy three ob
 once: bind human TNF-$\alpha$, cross-react with the mouse ortholog, and bind at pH~7.4 while
 releasing at pH~6.0. Four generative pipelines proved substantially interchangeable; the
 outcome was determined almost entirely by \emph{verification}. Of 57 constructs entering the
-gate stack, 3 survived --- a yield of 5\%. The highest-scoring construct by every interface
+gate stack, 3 were submitted and 2 passed the organiser's novelty check --- a yield of
+$2/57 \approx 3.5\%$. The highest-scoring construct by every interface
 metric was verbatim human ubiquitin. One design was submitted and failed the organiser's
 automatic novelty check, establishing empirically that \emph{fold} similarity, not sequence
 novelty, is the binding constraint. We report the full funnel including failures, and state
@@ -153,6 +154,44 @@ interfaces score $\sim 0.88$ and dominate the mean, so a dimer$\rightarrow$trime
 global ipTM $0.20 \rightarrow 0.52$ while the binder interface stayed flat), and best-of-$n$
 reporting inflates (metrics are stored per diffusion sample; we rank on the mean).
 
+Measured across all 57 folded constructs, global ipTM overstates the designed interface by
+$+0.405$ on average --- roughly half its own value. Every interface number in this report is
+instead a \texttt{pair\_chains\_iptm} entry between the binder chain and each target chain,
+symmetrised over both matrix directions (which differ by up to $0.08$), averaged across target
+chains, then averaged across diffusion samples. Best-of-$n$ and mean differ by up to $0.35$
+within a single construct.
+
+\subsection{Confidence was not sufficiency}
+
+Six constructs cleared the $\sim 0.50$ threshold conventionally taken to indicate a credible
+de novo interface. \emph{None was submittable}, and the reasons were not subtle
+(Table~\ref{tab:toprank}).
+
+\begin{table}[htbp]
+\centering
+\caption{The six highest-confidence constructs, and why each was rejected.}
+\label{tab:toprank}
+\begin{tabular}{lrl}
+\toprule
+Construct & ipTM & Verdict \\
+\midrule
+\texttt{pocket\_free\_7\_\_A63H}  & 0.642 & 37\% glycine; 3 steric clashes \\
+\texttt{pocket\_free\_1\_\_A73H}  & 0.634 & clean sequence; 18\% of interface on epitope \\
+\texttt{pocket\_free\_2\_\_A76H}  & 0.617 & clean sequence; 13\% of interface on epitope \\
+\texttt{pocket\_helix\_1\_\_A20H} & 0.583 & 59\% alanine; 3 steric clashes \\
+\texttt{pocket\_helix\_1}         & 0.556 & 59\% alanine; 4 steric clashes \\
+\texttt{pocket\_helix\_1\_\_A52H} & 0.526 & 59\% alanine; 3 steric clashes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The second and third rows are the instructive ones: real sequences, genuine interface
+confidence, and an interface placed somewhere other than the conserved patch they were
+conditioned on. Epitope focus --- not confidence --- was the operative constraint, and a gate
+reading confidence alone would have passed all six. This is also why the remaining generator is
+BindCraft2 with forced targeting and hard coldspot filters rather than further BoltzGen
+sampling.
+
 \section{Funnel}
 
 \begin{table}[htbp]
@@ -178,6 +217,28 @@ Yield from generation to novelty-passing: $2/57 \approx 3.5\%$.
 composition gate was added after poly-alanine appeared at the top of a shortlist, and the fold
 gate after a submitted design failed. The funnel above is therefore not a pre-registered
 statistic.
+
+\section{Reproducibility}
+
+The gate stack is installed and run as one command-line tool; each subcommand prints the
+measurement a claim in this report rests on.
+
+\begin{verbatim}
+tnf-binder epitope                     # the computed epitope and its divergent positions
+tnf-binder confidence <predictions/>   # rank designs on mean binder-to-target ipTM
+tnf-binder verify <complex.cif>        # composition / interface / pH verdicts for one design
+tnf-binder validate <submission/>      # submission format pre-flight
+tnf-binder wandb-log <assets/>         # funnel, tables and structures to Weights & Biases
+\end{verbatim}
+
+The campaign run, with all 57 constructs' confidence tables, the p$K_a$ scans and the folded
+complexes as interactive 3D media, is at
+\href{https://wandb.ai/chaleong/tnf-conditional-binder/runs/545bu3v1}{wandb.ai/chaleong/tnf-conditional-binder}.
+A report built from that run's own panels --- every table and every folded complex embedded
+rather than described --- is
+\href{https://wandb.ai/chaleong/tnf-conditional-binder/reports/Campaign-Report--VmlldzoxODA5MDQ5OQ==}{here},
+and an interactive walkthrough of the architecture is published as a
+\href{https://claude.ai/artifact/UWyFVrYW8cx6DXftKf1F8z}{Claude Artifact}.
 
 \section{What is not established}
 
