@@ -89,7 +89,7 @@ composition gate was added after poly-alanine appeared at the top of a shortlist
 gate after a submitted design failed. Both were responses to observed failures, so the funnel
 above is not a clean pre-registered statistic.
 
-## 6b. Second submission, and four more declared deviations
+## 6b. Second submission, and six more declared deviations
 
 Submission 2 is a measured histidine series on the two chassis that passed **both** the fold gate
 and the composition gate — of 16 folded parents, only `screen_pocket_helix_0` and
@@ -113,7 +113,9 @@ combination rather than composed from singles — which was necessary: `A35H+A38
 | --- | --- |
 | **Burial floor lowered 15 Å² → 8 Å²** | Changed **after** seeing that `helix_0` had only two switchable positions at the original floor. It then yielded six, four in the ideal window. The floor's purpose — the histidine must sit at the interface for its protonation to modulate binding — is unchanged, but sites admitted between 8 and 15 Å² are more weakly coupled, so "four ideal sites" is a post-hoc number. |
 | **`free_4` dropped on a non-reproducing pKa** | Its A16H scanned as 6.58 "ideal" in the first pass and **1.73** on re-measurement. The method is deterministic — `helix_0` and `free_1` reproduce to 0.01 on repeat — so this is not run-to-run noise; the two passes ran against *different structure files* for that design. Treated as disqualifying rather than averaged. |
-| **The novelty rule is empirical, n = 3** | "High fold similarity fails, moderate passes" is read off three Proteinbase verdicts, not from their published scale — which, applied literally at 38% identity, would have failed the two designs that actually passed. It is used to rank, and it is not calibrated. |
+| **The novelty rule is empirical, and now n = 16 without becoming calibratable** | "High fold similarity fails, moderate passes" is read off Proteinbase verdicts, not from their published scale — which, applied literally at 38% identity, would have failed designs that passed. Sixteen verdicts have not fixed this and will not: **fifteen of the sixteen are the same score (3/4)**, with one 2 and one 4, so there is almost no outcome variance to fit against. Worse, the one controlled pair available — `free1_T73H` and `free1_parent`, one substitution apart with identical TM-score, identical nearest hit and identical identity — scored **4/4 and 3/4**, so the features we measure have *no* resolving power at the only boundary where we do have variance. More verdicts of this kind add nothing. It is used to rank, and it is not calibrated. |
+| **The structural `flag` gate was added after seeing the geometry table** | `submission.candidate_problem` originally gated on clash count alone. The first slot-filling geometry table showed two candidates at `epitope_focus 0.00` — bound somewhere else on the target entirely — admitted by a clash count of zero. The flag check was wired in after reading that table, so "one of eight survived" is **not** a pre-registered count. It is not a threshold fitted to the answer: `scripts/submit.py shortlist` has rejected on this same flag since the first campaign, and the omission was in failing to carry it into the newer gate. |
+| **`tnf2_13` was added after the first upload** | The twelve-design CSV had already been uploaded and novelty-checked when the eight slot-filling candidates were folded. The design that survived was appended and the whole set re-checked, so `tnf2_13` was selected under gates fixed before it was folded but after the rest of the set was already fixed. |
 | **BindCraft2 runs on loosened design settings** | Rounds 1 and 2 scored zero candidates: trajectories died at the screen stage on binder pLDDT 0.59 against a default floor of 0.60, so the relaxed acceptance filters never saw a candidate. Round 3 applies `target_flexibility 0.5` + `initial_guess` — rungs 1–2 of BindCraft2's own desperation ladder, which cannot self-engage here because it waits 750 trajectories without an acceptance and one trajectory costs ~33 min. **Its documentation is explicit that designs accepted this way are judged against an easier task and are weaker candidates.** Anything this produces is marked as such rather than entering the funnel as an equal. |
 
 ## 7. What is not established
@@ -123,6 +125,13 @@ combination rather than composed from singles — which was necessary: `A35H+A38
   `ThermostabilityVerifier` needs TemStaPro, which is not installed here, and an uncalibrated
   Tm on de novo miniproteins is not a measurement. What follows is a liability register from
   sequence plus one language-model proxy, not a prediction of behaviour.
+- **touchstone's `ExpressionVerifier` returns `trust` for all thirteen, which is not evidence.**
+  Its thresholds are library defaults — `max_perplexity` 12.0, `min_solubility` 0.4 — and this
+  set runs 6.3–10.5 and 0.51–0.78, so nothing here can fail it. A gate that passes 13/13 at
+  untouched defaults has measured nothing; only its *score* is usable, and that score (0.77–0.78
+  for `helix_0`, 0.51 for `free_1`) just restates the chassis split below. The solubility half is
+  touchstone's own declared placeholder (GRAVY + charge, pending NetSolP/CamSol), so half the
+  input is a heuristic and the thresholds were never calibrated against an expression outcome.
 - **ESM-2 pseudo-perplexity separates the two chassis and nothing else.** `helix_0` sits at
   6.29–7.26 (mean 6.79, n=11) and `free_1` at 10.10–10.48 (n=2): no overlap, and a gap roughly
   ten times the spread any substitution produces. Lower is more natural, so `free_1` is the
