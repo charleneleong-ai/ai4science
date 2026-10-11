@@ -290,3 +290,33 @@ class TestRecallProbe:
         for mass in (46.0, 58.0):  # empty window, then a window whose only row has no key
             assert probe.probe_rows(nb, SerialPool(), "QUERYKEY", mass, np.ones(1), stats) == []
         assert stats == {"truth_in_window": 0, "window_rows": [0, 1]}
+
+
+class TestSecondPass:
+    """The notebook's spectrum-driven pass adds what the shortlist missed, once per connectivity."""
+
+    def test_adds_best_new_connectivities_only(self, monkeypatch):
+        from rdkit.Chem import rdFingerprintGenerator
+
+        smiles = [b"COC", b"CCO", b"OCC", b"CC=O", b"C=CO"]
+        tier = object.__new__(nb.PubChemTier)
+        tier.mass = np.array([46.0, 46.0, 46.0, 46.0, 46.0])
+        tier.off = np.cumsum([0] + [len(x) for x in smiles])
+        tier.smiles = np.frombuffer(b"".join(smiles), dtype=np.uint8)
+        tier.lsid, tier.lpmid = np.zeros(5, dtype=np.float16), np.zeros(5, dtype=np.float16)
+        tier.ik14 = np.array([b"TAKEN", b"ANSWER", b"ANSWER", b"", b"OTHER"], dtype="S14")
+        gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=nb.ECFP_SIZE)
+        morgan = lambda s: gen.GetFingerprintAsNumPy(nb.Chem.MolFromSmiles(s))  # noqa: E731
+        bits = np.flatnonzero(morgan("CCO"))
+        monkeypatch.setattr(nb, "PASS_STATE", dict(tier=tier, bits=bits, ecfp_raw=bits, gen=gen))
+        monkeypatch.setattr(nb, "pass_chem", lambda: type("Chem", (), {"raw_fingerprint": staticmethod(morgan)}))
+        monkeypatch.setattr(nb, "SECOND_PASS_KEEP", 1)
+        second = object.__new__(nb.SecondPass)
+        second.tier, second.cols, second.nbits, second.pool = tier, np.arange(len(bits)), len(bits), SerialPool()
+
+        added = second.candidates(45.9, 46.1, np.ones(len(bits), np.float32), {"TAKEN"})
+
+        assert list(added) == ["ANSWER"] and added["ANSWER"].smiles in ("CCO", "OCC")
+        assert second.candidates(50.0, 51.0, np.ones(len(bits), np.float32), set()) == {}
+        monkeypatch.setattr(nb, "SECOND_PASS_N1", 1)  # cut before filtering: the best row is taken
+        assert second.candidates(45.9, 46.1, np.ones(len(bits), np.float32), {"ANSWER"}) == {}
