@@ -119,6 +119,20 @@ combination rather than composed from singles — which was necessary: `A35H+A38
 ## 7. What is not established
 
 - No expression, no SEC, no thermal stability, no SPR/BLI. **No measured binding of any kind.**
+  Nothing was run through a Tm predictor or a learned solubility model; what follows is from
+  sequence alone, and is a liability register rather than a prediction.
+- **Eleven of the thirteen carry one cysteine, an odd and therefore unpairable count.** It is
+  at position 34 of the `helix_0` chassis, so every design on that chassis inherits it rather
+  than choosing it. A lone surface cysteine invites disulfide scrambling, covalent dimers and
+  heterogeneous material. The campaign already treated this as a liability elsewhere — a
+  chassis was dropped partly for carrying three unpaired cysteines — so the eleven ship with a
+  known risk that was measured and not acted on. Mutating it to serine was never tested, and
+  would need the whole pKa and mouse pipeline re-run to be submittable.
+- The two chassis carry **opposite** solubility risks, and neither was measured. `helix_0` is
+  strongly acidic and hydrophilic (net −10 to −14 e at pH 7.4, GRAVY −0.37), which is far from
+  its pI and argues for good solubility. `free_1` is near-neutral and hydrophobic (−2.2 e,
+  GRAVY +0.26) — the combination that aggregates. `tnf2_09` and `tnf2_10` are therefore the
+  pair most at risk of never yielding usable material, and they are also the matched control.
 - pH selectivity rests on predicted pKa. No folding model represents protonation; PROPKA is a
   static-structure predictor, and the assay is not simulated.
 - Mouse cross-reactivity rests on a *predicted* mouse structure and conserved-epitope coverage.
