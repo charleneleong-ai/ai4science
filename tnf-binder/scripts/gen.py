@@ -1,7 +1,7 @@
 """Emitting BoltzGen specs, with every index checked against the structure it refers to.
 
     gen.py spec   targets/tnf_AB.pdb     specs/boltzgen/
-    gen.py screen targets/tnf_trimer.pdb specs/screen/
+    gen.py screen targets/tnf_trimer.pdb specs/boltzgen/
 
 Two commands because the YAML is genuinely different -- `spec` writes a length series against two
 protomers with coldspots on the divergent positions, `screen` writes one spec per config against
