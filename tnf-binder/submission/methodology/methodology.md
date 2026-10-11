@@ -9,10 +9,50 @@ histidines; two more are a **matched pair on a second backbone — `tnf2_01` car
 `tnf2_01` shows pH-dependent release and `tnf2_12` does not, the switch is the cause, and if
 neither does, pKa-engineered switching is ruled out on this scaffold rather than left ambiguous.
 
+## Method: what is different here
+
+Everything below is open — code, tests, the full funnel including every failure, and the
+measurements behind each number: **https://github.com/charleneleong-ai/ai4science** (`tnf-binder/`).
+
+**1 · A verifier stack ported from a different design problem.** The gates reuse the `Verdict`
+and `Verifier` contract of [`touchstone`](https://github.com/charleneleong-ai/ai4science/tree/main/touchstone),
+a verifier we built for *metal-binding* proteins. Its metal geometry does not transfer, but its
+architecture does — in particular the distinction between **weak** (judged and failed) and
+**defer** (cannot judge). Conflating the two let a missing measurement read as a pass; keeping
+them separate is what stopped a design with no pKa prediction being scored as if it had one.
+
+**2 · Tiers drop candidates; they never down-rank them.** The top-scoring construct of an
+earlier round was verbatim human ubiquitin, and the top of a 40-design shortlist was 59 %
+alanine. No ranking function rescues either — only a gate does.
+
+**3 · A switch-robustness tier.** Every pKa was re-measured against all three diffusion samples
+of its own complex, not just the structure it was designed on. **8 of 23 histidines do not hold
+their window across all three.** One reads 3.99–6.70 depending on which structure you ask. We
+have not seen this check applied to designed pH switches, and it reordered our entire ranking.
+
+**4 · Ranking on a physical quantity, not a feature count.** ΔQ — the interface charge gained
+between the two assay pH values — evaluated at each histidine's *least favourable* structure.
+A lower bound, not a best case.
+
+**5 · Combinations measured, never composed.** All 41 histidine combinations were scanned,
+because single-mutant pKa values do not add: `A35H+A38H` pushes A35 out of the window.
+
+**6 · The negative results are in the repository.** Eight hypotheses we held were refuted by
+measurement, including three separate mechanisms for *why* a histidine should switch — burial,
+cation repulsion, carboxylate proximity. All three have the wrong sign or no effect. The
+positions used here are empirical, from an exhaustive scan plus a physics solver, because every
+mechanism we reasoned our way to was wrong.
+
+**7 · One claim was retracted.** We reported that our fold-novelty gate reproduced Proteinbase's
+verdicts 3/3. It did not: two of the three only scored correctly because a missing identity
+value defaulted to zero. The gate is conservative, not calibrated — it under-scores, which your
+own check confirmed when it returned 4/4 for a design we scored "moderate". The retraction and
+a regression test pinning the bug are in the repository.
+
 ## Epitope: computed, not taken from literature
 
 TNF-α residues within 4.5 Å of TNFR2 in **3ALQ**, intersected with a human/mouse alignment of
-the soluble domain (124/157 = **79.0 %** identity), give **33 contact positions: 24 conserved,
+the soluble domains (**124 of 156** aligned residues, 79 %), give **33 contact positions: 24 conserved,
 9 divergent** (P20H, R31Q, S71D, T72–, H73Y, V85I, T89E, I97V, A111L).
 
 **R31→Q is the trap.** It carries the largest solvent-accessible area in the epitope (193 Å²)
@@ -111,6 +151,12 @@ structures gives the smaller swing. That is a lower bound on the switch, not a b
 
 One ideally-placed histidine can contribute at most ~0.62, so the three-histidine lead design
 is carrying roughly 2.2 histidines' worth of guaranteed swing.
+
+Objective 3 asks for **no detectable binding at pH 6.0**, not merely weaker binding, and that
+is a higher bar than a shifted affinity. On that reading a ΔQ near 0.4 is unlikely to abolish
+binding outright, and only the multi-histidine designs at the top of the table carry enough
+guaranteed swing to be plausible candidates for a full switch. The single-histidine designs are
+included to locate the threshold, not because we expect each to abolish binding.
 
 `tnf2_06` is ranked above its ΔQ (0.37) deliberately: it is the only design with a credible
 measured interface (923 Å² buried, zero cysteines, novelty 4/4), and **a design that does not
