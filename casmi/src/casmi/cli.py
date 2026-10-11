@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from statistics import median_low
 
 import typer
 from rich.console import Console
+from rich.table import Table
 
 from .harness import (
     Ranker,
@@ -127,6 +129,35 @@ def wandb_sync(
     from .tracking import sync  # the `tracking` extra (wandb, autoresearch) is optional
 
     Console().print(f"report: {sync(verdicts, outputs)}")
+
+
+@app.command()
+def train_ranker(
+    trainset: Path = typer.Argument(Path.home() / "casmi-data/kernel_outputs/trainset-v1/trainset",
+                                    help="part-*.parquet from the ranker-trainset kernel"),
+    out: Path = typer.Option(Path.home() / "casmi-data/ranker/v1", help="where ranker.txt and metrics.json go"),
+    folds: int = typer.Option(5, min=3, help="grouped folds over query molecules"),
+    rounds: int = typer.Option(3000, help="boosting rounds cap; early stopping picks the number"),
+) -> None:
+    """Cross-validate the LambdaRank ranker against the hand-set score, then fit it on everything."""
+    from . import ranker  # the `ranker` extra (lightgbm) is optional
+
+    console = Console()
+    with console.status("loading the training set..."):
+        ts = ranker.TrainSet.load(trainset)
+    console.print(f"{len(ts.y):,} candidates over {len(ts.qids):,} molecules")
+    with console.status(f"{folds}-fold grouped cross-validation..."):
+        report = ranker.evaluate(ts, folds, rounds)
+    table = Table("group", "molecules", "hand-set MRR@25", "ranker MRR@25", "Δ [95% CI]", "better / worse")
+    for g, r in report["groups"].items():
+        lo, hi = r["ci95"]
+        table.add_row(g, str(r["queries"]), f"{r['handset']:.3f}", f"{r['ranker']:.3f}",
+                      f"{r['delta']:+.3f} [{lo:+.3f}, {hi:+.3f}]", f"{r['better']} / {r['worse']}")
+    console.print(table)
+    n = median_low(report["best_iterations"])
+    console.print(f"best iterations per fold: {report['best_iterations']} -> final model {n} rounds")
+    ranker.save(ranker.fit_final(ts, n), report | {"final_rounds": n}, out)
+    console.print(f"wrote {out}/ranker.txt and metrics.json")
 
 
 def main() -> None:
