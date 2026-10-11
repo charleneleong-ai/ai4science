@@ -35,4 +35,6 @@ submissions:
      change: "GLACIER on [M+H]+ spectra only"}
   - {version: 17, ref: 57060198, date: 2026-10-11, family: forward-model, commit: 2a0d71c, score: 0.346, verdict: DISCARD,
      change: "forward-model weights 1.5 / 1.5"}
+  - {version: 18, ref: 57077612, date: 2026-10-11, family: candidate-pool, commit: 7e77e44, score: 0.353, verdict: DISCARD,
+     change: "+ second PubChem pass chosen by the spectrum (100 best new of the ECFP4-block top 5000)"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==

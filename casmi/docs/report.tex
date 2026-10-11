@@ -16,7 +16,7 @@ We rank candidate structures for 400 molecules from their tandem mass spectra in
 Kaggle competition, scored by MRR@25 on the InChIKey connectivity block. The first submission
 scored 0.115 against a local estimate of 0.664; the estimate came from labels drawn from the same
 data as the candidates, and was retracted. Since then every number reported is a public
-leaderboard score, and each of the 14 submissions changed one thing. A PubChem-scale pool with a
+leaderboard score, and each of the 15 submissions changed one thing. A PubChem-scale pool with a
 popularity prior, a learned spectrum-to-fingerprint model, and two forward models that predict each
 candidate's spectrum take the score to 0.349, against 0.421 for the public notebook these
 components come from. No local estimate of the score exists.
@@ -82,6 +82,7 @@ v & change from the previous kept version & public MRR@25 \\
 15 & $\lambda = 1.0$ & \textbf{0.349} \\
 16 & GLACIER on $[\mathrm{M{+}H}]^+$ only (not kept) & 0.345 \\
 17 & $\lambda = 1.5$ (not kept) & 0.346 \\
+18 & + spectrum-driven second PubChem pass (not kept) & 0.353 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -90,8 +91,13 @@ Two levers account for almost all of the gain: the learned spectrum model ($+0.1
 and the forward models ($+0.087$, v11 to v15). Tuning the shortlist and the prior's weight (v8, v9)
 moved the score by under $0.01$, as did removing the copied structures, although that changed 267 top-1 picks:
 FPNet, trained on the copied rows, had returned their structures, and what replaced them was as
-rarely right. Identical runs differ by about $\pm 0.005$; v16 and v17 fall inside it and were
-reverted.
+rarely right. Identical runs differ by about $\pm 0.005$; v16, v17 and v18 fall inside it and were
+reverted. v18 is the instructive one: on 280 held-out train molecules, scored by an FPNet that
+never saw them, a second PubChem pass chosen by the spectrum lifted the answer's presence among
+the candidates from 126 to 236 and MRR@25 from 0.241 to 0.405. On the test set it moved the score
+by $+0.004$. The production FPNet was trained on the train rows the test spectra copy, and the
+pass's top-1 picks moved toward those copied structures (median Tanimoto 0.26 to 0.42 over the 192
+molecules whose top-1 changed).
 
 \section{What is not established}
 \begin{itemize}
