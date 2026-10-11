@@ -2,10 +2,12 @@
 
 BoltzGen scores its predictions (iPTM / pLDDT / pTM) — the generator grading itself.
 touchstone re-judges the *chemistry* of the same structure, independent of that confidence.
-This pairs a design's BoltzGen fold-output `.npz` (confidence arrays, one per refold sample)
-with its refold CIF and prints both side by side — so you can spot a confident design with
-a bad metal site (high iPTM, touchstone `defer`) or the reverse. With `--wandb` it logs the
-comparison table + a consensus bar + an iPTM-vs-touchstone-reward scatter to Weights & Biases.
+This pairs a design's BoltzGen fold-output `.npz` (confidence arrays, one value per refold
+sample) with its refold CIF and prints both side by side — so you can spot a confident design
+with a bad metal site (high iPTM, touchstone `defer`) or the reverse. Confidence is the mean
+over refold samples with the best-sample iPTM beside it; the gap is sampling variance (see
+`touchstone.boltzgen`). With `--wandb` it logs the comparison table + a consensus bar + an
+iPTM-vs-touchstone-reward scatter to Weights & Biases.
 
     uv run python scripts/boltzgen_scores.py \
         --npz-dir  boltzgen_out/intermediate_designs_inverse_folded/fold_out_npz \
@@ -31,13 +33,15 @@ COLOR = {"trust": "green", "weak": "yellow", "defer": "red"}
 
 
 def score_rows(npz_dir: Path, cif_dir: Path, metal: str) -> list[dict]:
-    """One row per design: BoltzGen confidence (best refold sample) + touchstone verdict."""
+    """One row per design: BoltzGen confidence (mean over refold samples) + touchstone verdict."""
     rows = []
     for npz_path in sorted(npz_dir.glob("*.npz")):
         cif = cif_dir / f"{npz_path.stem}.cif"
-        if not cif.exists():
+        if not cif.exists():  # nothing to verify — skip before paying for the npz read
             continue
-        row = {"design": npz_path.stem, **boltzgen_confidence(npz_path)}
+        if (conf := boltzgen_confidence(npz_path)) is None:  # vanished between glob and read
+            continue
+        row = {"design": npz_path.stem, **conf}
         try:
             r = verify_structure(cif, metal)
             row["consensus"] = r["consensus"]
@@ -56,15 +60,17 @@ def score_rows(npz_dir: Path, cif_dir: Path, metal: str) -> list[dict]:
 def print(rows: list[dict], metal: str) -> None:
     console = Console()
     table = Table(title=f"BoltzGen confidence  vs  touchstone verdict · {metal}")
-    for col in ("design", "iPTM↑", "pLDDT↑", "pTM↑", "touchstone", "reward", "why (touchstone)"):
+    for col in ("design", "iPTM↑", "iPTM best↑", "pLDDT↑", "pTM↑", "touchstone", "reward", "why (touchstone)"):
         table.add_column(col)
     fmt = lambda x: f"{x:.2f}" if isinstance(x, float) else "—"
     for r in rows:
         c = r["consensus"]
         verdict = f"[{COLOR[c]}]{c.upper()}[/]" if c in COLOR else "[dim]error[/]"
-        table.add_row(r["design"], fmt(r["iptm"]), fmt(r["plddt"]), fmt(r["ptm"]), verdict, fmt(r["reward"]), r["why"])
+        table.add_row(r["design"], fmt(r["iptm"]), fmt(r["iptm_best"]), fmt(r["plddt"]), fmt(r["ptm"]),
+                      verdict, fmt(r["reward"]), r["why"])
     console.print(table)
-    console.print("[dim]BoltzGen iPTM/pLDDT/pTM = generator self-confidence (best refold sample); "
+    console.print("[dim]BoltzGen iPTM/pLDDT/pTM = generator self-confidence, mean over refold samples "
+                  "(iPTM best = the single luckiest sample — the gap is sampling variance); "
                   "touchstone = independent chemistry verdict on the same structure.[/]")
 
 
@@ -74,11 +80,12 @@ def to_wandb(rows: list[dict], metal: str, project: str | None) -> None:
     from touchstone import tracking
 
     run = tracking.init(f"boltzgen-vs-touchstone-{metal}", config={"metal": metal, "n": len(rows)}, project=project)
-    tbl = wandb.Table(columns=["design", "iptm", "plddt", "ptm", "consensus", "reward", "why"])
+    tbl = wandb.Table(columns=["design", "iptm", "iptm_best", "plddt", "ptm", "consensus", "reward", "why"])
     counts = {"trust": 0, "weak": 0, "defer": 0}
     for r in rows:
         counts[r["consensus"]] = counts.get(r["consensus"], 0) + 1
-        tbl.add_data(r["design"], r["iptm"], r["plddt"], r["ptm"], r["consensus"], r["reward"], r["why"])
+        tbl.add_data(r["design"], r["iptm"], r["iptm_best"], r["plddt"], r["ptm"], r["consensus"], r["reward"],
+                     r["why"])
     bar = wandb.Table(data=[[k, counts.get(k, 0)] for k in ("trust", "weak", "defer")], columns=["verdict", "count"])
     run.log({
         "boltzgen_vs_touchstone": tbl,

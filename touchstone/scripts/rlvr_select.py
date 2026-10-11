@@ -39,7 +39,7 @@ from touchstone.service import mlip_backbone
 
 
 def main(
-    npz_dir: Path | None = typer.Option(None, help="BoltzGen fold_out_npz dir (confidence per design); omit for a non-BoltzGen pool — boltzgen_iptm is then null"),
+    npz_dir: Path | None = typer.Option(None, help="BoltzGen fold_out_npz dir (confidence per design, mean over refold samples); omit for a non-BoltzGen pool — boltzgen_iptm is then null"),
     cif_dir: Path = typer.Option(..., help="matching refold_cif dir (structures to score)"),
     out: Path = typer.Option(..., help="output dir for the selected fine-tuning set + rewards"),
     metal: str = typer.Option("Ni2+", help="target metal"),
@@ -65,11 +65,13 @@ def main(
         v = r.get("verifiers", {})
         # iPTM is a BoltzGen artefact, recorded alongside the reward but never part of it. Other
         # generators (RFdiffusion2 → LigandMPNN → Chai) produce no npz, so the column goes null
-        # rather than the pool being unscorable.
+        # rather than the pool being unscorable. Mean over refold samples, not best-of-n: this is
+        # the selection step, and best-of-n selects for sampling variance (touchstone.boltzgen).
         conf = boltzgen_confidence(npz_dir / f"{cif.stem}.npz") if npz_dir else None
         scored.append({"design": cif.stem, "cif": str(cif), "reward": r["reward"],
                        "consensus": r["consensus"],
                        "boltzgen_iptm": (conf or {}).get("iptm"),
+                       "boltzgen_iptm_best": (conf or {}).get("iptm_best"),
                        "mlip": v.get("mlip", {}).get("label"), "mlip_md": v.get("mlip_md", {}).get("label"),
                        "selectivity": v.get("selectivity", {}).get("label")})
 
