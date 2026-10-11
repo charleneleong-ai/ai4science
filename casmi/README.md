@@ -6,7 +6,7 @@ up to 25 ranked SMILES per test molecule, scored by MRR@25 on the InChIKey conne
 It is a code competition — a notebook, internet off — so every model and database is attached as a
 Kaggle dataset.
 
-**Best public score: 0.349** (v15, forward-model weights 1.0), against 0.421 for the public notebook its components come from and 0.48 at the top of the
+**Best kept pipeline: 0.349** (v15, forward-model weights 1.0; v18 scored 0.353, within noise, and was reverted), against 0.421 for the public notebook its components come from and 0.48 at the top of the
 leaderboard. The first submission scored 0.115 against a local estimate of 0.664; that estimate was
 retracted, and since then only the leaderboard is trusted. The full history, one change per
 submission, is in [PR #80](https://github.com/charleneleong-ai/ai4science/pull/80) and the
@@ -47,7 +47,9 @@ The [`recall_probe.py`](notebooks/recall/recall_probe.py) kernel and [`recall.py
 measure what a spectrum-driven second PubChem pass (as in the 0.421 notebook) adds to the popularity
 shortlist on held-out train molecules. Scanning the whole window on the ECFP4 block and adding the 100
 best of its top 5000 lifts recall from 126 to 236 / 280 and MRR@25 from 0.241 to 0.405 (+0.164, 95% CI
-+0.124 to +0.209). That is a local go; the notebook change is not yet built or submitted.
++0.124 to +0.209). On the leaderboard the same pass (v18) scored 0.353, within noise of 0.349, so it is switched off
+([`SECOND_PASS_KEEP`](notebooks/kaggle_submission.py)): the production FPNet memorised the copied
+spectra and steered the pass toward the copied structures.
 
 ## Running
 

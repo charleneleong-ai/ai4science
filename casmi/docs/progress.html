@@ -67,21 +67,21 @@ footer { font: 12px/1.5 var(--mono); color: var(--muted); }
 
 <div class="wrap">
   <header class="head">
-    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 11 Oct 2026</div>
+    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 12 Oct 2026</div>
     <h1>From 0.115 to 0.349, one change per submission</h1>
     <p>Rank candidate structures for 400 molecules from their tandem mass spectra, scored by MRR@25 on the InChIKey connectivity block. Every number on this page is a public leaderboard score: the first local estimate said 0.664 and the leaderboard said 0.115, so nothing local is trusted.</p>
     <div class="figures">
       <div class="fig main"><b>0.349</b><span>best public MRR@25 · v15</span></div>
       <div class="fig"><b>0.115</b><span>first submission · v1</span></div>
       <div class="fig"><b>0.421</b><span>public notebook the parts come from</span></div>
-      <div class="fig"><b>14 / 14</b><span>submissions scored, none omitted</span></div>
+      <div class="fig"><b>15 / 15</b><span>submissions scored, none omitted</span></div>
     </div>
   </header>
 
   <section aria-labelledby="spec-h">
     <h2 id="spec-h">Every submission, drawn as a spectrum</h2>
     <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.48 leaderboard top.</p>
-    <div class="chart"><svg id="spectrum" viewBox="0 0 760 310" role="img" aria-label="Stick chart of 14 submission scores rising from 0.115 to 0.349"></svg>
+    <div class="chart"><svg id="spectrum" viewBox="0 0 760 310" role="img" aria-label="Stick chart of 15 submission scores rising from 0.115 to 0.353"></svg>
       <div class="legend"><span><i class="key" style="background:var(--peak)"></i>kept</span><span><i class="key" style="background:var(--dim)"></i>not kept</span><span><i class="key" style="background:var(--ref)"></i>reference scores</span></div>
     </div>
   </section>
@@ -114,13 +114,13 @@ flowchart TD
         <tr><td>Forward-model weights 1.0 instead of 0.5</td><td class="v">v14 → v15</td><td class="num">+0.029</td></tr>
         <tr><td>GLACIER beside ICEBERG</td><td class="v">v13 → v14</td><td class="num">+0.028</td></tr>
         <tr><td>ICEBERG on CPU, 269 of 371 molecules</td><td class="v">v11 → v12</td><td class="num">+0.024</td></tr>
-        <tr><td>Shortlist size, prior weight, copied-structure removal, weight 1.5</td><td class="v">v7–v17</td><td class="num">&lt; 0.01</td></tr>
+        <tr><td>Shortlist size, prior weight, copied-structure removal, weight 1.5, spectrum-driven second PubChem pass</td><td class="v">v7–v18</td><td class="num">&lt; 0.01</td></tr>
       </tbody>
     </table></div>
   </section>
 
   <section aria-labelledby="all-h">
-    <h2 id="all-h">All fourteen submissions</h2>
+    <h2 id="all-h">All fifteen submissions</h2>
     <p>Gate G1: beat the best so far by more than the ±0.005 run-to-run noise.</p>
     <div class="table-box"><table>
       <thead><tr><th>v</th><th>change</th><th style="text-align:right">MRR@25</th><th>verdict</th></tr></thead>
@@ -133,7 +133,7 @@ flowchart TD
     <ul class="limits">
       <li><b>No local estimate of the score.</b> Train-derived labels were wrong, and consensus labels from ten public notebooks failed calibration: three lineages that agree on 12 of 400 top-1 picks.</li>
       <li><b>The private score.</b> The shortlist size, the forward-model weight and GLACIER's input were chosen on the public split, so 0.349 is optimistic.</li>
-      <li><b>Candidate recall.</b> Whether the answer is among the ~1038 candidates cannot be told apart from ranking with one MRR.</li>
+      <li><b>Candidate recall on the test set.</b> On held-out train molecules the popularity shortlist holds the answer for 126 / 280, and a spectrum-driven second pass for 236 / 280 (MRR@25 0.241 → 0.405). On the test set the same pass scored 0.353 against 0.349: the production FPNet memorised the copied spectra and steered the pass toward the copied structures (median Tanimoto of changed top-1 picks 0.26 → 0.42). How much test recall it bought is unmeasured.</li>
       <li><b>Why the data looks like this.</b> 1189 of 1213 test spectra are bit-identical to a train row, yet that row's structure is the answer for at most about 46 of 400 molecules.</li>
       <li><b>29 molecules</b> get no forward-model evidence.</li>
     </ul>
@@ -169,8 +169,9 @@ const SUBS = [
   [15, "forward-model weights 1.0", 0.349, "PROMOTE"],
   [16, "GLACIER on [M+H]+ spectra only", 0.345, "DISCARD"],
   [17, "forward-model weights 1.5", 0.346, "DISCARD"],
+  [18, "+ second PubChem pass chosen by the spectrum", 0.353, "DISCARD"],
 ];
-const best = Math.max(...SUBS.map(s => s[2]));
+const best = Math.max(...SUBS.filter(s => s[3] !== "DISCARD").map(s => s[2]));
 
 const tbody = document.getElementById("rows");
 for (const [v, change, score, verdict] of SUBS) {

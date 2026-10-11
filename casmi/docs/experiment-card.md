@@ -42,10 +42,14 @@ below). No model here was trained or fine-tuned by this work; every weight is a 
 
 ## Budget — every attempt in the denominator
 
-- **14 submissions, 14 scored, 0 rejected.** Every one is in the
+- **15 submissions, 15 scored, 0 rejected.** Every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including the four not
-  kept (0.049, 0.254, 0.345, 0.346).
-- **17 notebook versions run on Kaggle;** the 3 not submitted were setup or reproducibility runs
+  kept (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise) in
+  [PR #85](https://github.com/charleneleong-ai/ai4science/pull/85).
+- **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
+  molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
+  it finished because an empty mass window would have crashed it).
+- **18 notebook versions run on Kaggle;** the 3 not submitted were setup or reproducibility runs
   (a missing RDKit wheel, a push-from-repo check).
 - **One run was cut short by budget, not failure:** v12's ICEBERG on CPU scored 269 / 371
   coverable molecules in its 6 h cap after the weekly GPU quota ran out.

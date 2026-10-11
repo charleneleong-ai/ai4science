@@ -21,11 +21,11 @@ Scores so far, each changing one thing:
   0.349  with both forward-model weights at 1.0 instead of 0.5
   0.345    with GLACIER on [M+H]+ spectra only — reverted
   0.346    with both forward-model weights at 1.5 — reverted
-  v18      + a second PubChem pass chosen by the spectrum, not popularity: the ECFP4 block of
-           f.z over the whole window, the 100 best new connectivities of its top 5000 by full f.z
-           (held-out train molecules: answer among candidates 126 -> 236 / 280, MRR@25 0.241 -> 0.405,
-           measured with the fold-safe FPNet; here the full1 + A bank, which memorised the copied
-           spectra, chooses — the run logs how many top-1 picks the pass supplied)
+  0.353    + a second PubChem pass chosen by the spectrum (100 best new connectivities of the
+           ECFP4-block top 5000) — within noise, switched off. Held-out train molecules promised
+           MRR@25 0.241 -> 0.405 with the fold-safe FPNet; here the full1 + A bank, which memorised
+           the copied spectra, chooses, and its top-1 picks moved toward the copied structures
+           (median Tanimoto 0.26 -> 0.42 on the 192 changed molecules)
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -34,7 +34,7 @@ copy against the package so the two cannot drift silently.
 Approach:
   pool      train (mass from `molecular_formula`, never an observed precursor m/z) plus the
             SHORTLIST most-documented PubChem connectivities inside 5 ppm, plus the
-            SECOND_PASS_KEEP best by FPNet among the rest of the window (SecondPass).
+            SECOND_PASS_KEEP best by FPNet among the rest of the window (SecondPass; off).
   rank      z-scored spectral score plus POP_WEIGHT x log1p(substances) + log1p(PubMed
             articles). The spectral score is FPNet's fingerprint match when its datasets are
             attached, else fragment explainability (<= 2 bond cuts, ring bonds included).
@@ -111,7 +111,7 @@ ICE_BUDGET_S = 6 * 3600  # caps: ICEBERG took 20 min on a T4 and covered 269 / 3
 GL_BUDGET_S = 3 * 3600  # the runners stop cleanly at them. GLACIER runs only on a GPU.
 POP_WEIGHT = 0.25  # on a z-scored spectral score, as in the published prior's recipe
 SECOND_PASS_N1 = 5000  # window rows given the full f.z after the ECFP4-block pass (1000: 179 / 280
-SECOND_PASS_KEEP = 100  # answers reached, 2000: 208, 5000: 236); keep 1000 instead of 100 adds 1
+SECOND_PASS_KEEP = 0  # answers reached, 2000: 208, 5000: 236); 100 scored 0.353, within noise: off
 ECFP_SIZE = 4096  # raw fingerprint bits below this are the ECFP4 block
 WORKERS = os.cpu_count() or 1
 MAX_BREAKS = 2
@@ -840,7 +840,7 @@ def main() -> None:
     print(f"train pool: {len(entries):,} structures  ({time.time()-t0:.0f}s)", flush=True)
     pubchem = open_pubchem()
     paths = fpnet_paths()
-    second = SecondPass(pubchem, paths[0], paths[2]) if pubchem and paths else None  # forks before CUDA
+    second = SecondPass(pubchem, paths[0], paths[2]) if pubchem and paths and SECOND_PASS_KEEP else None
     fpnet = FPNetScorer(*paths) if paths else None
     print(f"spectral score: {'FPNet' if fpnet else 'fragment explainability'}", flush=True)
     forward = find_forward()
