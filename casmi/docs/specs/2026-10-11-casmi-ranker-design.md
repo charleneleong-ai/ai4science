@@ -71,3 +71,26 @@ them for training queries needs GPU time we can't spend on thousands of molecule
 
 Whether test molecules — whose train-row copies carry the wrong structure — rank like train molecules.
 Only the leaderboard measures that.
+
+## Result (2026-10-11) — no-go
+
+Training set ([`ranker_trainset.py`](../../notebooks/ranker/ranker_trainset.py), 3h37m on Kaggle CPU): 2000
+molecules chosen, 97 without a usable precursor mass and 22 with an empty shortlist, leaving 1,753,061
+candidates over 1,881 molecules. The shortlist holds the molecule's own structure for 714 / 1656 hold-fold
+molecules (43%) and 215 / 247 natural-product molecules (87%).
+
+Five-fold grouped cross-validation ([`casmi train-ranker`](../../src/casmi/ranker.py)), paired per molecule on
+identical candidate lists:
+
+| group | molecules | hand-set MRR@25 | ranker MRR@25 | Δ [95% bootstrap CI] | better / worse |
+|---|---|---|---|---|---|
+| all | 1881 | 0.296 | 0.296 | +0.001 [−0.007, +0.008] | 221 / 217 |
+| hold | 1640 | 0.233 | 0.233 | +0.000 [−0.008, +0.008] | 192 / 194 |
+| np | 241 | 0.720 | 0.725 | +0.005 [−0.016, +0.027] | 29 / 23 |
+
+The ranker learns the hand-set score back: FPNet rank and z-score carry 74% of the gain, popularity 18%,
+and the natural-product flags, patents, ppm error and isomer counts together under 8%. These features add
+nothing the hand-set blend lacks, so the `RANKER` notebook stage is not built and no submission is spent.
+What would move the score is new information: the shortlist misses the answer for 57% of hold-fold
+molecules, and stronger spectral evidence (more forward-model coverage, other spectrum models) would
+re-order the 43% where it is present.
