@@ -45,7 +45,9 @@ ties the hand-set score (MRR@25 0.296 vs 0.296), so it was not submitted — see
 [design and result](docs/specs/2026-10-11-casmi-ranker-design.md).
 The [`recall_probe.py`](notebooks/recall/recall_probe.py) kernel and [`recall.py`](src/casmi/recall.py)
 measure what a spectrum-driven second PubChem pass (as in the 0.421 notebook) adds to the popularity
-shortlist on held-out train molecules; running.
+shortlist on held-out train molecules. Scanning the whole window on the ECFP4 block and adding the 100
+best of its top 5000 lifts recall from 126 to 236 / 280 and MRR@25 from 0.241 to 0.405 (+0.164, 95% CI
++0.124 to +0.209). That is a local go; the notebook change is not yet built or submitted.
 
 ## Running
 
