@@ -1,0 +1,9 @@
+design,delta_q_floor,his_robust,mouse_retained,clashes,flag,verdict
+helix0_R35H_E67H_E70H,1.35,2/3,0.982,0,,SUBMITTED as tnf2_13
+helix0_R21H_R35H_R72H,1.13,2/3,0.560,0,,mouse retained 56% < 70%
+helix0_R21H_R35H_E67H,,2/3,,1,"clash(1),off_epitope",structural
+helix0_R21H_R35H_E70H,,2/3,,3,clash(3),structural
+helix0_R21H_E70H_R72H,,1/3,,7,clash(7),structural
+helix0_R35H_E70H_R72H,,2/3,,1,clash(1),structural
+helix0_R35H_E67H_R72H,,2/3,,0,off_epitope,structural
+helix0_E67H_E70H_R72H,,1/3,,1,"clash(1),tiny_interface(232),off_epitope",structural

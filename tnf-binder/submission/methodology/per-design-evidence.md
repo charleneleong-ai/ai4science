@@ -4,13 +4,20 @@ Ranked on **ΔQ floor** (charge gained at the interface going pH 7.4 → 6.0, ea
 scored on whichever of its three structures gives the *smaller* swing — a lower bound),
 then mouse retention, then human affinity.
 
-`robust` = histidines staying inside 6.0–7.6 on **all three** structures; 8 of 23 across the
+`robust` = histidines staying inside 6.0–7.6 on **all three** structures; 9 of 26 across the
 set do not. `mouse` = interface confidence against mouse TNF-α as a fraction of the human
 value, same protocol both sides.
+
+`tnf2_13` filled one of the slots held for a campaign that produced nothing. It is the single
+survivor of eight further three-histidine combinations on `helix_0` put through the same
+gates — six failed on structure, one on mouse retention at 56 %. Its novelty score is pending
+because it was added after the first upload; it is 2 substitutions from `tnf2_08` and 3 from
+`tnf2_05`, both of which scored 3/4.
 
 | # | design | aa | His | ΔQ floor | robust | mouse | buried Å² | human ipTM | Cys | novelty |
 |---|---|---|---|---|---|---|---|---|---|---|
 | tnf2_01 | `helix0_R21H_E67H_E70H` | 91 | 3 | **1.38** | 3/3 | 103% | 748 | 0.153 | 1 | 3/4 |
+| tnf2_13 | `helix0_R35H_E67H_E70H` | 91 | 3 | **1.35** | 2/3 | 98% | 658 | 0.207 | 1 | pending |
 | tnf2_02 | `helix0_R21H_E67H_R72H` | 91 | 3 | **1.14** | 2/3 | 108% | 777 | 0.162 | 1 | 3/4 |
 | tnf2_03 | `helix0_E67H_R72H` | 91 | 2 | **1.03** | 1/2 | 88% | 528 | 0.159 | 1 | 3/4 |
 | tnf2_04 | `helix0_R21H_E70H` | 91 | 2 | **0.99** | 2/2 | 88% | 889 | 0.175 | 1 | 3/4 |

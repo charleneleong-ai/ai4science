@@ -93,9 +93,17 @@ above is not a clean pre-registered statistic.
 
 Submission 2 is a measured histidine series on the two chassis that passed **both** the fold gate
 and the composition gate — of 16 folded parents, only `screen_pocket_helix_0` and
-`screen_pocket_free_1` passed both. Twelve entries vary the switch on `helix_0`, two carry
-`free_1`, and six of the 20 slots are held back for the BindCraft2 campaign. The concentration
-on one chassis is a result, not a preference: the funnel left two.
+`screen_pocket_free_1` passed both. Eleven entries vary the switch on `helix_0`, two carry
+`free_1`, and seven of the 20 slots go unused. The concentration on one chassis is a result,
+not a preference: the funnel left two.
+
+The seven unused slots were held for the BindCraft2 campaign, which produced nothing in three
+rounds (§ declared deviations). Rather than leave them empty on a guess, the eight remaining
+three-histidine combinations on `helix_0` that hold all three pKas in window on their design
+structure were folded against human and mouse TNF-α and scored on the same gates as the rest
+of the set. **One of the eight survived** and is submitted as `tnf2_13`; the full funnel,
+including each rejection, is in `docs/slotfill-funnel.csv`. Six failed on structure (clashes,
+or an interface that moved off the epitope entirely) and one on mouse retention at 56 %.
 
 Every pKa is PROPKA on the mutant in its bound context, and every combination was measured as a
 combination rather than composed from singles — which was necessary: `A35H+A38H` drops A35 from
