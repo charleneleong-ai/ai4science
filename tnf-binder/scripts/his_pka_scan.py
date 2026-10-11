@@ -22,11 +22,11 @@ import typer
 from Bio.PDB.Polypeptide import protein_letters_3to1 as THREE_TO_ONE
 from rich.console import Console
 
-from tnf_binder.pka import run_propka
 from tnf_binder.rosetta import HisMutator
+from tnf_binder.switch import measure_his
 from tnf_binder.structure import Complex
 from tnf_binder.tables import write_rows
-from tnf_binder.verifiers.pka_switch import IDEAL_WINDOW, USABLE_WINDOW, pka_window
+from tnf_binder.verifiers.pka_switch import IDEAL_WINDOW, USABLE_WINDOW
 
 app = typer.Typer(add_completion=False)
 console = Console()
@@ -59,21 +59,20 @@ def scan_design(source: Path, sites: list[InterfaceSite], mutator: HisMutator,
     """One row per substitution whose pKa PROPKA could predict."""
     rows: list[dict[str, object]] = []
     for chain, resnum, wild_type, dsasa in sites:
-        mutant = workdir / f"{source.stem}_{chain}{resnum}H.pdb"
-        pose = mutator.load(source)
-        if not mutator.mutate(pose, [(chain, resnum)]):
+        variant = measure_his(source, [(chain, resnum)], mutator=mutator, workdir=workdir)
+        if variant is None:
             continue
-        mutator.write(pose, mutant)
-        pka = run_propka(mutant, workdir).get((chain, resnum))
-        if pka is None:
+        measurement = variant.measurements[0]
+        if measurement.pka is None:
             console.print(f"   {chain}{resnum} {wild_type}->H  propka gave no pKa")
             continue
-        verdict = pka_window(pka)
         rows.append({"parent": source.stem, "chain": chain, "resnum": resnum,
-                     "wt": wild_type, "dsasa": dsasa, "pka": round(pka, 2),
-                     "verdict": verdict, "switchable": verdict in ("ideal", "usable")})
+                     "wt": wild_type, "dsasa": dsasa, "pka": round(measurement.pka, 2),
+                     "verdict": measurement.window,
+                     "switchable": measurement.in_window})
         console.print(f"   {chain}{resnum} {wild_type}->H  dSASA={dsasa:5.1f}  "
-                      f"pKa={pka:5.2f}  {verdict:6s} {MARK[verdict]}")
+                      f"pKa={measurement.pka:5.2f}  {measurement.window:6s} "
+                      f"{MARK[measurement.window]}")
     return rows
 
 
