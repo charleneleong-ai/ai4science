@@ -1,0 +1,125 @@
+# Experiment card — conditional TNF-α binder
+
+Structured after [*A generated protein is not a result*](https://rewirebio.io/blog/a-generated-protein-is-not-a-result/).
+A generated sequence is a proposal that passed computational checks; a result is a measured
+biological endpoint. Nothing here is a result.
+
+## 1. Target, frozen
+
+| item | value |
+| --- | --- |
+| target | human TNF-α soluble homotrimer, UniProt **P01375-1**, residues 77–233 (157 aa mature) |
+| structure | **1TNF** chains A/B/C, 2.6 Å. Residues 1–5 disordered; modelled 6–157 |
+| receptor epitope | TNF residues within 4.5 Å of TNFR2 in **3ALQ** — 33 positions |
+| ortholog | mouse TNF-α, UniProt **P06804**; trimer predicted (no experimental structure used) |
+| epitope targeted | conserved pocket 113, 115, 143, 144, 146, 147 (and a 86–92 lobe variant) |
+| coldspots | the 9 human/mouse divergent positions: 20, 31, 71, 72, 73, 85, 89, 97, 111 |
+
+A **1TNF vs UniProt discrepancy** is recorded rather than smoothed: position 143 is Leu in the
+crystal structure and Asp in P01375.
+
+## 2. The generated object
+
+Single-chain de novo miniproteins, 61–110 aa, `molecule_class = single_chain`. Histidines are
+then engineered at interface positions to create the pH switch.
+
+## 3. Stack, exactly
+
+| role | tool | version / checkpoint |
+| --- | --- | --- |
+| design (sampling) | BoltzGen | 0.1.4, `boltzgen1_adherence` + diverse checkpoints |
+| design (optimisation) | BindCraft | 1.5.3, AF2 `params_2022-12-06`, `default_4stage_multimer_hardtarget` |
+| design (dual-target) | BindCraft2 | repo `bindcraft==1.0.3`, jax 0.11.2 |
+| co-folding / validation | Boltz-2 | 2.2.1, `boltz2_conf.ckpt` (affinity head is ligand-only, unused) |
+| side-chain building | PyRosetta | 2026.29 release |
+| pKa prediction | PROPKA | 3.5.1 |
+| sequence novelty | MMseqs2 | vs Swiss-Prot + PDB seqres, snapshot 2026-10-10 |
+| fold novelty | FoldSeek + TM-align | CATH50, snapshot 2026-10-11 — **conservative vs Proteinbase**, which uses ESMFold + domain segmentation over PDB/patent/antibody sets |
+
+Terms: BoltzGen/Boltz MIT; BindCraft MIT; **PyRosetta requires a licence — free for
+non-commercial academic use, paid otherwise**; AlphaFold params CC BY 4.0.
+
+## 4. Sampling budget and the funnel, with denominators
+
+Failed generations are in the denominator.
+
+| stage | n | note |
+| --- | --- | --- |
+| BoltzGen designs generated | 100 | across 4 screen configs + 2 earlier runs |
+| campaign constructs (parents + His variants) | 57 | |
+| passed sequence-novelty (exact 20-mer) | 53 | 4 memorised — 2 ubiquitin, 2 VHH framework |
+| passed composition gate | 7 | 46 lost to Ala/Gly degeneracy |
+| passed structural quality (clash / interface / epitope) | **3** | |
+| submitted | 3 | |
+| passed Proteinbase auto-novelty | **2** | 1 failed on fold similarity |
+
+**Yield from generated to novelty-passing: 2/57 ≈ 3.5%.**
+
+Histidine scan: 200 single substitutions → 18 ideal (pKa 6.3–7.2), 17 usable (6.0–7.6).
+
+## 5. Oracles, thresholds, and where they disagree
+
+Interface confidence is **not** reported as a point estimate, because the models disagree
+on identical structures:
+
+| structure | AF2 (BindCraft) | Boltz-2 | BoltzGen folding |
+| --- | --- | --- | --- |
+| BindCraft design | **0.92** | **0.21** | — |
+| BoltzGen designs | — | 0.44–0.64 | ~0.20 |
+
+Two artefacts were found and corrected, and both would have inverted conclusions:
+- **Global ipTM is unusable on a multi-chain target.** The TNF trimer's own internal interfaces
+  score ~0.88 and swamp the binder's. Moving dimer→trimer lifted global ipTM 0.20→0.52 while
+  the binder-to-target interface stayed flat. All numbers here are **binder-to-target only**.
+- **Best-of-n inflates.** Metrics are stored per diffusion sample; `best` and `mean` are both
+  reported and ranking uses **mean**.
+
+## 6. Filters and ranking
+
+Hard gates (artefacts, not weak candidates): memorised sequence; single residue ≥30% or <12
+distinct residues or Ala+Gly >45%; steric clash; interface <350 Å²; off-epitope; fold-novelty
+score <3.
+
+Ranking: pH switch, then binder-to-target ipTM (mean), then cross-reactivity — following the
+competition's own order, and its statement that a weak-but-selective binder outranks a strong
+non-selective one.
+
+**Declared deviation:** these filters were **not** all fixed before seeing results. The
+composition gate was added after poly-alanine appeared at the top of a shortlist, and the fold
+gate after a submitted design failed. Both were responses to observed failures, so the funnel
+above is not a clean pre-registered statistic.
+
+## 6b. Second submission, and four more declared deviations
+
+Submission 2 is a measured histidine series on the two chassis that passed **both** the fold gate
+and the composition gate — of 16 folded parents, only `screen_pocket_helix_0` and
+`screen_pocket_free_1` passed both. Twelve entries vary the switch on `helix_0`, two carry
+`free_1`, and six of the 20 slots are held back for the BindCraft2 campaign. The concentration
+on one chassis is a result, not a preference: the funnel left two.
+
+Every pKa is PROPKA on the mutant in its bound context, and every combination was measured as a
+combination rather than composed from singles — which was necessary: `A35H+A38H` drops A35 from
+6.07 to 5.94, out of the window, and `A70H+A72H` drops A70 from 6.44 to 6.23.
+
+| deviation | what was changed, and when |
+| --- | --- |
+| **Burial floor lowered 15 Å² → 8 Å²** | Changed **after** seeing that `helix_0` had only two switchable positions at the original floor. It then yielded six, four in the ideal window. The floor's purpose — the histidine must sit at the interface for its protonation to modulate binding — is unchanged, but sites admitted between 8 and 15 Å² are more weakly coupled, so "four ideal sites" is a post-hoc number. |
+| **`free_4` dropped on a non-reproducing pKa** | Its A16H scanned as 6.58 "ideal" in the first pass and **1.73** on re-measurement. The method is deterministic — `helix_0` and `free_1` reproduce to 0.01 on repeat — so this is not run-to-run noise; the two passes ran against *different structure files* for that design. Treated as disqualifying rather than averaged. |
+| **The novelty rule is empirical, n = 3** | "High fold similarity fails, moderate passes" is read off three Proteinbase verdicts, not from their published scale — which, applied literally at 38% identity, would have failed the two designs that actually passed. It is used to rank, and it is not calibrated. |
+| **BindCraft2 runs on loosened design settings** | Rounds 1 and 2 scored zero candidates: trajectories died at the screen stage on binder pLDDT 0.59 against a default floor of 0.60, so the relaxed acceptance filters never saw a candidate. Round 3 applies `target_flexibility 0.5` + `initial_guess` — rungs 1–2 of BindCraft2's own desperation ladder, which cannot self-engage here because it waits 750 trajectories without an acceptance and one trajectory costs ~33 min. **Its documentation is explicit that designs accepted this way are judged against an easier task and are weaker candidates.** Anything this produces is marked as such rather than entering the funnel as an equal. |
+
+## 7. What is not established
+
+- No expression, no SEC, no thermal stability, no SPR/BLI. **No measured binding of any kind.**
+- pH selectivity rests on predicted pKa. No folding model represents protonation; PROPKA is a
+  static-structure predictor, and the assay is not simulated.
+- Mouse cross-reactivity rests on a *predicted* mouse structure and conserved-epitope coverage.
+- Three mechanistic hypotheses for the pH switch (buried-His desolvation, cation repulsion,
+  carboxylate proximity) were each **refuted** by the pKa data; no validated mechanism replaces
+  them. Positions come from a scan, not a rule.
+
+## 8. Stop rules
+
+Stop and re-think if: no construct reaches fold-novelty ≥3; the His scan yields no pKa in
+6.3–7.2 at an interface position; or cross-model interface confidence stays below ~0.3 for
+every design, which would mean the ranking cannot enrich anything.
