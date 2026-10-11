@@ -119,8 +119,18 @@ combination rather than composed from singles — which was necessary: `A35H+A38
 ## 7. What is not established
 
 - No expression, no SEC, no thermal stability, no SPR/BLI. **No measured binding of any kind.**
-  Nothing was run through a Tm predictor or a learned solubility model; what follows is from
-  sequence alone, and is a liability register rather than a prediction.
+  No Tm predictor and no learned solubility model was run — touchstone's
+  `ThermostabilityVerifier` needs TemStaPro, which is not installed here, and an uncalibrated
+  Tm on de novo miniproteins is not a measurement. What follows is a liability register from
+  sequence plus one language-model proxy, not a prediction of behaviour.
+- **ESM-2 pseudo-perplexity separates the two chassis and nothing else.** `helix_0` sits at
+  6.29–7.26 (mean 6.79, n=11) and `free_1` at 10.10–10.48 (n=2): no overlap, and a gap roughly
+  ten times the spread any substitution produces. Lower is more natural, so `free_1` is the
+  less protein-like of the two by this proxy — which compounds its 41–47 % mouse retention and
+  its near-neutral, hydrophobic surface. Its one advantage, the campaign's only 4/4 novelty,
+  is a gate already cleared at 3/4 by everything else. Novelty and naturalness are measured
+  against overlapping databases and pull against each other; neither is calibrated to
+  expression here.
 - **Eleven of the thirteen carry one cysteine, an odd and therefore unpairable count.** It is
   at position 34 of the `helix_0` chassis, so every design on that chassis inherits it rather
   than choosing it. A lone surface cysteine invites disulfide scrambling, covalent dimers and

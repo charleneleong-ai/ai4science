@@ -1,0 +1,116 @@
+{
+  "parent_0sub": {
+    "length": 91,
+    "pseudo_perplexity": 6.085,
+    "gravy": -0.396,
+    "cysteines": 1
+  },
+  "single_21H": {
+    "length": 91,
+    "pseudo_perplexity": 6.491,
+    "gravy": -0.381,
+    "cysteines": 1
+  },
+  "single_35H": {
+    "length": 91,
+    "pseudo_perplexity": 6.463,
+    "gravy": -0.381,
+    "cysteines": 1
+  },
+  "single_67H": {
+    "length": 91,
+    "pseudo_perplexity": 6.51,
+    "gravy": -0.392,
+    "cysteines": 1
+  },
+  "single_70H": {
+    "length": 91,
+    "pseudo_perplexity": 6.572,
+    "gravy": -0.392,
+    "cysteines": 1
+  },
+  "single_72H": {
+    "length": 91,
+    "pseudo_perplexity": 6.291,
+    "gravy": -0.381,
+    "cysteines": 1
+  },
+  "triple_35_67_70_H": {
+    "length": 91,
+    "pseudo_perplexity": 7.246,
+    "gravy": -0.375,
+    "cysteines": 1
+  },
+  "single_21A": {
+    "length": 91,
+    "pseudo_perplexity": 7.351,
+    "gravy": -0.326,
+    "cysteines": 1
+  },
+  "single_35A": {
+    "length": 91,
+    "pseudo_perplexity": 6.283,
+    "gravy": -0.326,
+    "cysteines": 1
+  },
+  "single_67A": {
+    "length": 91,
+    "pseudo_perplexity": 6.255,
+    "gravy": -0.337,
+    "cysteines": 1
+  },
+  "single_70A": {
+    "length": 91,
+    "pseudo_perplexity": 6.417,
+    "gravy": -0.337,
+    "cysteines": 1
+  },
+  "single_72A": {
+    "length": 91,
+    "pseudo_perplexity": 5.975,
+    "gravy": -0.326,
+    "cysteines": 1
+  },
+  "triple_35_67_70_A": {
+    "length": 91,
+    "pseudo_perplexity": 6.736,
+    "gravy": -0.21,
+    "cysteines": 1
+  },
+  "single_21Q": {
+    "length": 91,
+    "pseudo_perplexity": 6.668,
+    "gravy": -0.385,
+    "cysteines": 1
+  },
+  "single_35Q": {
+    "length": 91,
+    "pseudo_perplexity": 6.513,
+    "gravy": -0.385,
+    "cysteines": 1
+  },
+  "single_67Q": {
+    "length": 91,
+    "pseudo_perplexity": 6.275,
+    "gravy": -0.396,
+    "cysteines": 1
+  },
+  "single_70Q": {
+    "length": 91,
+    "pseudo_perplexity": 6.421,
+    "gravy": -0.396,
+    "cysteines": 1
+  },
+  "single_72Q": {
+    "length": 91,
+    "pseudo_perplexity": 6.343,
+    "gravy": -0.385,
+    "cysteines": 1
+  },
+  "triple_35_67_70_Q": {
+    "length": 91,
+    "pseudo_perplexity": 6.976,
+    "gravy": -0.385,
+    "cysteines": 1
+  }
+}

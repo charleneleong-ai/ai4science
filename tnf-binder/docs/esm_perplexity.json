@@ -1,0 +1,80 @@
+{
+  "tnf2_01": {
+    "length": 91,
+    "pseudo_perplexity": 7.256,
+    "gravy": -0.375,
+    "cysteines": 1
+  },
+  "tnf2_02": {
+    "length": 91,
+    "pseudo_perplexity": 7.054,
+    "gravy": -0.364,
+    "cysteines": 1
+  },
+  "tnf2_03": {
+    "length": 91,
+    "pseudo_perplexity": 6.694,
+    "gravy": -0.378,
+    "cysteines": 1
+  },
+  "tnf2_04": {
+    "length": 91,
+    "pseudo_perplexity": 7.004,
+    "gravy": -0.378,
+    "cysteines": 1
+  },
+  "tnf2_05": {
+    "length": 91,
+    "pseudo_perplexity": 6.852,
+    "gravy": -0.389,
+    "cysteines": 1
+  },
+  "tnf2_06": {
+    "length": 91,
+    "pseudo_perplexity": 6.691,
+    "gravy": -0.367,
+    "cysteines": 1
+  },
+  "tnf2_07": {
+    "length": 91,
+    "pseudo_perplexity": 6.291,
+    "gravy": -0.381,
+    "cysteines": 1
+  },
+  "tnf2_08": {
+    "length": 91,
+    "pseudo_perplexity": 6.51,
+    "gravy": -0.392,
+    "cysteines": 1
+  },
+  "tnf2_09": {
+    "length": 74,
+    "pseudo_perplexity": 10.482,
+    "gravy": 0.258,
+    "cysteines": 0
+  },
+  "tnf2_10": {
+    "length": 74,
+    "pseudo_perplexity": 10.095,
+    "gravy": 0.292,
+    "cysteines": 0
+  },
+  "tnf2_11": {
+    "length": 91,
+    "pseudo_perplexity": 6.572,
+    "gravy": -0.392,
+    "cysteines": 1
+  },
+  "tnf2_12": {
+    "length": 91,
+    "pseudo_perplexity": 6.491,
+    "gravy": -0.381,
+    "cysteines": 1
+  },
+  "tnf2_13": {
+    "length": 91,
+    "pseudo_perplexity": 7.246,
+    "gravy": -0.375,
+    "cysteines": 1
+  }
+}

@@ -43,11 +43,21 @@ A lower bound, not a best case.
 **5 · Combinations measured, never composed.** All 41 histidine combinations were scanned,
 because single-mutant pKa values do not add: `A35H+A38H` pushes A35 out of the window.
 
-**6 · The negative results are in the repository.** Eight hypotheses we held were refuted by
+**6 · The negative results are in the repository.** Nine hypotheses we held were refuted by
 measurement, including three separate mechanisms for *why* a histidine should switch — burial,
 cation repulsion, carboxylate proximity. All three have the wrong sign or no effect. The
 positions used here are empirical, from an exhaustive scan plus a physics solver, because every
 mechanism we reasoned our way to was wrong.
+
+The ninth was caught before it was reported. ESM-2 pseudo-perplexity rises monotonically with
+histidine count across the submitted series (6.47 → 6.81 → 7.19 for one, two and three
+histidines, r = +0.93), which reads as a third independent cost of the switch alongside the
+interface confidence and robustness it already spends. Substituting alanine or glutamine at the
+same five positions instead shows the correlation is with **substitution count, not histidine
+chemistry**: against the parent at 6.09, the mean single substitution costs +0.380 for
+histidine, +0.371 for alanine and +0.359 for glutamine — a spread of 0.021, and one alanine
+single (R21A, 7.35) is less natural than every histidine tested. There is no histidine-specific
+naturalness penalty to report.
 
 **7 · One claim was retracted.** We reported that our fold-novelty gate reproduced Proteinbase's
 verdicts 3/3. It did not: two of the three only scored correctly because a missing identity
