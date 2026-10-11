@@ -11,7 +11,7 @@
 #     this documents intent rather than changing behaviour.
 #
 # Hotspots are 1-based CHAIN POSITIONS, not mature residue numbers: 1TNF starts at residue 6,
-# so mature 86-92 = positions 81..87. Verified to spell SYQKVN by gen_spec.py.
+# so mature 86-92 = positions 81..87. Verified to spell SYQKVN by gen.py.
 entities:
   - protein:
       id: X

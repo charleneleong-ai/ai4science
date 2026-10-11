@@ -2,7 +2,7 @@
 # epitope=pocket5  length=70..110  secondary_structure=3-helix bundle over first 70 residues
 #
 # Screening to lift design_to_target_iptm off the 0.11-0.30 plateau. Indices are 1-based CHAIN
-# POSITIONS; target files keep 1TNF numbering so position = mature - 5, asserted by gen_screen.py.
+# POSITIONS; target files keep 1TNF numbering so position = mature - 5, asserted by gen.py.
 entities:
   - protein:
       id: X

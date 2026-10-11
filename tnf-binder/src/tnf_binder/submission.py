@@ -32,6 +32,20 @@ SUBMISSION_COLUMNS = ["name", "sequence", "molecule_class"]
 MIN_LENGTH, MAX_LENGTH = 10, 250
 MAX_ROWS = 20
 
+# Gates for a candidate competing for a free slot, fixed BEFORE the designs they judge were
+# folded, so what survives is a pre-registered count and not a threshold fitted to the answer.
+# Each is taken from a design already submitted rather than chosen to admit a particular number.
+MIN_DELTA_Q = 0.47          # the weakest submitted design whose His is robust on every sample
+MIN_MOUSE_RETAINED = 0.70   # the campaign's own floor; 9 of 12 submitted clear it, median 86%
+MIN_ROBUST_HIS = 2          # at least two histidines hold the window on every diffusion sample
+MAX_CLASHES = 0
+# NOT pre-registered: the structural `flag` check below was added after reading the first
+# geometry table, which showed two candidates at epitope_focus 0.00 -- bound somewhere else on
+# the target entirely, and admitted by a clash count of zero. Declared here rather than folded
+# in silently. It is not a threshold fitted to the result: `scripts/submit.py shortlist` has
+# rejected on this same flag since the first campaign, and the omission was in failing to wire
+# it into the newer gate.
+
 
 def row_problem(row: Mapping[str, str]) -> str | None:
     """The first way one submission row violates Proteinbase's stated format, if any."""
@@ -42,6 +56,33 @@ def row_problem(row: Mapping[str, str]) -> str | None:
         return f"non-standard residues in {row['name']}"
     if not MIN_LENGTH <= len(sequence) <= MAX_LENGTH:
         return f"length {len(sequence)} in {row['name']}"
+    return None
+
+
+def candidate_problem(record: Mapping[str, Any]) -> str | None:
+    """Why a measured candidate does not earn a slot, or None if it clears every gate.
+
+    Separate from `row_problem`, which asks only whether a row is a legal upload. This asks
+    whether the design is worth one of twenty slots, and it drops rather than down-ranks: the
+    objectives are ordered pH-selectivity, then mouse cross-reactivity, then affinity, and a
+    design that fails either of the first two is not rescued by being good at the third.
+
+    Structural validity is checked first: a clashing or off-epitope complex is not a structure
+    whose pKa and interface mean anything, so reporting it as a near miss on delta-Q would be
+    reporting a measurement taken on the wrong object.
+    """
+    if flag := (str(record.get("flag") or "").strip().strip('"')):
+        return f"structural flag: {flag}"
+    if float(record["clashes"] or 0) > MAX_CLASHES:
+        return f"{record['clashes']} clashes"
+    if float(record["delta_q_floor"]) < MIN_DELTA_Q:
+        return f"delta_q {record['delta_q_floor']} < {MIN_DELTA_Q}"
+    if float(record["mouse_retained"]) < MIN_MOUSE_RETAINED:
+        return (f"mouse retained {float(record['mouse_retained']):.0%} "
+                f"< {MIN_MOUSE_RETAINED:.0%}")
+    robust = int(str(record["his_robust"]).split("/")[0])
+    if robust < MIN_ROBUST_HIS:
+        return f"only {record['his_robust']} His robust across samples"
     return None
 
 

@@ -32,3 +32,6 @@ tnf-binder/.pytest_cache/
 
 # W&B local run cache (runs live at wandb.ai/chaleong/tnf-conditional-binder)
 wandb/
+
+# pytest-cov writes this next to the package it measures
+.coverage

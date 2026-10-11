@@ -88,3 +88,32 @@ def cofold_spec(target: str, *, binder: str | None = None, protomers: int = 3) -
     chains = [] if binder is None else [chain_block("X", binder)]
     chains += [chain_block(chain_id, target) for chain_id in "ABC"[:protomers]]
     return "version: 1\nsequences:\n" + "\n".join(chains) + "\n"
+
+
+def helix_bundle(n: int) -> str:
+    """A three-helix bundle secondary-structure pattern of exactly n residues.
+
+    Uniform 'h' is not a designable topology -- a real bundle needs loops to turn between
+    helices. Three helices with two short loops is the classic de novo minibinder fold and is
+    much easier to re-predict confidently than a mixed or beta topology.
+    """
+    loop = 4
+    helix_total = n - 2 * loop
+    outer = helix_total // 3
+    middle = helix_total - 2 * outer
+    return "h" * outer + "l" * loop + "h" * middle + "l" * loop + "h" * outer
+
+
+def secondary_structure(length_range: str) -> str:
+    """A bundle pattern for a `60..95` range, sized to the MINIMUM of that range.
+
+    BoltzGen rejects a secondary_structure string longer than the sampled sequence, so the
+    pattern has to fit the shortest length the range can draw; trailing positions default to
+    'u'. Its error message says "shorter than the sequence" while the check is actually
+    len(spec) > n, which is why this was read the wrong way round once.
+    """
+    n_min = int(length_range.split("..")[0])
+    pattern = helix_bundle(n_min)
+    if len(pattern) != n_min:
+        raise ValueError(f"ss pattern {len(pattern)} != {n_min}")
+    return pattern

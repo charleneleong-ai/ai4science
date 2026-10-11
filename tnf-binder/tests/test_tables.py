@@ -9,7 +9,9 @@ default is tested explicitly, including that a caller can choose one that is not
 
 from __future__ import annotations
 
-from tnf_binder.tables import number, read_rows, write_rows
+import pytest
+
+from tnf_binder.tables import design_stem, number, read_rows, write_rows
 
 
 class TestReadRows:
@@ -90,3 +92,26 @@ class TestWriteRows:
         write_rows(path, [], columns=["a", "b"])
         assert path.read_text() == "a,b\r\n" or path.read_text() == "a,b\n"
         assert read_rows(path) == []
+
+
+class TestDesignStem:
+    """Reading the `design` column back to the design it names."""
+
+    @pytest.mark.parametrize("name,expected", [
+        ("F__helix0_R21H_R35H_E67H", "helix0_R21H_R35H_E67H"),
+        ("FM__helix0_R72H", "helix0_R72H"),
+        ("S2__helix0_E67H", "helix0_E67H"),
+        ("P__screen_pocket_helix_0", "screen_pocket_helix_0"),
+        ("helix0_R21H", "helix0_R21H"),           # already bare
+    ])
+    def test_strips_the_batch_marker(self, name, expected):
+        assert design_stem(name) == expected
+
+    def test_a_variant_keeps_its_his_tag(self):
+        """Splitting on the LAST separator gave `A73H`, which names no design at all."""
+        assert design_stem("V__screen_pocket_free_1__A73H") == "screen_pocket_free_1__A73H"
+
+    def test_two_parents_sharing_a_his_tag_stay_distinct(self):
+        """They collapsed onto one key, quietly dropping a row from the funnel."""
+        assert (design_stem("V__screen_pocket_free_1__A73H")
+                != design_stem("V__screen_pocket_free_2__A73H"))

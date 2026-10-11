@@ -1,12 +1,18 @@
-# Complexity-only gate. Not in pyproject.toml on purpose: a committed [tool.ruff] block would
-# make editor-integrated ruff start applying its default E/F rules repo-wide.
+# Complexity and undefined-name gate. Not in pyproject.toml on purpose: a committed [tool.ruff]
+# block would make editor-integrated ruff start applying its default E/F rules repo-wide.
+#
+# F821 earns its place by catching a class of breakage that both the tests and `--help` miss:
+# merging two scripts into one keeps one file's imports and drops the other's, so the command
+# still registers, still answers `--help`, and raises NameError the first time anyone runs it.
+# It found 14 such names across three freshly merged scripts. F401 is the same fault in
+# reverse -- an import left behind by code that moved out.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.10
     hooks:
       - id: ruff-check
-        name: ruff (complexity gate)
+        name: ruff (complexity + undefined names)
         args:
-          - --select=C901,PLR0915
+          - --select=C901,PLR0915,F821,F401
           - --config=lint.mccabe.max-complexity=10
           - --config=lint.pylint.max-statements=50
