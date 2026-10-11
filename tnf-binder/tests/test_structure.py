@@ -104,6 +104,14 @@ class TestBuriedByPosition:
         assert far.buried_by_position() == {}
         assert far.clashes() == 0
 
+    def test_write_binder_emits_the_binder_alone(self, tmp_path, complex_):
+        """A fold search queried with the whole complex matches its own target."""
+        out = complex_.write_binder(tmp_path / "binder.pdb")
+        written = Complex.from_file(out)
+        assert chain_sequence(written.binder_chains[0]) == BINDER
+        assert written.target_chains == ()          # the target is gone, so nothing to match
+        assert not written.is_resolved              # and it is no longer a complex
+
     def test_an_overlapping_binder_clashes(self, tmp_path):
         target = HUMAN[TARGET_START:TARGET_START + TARGET_LENGTH]
         overlapped = Complex.from_file(

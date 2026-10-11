@@ -41,6 +41,16 @@ def contains_tnf(sequence: str, window: int = 25) -> bool:
                for i in range(0, max(1, len(sequence) - window), 5))
 
 
+class BinderChains(PDB.Select):
+    """PDBIO selector keeping only the named chains."""
+
+    def __init__(self, keep: set[str]) -> None:
+        self.keep = keep
+
+    def accept_chain(self, chain) -> bool:
+        return chain.id in self.keep
+
+
 @dataclass(frozen=True)
 class Complex:
     """A designed binder bound to TNF-alpha, with the two roles separated."""
@@ -128,6 +138,21 @@ class Complex:
             if (position := position_of.get(key)) is not None:
                 areas[position] += area
         return dict(areas)
+
+
+    def write_binder(self, dest: Path) -> Path:
+        """Write the binder chains alone, which is the only form a fold search can use.
+
+        `touchstone.search.FoldSearch` must be queried with binder-only structures: a whole
+        complex matches its own target, and reports a fold hit that says nothing about the
+        design. Nothing else in the package produced one, so a fold-novelty lookup had no
+        input it could legally take.
+        """
+        keep = {c.id for c in self.binder_chains}
+        io = PDB.PDBIO()
+        io.set_structure(self.model)
+        io.save(str(dest), BinderChains(keep))
+        return dest
 
     def clashes(self) -> int:
         """Heavy-atom pairs closer than 2.2 A, i.e. physically interpenetrating."""
