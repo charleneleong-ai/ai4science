@@ -24,6 +24,8 @@ import numpy.typing as npt
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from .stats import paired
+
 FEATURES = ["fz_z", "fz_rank", "lsid", "lpmid", "lpatent", "pop", "pop_rank", "np_coconut", "np_lotus",
             "np_npatlas", "ppm_error", "n_isomers", "n_candidates"]
 TOP_K = 25
@@ -32,7 +34,6 @@ PARAMS: dict[str, Any] = {
     "learning_rate": 0.05, "num_leaves": 31, "min_data_in_leaf": 200, "feature_fraction": 0.9,
     "bagging_fraction": 0.8, "bagging_freq": 1, "verbose": -1, "seed": 0,
 }
-BOOTSTRAP = 2000
 
 
 @dataclass
@@ -111,17 +112,6 @@ def cross_validate(ts: TrainSet, k: int, rounds: int) -> tuple[npt.NDArray[np.fl
         scores[rows] = model.predict(ts.X[rows], num_iteration=model.best_iteration)
         best.append(model.best_iteration)
     return scores, best
-
-
-def paired(model_rr: npt.NDArray[np.float64], base_rr: npt.NDArray[np.float64], seed: int = 0) -> dict[str, Any]:
-    """MRR of both, the mean paired difference with a bootstrap 95% interval, and win / loss counts."""
-    diff = model_rr - base_rr
-    rng = np.random.default_rng(seed)
-    boot = diff[rng.integers(0, len(diff), (BOOTSTRAP, len(diff)))].mean(axis=1)
-    lo, hi = np.percentile(boot, [2.5, 97.5])
-    return {"queries": len(diff), "handset": float(base_rr.mean()), "ranker": float(model_rr.mean()),
-            "delta": float(diff.mean()), "ci95": [float(lo), float(hi)],
-            "better": int((diff > 0).sum()), "worse": int((diff < 0).sum())}
 
 
 def evaluate(ts: TrainSet, k: int, rounds: int) -> dict[str, Any]:

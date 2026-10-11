@@ -43,12 +43,16 @@ train's own chemical space and do not transfer to the test set — see the
 [`ranker_trainset.py`](notebooks/ranker/ranker_trainset.py) kernel): on 1,881 held-out train molecules it
 ties the hand-set score (MRR@25 0.296 vs 0.296), so it was not submitted — see the
 [design and result](docs/specs/2026-10-11-casmi-ranker-design.md).
+The [`recall_probe.py`](notebooks/recall/recall_probe.py) kernel and [`recall.py`](src/casmi/recall.py)
+measure what a spectrum-driven second PubChem pass (as in the 0.421 notebook) adds to the popularity
+shortlist on held-out train molecules; running.
 
 ## Running
 
 ```bash
 uv run --extra dev --extra ranker pytest -q                   # from casmi/
 uv run --extra ranker casmi train-ranker                       # ranker CV on the kept training set
+uv run casmi recall-probe                                      # second-pass recall / MRR@25 table
 kaggle kernels push -p casmi/notebooks                        # from the repo root; runs on Kaggle
 kaggle kernels output charyeezy/casmi-fragments-v1-nolookup -p <dir>
 kaggle competitions submit enveda-CASMI26-molecule-id-mass-spectra -f submission.csv \

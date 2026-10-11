@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
+from itertools import product
 from pathlib import Path
 from statistics import median_low
 
+import numpy as np
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -19,6 +22,8 @@ from .harness import (
     merge_pools,
     rank_by_mass_error,
 )
+from .recall import Config, load, reciprocal_ranks
+from .stats import paired
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 app = typer.Typer(add_completion=False, help="CASMI 2026 molecule-disjoint harness.")
@@ -151,13 +156,35 @@ def train_ranker(
     table = Table("group", "molecules", "hand-set MRR@25", "ranker MRR@25", "Δ [95% CI]", "better / worse")
     for g, r in report["groups"].items():
         lo, hi = r["ci95"]
-        table.add_row(g, str(r["queries"]), f"{r['handset']:.3f}", f"{r['ranker']:.3f}",
+        table.add_row(g, str(r["queries"]), f"{r['base']:.3f}", f"{r['model']:.3f}",
                       f"{r['delta']:+.3f} [{lo:+.3f}, {hi:+.3f}]", f"{r['better']} / {r['worse']}")
     console.print(table)
     n = median_low(report["best_iterations"])
     console.print(f"best iterations per fold: {report['best_iterations']} -> final model {n} rounds")
     ranker.save(ranker.fit_final(ts, n), report | {"final_rounds": n}, out)
     console.print(f"wrote {out}/ranker.txt and metrics.json")
+
+
+@app.command()
+def recall_probe(
+    probe: Path = typer.Argument(Path.home() / "casmi-data/kernel_outputs/recall-v2",
+                                 help="recall-probe kernel output: probe/part-*.parquet and probe_stats.json"),
+) -> None:
+    """Recall and MRR@25 of the popularity shortlist plus a spectrum-driven second pass, per (N1, keep)."""
+    total = json.loads((probe / "probe_stats.json").read_text())["queries"]
+    queries = load(probe / "probe")
+    base_hits, base = reciprocal_ranks(queries, Config(0, 0), total)
+    table = Table("N1", "keep", "median candidates", "answer among candidates", "MRR@25", "Δ vs shortlist [95% CI]")
+    table.add_row("—", "—", f"{np.median([len(q.candidates(Config(0, 0))) for q in queries]):.0f}",
+                  f"{base_hits} / {total}", f"{base.mean():.3f}", "")
+    for n1, keep in product((1000, 2000, 5000), (100, 250, 500, 1000)):
+        cfg = Config(n1, keep)
+        hits, rr = reciprocal_ranks(queries, cfg, total)
+        r = paired(rr, base)
+        lo, hi = r["ci95"]
+        table.add_row(str(n1), str(keep), f"{np.median([len(q.candidates(cfg)) for q in queries]):.0f}",
+                      f"{hits} / {total}", f"{r['model']:.3f}", f"{r['delta']:+.3f} [{lo:+.3f}, {hi:+.3f}]")
+    Console().print(table)
 
 
 def main() -> None:
