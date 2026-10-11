@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false # one package failing should not hide the other's result
       matrix:
-        package: [touchstone, casmi]
+        package: [touchstone, casmi, tnf-binder]
     name: test (${{ matrix.package }})
     defaults:
       run:
@@ -28,7 +28,10 @@ jobs:
           cache-dependency-glob: ${{ matrix.package }}/uv.lock
       # touchstone: mace and uma pin conflicting e3nn versions ([tool.uv] conflicts) — never add
       # either here; its MLIP tests drive a fake ASE calculator, so dev (pytest + ase) suffices.
-      # Both packages carry everything they need in `dev`.
+      # tnf-binder resolves touchstone through a path dependency, so it needs both trees in the
+      # checkout — which this gets for free — and no `wandb` extra: tracking.py imports it
+      # lazily and nothing under tests/ touches the network.
+      # Every package carries what it needs in `dev`.
       - run: uv run --locked --extra dev pytest -q
 
   package:
