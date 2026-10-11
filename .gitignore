@@ -26,5 +26,6 @@ materialhack/
 # Nested worktrees: keep `git worktree add` under .claude/ from ever being committable
 .claude/worktrees/
 
-# W&B local run cache
-wandb/
+# tnf-binder local env
+tnf-binder/.venv/
+tnf-binder/.pytest_cache/

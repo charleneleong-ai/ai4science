@@ -14,7 +14,7 @@ interchangeable here. The verifiers decided everything.
 | sequence novelty (exact k-mer vs PDB + Swiss-Prot) | the **top-ranked construct was verbatim ubiquitin** — best interface score, lowest interface PDE, an ideal-pKa histidine, and disqualified on sight |
 | sequence composition | the top of a 40-design shortlist was **poly-alanine** (A=59–76%); 54 of 57 constructs failed |
 | cross-model agreement | AF2 scored its own optimised designs at **i_pTM 0.92**; an independent model scored the same structures **0.21** |
-| fold novelty (FoldSeek + TM-align) | predicted Proteinbase's own novelty verdict **3/3 correct**, including the one real-world failure |
+| fold novelty (FoldSeek + TM-align) | predicted the one **real-world novelty failure** correctly — a β-sandwich matching CATH 2.60.40 at TM 0.893 |
 | PROPKA pKa prediction | the engineered histidines from first-principles reasoning were **all dead** (pKa 3.1–5.7 against a 6.0–7.4 window) |
 
 Every one of those passed the checks that preceded it. None would have been caught by a
@@ -23,13 +23,18 @@ generator, and none by eyeballing a confidence score.
 ## The one empirical calibration
 
 One design was submitted and **failed** Proteinbase's automatic novelty check; two others
-passed. The fold gate reproduces that outcome exactly:
+passed. The fold gate predicts the failure correctly, and is **conservative** on the passes —
+it under-scores them, because its search measures more similarity than Proteinbase's does:
 
 | design | real outcome | fold verdict | TM | coverage | predicted score |
 | --- | --- | --- | --- | --- | --- |
-| `V__pocket_free_3__A73H` | **failed** | high | 0.893 | 0.888 | 2 — fail |
-| `V__pocket_helix_0__A35H` | passed | moderate | 0.776 | 0.802 | 3 — pass |
-| `P__pocket_helix_0` | passed | moderate | 0.759 | 0.802 | 3 — pass |
+| `V__pocket_free_3__A73H` | **failed** | high | 0.893 | 0.888 | 2 — fail ✓ |
+| `V__pocket_helix_0__A35H` | passed | moderate | 0.776 | 0.802 | 2 — under-scored |
+| `P__pocket_helix_0` | passed | moderate | 0.759 | 0.802 | 2 — under-scored |
+
+An earlier claim that this reproduced all three verdicts was **wrong**: the two passes scored
+correctly only because a missing sequence-identity value defaulted to zero. The tests now
+encode the disagreement rather than hiding it.
 
 The failing design's closest match is CATH **2.60.40**, the immunoglobulin-like β-sandwich.
 Sequence identity was near-identical across all three (37.5% vs 38.1%), so **fold similarity —
