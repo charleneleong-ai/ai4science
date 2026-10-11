@@ -1,0 +1,68 @@
+{
+  "targets": [
+    {
+      "name": "hTNF",
+      "target_path": "/home/ubuntu/tnf/targets/tnf_trimer.pdb",
+      "chains": "A,B,C",
+      "hotspots": "A113,A115,A143,A144,A146,A147",
+      "coldspots": "A20,A31,A71,A72,A73,A85,A89,A97,A111"
+    },
+    {
+      "name": "mTNF",
+      "target_path": "/home/ubuntu/tnf/targets/mouse_tnf_trimer.pdb",
+      "chains": "A,B,C",
+      "hotspots": "A112,A114,A142,A143,A145,A146",
+      "coldspots": "A20,A31,A71,A72,A84,A88,A96,A110"
+    }
+  ],
+  "modality": "binder",
+  "binder_lengths": [
+    65,
+    90
+  ],
+  "number_of_final_designs": 20,
+  "max_trajectories": 160,
+  "forced_targeting": true,
+  "campaign_name": "tnf_orthologs_v3",
+  "project_folder": "/home/ubuntu/tnf/bc2_out/tnf_orthologs_v3",
+  "aa_bias": {
+    "C": 0
+  },
+  "filters": {
+    "i_pTM": {
+      "threshold": 0.55,
+      "higher": true
+    },
+    "i_pAE": {
+      "threshold": 0.45,
+      "higher": false
+    },
+    "Hotspot_Contact_Fraction": {
+      "threshold": 0.5,
+      "higher": true
+    },
+    "Coldspot_Contact_Fraction": {
+      "threshold": 0.05,
+      "higher": false
+    },
+    "Interface_Residues": {
+      "threshold": 7,
+      "higher": true
+    },
+    "Backbone_Clashes": {
+      "threshold": 0,
+      "higher": false
+    },
+    "Unbound_Binder_pLDDT": {
+      "threshold": 0.7,
+      "higher": true
+    },
+    "pTM": {
+      "threshold": 0.55,
+      "higher": true
+    }
+  },
+  "target_flexibility": 0.5,
+  "initial_guess": true,
+  "min_plddt_screen": 0.55
+}
