@@ -61,7 +61,7 @@ notebook's vendored logic against the package.
 |---|---|
 | mermaid pipeline diagram | above, and in [PR #80](https://github.com/charleneleong-ai/ai4science/pull/80) |
 | experiment card | [`docs/experiment-card.md`](docs/experiment-card.md) |
-| LaTeX report (`docs/report.tex` + PDF) | pending |
+| LaTeX report | [`docs/report.pdf`](docs/report.pdf) ([source](docs/report.tex)) |
 | W&B project, one run per submission | pending |
 | published Claude Artifact | pending |
 
