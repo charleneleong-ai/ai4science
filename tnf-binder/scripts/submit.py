@@ -1,36 +1,36 @@
-"""Assemble ranked per-track shortlists from every measurement, applying the hard gates.
+"""From every measurement to the one file that gets uploaded.
 
-`make_final_csv.py` merges these into the one file that is uploaded; this stage is where the
-gates run and where the metrics stay visible beside each sequence.
+    submit.py shortlist --campaign scored.csv --outdir shortlists/
+    submit.py final shortlists/track2.csv --out submission.csv
 
-Ranking follows the competition's own order -- pH-selectivity, then mouse cross-reactivity,
-then affinity -- and its statement that a weak-but-clearly-pH-selective binder is worth more
-than a high-affinity one that is not selective.
+Two stages because they answer different questions. The first applies the hard gates and ranks
+what survives -- gates that DROP rather than down-rank, because the top-scoring construct of one
+campaign was verbatim ubiquitin and the top of a 40-design shortlist was 59% alanine, and no
+ranking rescues either. The second takes a shortlist and produces the capped, format-checked
+file the competition accepts.
 
-Interface confidence is written as a MODEL-DEPENDENT value, never as truth: Boltz-2 and
-BoltzGen's folding step disagreed by 2-3x on identical structures, and AF2 scored its own
-optimised designs at 0.92 where an independent model scored them 0.21.
+Both write against the rules in `tnf_binder.submission`, which is the same module
+`tnf-binder validate` checks an upload with -- so a file this produces cannot fail a
+pre-flight that this did not already catch.
 
-The gates below drop artefacts rather than down-ranking them. That distinction is load-bearing:
-the top-scoring construct of one campaign was verbatim ubiquitin, and the top of a 40-design
-shortlist was poly-alanine. Ranking cannot rescue either.
+Ranking follows the competition's own order: pH-selectivity, then mouse cross-reactivity, then
+affinity, and its statement that a weak but clearly pH-selective binder beats a high-affinity
+one that is not selective.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path
 
 import typer
 from rich.console import Console
 
-from tnf_binder.design import TnfDesign
-from tnf_binder.submission import MOLECULE_CLASS, row_problem, write_submission
+from tnf_binder.submission import MAX_ROWS, MOLECULE_CLASS, row_problem, write_submission
 from tnf_binder.tables import number, read_rows
-from tnf_binder.verifiers import CompositionVerifier
 
 app = typer.Typer(add_completion=False)
 console = Console()
+
 
 # Shortlist sizes per track. The upload itself is capped at 20 across all tracks, which
 # make_final_csv.py applies; these only bound how much each ranking is allowed to carry.
@@ -134,7 +134,7 @@ def write_track(path: Path, records: list[dict[str, object]], track: int, prefix
 
 
 @app.command()
-def main(
+def shortlist(
     campaign: Path = typer.Option(..., "--campaign", help="measured rows from analyze_campaign"),
     outdir: Path = typer.Option(..., "--outdir"),
     novelty: Path | None = typer.Option(None, "--novelty"),
@@ -175,6 +175,43 @@ def main(
             console.print(f"    {record['name']:44s} iptm={record['boltz_iptm_mean']:.3f} "
                           f"ph={record['ph_switch_score']:.1f} "
                           f"xr={record['cross_reactivity']}")
+
+
+@app.command()
+def final(
+    tracks: list[Path] = typer.Argument(..., help="per-track CSVs to merge"),
+    out: Path = typer.Option(..., "--out", help="the file that gets uploaded"),
+    cap: int = typer.Option(MAX_ROWS, "--cap", help="rows per submission"),
+) -> None:
+    """Merge, rank and cap the shortlists into one upload-ready CSV."""
+    seen, rows = set(), []
+    for track in tracks:
+        for row in read_rows(track):
+            sequence = row["sequence"].strip().upper()
+            if sequence in seen:
+                continue
+            seen.add(sequence)
+            rows.append(row)
+
+    rows.sort(key=lambda r: (-number(r, "ph_switch_score"), -number(r, "boltz_iptm_mean"),
+                             -number(r, "cross_reactivity")))
+    rows = rows[:cap]
+
+    named = [(f"tnf_{i:02d}", r["sequence"].strip().upper()) for i, r in enumerate(rows, 1)]
+    for name, sequence in named:
+        if problem := row_problem({"name": name, "sequence": sequence,
+                                   "molecule_class": MOLECULE_CLASS}):
+            typer.echo(f"refusing to write: {problem}", err=True)
+            raise typer.Exit(code=1)
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    write_submission(out, SUBMISSION_COLUMNS,
+                     [[name, sequence, MOLECULE_CLASS] for name, sequence in named])
+    console.print(f"wrote [bold]{len(named)}[/] designs -> [cyan]{out}[/] (cap {cap})")
+    for (name, sequence), row in zip(named, rows):
+        console.print(f"  {name} len={len(sequence):3d} ph={row['ph_switch_score']:>4} "
+                      f"iptm={row['boltz_iptm_mean']:>6} xr={row['cross_reactivity']:>7} "
+                      f"his={row['pka_detail'] or '-'}")
 
 
 if __name__ == "__main__":
