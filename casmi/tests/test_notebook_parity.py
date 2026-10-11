@@ -313,10 +313,13 @@ class TestSecondPass:
         monkeypatch.setattr(nb, "SECOND_PASS_KEEP", 1)
         second = object.__new__(nb.SecondPass)
         second.tier, second.cols, second.nbits, second.pool = tier, np.arange(len(bits)), len(bits), SerialPool()
+        second.dropped = 0
 
         added = second.candidates(45.9, 46.1, np.ones(len(bits), np.float32), {"TAKEN"})
 
         assert list(added) == ["ANSWER"] and added["ANSWER"].smiles in ("CCO", "OCC")
         assert second.candidates(50.0, 51.0, np.ones(len(bits), np.float32), set()) == {}
+        dissimilar = second.candidates(45.9, 46.1, np.ones(len(bits), np.float32), {"TAKEN"}, ["OCC"])
+        assert list(dissimilar) == ["OTHER"] and second.dropped == 2  # both ANSWER rows match the copied OCC
         monkeypatch.setattr(nb, "SECOND_PASS_N1", 1)  # cut before filtering: the best row is taken
         assert second.candidates(45.9, 46.1, np.ones(len(bits), np.float32), {"ANSWER"}) == {}

@@ -26,6 +26,8 @@ Scores so far, each changing one thing:
            MRR@25 0.241 -> 0.405 with the fold-safe FPNet; here the full1 + A bank, which memorised
            the copied spectra, chooses, and its top-1 picks moved toward the copied structures
            (median Tanimoto 0.26 -> 0.42 on the 192 changed molecules)
+  v19      the same pass, dropping candidates with Tanimoto >= 0.5 to the copied train structure
+           (threshold chosen after seeing v18, not pre-registered)
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -34,7 +36,7 @@ copy against the package so the two cannot drift silently.
 Approach:
   pool      train (mass from `molecular_formula`, never an observed precursor m/z) plus the
             SHORTLIST most-documented PubChem connectivities inside 5 ppm, plus the
-            SECOND_PASS_KEEP best by FPNet among the rest of the window (SecondPass; off).
+            SECOND_PASS_KEEP best by FPNet among the rest of the window (SecondPass).
   rank      z-scored spectral score plus POP_WEIGHT x log1p(substances) + log1p(PubMed
             articles). The spectral score is FPNet's fingerprint match when its datasets are
             attached, else fragment explainability (<= 2 bond cuts, ring bonds included).
@@ -56,6 +58,7 @@ import subprocess
 import sys
 import time
 from collections import defaultdict
+from collections.abc import Sequence
 from functools import lru_cache
 from itertools import combinations, pairwise
 from pathlib import Path
@@ -94,8 +97,9 @@ def ensure_rdkit() -> None:
 
 ensure_rdkit()
 
-from rdkit import Chem, RDLogger  # noqa: E402  (import follows the wheel install above)
+from rdkit import Chem, DataStructs, RDLogger  # noqa: E402  (import follows the wheel install above)
 from rdkit.Chem import rdFingerprintGenerator  # noqa: E402
+from rdkit.DataStructs import ExplicitBitVect  # noqa: E402
 from rdkit.Chem.Descriptors import ExactMolWt  # noqa: E402
 from rdkit.Chem.rdMolDescriptors import CalcMolFormula  # noqa: E402
 
@@ -111,7 +115,8 @@ ICE_BUDGET_S = 6 * 3600  # caps: ICEBERG took 20 min on a T4 and covered 269 / 3
 GL_BUDGET_S = 3 * 3600  # the runners stop cleanly at them. GLACIER runs only on a GPU.
 POP_WEIGHT = 0.25  # on a z-scored spectral score, as in the published prior's recipe
 SECOND_PASS_N1 = 5000  # window rows given the full f.z after the ECFP4-block pass (1000: 179 / 280
-SECOND_PASS_KEEP = 0  # answers reached, 2000: 208, 5000: 236); 100 scored 0.353, within noise: off
+SECOND_PASS_KEEP = 100  # answers reached, 2000: 208, 5000: 236); 100 scored 0.353 (v18), within noise
+COPIED_SIMILARITY_MAX = 0.5  # second-pass candidates at least this similar to the copied train structure
 ECFP_SIZE = 4096  # raw fingerprint bits below this are the ECFP4 block
 WORKERS = os.cpu_count() or 1
 MAX_BREAKS = 2
@@ -525,13 +530,20 @@ class SecondPass:
     whole window with f.z on the ECFP4 block only (one Morgan fingerprint per structure), gives the top
     SECOND_PASS_N1 rows the full f.z, and adds the SECOND_PASS_KEEP best connectivities not already
     candidates. The pool forks before FPNet loads, so no worker inherits a CUDA context.
+
+    The production FPNet memorised the train rows the test spectra copy, so on its own it fills the
+    pass with near neighbours of the copied structure, which is almost never the answer (v18). A
+    candidate with Tanimoto >= COPIED_SIMILARITY_MAX to any copied structure is therefore skipped.
     """
+
+    similarity = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
 
     def __init__(self, tier: PubChemTier, code: Path, bits: Path) -> None:
         selected = np.load(bits)
         self.cols = np.flatnonzero(selected < ECFP_SIZE)
         self.nbits = len(selected)
         self.tier = tier
+        self.dropped = 0  # candidates skipped as too similar to a copied structure
         PASS_STATE.update(tier=tier, code=str(code), bits=selected, ecfp_raw=selected[self.cols],
                           gen=rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=ECFP_SIZE))
         self.pool = mp.get_context("fork").Pool(WORKERS)
@@ -544,8 +556,20 @@ class SecondPass:
         edges = np.linspace(a, b, n + 1).astype(int)
         return [(int(lo), int(hi)) for lo, hi in pairwise(edges) if hi > lo]
 
-    def candidates(self, lo: float, hi: float, z: np.ndarray, taken: set[str]) -> dict[str, Candidate]:
+    @classmethod
+    def fingerprint(cls, smiles: str) -> ExplicitBitVect | None:
+        mol = Chem.MolFromSmiles(smiles)
+        return cls.similarity.GetFingerprint(mol) if mol is not None else None
+
+    def too_similar(self, smiles: str, avoid: list[ExplicitBitVect]) -> bool:
+        fp = self.fingerprint(smiles) if avoid else None
+        return fp is not None and max(DataStructs.BulkTanimotoSimilarity(fp, avoid)) >= COPIED_SIMILARITY_MAX
+
+    def candidates(self, lo: float, hi: float, z: np.ndarray, taken: set[str],
+                   avoid: Sequence[str] = ()) -> dict[str, Candidate]:
+        """The SECOND_PASS_KEEP best new connectivities, none too similar to the `avoid` SMILES."""
         tier = self.tier
+        avoid_fps = [fp for fp in map(self.fingerprint, avoid) if fp is not None]
         a = int(np.searchsorted(tier.mass, lo, "left"))
         b = int(np.searchsorted(tier.mass, hi, "right"))
         if b <= a:
@@ -564,8 +588,13 @@ class SecondPass:
         for n in np.argsort(-fz, kind="stable"):
             i = a + top[n]
             key = keys[top[n]].decode()
-            if key not in out:
-                out[key] = Candidate(tier.smiles_at(i), float(tier.mass[i]), float(tier.lsid[i]) + float(tier.lpmid[i]))
+            if key in out:
+                continue
+            smiles = tier.smiles_at(i)
+            if self.too_similar(smiles, avoid_fps):
+                self.dropped += 1
+                continue
+            out[key] = Candidate(smiles, float(tier.mass[i]), float(tier.lsid[i]) + float(tier.lpmid[i]))
             if len(out) == SECOND_PASS_KEEP:
                 break
         return out
@@ -802,6 +831,7 @@ def rank_all(molecules: dict[str, dict], entries, pool_masses: list[float], pubc
     sizes: list[int] = []
     added: list[int] = []
     from_second = [0, 0]  # molecules whose top-1 / any top-25 pick came from the second pass
+    train_smiles = dict(entries)
     for n, (mol_id, mol) in enumerate(molecules.items(), 1):
         mass = neutral_mass(mol["mz"], mol["adduct"]) if mol["mz"] else None
         ranked[mol_id] = []
@@ -810,7 +840,8 @@ def rank_all(molecules: dict[str, dict], entries, pool_masses: list[float], pubc
             cands = candidates_for(mass, entries, pool_masses, pubchem, exclude)
             if second and fpnet:
                 tol = mass * PPM * 1e-6
-                extra = second.candidates(mass - tol, mass + tol, fpnet.logits(mol["records"]), set(cands) | exclude)
+                extra = second.candidates(mass - tol, mass + tol, fpnet.logits(mol["records"]), set(cands) | exclude,
+                                          [train_smiles[k][0] for k in exclude if k in train_smiles])
                 added.append(len(extra))
                 cands |= extra
             sizes.append(len(cands))
@@ -828,6 +859,8 @@ def rank_all(molecules: dict[str, dict], entries, pool_masses: list[float], pubc
         print(f"second pass: {sum(a > 0 for a in added)}/{len(added)} molecules gained candidates, "
               f"median {int(np.median(added))} added  ({time.time()-t0:.0f}s)", flush=True)
         print(f"second pass picks: top-1 for {from_second[0]} molecules, in the top 25 for {from_second[1]}", flush=True)
+        print(f"second pass: dropped {second.dropped} candidates similar to a copied structure "
+              f"(Tanimoto >= {COPIED_SIMILARITY_MAX})", flush=True)
     return ranked
 
 
