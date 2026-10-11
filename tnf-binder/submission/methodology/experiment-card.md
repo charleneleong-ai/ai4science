@@ -166,6 +166,21 @@ combination rather than composed from singles — which was necessary: `A35H+A38
   uncertainty — so a confidence filter is no substitute for re-scoring every sample, and three
   samples undersample whatever is actually varying. **Every ΔQ floor in this submission is a
   lower bound estimated from three draws, and the true worst case is likely worse.**
+- **The three samples are not energetically equivalent, and the ΔQ floor is usually set by the
+  worse one.** Rosetta REF15 on the raw coordinates separates them by 347–2855 REU across the
+  eight slot-filling candidates — the folding model rates the same triples at pTM 0.956–0.958.
+  Taking each histidine at its least favourable sample, as `delta_q_floor` does, draws on the
+  best-scoring structure for only **9 of 24 histidines**; the other 15 come from structures
+  REF15 ranks worse, in one case by 2855 REU. The headline example: `helix0_R21H_R35H_E67H`
+  His35 reads pKa **9.69 on the structure scored 731 REU and 3.63 on the one scored 64.8**.
+  So the ΔQ floors here are systematically *too* pessimistic, by 0.02–0.59 per design.
+  **It did not change which design was selected.** Re-ranking the eight on their best-scoring
+  structure promotes three others above `helix0_R35H_E67H_E70H` — and all three had already
+  been dropped by the structural gate, for clashes or an interface off the epitope. Of the two
+  that cleared that gate, `R35H_E67H_E70H` leads under both rules (1.35 vs 0.92 worst-sample,
+  1.60 vs 0.94 best-structure). Checked rather than assumed; raw REF15 on predicted coordinates
+  is dominated by unrelaxed clashes, so the absolute numbers are ranking-only, but a 2855 REU
+  gap is far outside what a relax would absorb.
 - Mouse cross-reactivity rests on a *predicted* mouse structure and conserved-epitope coverage.
 - Three mechanistic hypotheses for the pH switch (buried-His desolvation, cation repulsion,
   carboxylate proximity) were each **refuted** by the pKa data; no validated mechanism replaces
