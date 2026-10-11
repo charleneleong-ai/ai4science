@@ -49,7 +49,16 @@ not sequence novelty — was the binding constraint.** An exact-k-mer screen can
 **Novelty and the objectives pulled in opposite directions.** The campaign's only 4/4,
 `free1_T73H`, is also its worst design on the two things ranked higher: 47% of its human
 interface retained against mouse, and 0 of its 1 histidine holding the pKa window across
-diffusion samples. Novelty is a gate to pass, not a score to maximise.
+diffusion samples. Novelty is a gate to pass (≥3/4), not a score to maximise.
+
+**One residue is worth one novelty point, and our gate cannot see it.** `free1_T73H` and
+`free1_parent` are the same 74-residue backbone one substitution apart, with the same nearest
+hit (O27230, 35.8% identity) and the same fold verdict. Proteinbase scored them **4/4 and
+3/4**; our sequence-only gate scored both 3. So the gate is not merely conservative — it has
+no resolving power at the 3/4–4/4 boundary, and whatever moved is invisible to identity and
+TM-score alike. With no model of that component and one observation, chasing 4/4 would be a
+blind search over single substitutions, paid for one upload at a time, for no gain on any
+ranked objective.
 
 ## Submission 2: the two measurements that reordered everything
 
@@ -88,7 +97,7 @@ cross-reactive. Any design gripping that loop wins objective 1 and loses objecti
 | --- | --- |
 | [`src/tnf_binder/`](src/tnf_binder) | the package: the target and its numbering, the four verifiers, confidence reading, and the `tnf-binder` CLI (`epitope`, `verify`, `validate`, `confidence`, `wandb-log`) |
 | [`scripts/`](scripts) | the design-box pipeline, where the heavy dependencies live. Ten entry points, each a typer app: [`gen.py`](scripts/gen.py) (`spec`/`screen`) writes BoltzGen specs, [`his.py`](scripts/his.py) (`scan`/`combos`/`campaign`) runs the PROPKA+PyRosetta histidine work, [`metrics.py`](scripts/metrics.py) (`collect`/`join`) reads fold confidence, [`submit.py`](scripts/submit.py) (`shortlist`/`rank`/`final`) gates and assembles an upload |
-| [`specs/`](specs) | BoltzGen design specs, BindCraft/BindCraft2 campaign settings |
+| [`specs/`](specs) | every generator input that ran, one directory per tool (the JSON/YAML split is the tools', not ours): [`bindcraft1/`](specs/bindcraft1) the abandoned first campaign, [`bindcraft2/`](specs/bindcraft2) three dual-ortholog rounds that scored zero, [`boltzgen/`](specs/boltzgen) the screens that produced the submission plus a 2x2 over method and target |
 | [`docs/method.md`](docs/method.md) | epitope choice, the pH mechanism, scoring definitions |
 | [`docs/experiment-card.md`](docs/experiment-card.md) | the stack, the funnel with denominators, and what is *not* established |
 | [`submission/`](submission) | the ranked CSV as submitted |
