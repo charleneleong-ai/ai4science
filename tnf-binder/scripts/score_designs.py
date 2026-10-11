@@ -29,12 +29,9 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from tnf_binder.design import TnfDesign
-from tnf_binder.structure import Complex
+from tnf_binder.assess import assess
 from tnf_binder.tables import write_rows
 from tnf_binder.target import LOBE, POCKET, TnfTarget
-from tnf_binder.verifiers import CompositionVerifier, InterfaceVerifier
-from tnf_binder.verifiers.interface import InterfaceMetrics
 
 app = typer.Typer(add_completion=False)
 # stdout is the CSV itself, so every message goes to stderr -- `script dir > scored.csv` is
@@ -47,17 +44,13 @@ COLUMNS = ["design", "binder_len", "interface_area", "epitope_focus", "cross_rea
 
 
 def score(path: Path, epitope: tuple[int, ...], divergent: frozenset[int]) -> dict[str, object]:
-    complex_ = Complex.from_file(path)
-    if not complex_.is_resolved:
+    """One CSV row per complex. Every verifier's reason lands in `flag`, not just the
+    interface one: the top of a 40-design shortlist was poly-alanine with a perfectly good
+    interface, and only composition saw it."""
+    assessment = assess(path, epitope=epitope, divergent=divergent)
+    if not assessment.is_resolved:
         return {"design": path.stem, "flag": "chain_classification_failed"}
-
-    metrics = InterfaceMetrics.from_areas(complex_.buried_by_position(), epitope=epitope,
-                                          divergent=divergent, clashes=complex_.clashes())
-    design = TnfDesign(path.stem, complex_.binder_sequence, structure=path,
-                       metrics={"interface": metrics})
-    # Both verdicts, not just the interface one: the top of a 40-design shortlist was
-    # poly-alanine with a perfectly good interface, and only composition saw it.
-    verdicts = [CompositionVerifier().verify(design), InterfaceVerifier().verify(design)]
+    design, metrics = assessment.design, assessment.metrics
     return {
         "design": path.stem,
         "binder_len": design.length,
@@ -66,7 +59,7 @@ def score(path: Path, epitope: tuple[int, ...], divergent: frozenset[int]) -> di
         "cross_reactivity": round(metrics.cross_reactivity, 4),
         "divergent_frac": round(metrics.divergent_fraction, 4),
         "clashes": metrics.clashes,
-        "flag": ",".join(v.reason for v in verdicts if not v.trust),
+        "flag": ",".join(assessment.failures),
         "sequence": design.sequence,
     }
 
