@@ -61,6 +61,20 @@ TNF-α residues within 4.5 Å of TNFR2 in **3ALQ**, intersected with a human/mou
 the soluble domains (**124 of 156** aligned residues, 79 %), give **33 contact positions: 24 conserved,
 9 divergent** (P20H, R31Q, S71D, T72–, H73Y, V85I, T89E, I97V, A111L).
 
+### Cross-reactivity was then measured, not inferred
+
+Conserved-epitope coverage is a proxy, so each design was additionally **folded against the
+mouse TNF-α trimer** (P06804, the sequence on the challenge page) and its interface compared
+with the human one under the identical protocol — a within-model ratio, which is what this
+comparison can legitimately support.
+
+**9 of 12 retain ≥70 % of their human interface confidence on mouse**, median 86 %, and four
+score higher on mouse than on human. The proxy and the direct prediction disagree in one place
+that matters: the design with among the highest conserved-epitope coverage (0.79) retains only
+**47 %** on mouse, and its control 41 %. Both were demoted. Designing against the conserved
+patch makes cross-reactivity likely; it does not make it true, and only folding against the
+other ortholog distinguishes the two.
+
 **R31→Q is the trap.** It carries the largest solvent-accessible area in the epitope (193 Å²)
 and sits beside R32 in the 29–33 loop that adalimumab and infliximab both engage — which is
 why neither is mouse cross-reactive. Those nine positions were set as coldspots and the
@@ -181,8 +195,9 @@ that trade-off deliberately rather than picking one point on it.
 **No measured binding of any kind.** No expression, SEC, thermal stability, SPR or BLI; every
 number above is computational. pH selectivity rests on predicted pKa, and no folding model
 represents protonation state — the robustness tier above bounds how much that prediction moves
-with the input structure, which is not the same as showing it is right. Mouse cross-reactivity rests on a predicted mouse structure and
-conserved-epitope coverage, not on measured binding to mouse TNF-α.
+with the input structure, which is not the same as showing it is right. Mouse cross-reactivity is a *predicted* interface against the
+mouse sequence — a direct prediction rather than a coverage proxy, and the two disagree for one
+design, but still not measured binding to mouse TNF-α.
 
 Interface confidence is **model-dependent and unresolved**, so a range is reported rather than a
 number: AlphaFold2 rated its own optimised designs at i_pTM 0.92 where Boltz-2 rated the same
