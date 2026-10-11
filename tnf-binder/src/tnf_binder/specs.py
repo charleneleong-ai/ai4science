@@ -19,8 +19,12 @@ from tnf_binder.structure import ResidueKey, read_model
 
 
 def collapse_ranges(numbers: Iterable[int]) -> str:
-    """Sorted ints in BoltzGen's 'a..b,c' range syntax."""
-    ordered, out, i = sorted(numbers), [], 0
+    """Sorted ints in BoltzGen's 'a..b,c' range syntax.
+
+    Deduplicated: a repeated position would be emitted as "5,5..6", which names position 5
+    twice and is malformed input rather than a harmless redundancy.
+    """
+    ordered, out, i = sorted(set(numbers)), [], 0
     while i < len(ordered):
         j = i
         while j + 1 < len(ordered) and ordered[j + 1] == ordered[j] + 1:
