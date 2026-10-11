@@ -1,0 +1,199 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{booktabs,amsmath,graphicx,xcolor,hyperref}
+\usepackage[T1]{fontenc}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black}
+\newcommand{\unit}[1]{\,\mathrm{#1}}
+
+\title{A conditional TNF-$\alpha$ binder, and the verifiers that gated it}
+\author{Adaptyv $\times$ Anthropic Protein Design Competition, Challenge 02}
+\date{11 October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We designed candidate binders to human TNF-$\alpha$ required to satisfy three objectives at
+once: bind human TNF-$\alpha$, cross-react with the mouse ortholog, and bind at pH~7.4 while
+releasing at pH~6.0. Four generative pipelines proved substantially interchangeable; the
+outcome was determined almost entirely by \emph{verification}. Of 57 constructs entering the
+gate stack, 3 survived --- a yield of 5\%. The highest-scoring construct by every interface
+metric was verbatim human ubiquitin. One design was submitted and failed the organiser's
+automatic novelty check, establishing empirically that \emph{fold} similarity, not sequence
+novelty, is the binding constraint. We report the full funnel including failures, and state
+explicitly what remains unmeasured: there is no measured binding of any kind.
+\end{abstract}
+
+\section{Target and epitope}
+
+The epitope was computed rather than taken from literature. TNF-$\alpha$ residues within
+$4.5\unit{\AA}$ of TNFR2 in PDB~\texttt{3ALQ} give 33 contact positions. Intersecting these
+with a human/mouse alignment of the soluble domain (124/157 $=$ 79.0\% identity, reproducing
+the organiser's stated figure) partitions them into 24 conserved and 9 divergent positions:
+P20H, R31Q, S71D, T72--, H73Y, V85I, T89E, I97V, A111L.
+
+\paragraph{R31$\rightarrow$Q is the trap.} It carries the largest solvent-accessible surface
+area in the entire epitope ($193\unit{\AA^2}$) and sits adjacent to R32 in the 29--33 loop
+engaged by adalimumab and infliximab. This is why neither therapeutic is mouse cross-reactive.
+Any design gripping that loop satisfies Objective~1 and forfeits Objective~2.
+
+Two conserved sub-patches were considered: a lobe (S86, Y87, Q88, K90, V91, N92) at 90\%
+conservation, and a pocket (113, 115, 143, 144, 146, 147) at 100\%. A screen found no
+significant difference between them (Table~\ref{tab:levers}).
+
+\section{Generators and the levers that did not work}
+
+\begin{table}[htbp]
+\centering
+\caption{Design levers, measured as binder-to-target ipTM. Only target representation mattered.}
+\label{tab:levers}
+\begin{tabular}{llr}
+\toprule
+Lever & Contrast & $\Delta$ ipTM \\
+\midrule
+Target representation & A+B dimer $\rightarrow$ A+B+C trimer & $+0.11$ \\
+Architecture & de novo vs.\ nanobody graft & $0.00$ \\
+Topology conditioning & free vs.\ 3-helix bundle & $-0.03$ \\
+Epitope & conserved lobe vs.\ conserved pocket & $0.00$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Truncating the physiological trimer to a dimer --- a choice made to save GPU memory --- cost
+$0.11$ in interface confidence, more than any deliberate design decision contributed.
+
+\section{The verifier stack}
+
+Each verifier below caught something that had already passed every check preceding it.
+
+\subsection{Composition}
+A model-free check on amino-acid usage. It eliminated 50 of 57 constructs. The necessity is
+established by a single observation: a sequence that is 59\% alanine received a
+binder-to-target ipTM of $0.556$ and ranked first in a 40-design shortlist. Interface
+confidence models score degenerate sequences confidently.
+
+\subsection{Sequence novelty}
+Exact 20-mer matching against PDB~\texttt{seqres} (1.17M chains) and Swiss-Prot (576k).
+A genuine de novo sequence essentially never shares a 20-mer with a natural protein, making
+this decisive rather than statistical. It rejected the single highest-scoring construct of the
+campaign --- best interface score, lowest interface PDE ($0.89\unit{\AA}$), an
+ideal-pKa histidine --- which was \textbf{verbatim human ubiquitin}.
+
+\subsection{Interface}
+All interface quantities derive from per-residue buried surface area (unbound minus bound
+SASA). Contact-pair counting was implemented first and was actively misleading: counts scale
+with interpenetration, so clashing poly-alanine designs out-scored real ones on every ratio
+built from them.
+
+\subsection{Fold novelty}
+The organiser scores novelty 1--4 and requires $\geq 3$; level 4 demands sequence identity
+$\leq 30\%$ \emph{and} less than moderate structural similarity, where similarity is TM-score
+weighted by coverage. We implemented this with FoldSeek and TM-align over CATH50.
+
+\paragraph{Empirical calibration.} One submitted design \textbf{failed} the organiser's
+automatic check and two passed. The three differed by $0.6$ percentage points in sequence
+identity (37.5\% vs.\ 38.1\%), so sequence novelty cannot explain the split. The failing design
+matched CATH~2.60.40 --- the immunoglobulin-like $\beta$-sandwich --- at TM-score $0.893$ over
+88.8\% coverage. Fold similarity decided it.
+
+Our gate predicts the failure correctly but \emph{under-scores} both passes, returning 2 where
+the organiser returned $\geq 3$. It is therefore a conservative pre-filter: decisive on
+failure, advisory on borderline. An earlier claim that it reproduced all three verdicts was
+incorrect, arising from a missing sequence-identity value defaulting to zero.
+
+\subsection{pH switch}
+Objective~3 requires a histidine whose p$K_a$ lies \emph{between} the two assay pH values:
+neutral at 7.4 so the binder binds, cationic at 6.0 so it releases. Three mechanisms were
+derived from first principles and each was refuted by PROPKA predictions on real designs
+(Table~\ref{tab:pka}).
+
+\begin{table}[htbp]
+\centering
+\caption{Proposed p$K_a$ mechanisms against measurement ($n=50$ substitutions).}
+\label{tab:pka}
+\begin{tabular}{lll}
+\toprule
+Hypothesis & Prediction & Measured \\
+\midrule
+Buried His pays desolvation penalty & raises effective switch & $r=-0.37$; buried sites at p$K_a$ 3.1--3.6 \\
+His adjacent to cation is repelled & lowers p$K_a$ usefully & $r=+0.11$ (wrong sign) \\
+Carboxylate proximity raises p$K_a$ & raises into window & $r=+0.21$; net $+6 \rightarrow$ p$K_a$ 3.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+No structural descriptor predicted switchability. Positions therefore come from an exhaustive
+per-position scan: 200 substitutions yielded 18 ideal (p$K_a$ 6.3--7.2) and 17 usable
+(6.0--7.6). Multi-histidine combinations were verified to retain their p$K_a$ within
+$0.21$ units of the single-mutant values, supporting a cooperative switch.
+
+\section{Cross-model disagreement}
+
+No single confidence score is treated as truth, because the models disagree on identical
+structures (Table~\ref{tab:models}).
+
+\begin{table}[htbp]
+\centering
+\caption{Binder-to-target interface confidence by predictor.}
+\label{tab:models}
+\begin{tabular}{lccc}
+\toprule
+Structure & AlphaFold2 & Boltz-2 & BoltzGen folding \\
+\midrule
+BindCraft (AF2-optimised) design & $\mathbf{0.92}$ & $\mathbf{0.21}$ & --- \\
+BoltzGen designs & --- & 0.44--0.64 & $\sim 0.20$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+AlphaFold2 rating its own optimised designs at $0.92$ where an independent predictor returns
+$0.21$ is self-confirmation, not validation. Two further artefacts were identified and
+corrected: \emph{global} ipTM is unusable on a multi-chain target (the TNF trimer's internal
+interfaces score $\sim 0.88$ and dominate the mean, so a dimer$\rightarrow$trimer change lifted
+global ipTM $0.20 \rightarrow 0.52$ while the binder interface stayed flat), and best-of-$n$
+reporting inflates (metrics are stored per diffusion sample; we rank on the mean).
+
+\section{Funnel}
+
+\begin{table}[htbp]
+\centering
+\caption{Full funnel, failed generations included in the denominator.}
+\begin{tabular}{lrl}
+\toprule
+Stage & $n$ & Attrition \\
+\midrule
+Constructs entering gates & 57 & --- \\
+Passed sequence novelty & 53 & 4 memorised (2 ubiquitin, 2 VHH framework) \\
+Passed composition & 7 & 46 lost to Ala/Gly degeneracy \\
+Passed interface quality & 3 & clash, tiny interface, off-epitope \\
+Submitted & 3 & --- \\
+Passed organiser novelty & \textbf{2} & 1 failed on fold similarity \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Yield from generation to novelty-passing: $2/57 \approx 3.5\%$.
+
+\paragraph{Declared deviation.} These filters were not all fixed before observing results. The
+composition gate was added after poly-alanine appeared at the top of a shortlist, and the fold
+gate after a submitted design failed. The funnel above is therefore not a pre-registered
+statistic.
+
+\section{What is not established}
+
+\begin{itemize}
+\item \textbf{No measured binding of any kind.} No expression, size-exclusion chromatography,
+thermal stability, or SPR/BLI. Every number here is computational.
+\item pH selectivity rests on predicted p$K_a$. No folding model represents protonation state,
+and the assay is not simulated.
+\item Mouse cross-reactivity rests on a \emph{predicted} mouse structure and conserved-epitope
+coverage, not on measured binding to mouse TNF-$\alpha$.
+\item Interface confidence is model-dependent and unresolved; we report a range.
+\item No validated mechanism for the pH switch replaces the three that were refuted. Positions
+are empirical.
+\end{itemize}
+
+A generated sequence that has passed computational checks is a candidate. A result is a measured
+biological endpoint on a preserved funnel, with controls. This work produced the former.
+
+\end{document}
