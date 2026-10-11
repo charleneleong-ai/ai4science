@@ -24,11 +24,22 @@ on where their inputs are available:
     meaningless ranking. Thermodynamic metal ranking needs ligand-field physics (DFT with explicit
     spin states), not an MLIP — see
     [`docs/experiments/2026-07-13-mlip-cannot-rank-metals.md`](docs/experiments/2026-07-13-mlip-cannot-rank-metals.md).
-- **opt-in** — independent co-fold (Boltz-2 / Chai-1 / AllMetal3D) · expression (ESM-2 ppl ·
+- **opt-in** — independent co-fold (Boltz-2 / Chai-1 / AllMetal3D; read its confidence
+  with [`src/touchstone/boltz.py`](src/touchstone/boltz.py), which splits binder-to-target
+  from the target's own chain pairs — global ipTM is inflated by +0.405 on a multi-chain
+  target — and aggregates diffusion samples on the mean, never best-of-n) · expression (ESM-2 ppl ·
   solubility) · thermostability (Tm) · **amino-acid composition** (`--composition --sequence`:
   model-free, no GPU — interface-confidence models rank degenerate poly-Ala/Gly designs highly,
   see [`src/touchstone/composition.py`](src/touchstone/composition.py)); Mogul CSD validation
   (licensed). Reachable via providers / the `pipeline` / CLI flags, not in the default consensus.
+- **novelty** — is this design novel, or did the generator reproduce something that exists?
+  [`src/touchstone/search.py`](src/touchstone/search.py): MMseqs2 over sequence corpora,
+  FoldSeek over a structure database. The counterpart to `precedent` — there a motif match is
+  reassuring, here a whole-chain match is disqualifying. The top-scoring construct of one
+  campaign (best interface metric, lowest predicted error) was verbatim human ubiquitin, which
+  no geometry tier can catch because its geometry is genuinely excellent. **Fold, not sequence,
+  is the constraint**: two designs 0.6 percentage points apart in identity got opposite verdicts
+  from the same reviewer, the failure being an Ig-like beta-sandwich at TM 0.893.
 - **experimental** — MetalHawk (learned ANN geometry class): confidently-OOD on de-novo designs,
   so demoted — the analytic polyhedron-RMSD tier is its replacement.
 
