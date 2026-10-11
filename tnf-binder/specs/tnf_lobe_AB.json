@@ -1,0 +1,9 @@
+{
+    "design_path": "/home/ubuntu/tnf/bindcraft_out/lobe_AB/",
+    "binder_name": "tnflobeAB",
+    "starting_pdb": "/home/ubuntu/tnf/targets/tnf_AB.pdb",
+    "chains": "A,B",
+    "target_hotspot_residues": "A88,A90,A92",
+    "lengths": [65, 120],
+    "number_of_final_designs": 40
+}

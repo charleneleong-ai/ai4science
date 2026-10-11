@@ -1,0 +1,30 @@
+# Nanobody track against the FULL TNF-alpha TRIMER.
+#
+# The A+B dimer truncation was wrong, even though the epitope geometry it preserved was right
+# (chain C sits 18.7 A from the hotspots). TNF-alpha is only stable as a trimer, so a lone
+# dimer is a non-physiological assembly: the folding step returned target_ptm ~0.47 for it,
+# i.e. the model was unsure of the TARGET's own fold, which caps interface iptm (~0.15) no
+# matter how good the binder is. Costs ~50% more tokens, buys a target the model believes.
+#
+# Hotspots are 1-based CHAIN POSITIONS, not mature numbers: the file starts at residue 6,
+# so mature 86-92 = positions 81..87 (verified to spell SYQKVN).
+entities:
+  - file:
+      path: /home/ubuntu/tnf/targets/tnf_trimer.pdb
+      include:
+        - chain: {id: A}
+        - chain: {id: B}
+        - chain: {id: C}
+      binding_types:
+        - chain: {id: A, binding: "81..83,85..87"}
+        - chain: {id: B, binding: "28,142"}
+      structure_groups: "all"
+  - file:
+      path:
+        - ../scaffolds/7eow.yaml
+        - ../scaffolds/7xl0.yaml
+        - ../scaffolds/8coh.yaml
+        - ../scaffolds/8z8v.yaml
+        - ../scaffolds/gontivimab.yaml
+        - ../scaffolds/isecarosmab.yaml
+        - ../scaffolds/sonelokimab.yaml
