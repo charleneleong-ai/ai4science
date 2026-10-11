@@ -117,6 +117,35 @@ class TestCommands:
         assert runner.invoke(app, []).exit_code == 2
 
 
+class TestValidateTarget:
+    """What `validate` accepts, and that matching nothing is a failure."""
+
+    GOOD = "name,sequence,molecule_class\ntnf_01,ELEERIEKTAEEVRELVLEG,single_chain\n"
+
+    def test_accepts_the_one_file_about_to_be_uploaded(self, tmp_path):
+        """It took only a directory, so naming a file passed silently with an empty table."""
+        csv_path = tmp_path / "submission.csv"
+        csv_path.write_text(self.GOOD)
+        result = runner.invoke(app, ["validate", str(csv_path)])
+        assert result.exit_code == 0 and "submission.csv" in result.stdout
+
+    def test_accepts_a_directory(self, tmp_path):
+        (tmp_path / "a.csv").write_text(self.GOOD)
+        assert runner.invoke(app, ["validate", str(tmp_path)]).exit_code == 0
+
+    @pytest.mark.parametrize("target", ["missing.csv", "empty_dir"])
+    def test_matching_nothing_is_an_error_not_a_pass(self, tmp_path, target):
+        """The last gate before an upload must never report OK for a file it did not read."""
+        (tmp_path / "empty_dir").mkdir()
+        result = runner.invoke(app, ["validate", str(tmp_path / target)])
+        assert result.exit_code == 1
+
+    def test_a_malformed_row_still_fails(self, tmp_path):
+        csv_path = tmp_path / "bad.csv"
+        csv_path.write_text("name,sequence,molecule_class\ntnf_01,ELEER,protein\n")
+        assert runner.invoke(app, ["validate", str(csv_path)]).exit_code == 1
+
+
 class TestCandidateProblem:
     """The pre-registered gates on a candidate competing for a free submission slot."""
 

@@ -156,15 +156,25 @@ def verify(
 
 @app.command()
 def validate(
-    directory: Path = typer.Argument(..., help="directory of submission CSVs"),
+    target: Path = typer.Argument(..., help="a submission CSV, or a directory of them"),
 ) -> None:
-    """Check submission CSVs against Proteinbase's stated format before uploading."""
+    """Check submission CSVs against Proteinbase's stated format before uploading.
+
+    Accepts a file as readily as a directory. It used to take only a directory and glob it, so
+    naming the one file about to be uploaded matched nothing, printed an empty table and exited
+    0 -- a silent pass from the last gate before the upload. Matching nothing is now an error.
+    """
+    paths = [target] if target.is_file() else sorted(target.glob("*.csv"))
+    if not paths:
+        typer.echo(f"no submission CSV at {target}", err=True)
+        raise typer.Exit(code=1)
+
     table = Table(title="submission pre-flight")
     for column in ("file", "rows", "lengths", "verdict"):
         table.add_column(column)
 
     failed = False
-    for path in sorted(directory.glob("*.csv")):
+    for path in paths:
         with path.open() as handle:
             rows = list(csv.DictReader(handle))
         problems = csv_problems(rows)
