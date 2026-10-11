@@ -145,6 +145,18 @@ combination rather than composed from singles — which was necessary: `A35H+A38
   pair most at risk of never yielding usable material, and they are also the matched control.
 - pH selectivity rests on predicted pKa. No folding model represents protonation; PROPKA is a
   static-structure predictor, and the assay is not simulated.
+- **The structural ensemble does not explain the pKa spread, and the folding model's own
+  confidence cannot be used to screen for it.** Across the eight slot-filling candidates, the
+  largest pKa spread per design ranges 0.99–6.06 units while binder pTM varies by 0.002–0.026
+  and complex pLDDT by 0.008–0.017 across the same three samples; the correlation between them
+  is **−0.46 (n=8)**, i.e. if anything the wrong sign. The extreme case is
+  `helix0_R21H_R35H_E67H` position 35, whose pKa reads **3.63, and 9.69**, on structures the
+  model scores at binder pTM 0.957 / 0.958 / 0.956. Three structures it considers
+  indistinguishable put one histidine anywhere from permanently deprotonated to permanently
+  protonated. PROPKA's sensitivity here is to local side-chain placement, not to fold
+  uncertainty — so a confidence filter is no substitute for re-scoring every sample, and three
+  samples undersample whatever is actually varying. **Every ΔQ floor in this submission is a
+  lower bound estimated from three draws, and the true worst case is likely worse.**
 - Mouse cross-reactivity rests on a *predicted* mouse structure and conserved-epitope coverage.
 - Three mechanistic hypotheses for the pH switch (buried-His desolvation, cation repulsion,
   carboxylate proximity) were each **refuted** by the pKa data; no validated mechanism replaces
