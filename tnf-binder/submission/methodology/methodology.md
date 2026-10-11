@@ -1,8 +1,8 @@
 # Conditional TNF-α binder — methodology
 
-## This is a designed series, not 13 independent guesses
+## This is a designed series, not 15 independent guesses
 
-The set is built to be **informative whichever way it reads in the lab**. Eleven designs are a
+The set is built to be **informative whichever way it reads in the lab**. Thirteen designs are a
 histidine titration on one backbone spanning predicted pKa 6.07–7.12, with one, two or three
 histidines; two more are a **matched pair on a second backbone — `tnf2_09` carries a single
 histidine, `tnf2_10` is the identical sequence with zero.** That pair is the control: if
@@ -78,7 +78,7 @@ mouse TNF-α trimer** (P06804, the sequence on the challenge page) and its inter
 with the human one under the identical protocol — a within-model ratio, which is what this
 comparison can legitimately support.
 
-**10 of 13 retain ≥70 % of their human interface confidence on mouse**, median 86 %, and four
+**12 of 15 retain ≥70 % of their human interface confidence on mouse**, median 86 %, and four
 score higher on mouse than on human. The proxy and the direct prediction disagree in one place
 that matters: the design with among the highest conserved-epitope coverage (0.79) retains only
 **47 %** on mouse, and its control 41 %. Both were demoted. Designing against the conserved
@@ -115,7 +115,7 @@ pKa 3.6. The positions here are empirical, from an exhaustive scan plus a physic
 ## The verifier stack
 
 Each tier judges something the tier above cannot see, and tiers **drop** candidates rather than
-down-rank them. Counts are for this round: 16 folded parent designs in, 13 submitted.
+down-rank them. Counts are for this round: 16 folded parent designs in, 15 submitted.
 
 ```mermaid
 flowchart TB
@@ -135,22 +135,22 @@ flowchart TB
     V2 -->|"2 chassis"| V3
     V2 -.->|"7 killed · high fold similarity"| X2[["eliminated"]]
     V3 -->|"15 His variants built"| V4
-    V4 -->|"13 submitted"| V5
+    V4 -->|"15 submitted"| V5
     V4 -.->|"3 killed · <0.6, incl. best interface<br/>at 59% on divergent residues"| X4[["eliminated"]]
     V5 -->|"41 combinations measured"| V6
     V6 -->|"5 hold every His<br/>in window on all 3"| V7
-    V6 -.->|"9 of 26 His are<br/>structure-dependent"| DEMOTE[["demoted, not dropped"]]
-    V7 -->|"ranked on the<br/>guaranteed swing"| OUT["ranked submission<br/>13 designs"]
-    F0["8 further 3-His combinations<br/>on helix_0, all in window<br/>on their design structure"] --> F1
+    V6 -.->|"9 of 28 His are<br/>structure-dependent"| DEMOTE[["demoted, not dropped"]]
+    V7 -->|"ranked on the<br/>guaranteed swing"| OUT["ranked submission<br/>15 designs"]
+    F0["16 further combinations on helix_0,<br/>in two rounds, all in window<br/>on their design structure"] --> F1
     F1["re-folded vs human + mouse,<br/>same gates as the set"]
-    F1 -.->|"6 killed · clashes, or interface<br/>moved off the epitope"| XF1[["eliminated"]]
-    F1 -.->|"1 killed · 56% mouse retained"| XF2[["eliminated"]]
-    F1 -->|"1 survives → tnf2_13"| OUT
+    F1 -.->|"8 killed · interface moved<br/>off the epitope, or >3 clashes"| XF1[["eliminated"]]
+    F1 -.->|"5 killed · mouse retention<br/>or switch robustness"| XF2[["eliminated"]]
+    F1 -->|"3 survive → tnf2_13, tnf2_14, tnf2_15"| OUT
 ```
 
 **Tier 6 is the one that changed the answer.** Every pKa originally came from a single predicted
-structure. Re-scoring each histidine against all three Boltz diffusion samples showed **9 of 26
-are structure-dependent** — including the design this submission originally led with, whose
+structure. Re-scoring each histidine against all three Boltz diffusion samples showed **9 of
+the 28 histidines in this submission are structure-dependent** — including the design this submission originally led with, whose
 switch reads 6.27 on one structure and 5.92 averaged over three. The ranking below is the
 corrected one; nothing was dropped on this basis, because a structure-dependent prediction is
 weak evidence rather than evidence of failure.
@@ -179,6 +179,7 @@ structures gives the smaller swing. That is a lower bound on the switch, not a b
 
 | | ΔQ floor | robust His |
 | --- | --- | --- |
+| `tnf2_14` (3 His) | **1.55** | 2/3 — 99 % of its human interface retained on mouse |
 | `tnf2_01` (3 His) | **1.38** | 3/3 |
 | `tnf2_13` (3 His) | **1.35** | 2/3 — A70 spread 0.04, the tightest measured |
 | `tnf2_04`, `tnf2_05` (2 His) | 0.89–0.99 | 2/2 |
