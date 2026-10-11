@@ -29,8 +29,9 @@ from rich.console import Console
 
 from tnf_binder.confidence import DesignConfidence
 from tnf_binder.design import TnfDesign
-from tnf_binder.submission import (MAX_ROWS, MOLECULE_CLASS, SUBMISSION_COLUMNS,
-                                   candidate_problem, row_problem, write_submission)
+from tnf_binder.submission import (MAX_CLASHES, MAX_ROWS, MOLECULE_CLASS,
+                                   SUBMISSION_COLUMNS, candidate_problem,
+                                   row_problem, write_submission)
 from tnf_binder.switch import SwitchProfile, switch_profiles
 from tnf_binder.tables import design_stem, number, read_rows, write_rows
 from tnf_binder.verifiers import CompositionVerifier
@@ -254,6 +255,8 @@ def rank(
     mouse: Path = typer.Option(..., "--mouse", help="Boltz predictions dir, mouse complexes"),
     out: Path = typer.Option(..., "--out"),
     geometry: Path | None = typer.Option(None, "--geometry", help="table from score_designs"),
+    max_clashes: int = typer.Option(MAX_CLASHES, "--max-clashes",
+                                    help="calibrate against the designs already submitted"),
 ) -> None:
     """Rank slot-filling candidates on delta-Q, robustness and measured mouse cross-reactivity.
 
@@ -278,7 +281,7 @@ def rank(
             unmeasured.append((design, gap))
             continue
         record = fill_record(design, profile, human_fold, mouse_fold, geometry_row)
-        if reason := candidate_problem(record):
+        if reason := candidate_problem(record, max_clashes=max_clashes):
             dropped.append((design, reason))
         else:
             records.append(record)

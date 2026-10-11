@@ -176,15 +176,26 @@ class TestCandidateProblem:
         """The gap this closed: epitope_focus 0.00 with no clashes read as fine."""
         assert candidate_problem({**self.PASSING, "flag": "off_epitope"}) is not None
 
-    def test_the_flag_column_is_read_through_score_designs_quoting(self):
-        """score_designs writes multi-part flags quoted, e.g. '"clash(1)'.
+    def test_a_clash_flag_is_judged_by_the_count_not_the_string(self):
+        """The flag and the count say the same thing; only the count can be calibrated.
 
-        Reported without square brackets: rich treats them as markup, so a reason reading
-        `structural flag [clash(1)]` printed as `structural flag ` and the funnel showed seven
-        blank rejections.
+        score_designs writes a `clash(n)` flag beside the count it came from, so rejecting on
+        the string made the threshold unreachable: a design with one clash failed whatever
+        `max_clashes` allowed.
         """
-        assert candidate_problem({**self.PASSING, "flag": '"clash(1)'}) == (
-            "structural flag: clash(1)")
+        one = {**self.PASSING, "flag": '"clash(1)', "clashes": 1}
+        assert candidate_problem(one) is not None               # default MAX_CLASHES = 0
+        assert candidate_problem(one, max_clashes=3) is None     # calibrated to the submitted set
+
+    def test_a_categorical_flag_survives_any_clash_threshold(self):
+        """off_epitope is not a quantity — no threshold makes a design that missed the site ok."""
+        off = {**self.PASSING, "flag": '"clash(1),off_epitope', "clashes": 1}
+        assert candidate_problem(off, max_clashes=99) == "structural flag: off_epitope"
+
+    def test_reported_without_square_brackets(self):
+        """rich treats them as markup: `structural flag [off_epitope]` printed as blank, and the
+        funnel showed seven blank rejections."""
+        assert "[" not in (candidate_problem({**self.PASSING, "flag": "off_epitope"}) or "")
 
     def test_a_threshold_is_inclusive_at_its_boundary(self):
         """The thresholds come from designs that were submitted, so those designs must pass."""
