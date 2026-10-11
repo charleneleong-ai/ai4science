@@ -29,6 +29,20 @@ FUNNEL: tuple[tuple[str, int, int], ...] = (
     ("passed novelty >= 3/4", 3, 2),
 )
 
+CREDIBLE_INTERFACE = 0.5  # the bar a de novo binder interface must clear
+
+# The second submission's own funnel: a His series over the chassis that survived the campaign's
+# gates. Separate from FUNNEL because the denominators are different objects -- parents and
+# variants, not the original 57 constructs.
+SUBMISSION2_FUNNEL: tuple[tuple[str, int, int], ...] = (
+    ("folded parent designs", 16, 16),
+    ("fold similarity only moderate", 16, 9),
+    ("composition pass", 9, 2),
+    ("His variants built and folded", 15, 15),
+    ("cross-reactivity >= 0.6", 15, 12),
+    ("submitted", 12, 12),
+)
+
 # Measured effect of each design lever on binder-to-target ipTM. Only one of the four moved.
 LEVERS: tuple[tuple[str, str, float], ...] = (
     ("target stoichiometry", "dimer -> trimer", +0.11),
@@ -48,16 +62,15 @@ CAMPAIGN_CONFIG: dict[str, Any] = {
     "ranking_statistic": "mean binder-to-target pair ipTM across diffusion samples",
 }
 
-SCAN_NAMES = ("pka_scan", "pka_scan2", "his_combo_pocket_free_0")
 
 
-def funnel_surviving(stage: str) -> int:
+def funnel_surviving(stage: str, funnel: tuple[tuple[str, int, int], ...] = FUNNEL) -> int:
     """Survivors at the first funnel stage whose name contains `stage`.
 
     Keeps the run summary derived from FUNNEL rather than restating its numbers, which could
     otherwise drift apart silently.
     """
-    for name, _entering, surviving in FUNNEL:
+    for name, _entering, surviving in funnel:
         if stage in name:
             return surviving
     raise KeyError(f"no funnel stage matching {stage!r}")
@@ -68,6 +81,8 @@ class CampaignLogger:
     """One W&B run holding the whole TNF-alpha campaign."""
 
     assets: Path
+    predictions_dir: str = "boltz_camp"
+    funnel: tuple[tuple[str, int, int], ...] = FUNNEL
     project: str = "tnf-conditional-binder"
     entity: str | None = None
     max_molecules: int = 12
@@ -75,14 +90,15 @@ class CampaignLogger:
     @cached_property
     def designs(self) -> list[DesignConfidence]:
         """Every folded design, best-ranked first by mean binder-to-target ipTM."""
-        return rank_designs(self.assets / "boltz_camp")
+        return rank_designs(self.assets / self.predictions_dir)
 
     @cached_property
     def structures(self) -> list[Path]:
         """Folded complexes worth attaching as 3D media, ranked designs first."""
         paths: list[Path] = []
         for design in self.designs:
-            paths += sorted((self.assets / "boltz_camp" / design.name).glob("*_model_0.cif"))
+            paths += sorted(
+                (self.assets / self.predictions_dir / design.name).glob("*_model_0.cif"))
         paths += sorted(self.assets.rglob("*.pdb"))
         return paths[:self.max_molecules]
 
@@ -99,14 +115,18 @@ class CampaignLogger:
 
     def summary(self) -> dict[str, float]:
         designs = self.designs
-        return {
+        summary = {
             "designs_folded": len(designs),
-            "designs_submitted": funnel_surviving("submitted"),
-            "designs_passing_novelty": funnel_surviving("novelty"),
+            "designs_submitted": funnel_surviving("submitted", self.funnel),
             "best_binder_to_target_iptm": round(designs[0].binder_to_target, 3) if designs else 0,
             "mean_global_iptm_inflation": round(mean_or_zero(d.inflation for d in designs), 3),
-            "credible_interface_bar": 0.5,
+            "credible_interface_bar": CREDIBLE_INTERFACE,
         }
+        # only the campaign funnel reaches a novelty verdict; a submission still in flight has
+        # no such number, and reporting one from the wrong funnel would be worse than omitting it
+        if any("novelty" in stage for stage, _, _ in self.funnel):
+            summary["designs_passing_novelty"] = funnel_surviving("novelty", self.funnel)
+        return summary
 
     def log(self, *, run_name: str | None = None, notes: str | None = None) -> str:
         """Create the run, log everything, return its URL."""
@@ -119,14 +139,14 @@ class CampaignLogger:
             config=CAMPAIGN_CONFIG,
         )
 
-        for stage, entering, surviving in FUNNEL:
+        for stage, entering, surviving in self.funnel:
             wandb.log({"funnel/entering": entering, "funnel/surviving": surviving,
                        "funnel/stage": stage})
 
         tables = {
             "funnel": wandb.Table(columns=["stage", "entering", "surviving", "attrition"],
                                   data=[[s, e, v, round(1 - v / e, 3)]
-                                        for s, e, v in FUNNEL]),
+                                        for s, e, v in self.funnel]),
             "design_levers": wandb.Table(columns=["lever", "change", "delta_iptm"],
                                          data=[list(row) for row in LEVERS]),
             "designs": wandb.Table(
@@ -137,10 +157,10 @@ class CampaignLogger:
                        round(d.target_internal, 3), round(d.inflation, 3),
                        round(d.binder_ptm, 3)] for d in designs]),
         }
-        for name in SCAN_NAMES:
-            if (path := self.assets / f"{name}.csv").exists():
-                columns, rows = self.read_csv(path)
-                tables[name] = wandb.Table(columns=columns, data=rows)
+        for path in sorted(self.assets.glob("*.csv")):
+            columns, rows = self.read_csv(path)
+            if columns:
+                tables[path.stem] = wandb.Table(columns=columns, data=rows)
 
         molecules = {f"structure/{self.molecule_key(p)}": wandb.Molecule(str(p))
                      for p in self.structures}

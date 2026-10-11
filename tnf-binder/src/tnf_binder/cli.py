@@ -25,7 +25,7 @@ from tnf_binder.confidence import DesignConfidence, rank_designs
 from tnf_binder.design import TnfDesign
 from tnf_binder.structure import Complex
 from tnf_binder.target import LOBE, POCKET, TNFR2_EPITOPE, TnfTarget
-from tnf_binder.tracking import CampaignLogger
+from tnf_binder.tracking import CREDIBLE_INTERFACE, CampaignLogger
 from tnf_binder.verifiers import CompositionVerifier, InterfaceVerifier, PkaSwitchVerifier
 from tnf_binder.verifiers.interface import InterfaceMetrics
 
@@ -34,7 +34,6 @@ VALID_CLASSES = frozenset({"single_chain", "nanobody", "scfv", "fab_kappa", "fab
 STANDARD_AA = frozenset("ACDEFGHIKLMNPQRSTVWY")
 SUBMISSION_COLUMNS = ["name", "sequence", "molecule_class"]
 JSON_HELP = "emit JSON (for agents / piping)"
-CREDIBLE_INTERFACE = 0.5  # the bar a de novo binder interface has to clear to be worth folding further
 
 app = typer.Typer(add_completion=False)
 console = Console()
@@ -245,12 +244,15 @@ def confidence(
 def wandb_log(
     assets: Path = typer.Argument(..., help="directory holding boltz_camp/ and the pKa scans"),
     project: str = typer.Option("tnf-conditional-binder", "--project"),
+    predictions: str = typer.Option("boltz_camp", "--predictions",
+                                    help="subdirectory of assets holding the folded designs"),
     entity: str | None = typer.Option(None, "--entity"),
     run_name: str | None = typer.Option(None, "--run-name"),
     notes: str | None = typer.Option(None, "--notes"),
 ) -> None:
     """Log the funnel, confidence tables, pKa scans and folded complexes to Weights & Biases."""
-    logger = CampaignLogger(assets, project=project, entity=entity)
+    logger = CampaignLogger(assets, predictions_dir=predictions, project=project,
+                            entity=entity)
     console.print(f"logging [bold]{len(logger.designs)}[/] folded designs and "
                   f"[bold]{len(logger.structures)}[/] structures to [cyan]{project}[/]")
     try:
