@@ -29,6 +29,20 @@ USABLE_WINDOW = (6.0, 7.6)
 MIN_INTERFACE_DSASA = 10.0
 
 
+def pka_window(pka: float) -> str:
+    """ideal | usable | dead — where a pKa sits relative to the assay's 7.4 / 6.0 pair.
+
+    A function as well as a `HistidineSite` property because the His scans classify a predicted
+    pKa before any interface measurement exists, and must read the windows from here rather
+    than restate them.
+    """
+    if IDEAL_WINDOW[0] <= pka <= IDEAL_WINDOW[1]:
+        return "ideal"
+    if USABLE_WINDOW[0] <= pka <= USABLE_WINDOW[1]:
+        return "usable"
+    return "dead"
+
+
 @dataclass(frozen=True)
 class HistidineSite:
     """One histidine: where it sits, how buried it is, and its predicted pKa."""
@@ -43,12 +57,7 @@ class HistidineSite:
 
     @property
     def window(self) -> str:
-        """ideal | usable | dead — where the pKa sits relative to the assay."""
-        if IDEAL_WINDOW[0] <= self.pka <= IDEAL_WINDOW[1]:
-            return "ideal"
-        if USABLE_WINDOW[0] <= self.pka <= USABLE_WINDOW[1]:
-            return "usable"
-        return "dead"
+        return pka_window(self.pka)
 
     @property
     def switches(self) -> bool:

@@ -24,16 +24,18 @@ from touchstone.core import Verdict
 from tnf_binder.confidence import DesignConfidence, rank_designs
 from tnf_binder.design import TnfDesign
 from tnf_binder.structure import Complex
+from tnf_binder.submission import csv_problems, row_problem
 from tnf_binder.target import LOBE, POCKET, TNFR2_EPITOPE, TnfTarget
 from tnf_binder.tracking import CREDIBLE_INTERFACE, FUNNELS, CampaignLogger
 from tnf_binder.verifiers import CompositionVerifier, InterfaceVerifier, PkaSwitchVerifier
 from tnf_binder.verifiers.interface import InterfaceMetrics
 
 VERDICT_COLOR = {"trust": "green", "weak": "yellow", "defer": "red"}
-VALID_CLASSES = frozenset({"single_chain", "nanobody", "scfv", "fab_kappa", "fab_lambda"})
-STANDARD_AA = frozenset("ACDEFGHIKLMNPQRSTVWY")
-SUBMISSION_COLUMNS = ["name", "sequence", "molecule_class"]
 JSON_HELP = "emit JSON (for agents / piping)"
+
+# Re-exported so `tnf_binder.cli` stays the one place a reader looks for the pre-flight rules,
+# while `tnf_binder.submission` is the one place they are stated.
+__all__ = ["app", "main", "csv_problems", "row_problem"]
 
 app = typer.Typer(add_completion=False)
 console = Console()
@@ -162,33 +164,6 @@ def verify(
 
     console.print(verdict_table(f"tnf-binder · {structure.name} · {design.length} aa", results))
     console.print(f"[dim]binder[/] {design.sequence}")
-
-
-def row_problem(row: dict[str, str]) -> str | None:
-    """The first way one submission row violates Proteinbase's stated format, if any."""
-    sequence = row["sequence"]
-    if row["molecule_class"] not in VALID_CLASSES:
-        return f"bad class {row['molecule_class']}"
-    if set(sequence) - STANDARD_AA:
-        return f"non-standard residues in {row['name']}"
-    if not 10 <= len(sequence) <= 250:
-        return f"length {len(sequence)} in {row['name']}"
-    return None
-
-
-def csv_problems(rows: list[dict[str, str]], max_rows: int = 20) -> list[str]:
-    """Every format violation in one submission file."""
-    if not rows:
-        return ["empty"]
-    problems = []
-    columns = list(rows[0])[:3]
-    if columns != SUBMISSION_COLUMNS:
-        problems.append(f"columns {columns}")
-    if len({r["sequence"] for r in rows}) != len(rows):
-        problems.append("duplicate sequences")
-    if len(rows) > max_rows:
-        problems.append(f"{len(rows)} rows > {max_rows} limit")
-    return problems + [p for r in rows if (p := row_problem(r))]
 
 
 @app.command()

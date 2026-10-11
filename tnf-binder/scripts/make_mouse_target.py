@@ -8,20 +8,30 @@ predict the trimer from sequence.
 
 Mouse soluble domain from UniProt P06804, aligned to the human construct boundaries.
 """
-import sys
+
+from __future__ import annotations
+
 from pathlib import Path
 
-MOUSE = ("LRSSSQNSSDKPVAHVVANHQVEEQLEWLSQRANALLANGMDLKDNQLVVPADGLYLVYSQVLFKGQGCPDYVLLTH"
-         "TVSRFAISYQEKVNLLSAVKSPCPKDTPEGAELKPWYEPIYLGGVFQLEKGDQLSAEVNLPKYLDFAESGQVYFGVIAL")
+import typer
+from rich.console import Console
 
-out = Path(sys.argv[1])
-out.mkdir(parents=True, exist_ok=True)
-chains = []
-for cid in "ABC":
-    chains.append(f"""  - protein:
-      id: {cid}
-      sequence: {MOUSE}
-      msa: empty""")
-(out / "mouse_tnf_trimer.yaml").write_text("version: 1\nsequences:\n" + "\n".join(chains) + "\n")
-print(f"mouse soluble domain: {len(MOUSE)} aa")
-print(f"wrote {out / 'mouse_tnf_trimer.yaml'} (3 protomers)")
+from tnf_binder.specs import cofold_spec
+from tnf_binder.target import MOUSE
+
+app = typer.Typer(add_completion=False)
+console = Console()
+
+
+@app.command()
+def main(out_dir: Path = typer.Argument(..., help="directory to write the spec into")) -> None:
+    """Emit a three-protomer mouse TNF-alpha spec for Boltz to fold."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "mouse_tnf_trimer.yaml"
+    path.write_text(cofold_spec(MOUSE))
+    console.print(f"mouse soluble domain [bold]{len(MOUSE)}[/] aa (UniProt P06804)")
+    console.print(f"wrote [cyan]{path}[/] (3 protomers)")
+
+
+if __name__ == "__main__":
+    app()
