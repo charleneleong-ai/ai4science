@@ -63,6 +63,7 @@ from .physics import (
     protonate,
     relax_site,
 )
+from .composition import CompositionVerifier
 from .expression import ExpressionSignals, ExpressionVerifier, load_signals, score_provider
 from .thermostability import ThermostabilitySignal, ThermostabilityVerifier, tm_provider
 from .pipeline import CascadeResult, cascade, design_and_rank, rank, selectivity_profile, stress_profile
@@ -133,6 +134,7 @@ __all__ = [
     "cascade",
     "CascadeResult",
     "verify_structure",
+    "CompositionVerifier",
     "ExpressionVerifier",
     "ExpressionSignals",
     "load_signals",

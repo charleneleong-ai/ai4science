@@ -25,8 +25,10 @@ on where their inputs are available:
     spin states), not an MLIP — see
     [`docs/experiments/2026-07-13-mlip-cannot-rank-metals.md`](docs/experiments/2026-07-13-mlip-cannot-rank-metals.md).
 - **opt-in** — independent co-fold (Boltz-2 / Chai-1 / AllMetal3D) · expression (ESM-2 ppl ·
-  solubility) · thermostability (Tm); Mogul CSD validation (licensed). Reachable via providers /
-  the `pipeline` / CLI flags, not in the default consensus.
+  solubility) · thermostability (Tm) · **amino-acid composition** (`--composition --sequence`:
+  model-free, no GPU — interface-confidence models rank degenerate poly-Ala/Gly designs highly,
+  see [`src/touchstone/composition.py`](src/touchstone/composition.py)); Mogul CSD validation
+  (licensed). Reachable via providers / the `pipeline` / CLI flags, not in the default consensus.
 - **experimental** — MetalHawk (learned ANN geometry class): confidently-OOD on de-novo designs,
   so demoted — the analytic polyhedron-RMSD tier is its replacement.
 

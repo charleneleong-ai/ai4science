@@ -39,7 +39,8 @@ def verify(
     stress: bool = typer.Option(False, "--stress", help="also test robustness under acidic-leachate / low-pH stress"),
     precedent: bool = typer.Option(True, "--precedent/--no-precedent", help="open MetalPDB coordination-motif precedent tier (on by default)"),
     metalhawk_scores: Path = typer.Option(None, "--metalhawk-scores", help="JSON of precomputed MetalHawk predictions (scripts/metalhawk_score.py) — enables the experimental MetalHawk tier"),
-    sequence: str = typer.Option("", "--sequence", help="the design's sequence — enables the expression / thermostability tiers (which key by sequence)"),
+    sequence: str = typer.Option("", "--sequence", help="the design's sequence — enables the composition / expression / thermostability tiers (which key by sequence)"),
+    composition: bool = typer.Option(False, "--composition", help="model-free amino-acid composition gate — rejects the degenerate poly-Ala/Gly sequences that interface-confidence models score highly (needs --sequence)"),
     expression_scores: Path = typer.Option(None, "--expression-scores", help="JSON {sequence: {pseudo_perplexity, solubility}} — enables the expression tier (needs --sequence)"),
     thermostability_scores: Path = typer.Option(None, "--thermostability-scores", help="JSON {sequence: Tm_celsius} — enables the thermostability tier (needs --sequence)"),
     selectivity: str = typer.Option("", "--selectivity", help="comma-separated competing metals for the selectivity tiers, e.g. Ni2+,Cu2+,Co2+ — motif enrichment (MetalPDB occupancy) runs on CPU; the MLIP metal-swap ΔE tier is added by --deep (and currently defers: no backbone passes the Irving-Williams gate)"),
@@ -51,7 +52,7 @@ def verify(
     tm_predictor = tm_provider(jsonlib.loads(Path(thermostability_scores).read_text())) if thermostability_scores else None
     result = verify_structure(
         structure, metal, deep, cutoff=cutoff, stress=stress, sequence=sequence,
-        precedent=precedent,
+        precedent=precedent, composition=composition,
         metalhawk_scorer=metalhawk_scorer,
         expression_scorer=expression_scorer,
         thermostability_predictor=tm_predictor,

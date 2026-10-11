@@ -22,7 +22,7 @@ class TestVerifyStructure:
         assert r["coordination_number"] >= 1
         assert r["reference"] in {"MetalPDB", "CSD", "PDB"}  # which geometry prior backed the z-score
         assert all("label" in v and "score" in v for v in r["verifiers"].values())
-        assert {"mogul", "cofold", "expression", "thermostability"} <= set(r["not_run"])  # full stack advertised
+        assert {"mogul", "cofold", "composition", "expression", "thermostability"} <= set(r["not_run"])  # full stack advertised
 
     def test_cif_goes_through_the_same_path(self):
         r = verify_structure(FIX / "boltzgen_nickel_design.cif", "Ni2+")
@@ -35,7 +35,7 @@ class TestVerifyStructure:
         assert [s["stage"] for s in r["stack"]] == [
             "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent",
             "motif_selectivity", "metalhawk", "mogul", "mlip", "mlip_md", "trs", "selectivity",
-            "cofold", "expression", "thermostability",
+            "cofold", "composition", "expression", "thermostability",
         ]
         assert by["geometry"]["status"] == "ran" and "strain_sigma" in by["geometry"]["metrics"]
         assert by["bond_valence"]["status"] == "ran" and "bvs" in by["bond_valence"]["metrics"]
