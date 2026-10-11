@@ -19,11 +19,10 @@ from pathlib import Path
 import typer
 from rich.console import Console
 
-from tnf_binder.pka import run_propka
 from tnf_binder.rosetta import HisMutator
+from tnf_binder.switch import HisVariant, his_tag, measure_his, position_list
 from tnf_binder.structure import Complex
 from tnf_binder.tables import write_rows
-from tnf_binder.verifiers.pka_switch import pka_window
 
 app = typer.Typer(add_completion=False)
 console = Console()
@@ -41,23 +40,21 @@ def parse_sites(positions: str) -> list[tuple[str, int]]:
     return sites
 
 
-def combination_row(parent: Path, combo: tuple[tuple[str, int], ...], mutant: Path,
-                    workdir: Path) -> dict[str, object]:
-    tag = "_".join(f"{chain}{num}H" for chain, num in combo)
-    pkas = run_propka(mutant, workdir)
-    values = {f"{chain}{num}": pkas.get((chain, num)) for chain, num in combo}
-    predicted = [v for v in values.values() if v is not None]
-    in_window = [v for v in predicted if pka_window(v) in ("ideal", "usable")]
+def combination_row(variant: HisVariant) -> dict[str, object]:
+    """One row per combination, carrying every introduced histidine's own measurement.
+
+    pKa values do not compose -- A35H+A38H drops A35 from 6.07 to 5.94, out of the window --
+    so what is reported is what the combination measured, never a sum of singles.
+    """
     return {
-        "design": f"{parent.stem}__{tag}",
-        "parent": parent.stem,
-        "n_his": len(combo),
-        "positions": " ".join(f"{chain}{num}" for chain, num in combo),
-        "pkas": " ".join(f"{k}={v:.2f}" if v is not None else f"{k}=NA"
-                         for k, v in values.items()),
-        "n_in_window": len(in_window),
-        "n_ideal": sum(1 for v in predicted if pka_window(v) == "ideal"),
-        "sequence": Complex.from_file(mutant).binder_sequence,
+        "design": variant.name,
+        "parent": variant.parent,
+        "n_his": len(variant.measurements),
+        "positions": position_list(variant.positions),
+        "pkas": " ".join(str(m) for m in variant.measurements),
+        "n_in_window": variant.in_window,
+        "n_ideal": variant.ideal,
+        "sequence": Complex.from_file(variant.structure).binder_sequence,
     }
 
 
@@ -83,17 +80,15 @@ def main(
     with tempfile.TemporaryDirectory() as tmp:
         workdir = Path(tmp)
         for combo in combos:
-            tag = "_".join(f"{chain}{num}H" for chain, num in combo)
-            mutant = (keep_dir or workdir) / f"{parent.stem}__{tag}.pdb"
-            pose = mutator.load(parent)
-            if not mutator.mutate(pose, list(combo)):
-                console.print(f"  {tag}: mutation failed")
+            variant = measure_his(parent, combo, mutator=mutator, workdir=workdir,
+                                  dest=keep_dir)
+            if variant is None:
+                console.print(f"  {his_tag(combo)}: mutation failed")
                 continue
-            mutator.write(pose, mutant)
-            rows.append(combination_row(parent, combo, mutant, workdir))
-            console.print(f"  {tag:28s} pKa: {rows[-1]['pkas']:48s} "
-                          f"in_window={rows[-1]['n_in_window']}/{len(combo)} "
-                          f"ideal={rows[-1]['n_ideal']}")
+            rows.append(combination_row(variant))
+            console.print(f"  {his_tag(combo):28s} pKa: {rows[-1]['pkas']:48s} "
+                          f"in_window={variant.in_window}/{len(combo)} "
+                          f"ideal={variant.ideal}")
 
     if not rows:
         typer.echo("no results", err=True)
