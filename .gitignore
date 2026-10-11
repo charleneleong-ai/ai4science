@@ -25,3 +25,6 @@ data/
 materialhack/
 # Nested worktrees: keep `git worktree add` under .claude/ from ever being committable
 .claude/worktrees/
+
+# W&B local run cache
+wandb/

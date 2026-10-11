@@ -1,0 +1,38 @@
+# One row per scored submission, in order. The W&B runs and report are rendered from this file
+# (`casmi wandb-sync`); add the row when a score lands.
+#
+# Gate G1: beats the current best public score by more than run-to-run noise (about ±0.005).
+# Verdicts: PROMOTE = cleared G1 and shipped; KEEP = kept although inside the noise;
+# DISCARD = reverted or superseded.
+pr: 80
+noise: 0.005
+submissions:
+  - {version: 1, ref: 56908784, date: 2026-10-07, family: baseline, commit: 5dd7302, score: 0.115, verdict: PROMOTE,
+     change: "fragment explainability over train's 275,798 structures"}
+  - {version: 4, ref: 56936443, date: 2026-10-08, family: candidate-pool, commit: 3314cb7, score: 0.049, verdict: DISCARD,
+     change: "+ PubChem tier, 4000 nearest-mass candidates per molecule"}
+  - {version: 5, ref: 56974183, date: 2026-10-08, family: candidate-pool, commit: 1cc302d, score: 0.135, verdict: PROMOTE,
+     change: "popularity shortlist of 300, + 0.25 x popularity in the score"}
+  - {version: 6, ref: 56976441, date: 2026-10-08, family: spectral-model, commit: 2e7cb33, score: 0.250, verdict: PROMOTE,
+     change: "FPNet fingerprint score in place of fragment explainability"}
+  - {version: 7, ref: 56982818, date: 2026-10-09, family: spectral-model, commit: 7d5dd6e, score: 0.258, verdict: PROMOTE,
+     change: "FPNet ensemble: full1 + FPNet A"}
+  - {version: 8, ref: 56984499, date: 2026-10-09, family: prior, commit: 7d5dd6e, score: 0.254, verdict: DISCARD,
+     change: "popularity weight 0.15 instead of 0.25"}
+  - {version: 9, ref: 56986484, date: 2026-10-09, family: candidate-pool, commit: 0e78c59, score: 0.261, verdict: KEEP,
+     change: "shortlist 1000 instead of 300"}
+  - {version: 11, ref: 56992050, date: 2026-10-09, family: candidate-pool, commit: a899ce6, score: 0.262, verdict: KEEP,
+     change: "never propose the train structure behind a copied spectrum"}
+  - {version: 12, ref: 57009046, date: 2026-10-09, family: forward-model, commit: 642620c, score: 0.286, verdict: PROMOTE,
+     change: "ICEBERG re-orders same-formula groups (CPU, 269 / 371 molecules scored)"}
+  - {version: 13, ref: 57027889, date: 2026-10-10, family: forward-model, commit: 48ce160, score: 0.292, verdict: PROMOTE,
+     change: "ICEBERG on a T4: all 371 coverable molecules"}
+  - {version: 14, ref: 57036177, date: 2026-10-10, family: forward-model, commit: 520e4ee, score: 0.320, verdict: PROMOTE,
+     change: "+ GLACIER beside ICEBERG, weights 0.5 / 0.5"}
+  - {version: 15, ref: 57039007, date: 2026-10-10, family: forward-model, commit: 6e64ef8, score: 0.349, verdict: PROMOTE,
+     change: "forward-model weights 1.0 / 1.0"}
+  - {version: 16, ref: 57056718, date: 2026-10-11, family: forward-model, commit: 9ca8749, score: 0.345, verdict: DISCARD,
+     change: "GLACIER on [M+H]+ spectra only"}
+  - {version: 17, ref: 57060198, date: 2026-10-11, family: forward-model, commit: 67c03a7, score: 0.346, verdict: DISCARD,
+     change: "forward-model weights 1.5 / 1.5"}
+report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==

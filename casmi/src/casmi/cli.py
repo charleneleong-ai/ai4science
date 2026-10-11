@@ -18,6 +18,7 @@ from .harness import (
     rank_by_mass_error,
 )
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 app = typer.Typer(add_completion=False, help="CASMI 2026 molecule-disjoint harness.")
 
 RANKERS: dict[str, str] = {
@@ -115,6 +116,17 @@ def submit(
         }
     write_submission(rows, out)
     console.print(f"wrote {out}  ({len(rows)} rows x {len(next(iter(rows.values())))} candidates)")
+
+
+@app.command()
+def wandb_sync(
+    verdicts: Path = typer.Option(PROJECT_ROOT / "docs/experiments/casmi/verdicts.yaml", help="scored submissions"),
+    outputs: Path = typer.Option(Path.home() / "casmi-data/kernel_outputs", help="kept run outputs, v<N>/"),
+) -> None:
+    """Push one W&B run per scored submission and refresh the project report."""
+    from .tracking import sync  # the `tracking` extra (wandb, autoresearch) is optional
+
+    Console().print(f"report: {sync(verdicts, outputs)}")
 
 
 def main() -> None:
