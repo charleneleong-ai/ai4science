@@ -89,6 +89,25 @@ composition gate was added after poly-alanine appeared at the top of a shortlist
 gate after a submitted design failed. Both were responses to observed failures, so the funnel
 above is not a clean pre-registered statistic.
 
+## 6b. Second submission, and four more declared deviations
+
+Submission 2 is a measured histidine series on the two chassis that passed **both** the fold gate
+and the composition gate — of 16 folded parents, only `screen_pocket_helix_0` and
+`screen_pocket_free_1` passed both. Twelve entries vary the switch on `helix_0`, two carry
+`free_1`, and six of the 20 slots are held back for the BindCraft2 campaign. The concentration
+on one chassis is a result, not a preference: the funnel left two.
+
+Every pKa is PROPKA on the mutant in its bound context, and every combination was measured as a
+combination rather than composed from singles — which was necessary: `A35H+A38H` drops A35 from
+6.07 to 5.94, out of the window, and `A70H+A72H` drops A70 from 6.44 to 6.23.
+
+| deviation | what was changed, and when |
+| --- | --- |
+| **Burial floor lowered 15 Å² → 8 Å²** | Changed **after** seeing that `helix_0` had only two switchable positions at the original floor. It then yielded six, four in the ideal window. The floor's purpose — the histidine must sit at the interface for its protonation to modulate binding — is unchanged, but sites admitted between 8 and 15 Å² are more weakly coupled, so "four ideal sites" is a post-hoc number. |
+| **`free_4` dropped on a non-reproducing pKa** | Its A16H scanned as 6.58 "ideal" in the first pass and **1.73** on re-measurement. The method is deterministic — `helix_0` and `free_1` reproduce to 0.01 on repeat — so this is not run-to-run noise; the two passes ran against *different structure files* for that design. Treated as disqualifying rather than averaged. |
+| **The novelty rule is empirical, n = 3** | "High fold similarity fails, moderate passes" is read off three Proteinbase verdicts, not from their published scale — which, applied literally at 38% identity, would have failed the two designs that actually passed. It is used to rank, and it is not calibrated. |
+| **BindCraft2 runs on loosened design settings** | Rounds 1 and 2 scored zero candidates: trajectories died at the screen stage on binder pLDDT 0.59 against a default floor of 0.60, so the relaxed acceptance filters never saw a candidate. Round 3 applies `target_flexibility 0.5` + `initial_guess` — rungs 1–2 of BindCraft2's own desperation ladder, which cannot self-engage here because it waits 750 trajectories without an acceptance and one trajectory costs ~33 min. **Its documentation is explicit that designs accepted this way are judged against an easier task and are weaker candidates.** Anything this produces is marked as such rather than entering the funnel as an equal. |
+
 ## 7. What is not established
 
 - No expression, no SEC, no thermal stability, no SPR/BLI. **No measured binding of any kind.**
