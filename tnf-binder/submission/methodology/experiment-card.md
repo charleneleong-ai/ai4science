@@ -105,6 +105,18 @@ of the set. **One of the eight survived** and is submitted as `tnf2_13`; the ful
 including each rejection, is in `docs/slotfill-funnel.csv`. Six failed on structure (clashes,
 or an interface that moved off the epitope entirely) and one on mouse retention at 56 %.
 
+A second round of eight closed the one assumption the first round left standing, and returned
+**zero survivors** (`docs/a38-funnel.csv`). Six A38H triples and two R21H doubles had been
+dropped earlier without being folded, on the grounds that `helix0_E38H` as a *single* put 59 %
+of its interface on human/mouse-divergent residues — an inference from the conserved-epitope
+proxy this campaign later disproved. The exclusion was correct and **the stated reason was
+wrong**: cross-reactivity was never the problem, with five of the eight at or above 0.70 and
+the best at 0.87. Seven fail on structure, and the one that is structurally clean
+(`helix0_R21H_E38H_E67H`, 0 clashes, epitope focus 0.48) fails on robustness at 1 of 3
+histidines. Across both rounds, **3 of 16 candidates are structurally clean**, so roughly four
+in five histidine combinations on this chassis do not survive refolding whichever positions
+they use — a property of the chassis, not of A38H.
+
 Every pKa is PROPKA on the mutant in its bound context, and every combination was measured as a
 combination rather than composed from singles — which was necessary: `A35H+A38H` drops A35 from
 6.07 to 5.94, out of the window, and `A70H+A72H` drops A70 from 6.44 to 6.23.
