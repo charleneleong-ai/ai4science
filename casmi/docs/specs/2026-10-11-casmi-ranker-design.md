@@ -24,24 +24,32 @@ score within the molecule limits it.
 
 ## Candidates and features
 
-Per query: the production candidate set — the 1000 most-documented PubChem connectivities in 5 ppm plus
-train structures in the window — so the ranker sees the same distribution it will rank at test time.
-The copied-structure exclusion is **not** applied to training queries: a train query's spectrum is its
-own train row, so the exclusion would remove the answer itself. At test time it still runs before the
-ranker, as in v11–v15.
+Per query: the production PubChem shortlist — the 1000 most-documented connectivities in 5 ppm. **The
+ranker ranks only this shortlist, at training and at test time.** The train window is left out of both:
+a train query's own structure always sits in it, so training on it would teach "prefer train
+structures", and at test time those are almost never the answer (v11). The copied-structure exclusion
+then has nothing left to remove.
 
 | feature | source |
 |---|---|
-| `fz`, `fz_z`, `fz_rank` | FPNet f·z, raw / z-scored / rank within the molecule |
+| `fz_z`, `fz_rank` | FPNet f·z, z-scored and ranked within the molecule |
 | `lsid`, `lpmid`, `lpatent`, `pop`, `pop_rank` | popularity prior |
 | `np_coconut`, `np_lotus`, `np_npatlas` | natural-product flags (`pc_np` bits) |
 | `ppm_error` | candidate mass vs neutral precursor mass |
-| `explained` | fragment explainability (existing code) |
-| `n_isomers` | candidates sharing the formula in the window |
-| `in_train` | candidate is a train structure |
+| `n_isomers`, `n_candidates` | shortlist members sharing the formula; shortlist size |
+
+Left out, and why:
+- **raw `fz`:** training scores come from `fpnet_fold0`, test scores from the two-checkpoint ensemble,
+  so the raw scale shifts; only within-molecule z-scores and ranks transfer.
+- **fragment explainability:** about 2M candidates make it too slow for one Kaggle run, and the
+  notebook does not compute it once FPNet is attached.
+- **`in_train`:** it would encode the label at training time.
+
+`handset` (today's z(fz) + 0.25 × popularity) is stored beside the features as the baseline to beat,
+not trained on.
 
 Forward-model scores (ICEBERG, GLACIER) stay a separate re-ordering stage after the ranker: computing
-them for training queries needs GPU time we can't spend on 55k molecules.
+them for training queries needs GPU time we can't spend on thousands of molecules.
 
 ## Evaluation and the gate
 
