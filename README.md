@@ -14,6 +14,13 @@ A fast generative/predictive model is increasingly a commodity. What converts a 
 | [`robotics_world_models`](../robotics_world_models) | learned world model (TD-MPC2, DreamerV3) | classical planner / when-to-trust crossover |
 | [`smart_city_foundation_model`](../smart_city_foundation_model) | coupled weather→energy→demand forecast | conformal calibration — guaranteed uncertainty band |
 
+### In this repo
+
+| Project | What it is |
+| --- | --- |
+| [`touchstone/`](touchstone) | A generator-agnostic verifier for designed metal-binding proteins: geometry, bond-valence and precedent oracles vote trust / weak / defer. |
+| [`casmi/`](casmi) | Molecule identification from MS/MS for the CASMI 2026 Kaggle competition. Best public MRR@25 0.349. Its first submission scored 0.115 against a local estimate of 0.664, so it now trusts only the leaderboard. |
+
 The one-line pitch that ties it all together:
 
 > A verifiable world model for the planet — weather, energy, and movement turned into trusted decisions. The same architecture powers embodied reasoning and materials foundation models: a fast generative world model, gated by a verifier that knows when to trust it.
