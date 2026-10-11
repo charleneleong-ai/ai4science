@@ -1,0 +1,217 @@
+<title>CASMI 2026 Run Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; the score "spectrum" and the pipeline run full width, tables scroll in place. */
+:root {
+  --bg: #f6f8f8; --surface: #ffffff; --ink: #14232a; --muted: #5b6d74; --rule: #d6e0e2;
+  --peak: #0e7c86; --peak-soft: #b9dde0; --dim: #a9b6ba; --ref: #b5651d;
+  --good: #1f7a4a; --warn: #9a6b00; --bad: #a33b3b;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f171a; --surface: #152126; --ink: #e3ecee; --muted: #93a6ac; --rule: #26363c;
+  --peak: #4fc3cc; --peak-soft: #1d4a4f; --dim: #4e6168; --ref: #e0995a;
+  --good: #5cc28b; --warn: #e2b54a; --bad: #e07a7a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f171a; --surface: #152126; --ink: #e3ecee; --muted: #93a6ac; --rule: #26363c;
+  --peak: #4fc3cc; --peak-soft: #1d4a4f; --dim: #4e6168; --ref: #e0995a;
+  --good: #5cc28b; --warn: #e2b54a; --bad: #e07a7a; color-scheme: dark }
+
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--body); }
+.wrap { max-width: 920px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 64px; display: grid; gap: 44px; }
+h1, h2 { font-family: var(--display); font-weight: 600; text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.1; }
+h2 { font-size: 22px; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--peak); }
+a:focus-visible { outline: 2px solid var(--peak); outline-offset: 2px; border-radius: 2px; }
+.eyebrow { font: 500 12px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+section { display: grid; gap: 14px; min-width: 0; }
+
+.head { display: grid; gap: 14px; }
+.figures { display: flex; flex-wrap: wrap; gap: 28px 40px; align-items: baseline; padding-top: 6px; }
+.fig { display: grid; gap: 2px; }
+.fig b { font: 600 34px/1 var(--display); font-variant-numeric: tabular-nums; }
+.fig.main b { font-size: 56px; color: var(--peak); }
+.fig span { font: 400 12px/1.3 var(--mono); color: var(--muted); }
+
+.chart { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 16px 12px 8px; overflow-x: auto; }
+.chart svg { display: block; width: 100%; min-width: 560px; height: auto; font-family: var(--mono); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font: 12px/1.4 var(--mono); color: var(--muted); padding: 4px 6px 6px; }
+.key { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; border-radius: 1px; }
+
+.mermaid-box { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; overflow-x: auto; }
+
+.table-box { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font: 500 11px/1.2 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+td.v { font-family: var(--mono); white-space: nowrap; color: var(--muted); }
+tr.best td { background: color-mix(in srgb, var(--peak-soft) 45%, transparent); }
+.pill { display: inline-block; font: 500 11px/1 var(--mono); letter-spacing: 0.06em; padding: 4px 7px; border-radius: 999px; border: 1px solid currentColor; }
+.pill.PROMOTE { color: var(--good); } .pill.KEEP { color: var(--warn); } .pill.DISCARD { color: var(--bad); }
+
+ul.limits { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 72ch; }
+.links { display: flex; flex-wrap: wrap; gap: 10px; }
+.links a { font: 500 13px/1 var(--mono); text-decoration: none; padding: 9px 12px; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+.links a:hover { border-color: var(--peak); }
+footer { font: 12px/1.5 var(--mono); color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .stick { transition: opacity 0.2s; } }
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 11 Oct 2026</div>
+    <h1>From 0.115 to 0.349, one change per submission</h1>
+    <p>Rank candidate structures for 400 molecules from their tandem mass spectra, scored by MRR@25 on the InChIKey connectivity block. Every number on this page is a public leaderboard score: the first local estimate said 0.664 and the leaderboard said 0.115, so nothing local is trusted.</p>
+    <div class="figures">
+      <div class="fig main"><b>0.349</b><span>best public MRR@25 · v15</span></div>
+      <div class="fig"><b>0.115</b><span>first submission · v1</span></div>
+      <div class="fig"><b>0.421</b><span>public notebook the parts come from</span></div>
+      <div class="fig"><b>14 / 14</b><span>submissions scored, none omitted</span></div>
+    </div>
+  </header>
+
+  <section aria-labelledby="spec-h">
+    <h2 id="spec-h">Every submission, drawn as a spectrum</h2>
+    <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.48 leaderboard top.</p>
+    <div class="chart"><svg id="spectrum" viewBox="0 0 760 310" role="img" aria-label="Stick chart of 14 submission scores rising from 0.115 to 0.349"></svg>
+      <div class="legend"><span><i class="key" style="background:var(--peak)"></i>kept</span><span><i class="key" style="background:var(--dim)"></i>not kept</span><span><i class="key" style="background:var(--ref)"></i>reference scores</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="pipe-h">
+    <h2 id="pipe-h">The pipeline as it runs</h2>
+    <p>Counts are what survives each stage across the 400 test molecules.</p>
+    <div class="mermaid-box"><pre class="mermaid">
+flowchart TD
+    T["400 molecules · 1213 spectra"] --> W["5 ppm neutral-mass window"]
+    W --> P["PubChem tier, 106M structures:<br/>top 1000 by popularity"]
+    W --> TR["train structures in the window"]
+    TR -->|"minus the copied structure, 400 / 400"| C
+    P --> C["median 1038 candidates per molecule"]
+    C --> F["FPNet ensemble f·z + 0.25 × popularity"]
+    F --> K["top 60"]
+    K -->|"371 molecules with [M+H]+ / [M+Na]+ spectra"| FM["ICEBERG + GLACIER predict each candidate's spectrum"]
+    K -->|"29 not covered"| OUT
+    FM -->|"z(score) + z(ICE) + z(GL) per same-formula group"| OUT["submission: 400 × 25"]
+</pre></div>
+  </section>
+
+  <section aria-labelledby="lever-h">
+    <h2 id="lever-h">What moved the score</h2>
+    <div class="table-box"><table>
+      <thead><tr><th>lever</th><th>versions</th><th style="text-align:right">gain</th></tr></thead>
+      <tbody>
+        <tr><td>FPNet, a learned spectrum-to-fingerprint model, in place of fragment matching</td><td class="v">v5 → v6</td><td class="num">+0.115</td></tr>
+        <tr><td>Popularity shortlist in place of a nearest-mass cut</td><td class="v">v4 → v5</td><td class="num">+0.086</td></tr>
+        <tr><td>Forward-model weights 1.0 instead of 0.5</td><td class="v">v14 → v15</td><td class="num">+0.029</td></tr>
+        <tr><td>GLACIER beside ICEBERG</td><td class="v">v13 → v14</td><td class="num">+0.028</td></tr>
+        <tr><td>ICEBERG on CPU, 269 of 371 molecules</td><td class="v">v11 → v12</td><td class="num">+0.024</td></tr>
+        <tr><td>Shortlist size, prior weight, copied-structure removal, weight 1.5</td><td class="v">v7–v17</td><td class="num">&lt; 0.01</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="all-h">
+    <h2 id="all-h">All fourteen submissions</h2>
+    <p>Gate G1: beat the best so far by more than the ±0.005 run-to-run noise.</p>
+    <div class="table-box"><table>
+      <thead><tr><th>v</th><th>change</th><th style="text-align:right">MRR@25</th><th>verdict</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="lim-h">
+    <h2 id="lim-h">What is not established</h2>
+    <ul class="limits">
+      <li><b>No local estimate of the score.</b> Train-derived labels were wrong, and consensus labels from ten public notebooks failed calibration: three lineages that agree on 12 of 400 top-1 picks.</li>
+      <li><b>The private score.</b> The shortlist size, the forward-model weight and GLACIER's input were chosen on the public split, so 0.349 is optimistic.</li>
+      <li><b>Candidate recall.</b> Whether the answer is among the ~1038 candidates cannot be told apart from ranking with one MRR.</li>
+      <li><b>Why the data looks like this.</b> 1189 of 1213 test spectra are bit-identical to a train row, yet that row's structure is the answer for at most about 46 of 400 molecules.</li>
+      <li><b>29 molecules</b> get no forward-model evidence.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="src-h">
+    <h2 id="src-h">Sources</h2>
+    <div class="links">
+      <a href="https://github.com/charleneleong-ai/ai4science/pull/80">PR #80 · code and history</a>
+      <a href="https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-kaggle-notebook/casmi/docs/report.pdf">Report (PDF)</a>
+      <a href="https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-kaggle-notebook/casmi/docs/experiment-card.md">Experiment card</a>
+      <a href="https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==">W&amp;B report</a>
+      <a href="https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra">Competition</a>
+    </div>
+  </section>
+
+  <footer>Rendered from casmi/docs/experiments/casmi/verdicts.yaml · scores are public leaderboard MRR@25.</footer>
+</div>
+
+<script>
+const SUBS = [
+  [1, "fragment explainability over train's 275,798 structures", 0.115, "PROMOTE"],
+  [4, "+ PubChem tier, 4000 nearest-mass candidates", 0.049, "DISCARD"],
+  [5, "popularity shortlist of 300, + 0.25 × popularity", 0.135, "PROMOTE"],
+  [6, "FPNet in place of fragment explainability", 0.250, "PROMOTE"],
+  [7, "FPNet ensemble: full1 + FPNet A", 0.258, "PROMOTE"],
+  [8, "popularity weight 0.15", 0.254, "DISCARD"],
+  [9, "shortlist 1000 instead of 300", 0.261, "KEEP"],
+  [11, "never propose the train structure behind a copied spectrum", 0.262, "KEEP"],
+  [12, "ICEBERG re-orders same-formula groups (CPU, 269 / 371)", 0.286, "PROMOTE"],
+  [13, "ICEBERG on a T4: all 371 coverable molecules", 0.292, "PROMOTE"],
+  [14, "+ GLACIER beside ICEBERG, weights 0.5", 0.320, "PROMOTE"],
+  [15, "forward-model weights 1.0", 0.349, "PROMOTE"],
+  [16, "GLACIER on [M+H]+ spectra only", 0.345, "DISCARD"],
+  [17, "forward-model weights 1.5", 0.346, "DISCARD"],
+];
+const best = Math.max(...SUBS.map(s => s[2]));
+
+const tbody = document.getElementById("rows");
+for (const [v, change, score, verdict] of SUBS) {
+  const tr = document.createElement("tr");
+  if (score === best) tr.className = "best";
+  tr.innerHTML = `<td class="v">v${v}</td><td></td><td class="num">${score.toFixed(3)}</td><td><span class="pill ${verdict}">${verdict}</span></td>`;
+  tr.children[1].textContent = change;
+  tbody.appendChild(tr);
+}
+
+const svg = document.getElementById("spectrum");
+const NS = "http://www.w3.org/2000/svg";
+const W = 760, H = 310, L = 52, R = 16, T = 30, B = 40, YMAX = 0.5;
+const y = s => T + (H - T - B) * (1 - s / YMAX);
+const step = (W - L - R) / SUBS.length;
+const x = i => L + step * (i + 0.5);
+const el = (tag, attrs, text) => {
+  const n = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (text !== undefined) n.textContent = text;
+  svg.appendChild(n);
+  return n;
+};
+for (const t of [0, 0.1, 0.2, 0.3, 0.4, 0.5]) {
+  el("line", { x1: L, x2: W - R, y1: y(t), y2: y(t), stroke: "var(--rule)", "stroke-width": 1 });
+  el("text", { x: L - 8, y: y(t) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--muted)" }, t.toFixed(1));
+}
+for (const [ref, label] of [[0.421, "0.421 public notebook"], [0.48, "0.48 leaderboard top"]]) {
+  el("line", { x1: L, x2: W - R, y1: y(ref), y2: y(ref), stroke: "var(--ref)", "stroke-width": 1.2, "stroke-dasharray": "5 4" });
+  el("text", { x: W - R - 4, y: y(ref) - 5, "text-anchor": "end", "font-size": 11, fill: "var(--ref)" }, label);
+}
+SUBS.forEach(([v, , score, verdict], i) => {
+  const kept = verdict !== "DISCARD";
+  const color = kept ? "var(--peak)" : "var(--dim)";
+  el("line", { class: "stick", x1: x(i), x2: x(i), y1: y(0), y2: y(score), stroke: color,
+               "stroke-width": score === best ? 5 : 3, "stroke-linecap": "butt" });
+  el("text", { x: x(i), y: y(score) - 6, "text-anchor": "middle", "font-size": 10,
+               fill: score === best ? "var(--peak)" : "var(--muted)", "font-weight": score === best ? 600 : 400 },
+     score.toFixed(3));
+  el("text", { x: x(i), y: H - B + 16, "text-anchor": "middle", "font-size": 11, fill: "var(--muted)" }, `v${v}`);
+});
+el("text", { x: L, y: H - 6, "font-size": 11, fill: "var(--muted)" }, "notebook version, in submission order →");
+el("text", { x: L, y: 13, "font-size": 11, fill: "var(--muted)" }, "public MRR@25");
+</script>

@@ -63,7 +63,7 @@ notebook's vendored logic against the package.
 | experiment card | [`docs/experiment-card.md`](docs/experiment-card.md) |
 | LaTeX report | [`docs/report.pdf`](docs/report.pdf) ([source](docs/report.tex)) |
 | W&B project, one run per submission | [report](https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==) · [`casmi26` runs](https://wandb.ai/chaleong/casmi26) · rebuilt by `uv run --extra tracking casmi wandb-sync` from [`verdicts.yaml`](docs/experiments/casmi/verdicts.yaml) |
-| published Claude Artifact | pending |
+| published Claude Artifact | [CASMI 2026 Run Log](https://claude.ai/artifact/EYZSV6V6P6eHRp87TgSuJ9) (private; source [`docs/progress.html`](docs/progress.html)) |
 
 ## What is not established
 
