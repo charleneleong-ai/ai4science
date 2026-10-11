@@ -1,0 +1,58 @@
+### E67H_E70H_R72H
+  model_0 REF15 -92.6
+  model_1 REF15 150.9
+  model_2 REF15 583.3
+    model_0  chain X  His67=6.39  His70=6.07  His72=6.41
+    model_1  chain X  His67=7.04  His70=6.00  His72=6.39
+    model_2  chain X  His67=5.43  His70=5.90  His72=6.30
+### R21H_E70H_R72H
+  model_0 REF15 886.9
+  model_1 REF15 1687.7
+  model_2 REF15 348.5
+    model_0  chain X  His21=6.44  His70=6.00  His72=5.71
+    model_1  chain X  His21=6.23  His70=6.27  His72=5.63
+    model_2  chain X  His21=5.21  His70=6.04  His72=5.98
+### R21H_R35H_E67H
+  model_0 REF15 373.1
+  model_1 REF15 731.1
+  model_2 REF15 64.8
+    model_0  chain X  His21=5.49  His35=5.56  His67=6.87
+    model_1  chain X  His21=6.27  His35=9.69  His67=7.06
+    model_2  chain X  His21=6.85  His35=3.63  His67=7.34
+### R21H_R35H_E70H
+  model_0 REF15 276.3
+  model_1 REF15 846.2
+  model_2 REF15 426.4
+    model_0  chain X  His21=6.65  His35=8.21  His70=6.02
+    model_1  chain X  His21=4.98  His35=6.29  His70=6.12
+    model_2  chain X  His21=7.29  His35=5.90  His70=6.09
+### R21H_R35H_R72H
+  model_0 REF15 354.9
+  model_1 REF15 181.5
+  model_2 REF15 7.8
+    model_0  chain X  His21=6.72  His35=3.77  His72=6.47
+    model_1  chain X  His21=6.06  His35=6.09  His72=6.36
+    model_2  chain X  His21=7.62  His35=4.52  His72=6.21
+### R35H_E67H_E70H
+  model_0 REF15 173.5
+  model_1 REF15 638.1
+  model_2 REF15 689.4
+    model_0  chain X  His35=6.89  His67=7.42  His70=6.08
+    model_1  chain X  His35=6.51  His67=6.65  His70=6.08
+    model_2  chain X  His35=5.90  His67=6.91  His70=6.04
+### R35H_E67H_R72H
+  model_0 REF15 109.1
+  model_1 REF15 759.5
+  model_2 REF15 996.4
+    model_0  chain X  His35=5.90  His67=6.57  His72=6.45
+    model_1  chain X  His35=5.81  His67=6.70  His72=6.61
+    model_2  chain X  His35=4.84  His67=6.74  His72=6.16
+### R35H_E70H_R72H
+  model_0 REF15 158.2
+  model_1 REF15 202.1
+  model_2 REF15 3013.6
+    model_0  chain X  His35=6.34  His70=6.04  His72=6.34
+    model_1  chain X  His35=6.21  His70=6.05  His72=6.39
+    model_2  chain X  His35=6.11  His70=6.02  His72=5.01
+
+[exited with code 0]
