@@ -39,3 +39,16 @@ def write_rows(path: Path, rows: Sequence[Mapping[str, Any]],
         writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def design_stem(name: str) -> str:
+    """Strip the batch marker from a design name: `F__helix0_R21H` -> `helix0_R21H`.
+
+    Everything after the FIRST `__`, because a variant name puts the His tag after the design
+    rather than instead of it -- `his.py campaign` emits `V__{design}__{tag}`, so splitting on
+    the last separator reduces `V__screen_pocket_free_1__A73H` to `A73H`. That looks up a fold
+    directory which cannot exist, so an unmeasurable candidate is reported as one that failed a
+    biological gate, and it collides two variants of different parents that share a tag,
+    silently shrinking the denominator of any funnel counted over these names.
+    """
+    return name.split("__", 1)[1] if "__" in name else name

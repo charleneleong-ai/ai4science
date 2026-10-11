@@ -16,6 +16,7 @@ import json
 import urllib.parse
 import urllib.request
 from collections import Counter
+from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
 

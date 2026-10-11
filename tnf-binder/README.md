@@ -20,25 +20,57 @@ interchangeable here. The verifiers decided everything.
 Every one of those passed the checks that preceded it. None would have been caught by a
 generator, and none by eyeballing a confidence score.
 
-## The one empirical calibration
+## The empirical calibration (n=15)
 
-One design was submitted and **failed** Proteinbase's automatic novelty check; two others
-passed. The fold gate predicts the failure correctly, and is **conservative** on the passes —
-it under-scores them, because its search measures more similarity than Proteinbase's does:
+Proteinbase's automatic novelty check is the only external measurement this campaign gets. Of
+15 designs scored across two submissions, **one failed** and 14 passed: submission 1 put up 3
+(one failure, two at 3/4), submission 2 put up 12 and **all 12 passed** — eleven at 3/4 and
+`free1_T73H` at **4/4**.
 
-| design | real outcome | fold verdict | TM | coverage | predicted score |
+The fold gate predicts the one failure correctly and **under-scores every pass**, because its
+search measures more similarity than Proteinbase's does. Treat its verdict as a floor, never as
+the score:
+
+| design | real outcome | fold verdict | TM | coverage | predicted |
 | --- | --- | --- | --- | --- | --- |
 | `V__pocket_free_3__A73H` | **failed** | high | 0.893 | 0.888 | 2 — fail ✓ |
-| `V__pocket_helix_0__A35H` | passed | moderate | 0.776 | 0.802 | 2 — under-scored |
-| `P__pocket_helix_0` | passed | moderate | 0.759 | 0.802 | 2 — under-scored |
+| `V__pocket_helix_0__A35H` | passed 3/4 | moderate | 0.776 | 0.802 | 2 — under-scored |
+| `P__pocket_helix_0` | passed 3/4 | moderate | 0.759 | 0.802 | 2 — under-scored |
+| `free1_T73H` | passed **4/4** | moderate | 0.704 | 0.973 | 3 — under-scored |
 
-An earlier claim that this reproduced all three verdicts was **wrong**: the two passes scored
-correctly only because a missing sequence-identity value defaulted to zero. The tests now
-encode the disagreement rather than hiding it.
+An earlier claim that this reproduced all three submission-1 verdicts was **wrong**: the two
+passes scored correctly only because a missing sequence-identity value defaulted to zero. The
+tests now encode the disagreement rather than hiding it.
 
 The failing design's closest match is CATH **2.60.40**, the immunoglobulin-like β-sandwich.
 Sequence identity was near-identical across all three (37.5% vs 38.1%), so **fold similarity —
 not sequence novelty — was the binding constraint.** An exact-k-mer screen cannot see this.
+
+**Novelty and the objectives pulled in opposite directions.** The campaign's only 4/4,
+`free1_T73H`, is also its worst design on the two things ranked higher: 47% of its human
+interface retained against mouse, and 0 of its 1 histidine holding the pKa window across
+diffusion samples. Novelty is a gate to pass, not a score to maximise.
+
+## Submission 2: the two measurements that reordered everything
+
+Both came from re-measuring something already treated as known, and both overturned a ranking
+that had already been built — the per-design numbers are in
+[`docs/submission-v2-evidence.csv`](docs/submission-v2-evidence.csv).
+
+**Every pKa came from a single predicted structure.** Boltz writes three diffusion samples per
+design, so each histidine can be scored three times against three independent guesses at the
+same structure. Re-scored that way, **8 of 23 histidines leave the window** — `R21H` alone
+ranges pKa 3.99–6.70 where its design structure said 7.05 — and only five designs hold every
+histidine in window on all three samples. [`switch.SampledHis`](src/tnf_binder/switch.py) is
+that measurement; the ranking statistic is `SwitchProfile.delta_q_floor`, the charge the
+interface gains between pH 7.4 and 6.0 with each histidine taken at its *least favourable*
+sample. Distance from pKa 6.7 is what costs — a pKa of 7.6 is as bad a bet as one of 5.8.
+
+**Mouse cross-reactivity was being inferred from a proxy, and the proxy was wrong.** Folding
+all 12 designs against the mouse trimer (UniProt **P06804**) leaves 9/12 retaining ≥70% of their
+human interface, median 86% — but the `free_1` family collapses to **47%**, despite carrying the
+campaign's *highest* conserved-epitope coverage (0.79). The design promoted on that proxy was
+the one the proxy was wrong about.
 
 ## The science that held up
 
@@ -55,14 +87,28 @@ cross-reactive. Any design gripping that loop wins objective 1 and loses objecti
 | path | what |
 | --- | --- |
 | [`src/tnf_binder/`](src/tnf_binder) | the package: the target and its numbering, the four verifiers, confidence reading, and the `tnf-binder` CLI (`epitope`, `verify`, `validate`, `confidence`, `wandb-log`) |
-| [`scripts/`](scripts) | the design-box pipeline, where the heavy dependencies live: spec generation (BoltzGen), the PROPKA/PyRosetta His scans, batch scoring, submission assembly |
+| [`scripts/`](scripts) | the design-box pipeline, where the heavy dependencies live. Ten entry points, each a typer app: [`gen.py`](scripts/gen.py) (`spec`/`screen`) writes BoltzGen specs, [`his.py`](scripts/his.py) (`scan`/`combos`/`campaign`) runs the PROPKA+PyRosetta histidine work, [`metrics.py`](scripts/metrics.py) (`collect`/`join`) reads fold confidence, [`submit.py`](scripts/submit.py) (`shortlist`/`rank`/`final`) gates and assembles an upload |
 | [`specs/`](specs) | BoltzGen design specs, BindCraft/BindCraft2 campaign settings |
 | [`docs/method.md`](docs/method.md) | epitope choice, the pH mechanism, scoring definitions |
 | [`docs/experiment-card.md`](docs/experiment-card.md) | the stack, the funnel with denominators, and what is *not* established |
 | [`submission/`](submission) | the ranked CSV as submitted |
 
+## Running it
+
+```bash
+cd tnf-binder
+uv run --locked --extra dev pytest -q          # 202 tests, no GPU and no PyRosetta needed
+uv run tnf-binder epitope                      # the computed epitope and its divergent positions
+uv run tnf-binder validate submission/tnf_submission_v2.csv
+```
+
+The verifiers, the pKa arithmetic and the submission gates are all pure and tested here. The
+generators (BoltzGen, BindCraft2), the folding (Boltz-2) and PROPKA/PyRosetta run on a GPU box
+and are driven by [`scripts/`](scripts); nothing in the package imports them.
+
 ## Honest status
 
+*Status as of 2026-10-11.* Two submissions scored, 15 designs, 14 novelty passes, one 4/4.
 No design here is a validated binder. Interface confidence is **model-dependent and
 unresolved**: Boltz-2 and BoltzGen's folding step disagree by 2–3× on identical structures, and
 AF2 disagrees with both. A generated protein is a candidate, not a result — see

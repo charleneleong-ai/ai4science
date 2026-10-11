@@ -1,6 +1,7 @@
 """From every measurement to the one file that gets uploaded.
 
     submit.py shortlist --campaign scored.csv --outdir shortlists/
+    submit.py rank --robustness pka.csv --human human/ --mouse mouse/ --out ranked.csv
     submit.py final shortlists/track2.csv --out submission.csv
 
 Two stages because they answer different questions. The first applies the hard gates and ranks
@@ -20,13 +21,19 @@ one that is not selective.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 import typer
 from rich.console import Console
 
-from tnf_binder.submission import MAX_ROWS, MOLECULE_CLASS, row_problem, write_submission
-from tnf_binder.tables import number, read_rows
+from tnf_binder.confidence import DesignConfidence
+from tnf_binder.design import TnfDesign
+from tnf_binder.submission import (MAX_ROWS, MOLECULE_CLASS, SUBMISSION_COLUMNS,
+                                   candidate_problem, row_problem, write_submission)
+from tnf_binder.switch import SwitchProfile, switch_profiles
+from tnf_binder.tables import design_stem, number, read_rows, write_rows
+from tnf_binder.verifiers import CompositionVerifier
 
 app = typer.Typer(add_completion=False)
 console = Console()
@@ -43,6 +50,11 @@ COLUMNS = ["name", "sequence", "molecule_class", "boltz_iptm_best", "boltz_iptm_
 NOTE = ("epitope=conserved_TNFR2_site; pH switch = PROPKA-verified His pKa in 6.0-7.6; "
         "iptm is Boltz-2 binder-to-target (BoltzGen folding gave ~0.2 on the same designs "
         "-- models disagree, both reported)")
+
+FILL_COLUMNS = ["design", "delta_q_floor", "his_robust", "human_iptm", "mouse_iptm",
+                "mouse_retained", "interface_area", "cross_reactivity", "clashes",
+                "flag", "sequence"]
+
 
 # Objective order, from the competition's own ranking.
 TRACK_ORDER: dict[int, Callable[[dict[str, object]], tuple[float, ...]]] = {
@@ -66,7 +78,7 @@ def gate_reason(name: str, sequence: str, novel: bool | None,
     if not composition.trust:
         return composition.reason
     flag = (geometry.get("flag") or "").strip()
-    return f"structural flag [{flag}]" if flag else None
+    return f"structural flag: {flag}" if flag else None
 
 
 def ph_switch_terms(row: dict[str, str], pka_by_position: dict[tuple[str, str], dict[str, str]],
@@ -175,6 +187,105 @@ def shortlist(
             console.print(f"    {record['name']:44s} iptm={record['boltz_iptm_mean']:.3f} "
                           f"ph={record['ph_switch_score']:.1f} "
                           f"xr={record['cross_reactivity']}")
+
+
+def missing_input(design: str, human: DesignConfidence, mouse: DesignConfidence,
+                  geometry: dict[str, str] | None) -> str | None:
+    """Which measurement this candidate is missing, if any.
+
+    Reported separately from the gates and never folded into them. A missing geometry row
+    leaves `clashes` at 0 and a missing fold directory leaves ipTM at 0.0 -- so one failure
+    reads as "clash-free" and the other as "0% mouse retention", both of which are verdicts
+    about the design rather than about our own inputs. `DesignConfidence.__bool__` is false for
+    a directory that does not exist, which is the only way to tell a typo in `--human` from a
+    binder that genuinely did not fold.
+    """
+    if not human:
+        return f"no human fold under F__{design}"
+    if not mouse:
+        return f"no mouse fold under FM__{design}"
+    if geometry is None:
+        return "no geometry row (run score_designs first)"
+    return None
+
+
+def fill_record(design: str, profile: SwitchProfile, human: DesignConfidence,
+                mouse: DesignConfidence, geometry: dict[str, str]) -> dict[str, object]:
+    """One candidate, measured on all three objectives.
+
+    `mouse_retained` is a ratio of two predictions of the same binder against the two orthologs,
+    which is the only way objective 2 was ever measured here -- conserved-epitope coverage was
+    tried as a proxy and was wrong on the design it had promoted (0.79 coverage, 47% retained).
+    """
+    retained = (mouse.binder_to_target / human.binder_to_target
+                if human.binder_to_target else 0.0)
+    return {
+        "design": design,
+        "delta_q_floor": round(profile.delta_q_floor, 2),
+        "his_robust": profile.robust_tag,
+        "human_iptm": round(human.binder_to_target, 3),
+        "mouse_iptm": round(mouse.binder_to_target, 3),
+        "mouse_retained": round(retained, 3),
+        "interface_area": number(geometry, "interface_area") if geometry else "",
+        "cross_reactivity": number(geometry, "cross_reactivity") if geometry else "",
+        "clashes": int(number(geometry, "clashes")) if geometry else 0,
+        "flag": (geometry.get("flag") or "").strip().strip('"'),
+        "sequence": (geometry.get("sequence") or "").strip().upper(),
+    }
+
+
+@app.command()
+def rank(
+    robustness: Path = typer.Option(..., "--robustness",
+                                    help="long-format pKa-per-sample CSV"),
+    human: Path = typer.Option(..., "--human", help="Boltz predictions dir, human complexes"),
+    mouse: Path = typer.Option(..., "--mouse", help="Boltz predictions dir, mouse complexes"),
+    out: Path = typer.Option(..., "--out"),
+    geometry: Path | None = typer.Option(None, "--geometry", help="table from score_designs"),
+) -> None:
+    """Rank slot-filling candidates on delta-Q, robustness and measured mouse cross-reactivity.
+
+    Reports every candidate and why each one was dropped, not just the survivors: "3 of 57
+    survived" is the result and the 3 alone is marketing. The gates are the module constants
+    above, fixed before these designs were folded.
+    """
+    profiles = {design_stem(p.design): p for p in switch_profiles(read_rows(robustness))}
+    # score_designs writes one row per diffusion sample; the gates are defined on model_0.
+    geometry_by_design = {design_stem(r["design"]).removesuffix("_model_0"): r
+                          for r in read_rows(geometry)
+                          if r["design"].endswith("_model_0")} if geometry else {}
+    console.print(f"{len(profiles)} candidates with pKa measured across samples")
+
+    records, dropped, unmeasured = [], [], []
+    for design, profile in sorted(profiles.items()):
+        human_fold = DesignConfidence.from_dir(human / f"F__{design}")
+        mouse_fold = DesignConfidence.from_dir(mouse / f"FM__{design}")
+        geometry_row = geometry_by_design.get(design)
+        if gap := missing_input(design, human_fold, mouse_fold, geometry_row):
+            unmeasured.append((design, gap))
+            continue
+        record = fill_record(design, profile, human_fold, mouse_fold, geometry_row)
+        if reason := candidate_problem(record):
+            dropped.append((design, reason))
+        else:
+            records.append(record)
+
+    records.sort(key=lambda r: (-r["delta_q_floor"], -r["mouse_retained"]))
+    console.print(f"gates: kept [bold]{len(records)}[/] of {len(profiles)}, "
+                  f"dropped [bold]{len(dropped)}[/], "
+                  f"unmeasured [bold]{len(unmeasured)}[/]")
+    for design, gap in unmeasured:
+        console.print(f"  [yellow]{design}: {gap}[/]")
+    for design, reason in dropped:
+        console.print(f"  [dim]{design}: {reason}[/]")
+    for record in records:
+        console.print(f"  [green]{record['design']:26s}[/] dQ={record['delta_q_floor']:.2f} "
+                      f"his={record['his_robust']} mouse={record['mouse_retained']:.0%} "
+                      f"iptm={record['human_iptm']:.3f}")
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    write_rows(out, records, FILL_COLUMNS)
+    console.print(f"wrote [bold]{len(records)}[/] ranked candidates -> [cyan]{out}[/]")
 
 
 @app.command()

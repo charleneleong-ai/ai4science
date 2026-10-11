@@ -14,6 +14,7 @@ import pytest
 from typer.testing import CliRunner
 
 from tnf_binder.cli import app, csv_problems, row_problem
+from tnf_binder.submission import candidate_problem
 
 SUBMISSION = Path(__file__).parents[1] / "submission" / "tnf_submission_v1.csv"
 runner = CliRunner()
@@ -114,3 +115,49 @@ class TestCommands:
     def test_bare_invocation_demands_a_subcommand(self):
         """The root callback exists so running the bare app is an error, not a no-op."""
         assert runner.invoke(app, []).exit_code == 2
+
+
+class TestCandidateProblem:
+    """The pre-registered gates on a candidate competing for a free submission slot."""
+
+    # a candidate that clears everything, from the only 4/4-scoring design of the campaign
+    PASSING = {"clashes": 0, "delta_q_floor": 1.38, "mouse_retained": 1.032, "his_robust": "3/3"}
+
+    def test_a_fully_measured_candidate_passes(self):
+        assert candidate_problem(self.PASSING) is None
+
+    @pytest.mark.parametrize("field,value,expected", [
+        ("flag", "off_epitope", "structural flag: off_epitope"),
+        ("clashes", 2, "2 clashes"),
+        ("delta_q_floor", 0.37, "delta_q 0.37 < 0.47"),          # tnf2_09's switch strength
+        ("mouse_retained", 0.47, "mouse retained 47% < 70%"),    # the free_1 collapse
+        ("his_robust", "1/3", "only 1/3 His robust across samples"),
+    ])
+    def test_each_gate_drops_and_says_why(self, field, value, expected):
+        assert candidate_problem({**self.PASSING, field: value}) == expected
+
+    def test_structure_is_checked_before_anything_measured_on_it(self):
+        """A bad complex's pKa is not evidence, so it must not be reported as a near miss."""
+        broken = {**self.PASSING, "flag": "off_epitope", "clashes": 3,
+                  "delta_q_floor": 0.0, "mouse_retained": 0.0}
+        assert candidate_problem(broken) == "structural flag: off_epitope"
+        assert candidate_problem({**broken, "flag": ""}) == "3 clashes"
+
+    def test_an_off_epitope_design_is_not_saved_by_a_zero_clash_count(self):
+        """The gap this closed: epitope_focus 0.00 with no clashes read as fine."""
+        assert candidate_problem({**self.PASSING, "flag": "off_epitope"}) is not None
+
+    def test_the_flag_column_is_read_through_score_designs_quoting(self):
+        """score_designs writes multi-part flags quoted, e.g. '"clash(1)'.
+
+        Reported without square brackets: rich treats them as markup, so a reason reading
+        `structural flag [clash(1)]` printed as `structural flag ` and the funnel showed seven
+        blank rejections.
+        """
+        assert candidate_problem({**self.PASSING, "flag": '"clash(1)'}) == (
+            "structural flag: clash(1)")
+
+    def test_a_threshold_is_inclusive_at_its_boundary(self):
+        """The thresholds come from designs that were submitted, so those designs must pass."""
+        assert candidate_problem({**self.PASSING, "delta_q_floor": 0.47,
+                                  "mouse_retained": 0.70, "his_robust": "2/3"}) is None

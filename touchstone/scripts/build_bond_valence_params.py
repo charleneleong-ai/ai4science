@@ -36,7 +36,6 @@ import math
 import statistics
 import urllib.parse
 import urllib.request
-from collections import Counter
 from datetime import date
 from pathlib import Path
 

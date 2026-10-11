@@ -10,11 +10,20 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import itertools
+
 import pytest
 from Bio.Data.IUPACData import protein_letters_1to3
 from Bio.PDB import PDBIO, StructureBuilder
 
-from tnf_binder.specs import StoredNumbering, chain_block, cofold_spec, collapse_ranges
+from tnf_binder.specs import (
+    StoredNumbering,
+    chain_block,
+    cofold_spec,
+    collapse_ranges,
+    helix_bundle,
+    secondary_structure,
+)
 
 FIRST_RESIDUE = 6  # as 1TNF stores it, the offset that caused the original shift
 
@@ -105,3 +114,22 @@ class TestCofoldSpec:
     def test_chain_block_is_valid_yaml_shape(self):
         assert chain_block("A", "SEQ") == (
             "  - protein:\n      id: A\n      sequence: SEQ\n      msa: empty")
+
+
+class TestHelixBundle:
+    """The secondary-structure string BoltzGen is given for a helix-biased screen."""
+
+    @pytest.mark.parametrize("n", [60, 70, 95, 110])
+    def test_pattern_is_exactly_the_requested_length(self, n):
+        """BoltzGen rejects a pattern longer than the sampled sequence, so this cannot drift."""
+        assert len(helix_bundle(n)) == n
+
+    def test_is_three_helices_separated_by_two_loops(self):
+        """Uniform 'h' is not a designable topology -- the loops are the point."""
+        runs = ["".join(g) for _, g in itertools.groupby(helix_bundle(60))]
+        assert [r[0] for r in runs] == ["h", "l", "h", "l", "h"]
+        assert [len(r) for r in runs if r[0] == "l"] == [4, 4]
+
+    def test_sized_to_the_minimum_of_a_range_not_the_maximum(self):
+        """A pattern cut to 95 would be rejected on every sample the range draws shorter."""
+        assert len(secondary_structure("60..95")) == 60

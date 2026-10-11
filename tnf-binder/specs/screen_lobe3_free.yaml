@@ -2,7 +2,7 @@
 # epitope=lobe3  length=60..95  secondary_structure=unconstrained
 #
 # Screening to lift design_to_target_iptm off the 0.11-0.30 plateau. Indices are 1-based CHAIN
-# POSITIONS; target files keep 1TNF numbering so position = mature - 5, asserted by gen_screen.py.
+# POSITIONS; target files keep 1TNF numbering so position = mature - 5, asserted by gen.py.
 entities:
   - protein:
       id: X

@@ -1,7 +1,8 @@
-"""The two stages of engineering a pH switch: find the positions, then test them together.
+"""Engineering a pH switch: find the positions, test them together, then stage them for folding.
 
-    his.py scan   <complexes> --out scan.csv        # which positions could switch at all
-    his.py combos <parent> --positions A35,A72      # what they measure when combined
+    his.py scan     <complexes> --out scan.csv       # which positions could switch at all
+    his.py combos   <parent> --positions A35,A72     # what they measure when combined
+    his.py campaign scan.csv --pdb-dir pdbs/ --out-dir specs/ --manifest manifest.csv
 
 Stage one replaces mechanism-based reasoning with a measurement, because the reasoning was
 wrong three times over. Objective 3 needs a histidine whose pKa lies between the two assay
@@ -12,27 +13,42 @@ buried His beside a lysine is the LEAST switchable position, and it scored highe
 proxy. So: substitute at every interface position in turn and predict each pKa.
 
 Stage two exists because those pKas do not compose. A35H+A38H drops A35 from 6.07 to 5.94, out
-of the window, so a combination has to be built and measured as a combination. The two stages
-share `tnf_binder.switch.measure_his`; what differs is that one discovers positions from
-structure and the other is told which to try.
+of the window, so a combination has to be built and measured as a combination.
 
-PROPKA is CPU-only, so neither stage competes for the GPU.
+Stage three takes what stage one found switchable and writes the co-folding specs that measure
+whether the binder still binds -- parent and variants always as a matched pair, under identical
+conditions, because the only way to attribute a change in interface confidence to a histidine
+is to have folded the design without it too.
+
+All three share `tnf_binder.switch`: `measure_his` for the mutate-and-measure step and
+`his_combinations` for the enumeration. PROPKA is CPU-only, so none of them competes for the
+GPU; only the specs stage three emits do.
 """
 
 from __future__ import annotations
 
-import itertools
 import tempfile
+from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 import typer
 from Bio.PDB.Polypeptide import protein_letters_3to1 as THREE_TO_ONE
 from rich.console import Console
 
 from tnf_binder.rosetta import HisMutator
+from tnf_binder.specs import cofold_spec
 from tnf_binder.structure import Complex
-from tnf_binder.switch import HisVariant, his_tag, measure_his, position_list
-from tnf_binder.tables import write_rows
+from tnf_binder.switch import (
+    MIDPOINT,
+    HisVariant,
+    his_combinations,
+    his_tag,
+    measure_his,
+    position_list,
+)
+from tnf_binder.tables import read_rows, write_rows
+from tnf_binder.target import HUMAN
 from tnf_binder.verifiers.pka_switch import IDEAL_WINDOW, USABLE_WINDOW
 
 app = typer.Typer(add_completion=False)
@@ -42,9 +58,13 @@ MIN_INTERFACE_DSASA = 15.0
 # Gly and Pro set backbone geometry and Cys may be disulphide-bonded, so none is a free slot.
 KEEP = frozenset("GPC")
 MARK = {"ideal": "[green]<== IDEAL[/]", "usable": "[yellow]<-- usable[/]", "dead": ""}
+# One row per single substitution scanned.
 SCAN_COLUMNS = ["parent", "chain", "resnum", "wt", "dsasa", "pka", "verdict", "switchable"]
+# One row per built combination -- pKas measured together, never composed from singles.
 COMBO_COLUMNS = ["design", "parent", "n_his", "positions", "pkas", "n_in_window", "n_ideal",
                  "sequence"]
+# One row per emitted co-folding spec, parent and variants alike.
+MANIFEST_COLUMNS = ["spec", "design", "kind", "positions", "pkas", "sequence"]
 
 InterfaceSite = tuple[str, int, str, float]
 
@@ -139,7 +159,7 @@ def scan(
     if not rows:
         typer.echo("no pKa results", err=True)
         raise typer.Exit(code=1)
-    write_rows(out, rows, COLUMNS)
+    write_rows(out, rows, SCAN_COLUMNS)
     ideal = sum(1 for r in rows if r["verdict"] == "ideal")
     usable = sum(1 for r in rows if r["verdict"] == "usable")
     console.print(f"\nscanned {len(rows)} substitutions: [green]{ideal}[/] ideal "
@@ -159,7 +179,7 @@ def combos(
 ) -> None:
     """Measure every His combination up to `max_his`, rather than composing single-mutant pKas."""
     sites = parse_sites(positions)
-    combos = [c for k in range(1, max_his + 1) for c in itertools.combinations(sites, k)]
+    combos = his_combinations(sites, max_his)
     console.print(f"{len(combos)} combinations from {len(sites)} positions")
     if keep_dir:
         keep_dir.mkdir(parents=True, exist_ok=True)
@@ -183,11 +203,111 @@ def combos(
         typer.echo("no results", err=True)
         raise typer.Exit(code=1)
     rows.sort(key=lambda r: (-r["n_ideal"], -r["n_in_window"], -r["n_his"]))
-    write_rows(out, rows, COLUMNS)
+    write_rows(out, rows, COMBO_COLUMNS)
     best = rows[0]
     console.print(f"\nbest: [bold]{best['design']}[/] -- {best['n_ideal']} ideal / "
                   f"{best['n_in_window']} in-window of {best['n_his']} His")
     console.print(f"wrote [cyan]{out}[/]")
+
+
+ScanSite = tuple[str, int, str, float, str]
+
+
+def switchable_by_design(scans: list[Path]) -> dict[str, list[ScanSite]]:
+    """design -> switchable positions, ideal first, then nearest the middle of the window.
+
+    Positions come from the pKa scan, never from a structural rule: burial correlates only
+    r=-0.37 with predicted pKa, and carboxylate and cation counts fare worse still.
+    """
+    found: dict[str, list[ScanSite]] = defaultdict(list)
+    for path in scans:
+        for row in read_rows(path):
+            if row.get("switchable", "").strip().lower() == "true":
+                found[row["parent"]].append((row["chain"], int(row["resnum"]), row["wt"],
+                                             float(row["pka"]), row["verdict"]))
+    for sites in found.values():
+        sites.sort(key=lambda site: (site[4] != "ideal", abs(site[3] - MIDPOINT)))
+    return dict(found)
+
+
+def find_pdb(stem: str, directories: list[Path]) -> Path | None:
+    return next((d / f"{stem}.pdb" for d in directories if (d / f"{stem}.pdb").exists()), None)
+
+
+def variant_rows(mutator: HisMutator, parent_pose: Any, design: str,
+                 combos: list[tuple[ScanSite, ...]], binder_chain: str,
+                 out_dir: Path) -> list[dict[str, str]]:
+    rows = []
+    for combo in combos:
+        pose = parent_pose.clone()
+        if not mutator.mutate(pose, [(chain, num) for chain, num, *_ in combo]):
+            continue
+        tag = "_".join(f"{chain}{num}H" for chain, num, *_ in combo)
+        name = f"V__{design}__{tag}"
+        sequence = mutator.chain_sequence(pose, binder_chain)
+        (out_dir / f"{name}.yaml").write_text(cofold_spec(HUMAN, binder=sequence))
+        rows.append({"spec": name, "design": design, "kind": "variant",
+                     "positions": " ".join(f"{chain}{num}" for chain, num, *_ in combo),
+                     "pkas": " ".join(f"{chain}{num}={pka:.2f}"
+                                      for chain, num, _wt, pka, _v in combo),
+                     "sequence": sequence})
+    return rows
+
+
+@app.command()
+def campaign(
+    scans: list[Path] = typer.Argument(..., help="pKa scan CSVs from `his.py scan`"),
+    pdb_dirs: list[Path] = typer.Option(..., "--pdb-dir", help="where the parent PDBs live"),
+    out_dir: Path = typer.Option(..., "--out-dir", help="where the Boltz specs go"),
+    manifest: Path = typer.Option(..., "--manifest", help="CSV mapping spec -> design + pKas"),
+    max_his: int = typer.Option(3, "--max-his"),
+    max_variants: int = typer.Option(4, "--max-variants", help="variants per design"),
+    max_sites: int = typer.Option(4, "--max-sites",
+                                 help="switchable positions per design to draw combinations from"),
+) -> None:
+    """Write a parent spec and up to `max_variants` His-variant specs per scanned design.
+
+    Folding the parent alongside its variants is what makes the comparison mean anything: on
+    the one design tested before this ran, all four His variants improved binder-to-target ipTM
+    over the parent (0.288 -> 0.366-0.444), and that is only readable as an improvement because
+    the parent was folded under identical conditions.
+    """
+    by_design = switchable_by_design(scans)
+    console.print(f"[bold]{len(by_design)}[/] designs carry switchable positions")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    mutator = HisMutator()
+    rows: list[dict[str, str]] = []
+    for design, sites in sorted(by_design.items()):
+        source = find_pdb(design, pdb_dirs)
+        if source is None:
+            console.print(f"  {design}: no pdb found, skipping")
+            continue
+        parent_pose = mutator.load(source)
+        binder_chain = mutator.binder_chain(parent_pose)
+        parent_sequence = mutator.chain_sequence(parent_pose, binder_chain)
+        (out_dir / f"P__{design}.yaml").write_text(cofold_spec(HUMAN, binder=parent_sequence))
+        rows.append({"spec": f"P__{design}", "design": design, "kind": "parent",
+                     "positions": "", "pkas": "", "sequence": parent_sequence})
+
+        switchable = [s for s in sites if s[0] == binder_chain]
+        on_binder = switchable[:max_sites]
+        combos = his_combinations(on_binder, max_his, max_variants)
+        written = variant_rows(mutator, parent_pose, design, combos, binder_chain, out_dir)
+        rows += written
+        # The written count can fall short of the combination count: PyRosetta declines some
+        # mutations, and reporting the request rather than the result hides that.
+        unbuilt = len(combos) - len(written)
+        dropped = f", {unbuilt} would not build" if unbuilt else ""
+        skipped = (f" ({len(switchable) - len(on_binder)} beyond --max-sites)"
+                   if len(switchable) > len(on_binder) else "")
+        console.print(f"  {design}: binder chain {binder_chain}, "
+                      f"{len(on_binder)} switchable{skipped} -> {len(written)} variants{dropped}")
+
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+    write_rows(manifest, rows, MANIFEST_COLUMNS)
+    console.print(f"\nwrote [bold]{len(rows)}[/] specs -> [cyan]{out_dir}[/] "
+                  f"(manifest [cyan]{manifest}[/])")
 
 
 if __name__ == "__main__":
