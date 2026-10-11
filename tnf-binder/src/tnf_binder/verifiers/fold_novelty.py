@@ -41,21 +41,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from touchstone.core import Verdict
+from touchstone.search import FoldHit
 
 from tnf_binder.design import TnfDesign
 
 HIGH_TM, HIGH_COVERAGE = 0.8, 0.70
 MODERATE_TM, MODERATE_COVERAGE = 0.5, 0.70
 IDENTITY_FAMILIAR, IDENTITY_KNOWN = 30.0, 70.0
-
-
-@dataclass(frozen=True)
-class FoldHit:
-    """One structural match: TM-score, the fraction of the query it covers, and its target."""
-
-    tm_score: float
-    coverage: float
-    target: str
 
 
 def structural_similarity(hits: list[FoldHit]) -> tuple[str, FoldHit | None]:
