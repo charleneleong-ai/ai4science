@@ -9,15 +9,18 @@ attributed target histidines to the design and zeroed every interface measuremen
 from __future__ import annotations
 
 import copy
+from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
 from Bio import Align, PDB
 from Bio.PDB.Polypeptide import protein_letters_3to1 as THREE_TO_ONE
+from Bio.PDB.Residue import Residue
 from Bio.PDB.SASA import ShrakeRupley
 
 from tnf_binder.target import HUMAN
 
+ResidueKey = tuple[str, int]  # (chain id, author residue number)
 CLASH_DISTANCE = 2.2
 _ALIGNER = Align.PairwiseAligner(scoring="blastp", open_gap_score=-11, extend_gap_score=-1)
 
@@ -65,14 +68,14 @@ class Complex:
     def is_resolved(self) -> bool:
         return bool(self.target_chains and self.binder_chains)
 
-    def mature_numbering(self) -> dict:
+    def mature_numbering(self) -> dict[Residue, int]:
         """Target residue -> mature TNF number, by alignment.
 
         Alignment rather than an offset: BoltzGen renumbers target chains to 1..N, and 1TNF
         carries Leu where UniProt P01375 has Asp143, so neither stored numbering nor substring
         matching survives every input.
         """
-        numbering = {}
+        numbering: dict[Residue, int] = {}
         for chain in self.target_chains:
             residues = [r for r in chain if r.id[0] == " "]
             sequence = "".join(THREE_TO_ONE.get(r.get_resname(), "X") for r in residues)
@@ -86,7 +89,7 @@ class Complex:
                     si += 1
         return numbering
 
-    def _sasa(self, chain_ids: set[str]) -> dict[tuple[str, int], float]:
+    def _sasa(self, chain_ids: set[str]) -> dict[ResidueKey, float]:
         subset = copy.deepcopy(self.model)
         for chain in list(subset):
             if chain.id not in chain_ids:
@@ -94,7 +97,7 @@ class Complex:
         ShrakeRupley().compute(subset, level="R")
         return {(c.id, r.id[1]): r.sasa for c in subset for r in c if r.id[0] == " "}
 
-    def buried_area(self) -> tuple[dict, dict]:
+    def buried_area(self) -> tuple[dict[ResidueKey, float], dict[ResidueKey, float]]:
         """(target-side, binder-side) buried area per residue, in A^2.
 
         Buried area rather than contact counts: counts scale with interpenetration, so
@@ -109,6 +112,22 @@ class Complex:
                          if v - bound.get(k, v) > 0.1}
         binder_buried = {k: v - bound.get(k, v) for k, v in binder_free.items()}
         return target_buried, binder_buried
+
+    def buried_by_position(self) -> dict[int, float]:
+        """Target-side buried area summed per mature TNF position.
+
+        Residues the alignment could not place are dropped rather than guessed at.
+        """
+        target_buried, _ = self.buried_area()
+        numbering = self.mature_numbering()
+        position_of: dict[ResidueKey, int] = {
+            (c.id, r.id[1]): numbering[r]
+            for c in self.target_chains for r in c if r in numbering}
+        areas: defaultdict[int, float] = defaultdict(float)
+        for key, area in target_buried.items():
+            if (position := position_of.get(key)) is not None:
+                areas[position] += area
+        return dict(areas)
 
     def clashes(self) -> int:
         """Heavy-atom pairs closer than 2.2 A, i.e. physically interpenetrating."""

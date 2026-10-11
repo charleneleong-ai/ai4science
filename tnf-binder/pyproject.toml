@@ -3,9 +3,13 @@ name = "tnf-binder"
 version = "0.1.0"
 description = "Conditional TNF-alpha binder design, gated by independent verifiers"
 requires-python = ">=3.11"
-dependencies = ["biopython>=1.83", "numpy>=1.26", "touchstone"]
+dependencies = ["biopython>=1.83", "numpy>=1.26", "typer>=0.12", "rich>=13", "touchstone"]
+
+[project.scripts]
+tnf-binder = "tnf_binder.cli:main"
 
 [project.optional-dependencies]
+wandb = ["wandb>=0.18"]
 dev = ["pytest>=8"]
 
 [tool.uv.sources]

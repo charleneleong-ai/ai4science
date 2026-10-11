@@ -11,6 +11,7 @@ structure, and never selects which structures are worth folding.
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass
 
 from touchstone.core import Verdict
@@ -29,6 +30,30 @@ class InterfaceMetrics:
     epitope_focus: float        # share of that area on the intended epitope
     divergent_fraction: float   # share on human/mouse-divergent positions
     clashes: int
+
+    @classmethod
+    def from_areas(
+        cls,
+        areas: dict[int, float],
+        *,
+        epitope: Collection[int],
+        divergent: Collection[int],
+        clashes: int,
+    ) -> "InterfaceMetrics":
+        """Summarise per-position buried area against the intended epitope.
+
+        Shares are of buried area, not residue counts: one deeply-buried residue matters more
+        than three glancing ones, and counting treats them alike.
+        """
+        total = sum(areas.values())
+
+        def share(positions: Collection[int]) -> float:
+            if not total:
+                return 0.0
+            return sum(area for p, area in areas.items() if p in positions) / total
+
+        return cls(area=total, epitope_focus=share(epitope),
+                   divergent_fraction=share(divergent), clashes=clashes)
 
     @property
     def cross_reactivity(self) -> float:
