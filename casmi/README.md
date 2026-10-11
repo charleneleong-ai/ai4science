@@ -62,7 +62,7 @@ notebook's vendored logic against the package.
 | mermaid pipeline diagram | above, and in [PR #80](https://github.com/charleneleong-ai/ai4science/pull/80) |
 | experiment card | [`docs/experiment-card.md`](docs/experiment-card.md) |
 | LaTeX report | [`docs/report.pdf`](docs/report.pdf) ([source](docs/report.tex)) |
-| W&B project, one run per submission | pending |
+| W&B project, one run per submission | [report](https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==) · [`casmi26` runs](https://wandb.ai/chaleong/casmi26) · rebuilt by `uv run --extra tracking casmi wandb-sync` from [`verdicts.yaml`](docs/experiments/casmi/verdicts.yaml) |
 | published Claude Artifact | pending |
 
 ## What is not established
