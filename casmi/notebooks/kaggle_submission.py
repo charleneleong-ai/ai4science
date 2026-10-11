@@ -21,6 +21,11 @@ Scores so far, each changing one thing:
   0.349  with both forward-model weights at 1.0 instead of 0.5
   0.345    with GLACIER on [M+H]+ spectra only — reverted
   0.346    with both forward-model weights at 1.5 — reverted
+  v18      + a second PubChem pass chosen by the spectrum, not popularity: the ECFP4 block of
+           f.z over the whole window, the 100 best new connectivities of its top 5000 by full f.z
+           (held-out train molecules: answer among candidates 126 -> 236 / 280, MRR@25 0.241 -> 0.405,
+           measured with the fold-safe FPNet; here the full1 + A bank, which memorised the copied
+           spectra, chooses — the run logs how many top-1 picks the pass supplied)
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -28,7 +33,8 @@ copy against the package so the two cannot drift silently.
 
 Approach:
   pool      train (mass from `molecular_formula`, never an observed precursor m/z) plus the
-            SHORTLIST most-documented PubChem connectivities inside 5 ppm.
+            SHORTLIST most-documented PubChem connectivities inside 5 ppm, plus the
+            SECOND_PASS_KEEP best by FPNet among the rest of the window (SecondPass).
   rank      z-scored spectral score plus POP_WEIGHT x log1p(substances) + log1p(PubMed
             articles). The spectral score is FPNet's fingerprint match when its datasets are
             attached, else fragment explainability (<= 2 bond cuts, ring bonds included).
@@ -43,13 +49,15 @@ from __future__ import annotations
 
 import bisect
 import csv
+import multiprocessing as mp
+import os
 import re
 import subprocess
 import sys
 import time
 from collections import defaultdict
 from functools import lru_cache
-from itertools import combinations
+from itertools import combinations, pairwise
 from pathlib import Path
 from typing import NamedTuple
 
@@ -87,6 +95,7 @@ def ensure_rdkit() -> None:
 ensure_rdkit()
 
 from rdkit import Chem, RDLogger  # noqa: E402  (import follows the wheel install above)
+from rdkit.Chem import rdFingerprintGenerator  # noqa: E402
 from rdkit.Chem.Descriptors import ExactMolWt  # noqa: E402
 from rdkit.Chem.rdMolDescriptors import CalcMolFormula  # noqa: E402
 
@@ -101,6 +110,10 @@ GL_LAMBDA = 1.0  # datasets' READMEs) scored 0.320, 1.0 (the 0.421 notebook's co
 ICE_BUDGET_S = 6 * 3600  # caps: ICEBERG took 20 min on a T4 and covered 269 / 371 in 6 h on CPU;
 GL_BUDGET_S = 3 * 3600  # the runners stop cleanly at them. GLACIER runs only on a GPU.
 POP_WEIGHT = 0.25  # on a z-scored spectral score, as in the published prior's recipe
+SECOND_PASS_N1 = 5000  # window rows given the full f.z after the ECFP4-block pass (1000: 179 / 280
+SECOND_PASS_KEEP = 100  # answers reached, 2000: 208, 5000: 236); keep 1000 instead of 100 adds 1
+ECFP_SIZE = 4096  # raw fingerprint bits below this are the ECFP4 block
+WORKERS = os.cpu_count() or 1
 MAX_BREAKS = 2
 MAX_BONDS = 60
 TOL_DA = 0.01
@@ -448,8 +461,9 @@ class FPNetScorer:
         return self.fingerprints(smiles) @ self.logits(records)
 
 
-def find_fpnet() -> FPNetScorer | None:
-    """All the pieces or none: a partial attachment would silently fall back to fragments."""
+def fpnet_paths() -> tuple[Path, list[Path], Path] | None:
+    """Model code, checkpoints and fingerprint bits — all the pieces or none: a partial attachment
+    would silently fall back to fragments."""
     root = Path("/kaggle/input")
     found = [sorted(root.glob(pat)) for pat in
              ("**/code/casmi/fpnet.py", "**/fpnet_full1.pt", "**/casmi26-v4b-models/**/fpnet_0.pt",
@@ -459,7 +473,106 @@ def find_fpnet() -> FPNetScorer | None:
     if not all(found):
         raise SystemExit("FPNet partly attached: need casmi26-v4b-models, casmi26-fpnet-full1 and "
                          "casmi26-v2-pool together.")
-    return FPNetScorer(found[0][0].parent.parent, [found[1][0], found[2][0]], found[3][0])
+    return found[0][0].parent.parent, [found[1][0], found[2][0]], found[3][0]
+
+
+PASS_STATE: dict = {}  # set before SecondPass's pool forks; its workers only read it
+
+
+def pass_partial(task: tuple[int, int, np.ndarray]) -> np.ndarray:
+    """f.z on the ECFP4 block for tier rows [a, b); -inf where RDKit cannot parse the SMILES."""
+    a, b, z_ecfp = task
+    out = np.full(b - a, -np.inf, np.float32)
+    for n, i in enumerate(range(a, b)):
+        mol = Chem.MolFromSmiles(PASS_STATE["tier"].smiles_at(i))
+        if mol is not None:
+            out[n] = PASS_STATE["gen"].GetFingerprintAsNumPy(mol)[PASS_STATE["ecfp_raw"]].astype(np.float32) @ z_ecfp
+    return out
+
+
+def pass_chem():
+    """The FPNet package's chem module, imported in the worker so the parent's CUDA never forks."""
+    if PASS_STATE["code"] not in sys.path:
+        sys.path.insert(0, PASS_STATE["code"])
+    from casmi import chem
+
+    return chem
+
+
+def pass_fingerprint(i: int) -> np.ndarray:
+    fp = pass_chem().raw_fingerprint(PASS_STATE["tier"].smiles_at(i))
+    bits = PASS_STATE["bits"]
+    return np.packbits(fp[bits] if fp is not None else np.zeros(len(bits), np.uint8))
+
+
+def pass_check(rows: list[int]) -> int:
+    """How many rows confirm that the raw fingerprint's first ECFP_SIZE bits are ECFP4; asserts."""
+    checked = 0
+    for i in rows:
+        smi = PASS_STATE["tier"].smiles_at(i)
+        raw, mol = pass_chem().raw_fingerprint(smi), Chem.MolFromSmiles(smi)
+        if raw is not None and mol is not None:
+            assert np.array_equal(raw[:ECFP_SIZE], PASS_STATE["gen"].GetFingerprintAsNumPy(mol)), \
+                "raw_fingerprint's first 4096 bits are not ECFP4: the second pass would score the wrong bits"
+            checked += 1
+    return checked
+
+
+class SecondPass:
+    """PubChem candidates chosen by the spectrum rather than by popularity (the 0.421 notebook's pass).
+
+    The popularity shortlist misses the answer for 57% of held-out train molecules. This scores the
+    whole window with f.z on the ECFP4 block only (one Morgan fingerprint per structure), gives the top
+    SECOND_PASS_N1 rows the full f.z, and adds the SECOND_PASS_KEEP best connectivities not already
+    candidates. The pool forks before FPNet loads, so no worker inherits a CUDA context.
+    """
+
+    def __init__(self, tier: PubChemTier, code: Path, bits: Path) -> None:
+        selected = np.load(bits)
+        self.cols = np.flatnonzero(selected < ECFP_SIZE)
+        self.nbits = len(selected)
+        self.tier = tier
+        PASS_STATE.update(tier=tier, code=str(code), bits=selected, ecfp_raw=selected[self.cols],
+                          gen=rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=ECFP_SIZE))
+        self.pool = mp.get_context("fork").Pool(WORKERS)
+        mid = len(tier.mass) // 2
+        if not self.pool.apply(pass_check, (list(range(mid, mid + 20)),)):
+            raise SystemExit("no sampled PubChem row parsed; the ECFP4 block is unchecked")
+
+    @staticmethod
+    def spans(a: int, b: int, n: int) -> list[tuple[int, int]]:
+        edges = np.linspace(a, b, n + 1).astype(int)
+        return [(int(lo), int(hi)) for lo, hi in pairwise(edges) if hi > lo]
+
+    def candidates(self, lo: float, hi: float, z: np.ndarray, taken: set[str]) -> dict[str, Candidate]:
+        tier = self.tier
+        a = int(np.searchsorted(tier.mass, lo, "left"))
+        b = int(np.searchsorted(tier.mass, hi, "right"))
+        if b <= a:
+            return {}
+        z_ecfp = z[self.cols].astype(np.float32)
+        partial = np.concatenate(self.pool.map(pass_partial, [(x, y, z_ecfp) for x, y in self.spans(a, b, WORKERS * 4)]))
+        keys = np.asarray(tier.ik14[a:b])
+        skip = {k.encode() for k in taken} | {b""}
+        top = [int(j) for j in np.argsort(-partial, kind="stable")[:SECOND_PASS_N1]
+               if np.isfinite(partial[j]) and keys[j] not in skip]
+        if not top:
+            return {}
+        packed = self.pool.map(pass_fingerprint, [a + j for j in top], chunksize=64)
+        fz = np.unpackbits(np.stack(packed), axis=1)[:, :self.nbits].astype(np.float32) @ z
+        out: dict[str, Candidate] = {}
+        for n in np.argsort(-fz, kind="stable"):
+            i = a + top[n]
+            key = keys[top[n]].decode()
+            if key not in out:
+                out[key] = Candidate(tier.smiles_at(i), float(tier.mass[i]), float(tier.lsid[i]) + float(tier.lpmid[i]))
+            if len(out) == SECOND_PASS_KEEP:
+                break
+        return out
+
+    def close(self) -> None:
+        self.pool.close()
+        self.pool.join()
 
 
 def copied_parents(train: Path, molecules: dict[str, dict]) -> dict[str, set[str]]:
@@ -682,21 +795,39 @@ def open_pubchem() -> PubChemTier | None:
 
 
 def rank_all(molecules: dict[str, dict], entries, pool_masses: list[float], pubchem: PubChemTier | None,
-             fpnet: FPNetScorer | None, copied: dict[str, set[str]]) -> dict[str, list[tuple[str, float]]]:
+             fpnet: FPNetScorer | None, copied: dict[str, set[str]],
+             second: SecondPass | None = None) -> dict[str, list[tuple[str, float]]]:
     t0 = time.time()
     ranked: dict[str, list[tuple[str, float]]] = {}
     sizes: list[int] = []
+    added: list[int] = []
+    from_second = [0, 0]  # molecules whose top-1 / any top-25 pick came from the second pass
     for n, (mol_id, mol) in enumerate(molecules.items(), 1):
         mass = neutral_mass(mol["mz"], mol["adduct"]) if mol["mz"] else None
         ranked[mol_id] = []
         if mass is not None:
-            cands = candidates_for(mass, entries, pool_masses, pubchem, copied.get(mol_id, set()))
+            exclude = copied.get(mol_id, set())
+            cands = candidates_for(mass, entries, pool_masses, pubchem, exclude)
+            if second and fpnet:
+                tol = mass * PPM * 1e-6
+                extra = second.candidates(mass - tol, mass + tol, fpnet.logits(mol["records"]), set(cands) | exclude)
+                added.append(len(extra))
+                cands |= extra
             sizes.append(len(cands))
             ranked[mol_id] = rank_candidates(mol, mass, cands, fpnet)
+            if second and fpnet:
+                picks = [smi for smi, _ in ranked[mol_id][:TOP_K]]
+                new = {c.smiles for c in extra.values()}
+                from_second[0] += bool(picks) and picks[0] in new
+                from_second[1] += any(smi in new for smi in picks)
         if n % 25 == 0:
             print(f"  ranked {n}/{len(molecules)}  median candidates {int(np.median(sizes))}  "
                   f"({time.time()-t0:.0f}s)", flush=True)
     print(f"candidates: median {int(np.median(sizes))}, max {max(sizes)}", flush=True)
+    if added:
+        print(f"second pass: {sum(a > 0 for a in added)}/{len(added)} molecules gained candidates, "
+              f"median {int(np.median(added))} added  ({time.time()-t0:.0f}s)", flush=True)
+        print(f"second pass picks: top-1 for {from_second[0]} molecules, in the top 25 for {from_second[1]}", flush=True)
     return ranked
 
 
@@ -708,7 +839,9 @@ def main() -> None:
     entries, pool_masses = build_pool(data / "train.parquet")
     print(f"train pool: {len(entries):,} structures  ({time.time()-t0:.0f}s)", flush=True)
     pubchem = open_pubchem()
-    fpnet = find_fpnet()
+    paths = fpnet_paths()
+    second = SecondPass(pubchem, paths[0], paths[2]) if pubchem and paths else None  # forks before CUDA
+    fpnet = FPNetScorer(*paths) if paths else None
     print(f"spectral score: {'FPNet' if fpnet else 'fragment explainability'}", flush=True)
     forward = find_forward()
     print(f"forward model: {forward.names if forward else 'none'}", flush=True)
@@ -719,7 +852,9 @@ def main() -> None:
     print(f"copied train structures excluded for {len(copied)} molecules "
           f"({sum(map(len, copied.values()))} in all)  ({time.time()-t0:.0f}s)", flush=True)
 
-    ranked = rank_all(molecules, entries, pool_masses, pubchem, fpnet, copied)
+    ranked = rank_all(molecules, entries, pool_masses, pubchem, fpnet, copied, second)
+    if second:
+        second.close()
     final = {m: [s for s, _ in r] for m, r in ranked.items()}
     if forward:
         write_submission(final, len(molecules), "pre_forward.csv")
