@@ -12,7 +12,13 @@ neither does, pKa-engineered switching is ruled out on this scaffold rather than
 ## Method: what is different here
 
 Everything below is open — code, tests, the full funnel including every failure, and the
-measurements behind each number: **https://github.com/charleneleong-ai/ai4science** (`tnf-binder/`).
+measurements behind each number:
+**https://github.com/charleneleong-ai/ai4science/tree/feat/tnf-submission-2-results/tnf-binder**
+
+The per-design metrics are [`docs/submission-v2-evidence.csv`](https://github.com/charleneleong-ai/ai4science/blob/feat/tnf-submission-2-results/tnf-binder/docs/submission-v2-evidence.csv),
+the raw pKa-across-structures measurements are [`docs/pka_robustness.csv`](https://github.com/charleneleong-ai/ai4science/blob/feat/tnf-submission-2-results/tnf-binder/docs/pka_robustness.csv),
+and the gates are [`src/tnf_binder/verifiers/`](https://github.com/charleneleong-ai/ai4science/tree/feat/tnf-submission-2-results/tnf-binder/src/tnf_binder/verifiers)
+with 93 tests, each anchored to an observed value rather than a synthetic one.
 
 **1 · A verifier stack ported from a different design problem.** The gates reuse the `Verdict`
 and `Verifier` contract of [`touchstone`](https://github.com/charleneleong-ai/ai4science/tree/main/touchstone),
