@@ -1,64 +1,66 @@
 """Build the single ranked submission CSV in Proteinbase's actual round-2 format.
 
-Corrections against the live submit page (the FAQ text differed):
-  - molecule_class must be one of single_chain, nanobody, scfv, fab_kappa, fab_lambda.
-    "protein" is NOT accepted; these de novo miniproteins are single_chain.
-  - Up to 20 proteins per SUBMISSION, not 40/20/20 split across tracks.
-  - 10-250 aa per chain.
-  - Novelty is auto-scored after upload and must reach 3/4, so memorised sequences are
-    actively harmful, not merely wasted slots.
+Takes the per-track shortlists `assemble_submission.py` writes and merges them into the one
+file that is uploaded. The format rules -- accepted molecule classes, the 20-row cap, the
+10-250 aa bounds -- are `tnf_binder.submission`'s, which is also what `tnf-binder validate`
+checks the result against, so a file cannot pass the writer and fail the checker.
 
 Ranking is a single combined order, top row first, since there is one file rather than one per
 track: pH switch first (the top-ranked objective, and the FAQ says a weak-but-selective binder
 beats a strong non-selective one), then interface confidence, then cross-reactivity.
 """
-import argparse
-import csv
+
+from __future__ import annotations
+
 from pathlib import Path
 
-VALID = {"single_chain", "nanobody", "scfv", "fab_kappa", "fab_lambda"}
-MOLECULE_CLASS = "single_chain"
-assert MOLECULE_CLASS in VALID
-CAP = 20
+import typer
+from rich.console import Console
+
+from tnf_binder.submission import (MAX_ROWS, MOLECULE_CLASS, SUBMISSION_COLUMNS, row_problem,
+                                   write_submission)
+from tnf_binder.tables import number, read_rows
+
+app = typer.Typer(add_completion=False)
+console = Console()
 
 
-def fnum(r, k, d=0.0):
-    try:
-        return float(r.get(k) or d)
-    except (TypeError, ValueError):
-        return d
+@app.command()
+def main(
+    tracks: list[Path] = typer.Argument(..., help="per-track CSVs to merge"),
+    out: Path = typer.Option(..., "--out", help="the file that gets uploaded"),
+    cap: int = typer.Option(MAX_ROWS, "--cap", help="rows per submission"),
+) -> None:
+    """Merge, rank and cap the shortlists into one upload-ready CSV."""
+    seen, rows = set(), []
+    for track in tracks:
+        for row in read_rows(track):
+            sequence = row["sequence"].strip().upper()
+            if sequence in seen:
+                continue
+            seen.add(sequence)
+            rows.append(row)
+
+    rows.sort(key=lambda r: (-number(r, "ph_switch_score"), -number(r, "boltz_iptm_mean"),
+                             -number(r, "cross_reactivity")))
+    rows = rows[:cap]
+
+    named = [(f"tnf_{i:02d}", r["sequence"].strip().upper()) for i, r in enumerate(rows, 1)]
+    for name, sequence in named:
+        if problem := row_problem({"name": name, "sequence": sequence,
+                                   "molecule_class": MOLECULE_CLASS}):
+            typer.echo(f"refusing to write: {problem}", err=True)
+            raise typer.Exit(code=1)
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    write_submission(out, SUBMISSION_COLUMNS,
+                     [[name, sequence, MOLECULE_CLASS] for name, sequence in named])
+    console.print(f"wrote [bold]{len(named)}[/] designs -> [cyan]{out}[/] (cap {cap})")
+    for (name, sequence), row in zip(named, rows):
+        console.print(f"  {name} len={len(sequence):3d} ph={row['ph_switch_score']:>4} "
+                      f"iptm={row['boltz_iptm_mean']:>6} xr={row['cross_reactivity']:>7} "
+                      f"his={row['pka_detail'] or '-'}")
 
 
-ap = argparse.ArgumentParser()
-ap.add_argument("tracks", type=Path, nargs="+", help="per-track CSVs to merge")
-ap.add_argument("--out", type=Path, required=True)
-args = ap.parse_args()
-
-seen, rows = set(), []
-for t in args.tracks:
-    for r in csv.DictReader(t.open()):
-        s = r["sequence"].strip().upper()
-        if s in seen:
-            continue
-        seen.add(s)
-        rows.append(r)
-
-rows.sort(key=lambda r: (-fnum(r, "ph_switch_score"), -fnum(r, "boltz_iptm_mean"),
-                         -fnum(r, "cross_reactivity")))
-rows = rows[:CAP]
-
-# LF line endings to match the official template exactly. csv.writer defaults to CRLF
-# (RFC 4180); the template is LF-only and their parser is untested here, so match it.
-with args.out.open("w", newline="") as f:
-    w = csv.writer(f, lineterminator="\n")
-    w.writerow(["name", "sequence", "molecule_class"])
-    for i, r in enumerate(rows, 1):
-        seq = r["sequence"].strip().upper()
-        assert 10 <= len(seq) <= 250, f"length {len(seq)} out of range"
-        w.writerow([f"tnf_{i:02d}", seq, MOLECULE_CLASS])
-
-print(f"wrote {len(rows)} designs -> {args.out} (cap {CAP})")
-for i, r in enumerate(rows, 1):
-    print(f"  {i:2d}. len={len(r['sequence']):3d} ph={r['ph_switch_score']:>4} "
-          f"iptm={r['boltz_iptm_mean']:>6} xr={r['cross_reactivity']:>7} "
-          f"his={r['pka_detail'] or '-'}")
+if __name__ == "__main__":
+    app()

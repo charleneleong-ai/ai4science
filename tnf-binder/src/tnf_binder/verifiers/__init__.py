@@ -14,7 +14,7 @@ candidates, and the expensive structural ones only run on survivors.
 from tnf_binder.verifiers.composition import CompositionVerifier
 from tnf_binder.verifiers.fold_novelty import FoldNoveltyVerifier, FoldHit
 from tnf_binder.verifiers.interface import InterfaceVerifier, InterfaceMetrics
-from tnf_binder.verifiers.pka_switch import PkaSwitchVerifier, HistidineSite
+from tnf_binder.verifiers.pka_switch import PkaSwitchVerifier, HistidineSite, pka_window
 from tnf_binder.verifiers.sequence_novelty import SequenceNoveltyVerifier
 
 __all__ = [
@@ -26,4 +26,5 @@ __all__ = [
     "InterfaceMetrics",
     "PkaSwitchVerifier",
     "HistidineSite",
+    "pka_window",
 ]

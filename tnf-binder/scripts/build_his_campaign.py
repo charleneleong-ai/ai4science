@@ -10,141 +10,118 @@ Rationale from the measured data:
 Emits Boltz co-folding specs for each parent and its variants, so parent and variant are
 always measured under identical conditions.
 """
-import argparse
-import csv
+
+from __future__ import annotations
+
 import itertools
-import sys
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
-sys.path.insert(0, str(Path(__file__).parent))
-from tnf_common import HUMAN
+import typer
+from rich.console import Console
+
+from tnf_binder.rosetta import HisMutator
+from tnf_binder.specs import cofold_spec
+from tnf_binder.tables import read_rows, write_rows
+from tnf_binder.target import HUMAN
+
+app = typer.Typer(add_completion=False)
+console = Console()
+
+MANIFEST_COLUMNS = ["spec", "design", "kind", "positions", "pkas", "sequence"]
+# The middle of the switch window: variants are ordered by how close their pKa sits to it.
+WINDOW_CENTRE = 6.7
+
+ScanSite = tuple[str, int, str, float, str]
 
 
-def write_spec(out_dir: Path, name: str, seq: str, protomers: int = 3) -> None:
-    chains = [f"""  - protein:
-      id: X
-      sequence: {seq}
-      msa: empty"""]
-    for cid in "ABC"[:protomers]:
-        chains.append(f"""  - protein:
-      id: {cid}
-      sequence: {HUMAN}
-      msa: empty""")
-    (out_dir / f"{name}.yaml").write_text("version: 1\nsequences:\n" + "\n".join(chains) + "\n")
-
-
-def switchable_by_design(scan_paths) -> dict:
+def switchable_by_design(scans: list[Path]) -> dict[str, list[ScanSite]]:
     """design -> switchable positions, ideal first, then nearest the middle of the window.
 
     Positions come from the pKa scan, never from a structural rule: burial correlates only
     r=-0.37 with predicted pKa, and carboxylate and cation counts fare worse still.
     """
-    from collections import defaultdict
-    found = defaultdict(list)
-    for path in scan_paths:
-        for r in csv.DictReader(path.open()):
-            if r.get("switchable", "").strip().lower() == "true":
-                found[r["parent"]].append(
-                    (r["chain"], int(r["resnum"]), r["wt"], float(r["pka"]), r["verdict"]))
-    for design in found:
-        found[design].sort(key=lambda t: (t[4] != "ideal", abs(t[3] - 6.7)))
-    return found
+    found: dict[str, list[ScanSite]] = defaultdict(list)
+    for path in scans:
+        for row in read_rows(path):
+            if row.get("switchable", "").strip().lower() == "true":
+                found[row["parent"]].append((row["chain"], int(row["resnum"]), row["wt"],
+                                             float(row["pka"]), row["verdict"]))
+    for sites in found.values():
+        sites.sort(key=lambda site: (site[4] != "ideal", abs(site[3] - WINDOW_CENTRE)))
+    return dict(found)
 
 
-def binder_chain_of(pose, info) -> str:
-    """Shortest chain is the binder; TNF protomers are 152 aa each."""
-    from collections import defaultdict
-    lengths = defaultdict(int)
-    for i in range(1, pose.total_residue() + 1):
-        lengths[info.chain(i)] += 1
-    return min(lengths, key=lambda c: lengths[c])
+def find_pdb(stem: str, directories: list[Path]) -> Path | None:
+    return next((d / f"{stem}.pdb" for d in directories if (d / f"{stem}.pdb").exists()), None)
 
 
-def chain_sequence(pose, info, chain: str) -> str:
-    return "".join(pose.residue(i).name1()
-                   for i in range(1, pose.total_residue() + 1)
-                   if info.chain(i) == chain)
-
-
-def variant_combos(positions: list, max_his: int, cap: int) -> list:
-    combos = []
-    for k in range(1, min(max_his, len(positions)) + 1):
-        combos += list(itertools.combinations(positions, k))
+def variant_combos(sites: list[ScanSite], max_his: int, cap: int) -> list[tuple[ScanSite, ...]]:
+    combos: list[tuple[ScanSite, ...]] = []
+    for k in range(1, min(max_his, len(sites)) + 1):
+        combos += list(itertools.combinations(sites, k))
     return combos[:cap]
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("scans", type=Path, nargs="+", help="pka_scan csv files")
-    ap.add_argument("--pdb_dirs", type=Path, nargs="+", required=True)
-    ap.add_argument("--out_dir", type=Path, required=True)
-    ap.add_argument("--max_his", type=int, default=3)
-    ap.add_argument("--max_variants_per_design", type=int, default=4)
-    ap.add_argument("--manifest", type=Path, required=True)
-    args = ap.parse_args()
-
-    by_design = switchable_by_design(args.scans)
-
-    print(f"{len(by_design)} designs carry switchable positions")
-    args.out_dir.mkdir(parents=True, exist_ok=True)
-
-    def find_pdb(stem: str) -> Path | None:
-        for d in args.pdb_dirs:
-            p = d / f"{stem}.pdb"
-            if p.exists():
-                return p
-        return None
-
-    import pyrosetta as pr
-    pr.init("-mute all -ignore_unrecognized_res -ignore_zero_occupancy false", silent=True)
-    sfx = pr.get_score_function()
-
+def variant_rows(mutator: HisMutator, parent_pose: Any, design: str,
+                 combos: list[tuple[ScanSite, ...]], binder_chain: str,
+                 out_dir: Path) -> list[dict[str, str]]:
     rows = []
-    for design, positions in sorted(by_design.items()):
-        src = find_pdb(design)
-        if src is None:
-            print(f"  {design}: no pdb found, skipping")
+    for combo in combos:
+        pose = parent_pose.clone()
+        if not mutator.mutate(pose, [(chain, num) for chain, num, *_ in combo]):
             continue
-        pose0 = pr.pose_from_pdb(str(src))
-        info = pose0.pdb_info()
-        binder_chain = binder_chain_of(pose0, info)
-        parent_seq = chain_sequence(pose0, info, binder_chain)
-        write_spec(args.out_dir, f"P__{design}", parent_seq)
+        tag = "_".join(f"{chain}{num}H" for chain, num, *_ in combo)
+        name = f"V__{design}__{tag}"
+        sequence = mutator.chain_sequence(pose, binder_chain)
+        (out_dir / f"{name}.yaml").write_text(cofold_spec(HUMAN, binder=sequence))
+        rows.append({"spec": name, "design": design, "kind": "variant",
+                     "positions": " ".join(f"{chain}{num}" for chain, num, *_ in combo),
+                     "pkas": " ".join(f"{chain}{num}={pka:.2f}"
+                                      for chain, num, _wt, pka, _v in combo),
+                     "sequence": sequence})
+    return rows
+
+
+@app.command()
+def main(
+    scans: list[Path] = typer.Argument(..., help="pka scan CSVs from his_pka_scan.py"),
+    pdb_dirs: list[Path] = typer.Option(..., "--pdb-dir", help="where the parent PDBs live"),
+    out_dir: Path = typer.Option(..., "--out-dir", help="where the Boltz specs go"),
+    manifest: Path = typer.Option(..., "--manifest", help="CSV mapping spec -> design + pKas"),
+    max_his: int = typer.Option(3, "--max-his"),
+    max_variants: int = typer.Option(4, "--max-variants", help="variants per design"),
+) -> None:
+    """Write a parent spec and up to `max_variants` His-variant specs per scanned design."""
+    by_design = switchable_by_design(scans)
+    console.print(f"[bold]{len(by_design)}[/] designs carry switchable positions")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    mutator = HisMutator()
+    rows: list[dict[str, str]] = []
+    for design, sites in sorted(by_design.items()):
+        source = find_pdb(design, pdb_dirs)
+        if source is None:
+            console.print(f"  {design}: no pdb found, skipping")
+            continue
+        parent_pose = mutator.load(source)
+        binder_chain = mutator.binder_chain(parent_pose)
+        parent_sequence = mutator.chain_sequence(parent_pose, binder_chain)
+        (out_dir / f"P__{design}.yaml").write_text(cofold_spec(HUMAN, binder=parent_sequence))
         rows.append({"spec": f"P__{design}", "design": design, "kind": "parent",
-                     "positions": "", "pkas": "", "sequence": parent_seq})
+                     "positions": "", "pkas": "", "sequence": parent_sequence})
 
-        usable = [p for p in positions if p[0] == binder_chain][:4]
-        combos = variant_combos(usable, args.max_his, args.max_variants_per_design)
+        on_binder = [s for s in sites if s[0] == binder_chain][:4]
+        combos = variant_combos(on_binder, max_his, max_variants)
+        rows += variant_rows(mutator, parent_pose, design, combos, binder_chain, out_dir)
+        console.print(f"  {design}: binder chain {binder_chain}, "
+                      f"{len(on_binder)} switchable -> {len(combos)} variants")
 
-        for combo in combos:
-            pose = pose0.clone()
-            ok = True
-            for ch, num, _wt, _pka, _v in combo:
-                idx = info.pdb2pose(ch, num)
-                if idx == 0:
-                    ok = False
-                    break
-                pr.toolbox.mutants.mutate_residue(pose, idx, "H", 6.0, sfx)
-            if not ok:
-                continue
-            tag = "_".join(f"{c}{n}H" for c, n, _, _, _ in combo)
-            seq = chain_sequence(pose, info, binder_chain)
-            name = f"V__{design}__{tag}"
-            write_spec(args.out_dir, name, seq)
-            rows.append({"spec": name, "design": design, "kind": "variant",
-                         "positions": " ".join(f"{c}{n}" for c, n, _, _, _ in combo),
-                         "pkas": " ".join(f"{c}{n}={pk:.2f}" for c, n, _, pk, _ in combo),
-                         "sequence": seq})
-        print(f"  {design}: binder chain {binder_chain}, "
-              f"{len(usable)} switchable -> {len(combos)} variants")
-
-    with args.manifest.open("w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=["spec", "design", "kind", "positions", "pkas", "sequence"])
-        w.writeheader()
-        w.writerows(rows)
-    print(f"\nwrote {len(rows)} specs -> {args.out_dir}  (manifest {args.manifest})")
+    write_rows(manifest, rows, MANIFEST_COLUMNS)
+    console.print(f"\nwrote [bold]{len(rows)}[/] specs -> [cyan]{out_dir}[/] "
+                  f"(manifest [cyan]{manifest}[/])")
 
 
 if __name__ == "__main__":
-    main()
+    app()

@@ -12,125 +12,109 @@ cationic at 6.0. Both mechanisms reasoned about earlier push pKa the WRONG way -
 So: substitute His at every interface position in turn, predict pKa for each, and keep only
 those landing in the usable window. PROPKA is CPU-only, so this runs without competing for GPU.
 """
-import argparse
-import csv
-import shutil
-import subprocess
-import sys
+
+from __future__ import annotations
+
 import tempfile
 from pathlib import Path
 
-import numpy as np
-from Bio import PDB
-from Bio.PDB.Polypeptide import protein_letters_3to1 as THREE2ONE
+import typer
+from Bio.PDB.Polypeptide import protein_letters_3to1 as THREE_TO_ONE
+from rich.console import Console
 
-sys.path.insert(0, str(Path(__file__).parent))
-from score_designs import load, classify_chains, residue_sasa, chain_seq
-from pka_switch import run_propka, classify, IDEAL_LO, IDEAL_HI, USABLE_LO, USABLE_HI
+from tnf_binder.pka import run_propka
+from tnf_binder.rosetta import HisMutator
+from tnf_binder.structure import Complex
+from tnf_binder.tables import write_rows
+from tnf_binder.verifiers.pka_switch import IDEAL_WINDOW, USABLE_WINDOW, pka_window
+
+app = typer.Typer(add_completion=False)
+console = Console()
 
 MIN_INTERFACE_DSASA = 15.0
-KEEP = set("GPC")          # Gly/Pro set backbone geometry, Cys may be bonded
-_PYROSETTA_READY = False
+# Gly and Pro set backbone geometry and Cys may be disulphide-bonded, so none is a free slot.
+KEEP = frozenset("GPC")
+MARK = {"ideal": "[green]<== IDEAL[/]", "usable": "[yellow]<-- usable[/]", "dead": ""}
+COLUMNS = ["parent", "chain", "resnum", "wt", "dsasa", "pka", "verdict", "switchable"]
+
+InterfaceSite = tuple[str, int, str, float]
 
 
-def interface_positions(model, binders, targets) -> list[tuple]:
-    """(chain_id, resnum, wt_aa, dsasa) for binder residues buried at the interface."""
-    bids = {c.id for c in binders}
-    tids = {c.id for c in targets}
-    bound = residue_sasa(model, tids | bids)
-    free = residue_sasa(model, bids)
-    out = []
-    for ch in binders:
-        for r in (x for x in ch if x.id[0] == " "):
-            key = (ch.id, r.id[1])
-            d = free.get(key, 0.0) - bound.get(key, 0.0)
-            aa = THREE2ONE.get(r.get_resname(), "X")
-            if d >= MIN_INTERFACE_DSASA and aa not in KEEP and aa not in ("H", "X"):
-                out.append((ch.id, r.id[1], aa, round(d, 1)))
-    out.sort(key=lambda t: -t[3])
-    return out
+def interface_positions(complex_: Complex, min_dsasa: float) -> list[InterfaceSite]:
+    """(chain, residue number, wild-type aa, buried area) for substitutable binder residues."""
+    _target_buried, binder_buried = complex_.buried_area()
+    found: list[InterfaceSite] = []
+    for chain in complex_.binder_chains:
+        for residue in (r for r in chain if r.id[0] == " "):
+            buried = binder_buried.get((chain.id, residue.id[1]), 0.0)
+            aa = THREE_TO_ONE.get(residue.get_resname(), "X")
+            if buried >= min_dsasa and aa not in KEEP and aa not in ("H", "X"):
+                found.append((chain.id, residue.id[1], aa, round(buried, 1)))
+    found.sort(key=lambda site: -site[3])
+    return found
 
 
-def write_his_mutant(src: Path, chain: str, resnum: int, dest: Path) -> bool:
-    """Mutate one residue to HIS with a real, repacked side chain, via PyRosetta.
+def scan_design(source: Path, sites: list[InterfaceSite], mutator: HisMutator,
+                workdir: Path) -> list[dict[str, object]]:
+    """One row per substitution whose pKa PROPKA could predict."""
+    rows: list[dict[str, object]] = []
+    for chain, resnum, wild_type, dsasa in sites:
+        mutant = workdir / f"{source.stem}_{chain}{resnum}H.pdb"
+        pose = mutator.load(source)
+        if not mutator.mutate(pose, [(chain, resnum)]):
+            continue
+        mutator.write(pose, mutant)
+        pka = run_propka(mutant, workdir).get((chain, resnum))
+        if pka is None:
+            console.print(f"   {chain}{resnum} {wild_type}->H  propka gave no pKa")
+            continue
+        verdict = pka_window(pka)
+        rows.append({"parent": source.stem, "chain": chain, "resnum": resnum,
+                     "wt": wild_type, "dsasa": dsasa, "pka": round(pka, 2),
+                     "verdict": verdict, "switchable": verdict in ("ideal", "usable")})
+        console.print(f"   {chain}{resnum} {wild_type}->H  dSASA={dsasa:5.1f}  "
+                      f"pKa={pka:5.2f}  {verdict:6s} {MARK[verdict]}")
+    return rows
 
-    Renaming the residue and keeping only backbone+CB is not enough: propka cannot score a
-    histidine with no imidazole (ND1/CD2/CE1/NE2) and silently omits it, so every pKa came
-    back missing. PyRosetta builds the side chain and repacks the neighbourhood.
-    """
-    import pyrosetta as pr
 
-    global _PYROSETTA_READY
-    if not _PYROSETTA_READY:
-        pr.init("-mute all -ignore_unrecognized_res -ignore_zero_occupancy false", silent=True)
-        _PYROSETTA_READY = True
-    pose = pr.pose_from_pdb(str(src))
-    idx = pose.pdb_info().pdb2pose(chain, resnum)
-    if idx == 0:
-        return False
-    pr.toolbox.mutants.mutate_residue(pose, idx, "H", 6.0, pr.get_score_function())
-    if pose.residue(idx).name3() != "HIS":
-        return False
-    pose.dump_pdb(str(dest))
-    return True
-
-
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("structures", type=Path, nargs="+", help=".pdb complexes")
-    ap.add_argument("--out", type=Path, required=True)
-    ap.add_argument("--max_positions", type=int, default=14)
-    args = ap.parse_args()
-
+@app.command()
+def main(
+    structures: list[Path] = typer.Argument(..., help=".pdb complexes, or directories of them"),
+    out: Path = typer.Option(..., "--out", help="CSV of every scanned substitution"),
+    max_positions: int = typer.Option(14, "--max-positions",
+                                      help="most-buried positions to scan per design"),
+) -> None:
+    """Substitute His at each interface position in turn and predict its pKa."""
     paths: list[Path] = []
-    for s in args.structures:
-        paths.extend(sorted(p for p in s.rglob("*.pdb")) if s.is_dir() else [s])
+    for argument in structures:
+        paths.extend(sorted(argument.rglob("*.pdb")) if argument.is_dir() else [argument])
     if not paths:
-        print("no .pdb inputs (propka needs PDB)")
-        return
+        typer.echo("no .pdb inputs (propka needs PDB, not mmCIF)", err=True)
+        raise typer.Exit(code=2)
 
-    rows = []
-    with tempfile.TemporaryDirectory() as td:
-        wd = Path(td)
-        for src in paths:
-            model = load(src)
-            targets, binders = classify_chains(model)
-            if not binders or not targets:
-                print(f"{src.stem}: chain classification failed")
+    mutator = HisMutator()
+    rows: list[dict[str, object]] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        workdir = Path(tmp)
+        for source in paths:
+            complex_ = Complex.from_file(source)
+            if not complex_.is_resolved:
+                console.print(f"{source.stem}: could not separate binder from target")
                 continue
-            positions = interface_positions(model, binders, targets)[:args.max_positions]
-            print(f"\n{src.stem}: {len(positions)} interface positions to scan")
-            for ch, num, wt, dsasa in positions:
-                mut = wd / f"{src.stem}_{ch}{num}H.pdb"
-                if not write_his_mutant(src, ch, num, mut):
-                    continue
-                pkas = run_propka(mut, wd)
-                pka = pkas.get((ch, num))
-                if pka is None:
-                    print(f"   {ch}{num} {wt}->H  propka gave no pKa")
-                    continue
-                verdict = classify(pka)
-                rows.append({
-                    "parent": src.stem, "chain": ch, "resnum": num, "wt": wt,
-                    "dsasa": dsasa, "pka": round(pka, 2), "verdict": verdict,
-                    "switchable": verdict in ("ideal", "usable"),
-                })
-                mark = {"ideal": "<== IDEAL", "usable": "<-- usable", "dead": ""}[verdict]
-                print(f"   {ch}{num} {wt}->H  dSASA={dsasa:5.1f}  pKa={pka:5.2f}  "
-                      f"{verdict:6s} {mark}")
+            sites = interface_positions(complex_, MIN_INTERFACE_DSASA)[:max_positions]
+            console.print(f"\n[bold]{source.stem}[/]: {len(sites)} interface positions to scan")
+            rows += scan_design(source, sites, mutator, workdir)
 
     if not rows:
-        print("\nno pKa results")
-        return
-    with args.out.open("w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
-        w.writeheader()
-        w.writerows(rows)
-    n_ideal = sum(1 for r in rows if r["verdict"] == "ideal")
-    n_use = sum(1 for r in rows if r["verdict"] == "usable")
-    print(f"\nscanned {len(rows)} substitutions: {n_ideal} ideal "
-          f"({IDEAL_LO}-{IDEAL_HI}), {n_use} usable ({USABLE_LO}-{USABLE_HI}) -> {args.out}")
+        typer.echo("no pKa results", err=True)
+        raise typer.Exit(code=1)
+    write_rows(out, rows, COLUMNS)
+    ideal = sum(1 for r in rows if r["verdict"] == "ideal")
+    usable = sum(1 for r in rows if r["verdict"] == "usable")
+    console.print(f"\nscanned {len(rows)} substitutions: [green]{ideal}[/] ideal "
+                  f"({IDEAL_WINDOW[0]}-{IDEAL_WINDOW[1]}), [yellow]{usable}[/] usable "
+                  f"({USABLE_WINDOW[0]}-{USABLE_WINDOW[1]}) -> [cyan]{out}[/]")
 
 
 if __name__ == "__main__":
-    main()
+    app()

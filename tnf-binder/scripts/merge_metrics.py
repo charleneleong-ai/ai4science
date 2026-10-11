@@ -23,82 +23,78 @@ Thresholds follow de novo binder-design practice (BindCraft-style): >= 0.5 for t
 interface and interaction pae <= 10. They are explicit and overridable rather than tuned to
 whatever this run happened to produce.
 """
-import argparse
-import csv
+
+from __future__ import annotations
+
 from pathlib import Path
 
+import typer
+from rich.console import Console
 
-def read_csv(p: Path) -> list[dict[str, str]]:
-    return list(csv.DictReader(p.open())) if p and p.exists() else []
+from tnf_binder.tables import number, read_rows, write_rows
+
+app = typer.Typer(add_completion=False)
+console = Console()
+
+COLUMNS = ["design", "binder_len", "iptm", "design_to_target_iptm", "interaction_pae",
+           "design_ptm", "target_ptm", "interface_area", "epitope_focus", "cross_reactivity",
+           "divergent_frac", "clashes", "flag", "sequence"]
+NO_PAE = 99.0
 
 
-def fnum(r: dict[str, str], k: str, default: float = 0.0) -> float:
-    try:
-        return float(r.get(k) or default)
-    except (TypeError, ValueError):
-        return default
-
-
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("scored_csv", type=Path)
-    ap.add_argument("fold_csv", type=Path)
-    ap.add_argument("--out", type=Path, required=True)
-    ap.add_argument("--min_d2t_iptm", type=float, default=0.5,
-                    help="threshold on design_to_target_iptm, the binder-specific interface score")
-    ap.add_argument("--max_pae", type=float, default=10.0)
-    ap.add_argument("--relax", action="store_true",
-                    help="keep designs failing the confidence gate, flagged, for inspection")
-    args = ap.parse_args()
-
-    scored = read_csv(args.scored_csv)
-    fold = {r["design"]: r for r in read_csv(args.fold_csv)}
-
-    out = []
-    for r in scored:
-        f = fold.get(r["design"], {})
-        iptm = fnum(f, "iptm")
-        d2t = fnum(f, "design_to_target_iptm")
-        pae = fnum(f, "interaction_pae", 99.0)
-        flags = [x for x in (r.get("flag") or "").split(",") if x]
-        if not f:
-            flags.append("no_fold_metrics")
-        else:
-            if d2t < args.min_d2t_iptm:
-                flags.append(f"low_d2t_iptm({d2t:.2f})")
-            if pae > args.max_pae:
-                flags.append(f"high_pae({pae:.1f})")
-        out.append(r | {
-            "iptm": iptm, "design_to_target_iptm": d2t, "interaction_pae": pae,
-            "target_ptm": fnum(f, "target_ptm"), "design_ptm": fnum(f, "design_ptm"),
-            "flag": ",".join(flags),
-        })
-
-    if not args.relax:
-        kept = [r for r in out if not r["flag"]]
+def merged_row(scored: dict[str, str], folded: dict[str, str], min_d2t: float,
+               max_pae: float) -> dict[str, object]:
+    d2t = number(folded, "design_to_target_iptm")
+    pae = number(folded, "interaction_pae", NO_PAE)
+    flags = [f for f in (scored.get("flag") or "").split(",") if f]
+    if not folded:
+        flags.append("no_fold_metrics")
     else:
-        kept = out
+        if d2t < min_d2t:
+            flags.append(f"low_d2t_iptm({d2t:.2f})")
+        if pae > max_pae:
+            flags.append(f"high_pae({pae:.1f})")
+    return scored | {
+        "iptm": number(folded, "iptm"), "design_to_target_iptm": d2t, "interaction_pae": pae,
+        "target_ptm": number(folded, "target_ptm"), "design_ptm": number(folded, "design_ptm"),
+        "flag": ",".join(flags),
+    }
 
-    cols = ["design", "binder_len", "iptm", "design_to_target_iptm", "interaction_pae",
-            "design_ptm", "target_ptm", "interface_area", "epitope_focus", "cross_reactivity",
-            "divergent_frac", "n_his_interface", "ph_switch", "clashes", "flag", "sequence"]
-    kept.sort(key=lambda r: (-fnum(r, "design_to_target_iptm"),
-                             fnum(r, "interaction_pae", 99.0)))
-    with args.out.open("w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore")
-        w.writeheader()
-        w.writerows(kept)
 
-    n_pass = sum(1 for r in out if not r["flag"])
-    print(f"{len(out)} scored | {n_pass} pass both gates "
-          f"(design_to_target_iptm>={args.min_d2t_iptm}, pae<={args.max_pae}) | "
-          f"wrote {len(kept)} -> {args.out}")
-    if n_pass == 0 and out:
-        best = max(out, key=lambda r: fnum(r, "design_to_target_iptm"))
-        print(f"  best by design_to_target_iptm: {best['design']} "
-              f"d2t={best['design_to_target_iptm']:.3f} (global iptm={best['iptm']:.3f}) "
-              f"pae={best['interaction_pae']:.1f} -- nothing clears the bar")
+@app.command()
+def main(
+    scored_csv: Path = typer.Argument(..., help="geometry table from score_designs.py"),
+    fold_csv: Path = typer.Argument(..., help="confidence table from read_fold_metrics.py"),
+    out: Path = typer.Option(..., "--out", help="the joined, gated table"),
+    min_d2t_iptm: float = typer.Option(0.5, "--min-d2t-iptm",
+                                       help="threshold on design_to_target_iptm, the "
+                                            "binder-specific interface score"),
+    max_pae: float = typer.Option(10.0, "--max-pae"),
+    relax: bool = typer.Option(False, "--relax",
+                               help="keep designs failing the confidence gate, flagged, "
+                                    "for inspection"),
+) -> None:
+    """Join the two tables and keep only what clears both gates."""
+    folded = {r["design"]: r for r in read_rows(fold_csv)}
+    merged = [merged_row(r, folded.get(r["design"], {}), min_d2t_iptm, max_pae)
+              for r in read_rows(scored_csv)]
+
+    passing = [r for r in merged if not r["flag"]]
+    kept = merged if relax else passing
+    kept.sort(key=lambda r: (-number(r, "design_to_target_iptm"),
+                             number(r, "interaction_pae", NO_PAE)))
+    write_rows(out, kept, COLUMNS)
+
+    console.print(f"{len(merged)} scored | [bold]{len(passing)}[/] pass both gates "
+                  f"(design_to_target_iptm>={min_d2t_iptm}, pae<={max_pae}) | "
+                  f"wrote {len(kept)} -> [cyan]{out}[/]")
+    if not passing and merged:
+        best = max(merged, key=lambda r: number(r, "design_to_target_iptm"))
+        console.print(f"  best by design_to_target_iptm: {best['design']} "
+                      f"d2t={best['design_to_target_iptm']:.3f} "
+                      f"(global iptm={best['iptm']:.3f}) "
+                      f"pae={best['interaction_pae']:.1f} -- nothing clears the bar")
 
 
 if __name__ == "__main__":
-    main()
+    app()

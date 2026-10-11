@@ -54,7 +54,8 @@ cross-reactive. Any design gripping that loop wins objective 1 and loses objecti
 
 | path | what |
 | --- | --- |
-| [`scripts/`](scripts) | the pipeline: epitope analysis, design-spec generation, scoring, the four verifiers, submission assembly |
+| [`src/tnf_binder/`](src/tnf_binder) | the package: the target and its numbering, the four verifiers, confidence reading, and the `tnf-binder` CLI (`epitope`, `verify`, `validate`, `confidence`, `wandb-log`) |
+| [`scripts/`](scripts) | the design-box pipeline, where the heavy dependencies live: spec generation (BoltzGen), the PROPKA/PyRosetta His scans, batch scoring, submission assembly |
 | [`specs/`](specs) | BoltzGen design specs, BindCraft/BindCraft2 campaign settings |
 | [`docs/method.md`](docs/method.md) | epitope choice, the pH mechanism, scoring definitions |
 | [`docs/experiment-card.md`](docs/experiment-card.md) | the stack, the funnel with denominators, and what is *not* established |

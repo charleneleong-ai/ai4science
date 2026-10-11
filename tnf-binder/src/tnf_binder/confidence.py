@@ -40,6 +40,9 @@ class BoltzConfidence:
     chain_ptm: dict[str, float]
     pair_iptm: dict[str, dict[str, float]]
     binder_chain: str = BINDER_CHAIN
+    # Predicted distance error across the interface, lower being better. Boltz does not always
+    # write it, so it defaults to NaN rather than to a number that would read as a measurement.
+    complex_ipde: float = float("nan")
 
     @classmethod
     def from_file(cls, path: Path, binder_chain: str = BINDER_CHAIN) -> "BoltzConfidence":
@@ -50,6 +53,7 @@ class BoltzConfidence:
             chain_ptm=payload["chains_ptm"],
             pair_iptm=payload["pair_chains_iptm"],
             binder_chain=binder_chain,
+            complex_ipde=payload.get("complex_ipde", float("nan")),
         )
 
     @property
@@ -119,6 +123,11 @@ class DesignConfidence:
     @property
     def binder_ptm(self) -> float:
         return mean_or_zero(s.binder_ptm for s in self.samples)
+
+    @property
+    def complex_ipde(self) -> float:
+        """Best (lowest) interface PDE across samples -- context, never the ranking statistic."""
+        return min((s.complex_ipde for s in self.samples), default=float("nan"))
 
     @property
     def inflation(self) -> float:
