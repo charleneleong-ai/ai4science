@@ -13,7 +13,8 @@ from pathlib import Path
 import pytest
 from conftest import MODEL_0
 
-from tnf_binder.tracking import FUNNEL, LEVERS, CampaignLogger, funnel_surviving
+from tnf_binder.tracking import (FUNNEL, FUNNELS, LEVERS, SUBMISSION2_FUNNEL,
+                                 CampaignLogger, funnel_surviving)
 
 
 def build_assets(root: Path, designs: dict[str, dict[str, object]]) -> Path:
@@ -68,6 +69,24 @@ class TestFunnel:
     def test_unknown_stage_raises(self):
         with pytest.raises(KeyError):
             funnel_surviving("expression")
+
+
+class TestSubmission2Funnel:
+    """The second submission has its own denominators and no novelty verdict yet."""
+
+    def test_arithmetic_holds_for_every_registered_funnel(self):
+        for name, funnel in FUNNELS.items():
+            assert all(v <= e for _, e, v in funnel), name
+
+    def test_summary_omits_a_novelty_count_it_cannot_have(self, tmp_path):
+        build_assets(tmp_path, {"a": MODEL_0})
+        summary = CampaignLogger(tmp_path, funnel=SUBMISSION2_FUNNEL).summary()
+        assert summary["designs_submitted"] == 12
+        assert "designs_passing_novelty" not in summary
+
+    def test_campaign_summary_still_reports_novelty(self, tmp_path):
+        build_assets(tmp_path, {"a": MODEL_0})
+        assert CampaignLogger(tmp_path).summary()["designs_passing_novelty"] == 2
 
 
 class TestLevers:

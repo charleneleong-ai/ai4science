@@ -25,7 +25,7 @@ from tnf_binder.confidence import DesignConfidence, rank_designs
 from tnf_binder.design import TnfDesign
 from tnf_binder.structure import Complex
 from tnf_binder.target import LOBE, POCKET, TNFR2_EPITOPE, TnfTarget
-from tnf_binder.tracking import CREDIBLE_INTERFACE, CampaignLogger
+from tnf_binder.tracking import CREDIBLE_INTERFACE, FUNNELS, CampaignLogger
 from tnf_binder.verifiers import CompositionVerifier, InterfaceVerifier, PkaSwitchVerifier
 from tnf_binder.verifiers.interface import InterfaceMetrics
 
@@ -246,13 +246,19 @@ def wandb_log(
     project: str = typer.Option("tnf-conditional-binder", "--project"),
     predictions: str = typer.Option("boltz_camp", "--predictions",
                                     help="subdirectory of assets holding the folded designs"),
+    funnel: str = typer.Option("campaign", "--funnel",
+                               help=f"which denominators this run describes: "
+                                    f"{', '.join(FUNNELS)}"),
     entity: str | None = typer.Option(None, "--entity"),
     run_name: str | None = typer.Option(None, "--run-name"),
     notes: str | None = typer.Option(None, "--notes"),
 ) -> None:
     """Log the funnel, confidence tables, pKa scans and folded complexes to Weights & Biases."""
-    logger = CampaignLogger(assets, predictions_dir=predictions, project=project,
-                            entity=entity)
+    if funnel not in FUNNELS:
+        typer.echo(f"unknown funnel {funnel!r}; choose from {', '.join(FUNNELS)}", err=True)
+        raise typer.Exit(code=2)
+    logger = CampaignLogger(assets, predictions_dir=predictions, funnel=FUNNELS[funnel],
+                            project=project, entity=entity)
     console.print(f"logging [bold]{len(logger.designs)}[/] folded designs and "
                   f"[bold]{len(logger.structures)}[/] structures to [cyan]{project}[/]")
     try:

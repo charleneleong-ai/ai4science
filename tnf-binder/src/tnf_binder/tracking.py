@@ -43,6 +43,11 @@ SUBMISSION2_FUNNEL: tuple[tuple[str, int, int], ...] = (
     ("submitted", 12, 12),
 )
 
+FUNNELS: dict[str, tuple[tuple[str, int, int], ...]] = {
+    "campaign": FUNNEL,
+    "submission2": SUBMISSION2_FUNNEL,
+}
+
 # Measured effect of each design lever on binder-to-target ipTM. Only one of the four moved.
 LEVERS: tuple[tuple[str, str, float], ...] = (
     ("target stoichiometry", "dimer -> trimer", +0.11),
