@@ -23,6 +23,14 @@ spec = importlib.util.spec_from_file_location("kaggle_submission", NOTEBOOK)
 nb = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(nb)
 
+@pytest.fixture(scope="module")
+def trainset():
+    spec = importlib.util.spec_from_file_location("ranker_trainset", NOTEBOOK.parent / "ranker" / "ranker_trainset.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 MOLECULES = [
     "CCCO", "CC(C)O", "c1ccccc1", "OCC1OC(O)C(O)C(O)C1O",
     "CCOC(C)=O", "CN(Cc1ncccc1C(=O)O)CC1(c2ccc(Br)cc2)CC1",
@@ -190,3 +198,37 @@ class TestPopularityPrior:
         mol = {"records": [dict(mz=[50.0, 60.0], it=[1.0, 0.5], prec=100.0, adduct="[M+H]+")]}
 
         assert nb.copied_parents(tmp_path / "t.parquet", {"m1": mol}) == {"m1": {"COPIED"}}
+
+
+class TestRankerTrainset:
+    """Features and labels the ranker's training-set kernel builds per query."""
+
+    def test_rows_label_the_query_and_rank_within_it(self, trainset, monkeypatch):
+        monkeypatch.setattr(nb, "SHORTLIST", 3)
+        smiles = [b"CCO", b"OCC", b"COC", b"CCCC"]
+        tier = object.__new__(nb.PubChemTier)
+        tier.mass = np.array([46.0, 46.0, 46.0, 58.0])
+        tier.off = np.cumsum([0] + [len(x) for x in smiles])
+        tier.smiles = np.frombuffer(b"".join(smiles), dtype=np.uint8)
+        tier.lsid = np.array([1.0, 3.0, 2.0, 9.0], dtype=np.float16)
+        tier.lpmid = np.zeros(4, dtype=np.float16)
+        tier.ik14 = np.array([b"OTHER", b"QUERYKEY", b"THIRD", b"FAR"], dtype="S14")
+        prior = object.__new__(trainset.Prior)
+        prior.lpatent = np.zeros(4, dtype=np.float16)
+        prior.np_bits = np.array([0, 5, 2, 0], dtype=np.uint8)
+
+        class FakeFPNet:
+            def scores(self, records, smis):
+                return np.array([{"CCO": 0.1, "OCC": 0.9, "COC": 0.5}[s] for s in smis])
+
+            def forget(self):
+                pass
+
+        mol = {"adduct": "[M+H]+", "records": [dict(mz=[30.0], it=[1.0], prec=47.0, adduct="[M+H]+",
+                                                     mode=1, ce=None, ce_n=1)]}
+        rows = trainset.candidate_rows(nb, tier, prior, "QUERYKEY", mol, 46.0, FakeFPNet())
+
+        (query,) = [r for r in rows if r["label"]]
+        assert (query["fz_rank"], query["pop_rank"]) == (0, 0) and query["fz_z"] > 0
+        assert (query["np_coconut"], query["np_lotus"], query["np_npatlas"]) == (1, 0, 1)
+        assert all(r["n_isomers"] == 3 and r["n_candidates"] == 3 for r in rows)  # 58 Da row is outside 5 ppm

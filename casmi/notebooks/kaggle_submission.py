@@ -263,24 +263,29 @@ def build_pool(train: Path) -> tuple[list[tuple[str, tuple[str, float]]], list[f
     return entries, [v[1] for _, v in entries]
 
 
-def read_test(test: Path) -> dict[str, dict]:
-    """Test spectra grouped by molecule — the metric scores per molecule, not per spectrum.
+SPECTRUM_COLUMNS = ["adduct", "precursor_mz", "ms2_mzs", "ms2_normalized_intensities",
+                    "ionization_mode", "collision_energy_ev"]
+
+
+def group_spectra(rows: list[dict], key: str) -> dict[str, dict]:
+    """Spectra grouped by molecule — the metric scores per molecule, not per spectrum.
 
     `records` carries what FPNet conditions on (precursor, adduct, polarity, collision energy),
     in the shape the public pipeline builds them.
     """
-    cols = ["molecule_id", "adduct", "precursor_mz", "ms2_mzs", "ms2_normalized_intensities",
-            "ionization_mode", "collision_energy_ev"]
     molecules: dict[str, dict] = {}
-    for r in pq.read_table(test, columns=cols).to_pylist():
-        entry = molecules.setdefault(r["molecule_id"], {"adduct": r["adduct"], "mz": r["precursor_mz"],
-                                                        "records": []})
+    for r in rows:
+        entry = molecules.setdefault(r[key], {"adduct": r["adduct"], "mz": r["precursor_mz"], "records": []})
         ces = r["collision_energy_ev"] or []
         entry["records"].append(dict(
             mz=r["ms2_mzs"], it=r["ms2_normalized_intensities"], prec=float(r["precursor_mz"]),
             adduct=r["adduct"], mode=1 if r["ionization_mode"] == "positive" else -1,
             ce=float(np.mean(ces)) if ces else None, ce_n=len(ces) or 1))
     return molecules
+
+
+def read_test(test: Path) -> dict[str, dict]:
+    return group_spectra(pq.read_table(test, columns=["molecule_id", *SPECTRUM_COLUMNS]).to_pylist(), "molecule_id")
 
 
 class Candidate(NamedTuple):
@@ -430,6 +435,10 @@ class FPNetScorer:
             fp = self.chem.raw_fingerprint(smi)
             self._fp[smi] = np.packbits(fp[self.bits] if fp is not None else np.zeros(len(self.bits), np.uint8))
         return self._fp[smi]
+
+    def forget(self) -> None:
+        """Drop cached fingerprints; for callers whose candidates rarely repeat."""
+        self._fp.clear()
 
     def fingerprints(self, smiles: list[str]) -> np.ndarray:
         packed = np.stack([self.fingerprint(s) for s in smiles])
