@@ -34,7 +34,7 @@ then engineered at interface positions to create the pH switch.
 | side-chain building | PyRosetta | 2026.29 release |
 | pKa prediction | PROPKA | 3.5.1 |
 | sequence novelty | MMseqs2 | vs Swiss-Prot + PDB seqres, snapshot 2026-10-10 |
-| fold novelty | FoldSeek + TM-align | CATH50, snapshot 2026-10-11 |
+| fold novelty | FoldSeek + TM-align | CATH50, snapshot 2026-10-11 — **conservative vs Proteinbase**, which uses ESMFold + domain segmentation over PDB/patent/antibody sets |
 
 Terms: BoltzGen/Boltz MIT; BindCraft MIT; **PyRosetta requires a licence — free for
 non-commercial academic use, paid otherwise**; AlphaFold params CC BY 4.0.
