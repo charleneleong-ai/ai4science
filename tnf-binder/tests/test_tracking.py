@@ -111,6 +111,24 @@ class TestCampaignLogger:
         assert columns == ["parent", "pka", "verdict"]
         assert rows == [["helix_0", "6.66", "ideal"], ["helix_0", "3.22", "dead"]]
 
+    def test_logs_every_csv_beside_the_predictions(self, logger):
+        """Naming individual scans meant a newly-added scan was silently never logged."""
+        (logger.assets / "pka_deep.csv").write_text("parent,pka\nhelix_0,6.66\n")
+        (logger.assets / "evidence.csv").write_text("name,xr\ntnf2_01,0.79\n")
+        columns, rows = CampaignLogger.read_csv(logger.assets / "pka_deep.csv")
+        assert columns == ["parent", "pka"] and rows == [["helix_0", "6.66"]]
+        assert {p.stem for p in logger.assets.glob("*.csv")} == {"pka_deep", "evidence"}
+
+    def test_predictions_directory_is_selectable(self, tmp_path):
+        """Submission 2 folded into its own directory beside the campaign's."""
+        build_assets(tmp_path, {"a": MODEL_0})
+        other = tmp_path / "boltz_sub2" / "b"
+        other.mkdir(parents=True)
+        (other / "confidence_b_model_0.json").write_text(json.dumps(weakened(MODEL_0, 0.7)))
+        assert [d.name for d in CampaignLogger(tmp_path).designs] == ["a"]
+        assert [d.name for d in
+                CampaignLogger(tmp_path, predictions_dir="boltz_sub2").designs] == ["b"]
+
     def test_read_csv_of_an_empty_file(self, tmp_path):
         path = tmp_path / "empty.csv"
         path.write_text("")
