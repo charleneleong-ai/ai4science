@@ -6,7 +6,10 @@ describing the submission.
 """
 
 import importlib.util
+from collections.abc import Callable, Iterable
 from pathlib import Path
+from types import ModuleType
+from typing import Any
 
 import numpy as np
 import pytest
@@ -23,12 +26,17 @@ spec = importlib.util.spec_from_file_location("kaggle_submission", NOTEBOOK)
 nb = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(nb)
 
-@pytest.fixture(scope="module")
-def trainset():
-    spec = importlib.util.spec_from_file_location("ranker_trainset", NOTEBOOK.parent / "ranker" / "ranker_trainset.py")
+
+def load_module(name: str, path: Path) -> ModuleType:
+    spec = importlib.util.spec_from_file_location(name, path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
+
+
+@pytest.fixture(scope="module")
+def trainset():
+    return load_module("ranker_trainset", NOTEBOOK.parent / "ranker" / "ranker_trainset.py")
 
 
 MOLECULES = [
@@ -232,3 +240,53 @@ class TestRankerTrainset:
         assert (query["fz_rank"], query["pop_rank"]) == (0, 0) and query["fz_z"] > 0
         assert (query["np_coconut"], query["np_lotus"], query["np_npatlas"]) == (1, 0, 1)
         assert all(r["n_isomers"] == 3 and r["n_candidates"] == 3 for r in rows)  # 58 Da row is outside 5 ppm
+
+
+class SerialPool:
+    def map(self, fn: Callable[[Any], Any], items: Iterable[Any], chunksize: int | None = None) -> list[Any]:
+        return [fn(x) for x in items]
+
+
+class TestRecallProbe:
+    """The second-pass probe reaches a structure the popularity shortlist drops."""
+
+    def test_spectral_pass_reaches_an_unpopular_answer(self, monkeypatch):
+        from rdkit import Chem
+        from rdkit.Chem import rdFingerprintGenerator
+
+        probe = load_module("recall_probe", NOTEBOOK.parent / "recall" / "recall_probe.py")
+        monkeypatch.setattr(nb, "SHORTLIST", 1)
+        smiles = [b"COC", b"CCO", b"CCCC"]
+        tier = object.__new__(nb.PubChemTier)
+        tier.mass = np.array([46.0, 46.0, 58.0])
+        tier.off = np.cumsum([0] + [len(x) for x in smiles])
+        tier.smiles = np.frombuffer(b"".join(smiles), dtype=np.uint8)
+        tier.lsid = np.array([9.0, 1.0, 9.0], dtype=np.float16)
+        tier.lpmid = np.zeros(3, dtype=np.float16)
+        tier.ik14 = np.array([b"OTHER", b"QUERYKEY", b"FAR"], dtype="S14")
+        gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=probe.ECFP_SIZE)
+        morgan = lambda s: gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s))  # noqa: E731
+        bits = np.flatnonzero(morgan("CCO") & ~morgan("COC"))
+        chem = type("Chem", (), {"raw_fingerprint": staticmethod(morgan)})
+        monkeypatch.setattr(probe, "W", dict(tier=tier, chem=chem, bits=bits, Chem=Chem, gen=gen,
+                                            ecfp_cols=np.arange(len(bits)), ecfp_raw=bits))
+        stats = {"truth_in_window": 0, "window_rows": []}
+
+        rows = probe.probe_rows(nb, SerialPool(), "QUERYKEY", 46.0, np.ones(len(bits), np.float32), stats)
+
+        by_key = {r["key"]: r for r in rows}
+        assert set(by_key) == {"OTHER", "QUERYKEY"}  # 58 Da row is outside 5 ppm
+        assert by_key["OTHER"]["in_pop"] and not by_key["QUERYKEY"]["in_pop"]
+        assert by_key["QUERYKEY"]["label"] and by_key["QUERYKEY"]["pass1_rank"] == 0
+        assert by_key["QUERYKEY"]["fz"] > by_key["OTHER"]["fz"]
+        assert stats == {"truth_in_window": 1, "window_rows": [2]}
+
+    def test_window_without_keyed_rows_is_a_counted_miss(self, monkeypatch):
+        probe = load_module("recall_probe", NOTEBOOK.parent / "recall" / "recall_probe.py")
+        tier = object.__new__(nb.PubChemTier)
+        tier.mass, tier.ik14 = np.array([58.0]), np.array([b""], dtype="S14")
+        monkeypatch.setattr(probe, "W", {"tier": tier})
+        stats = {"truth_in_window": 0, "window_rows": []}
+        for mass in (46.0, 58.0):  # empty window, then a window whose only row has no key
+            assert probe.probe_rows(nb, SerialPool(), "QUERYKEY", mass, np.ones(1), stats) == []
+        assert stats == {"truth_in_window": 0, "window_rows": [0, 1]}

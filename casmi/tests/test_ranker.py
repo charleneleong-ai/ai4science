@@ -70,5 +70,5 @@ def test_ranker_learns_the_signal_the_baseline_misses(tmp_path: Path) -> None:
     write_trainset(tmp_path)
     report = ranker.evaluate(ranker.TrainSet.load(tmp_path), k=3, rounds=50)
     overall = report["groups"]["all"]
-    assert overall["ranker"] > 0.9 > 0.3 > overall["handset"]
+    assert overall["model"] > 0.9 > 0.3 > overall["base"]
     assert overall["ci95"][0] > 0 and set(report["groups"]) == {"all", "hold", "np"}
