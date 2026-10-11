@@ -1,0 +1,32 @@
+# TNF-alpha conditional binder -- NANOBODY track.
+#
+# Why this track: de novo generation collapsed onto ubiquitin (the strongest small-protein mode
+# in the prior), which is both a non-binder and disqualified by the de-novo-only hard filter.
+# Grafting onto real nanobody frameworks cannot collapse that way -- the framework is held fixed
+# (structure_groups visibility 2) and only the CDR loops are designed (visibility 0), with
+# design_insertions giving variable CDR length. Nanobodies are explicitly allowed by the
+# submission rules (10-250 aa, single chain).
+#
+# Hotspots are 1-based CHAIN POSITIONS, not mature residue numbers: 1TNF starts at residue 6,
+# so mature 86-92 = positions 81..87, verified to spell SYQKVN.
+# Epitope = the 90%-conserved lobe of the TNFR2 site, carrying conserved K90 as the pH anchor.
+entities:
+  - file:
+      path: /home/ubuntu/tnf/targets/tnf_AB.pdb
+      include:
+        - chain: {id: A}
+        - chain: {id: B}
+      binding_types:
+        - chain: {id: A, binding: "81..83,85..87"}
+        - chain: {id: B, binding: "28,142"}
+      structure_groups: "all"
+  # One scaffold is sampled per design, giving framework diversity across the batch.
+  - file:
+      path:
+        - ../scaffolds/7eow.yaml
+        - ../scaffolds/7xl0.yaml
+        - ../scaffolds/8coh.yaml
+        - ../scaffolds/8z8v.yaml
+        - ../scaffolds/gontivimab.yaml
+        - ../scaffolds/isecarosmab.yaml
+        - ../scaffolds/sonelokimab.yaml

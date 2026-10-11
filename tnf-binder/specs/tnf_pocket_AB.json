@@ -1,0 +1,9 @@
+{
+    "design_path": "/home/ubuntu/tnf/bindcraft_out/pocket_AB/",
+    "binder_name": "tnfpockAB",
+    "starting_pdb": "/home/ubuntu/tnf/targets/tnf_AB.pdb",
+    "chains": "A,B",
+    "target_hotspot_residues": "A113,A115,A143,A144,A146,A147",
+    "lengths": [65, 120],
+    "number_of_final_designs": 40
+}

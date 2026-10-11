@@ -1,0 +1,18 @@
+# TNF-alpha binder screen config: pocket_free
+# epitope=pocket  length=60..95  secondary_structure=unconstrained
+#
+# Screening to lift design_to_target_iptm off the 0.11-0.30 plateau. Indices are 1-based CHAIN
+# POSITIONS; target files keep 1TNF numbering so position = mature - 5, asserted by gen_screen.py.
+entities:
+  - protein:
+      id: X
+      sequence: 60..95
+  - file:
+      path: /home/ubuntu/tnf/targets/tnf_trimer.pdb
+      include:
+        - chain: {id: A}
+        - chain: {id: B}
+        - chain: {id: C}
+      binding_types:
+        - chain: {id: A, binding: "108,110,138..139"}
+      structure_groups: "all"

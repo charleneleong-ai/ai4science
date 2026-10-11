@@ -1,0 +1,23 @@
+# TNF-alpha conditional binder -- v2. Changes vs v1, which produced ubiquitin + poly-Ala:
+#   - msa: empty REMOVED. The canonical BoltzGen examples never set it; forcing the target into
+#     single-sequence mode is the leading suspect for the model falling back to its prior
+#     (ubiquitin is the commonest small-protein fold) instead of designing an interface.
+#   - length given as a RANGE, as in the canonical examples, not a fixed count.
+#   - structure_groups: "all" stated explicitly. It is the parser default (schema.py:1801), so
+#     this documents intent rather than changing behaviour.
+#
+# Hotspots are 1-based CHAIN POSITIONS, not mature residue numbers: 1TNF starts at residue 6,
+# so mature 86-92 = positions 81..87. Verified to spell SYQKVN by gen_spec.py.
+entities:
+  - protein:
+      id: X
+      sequence: 60..95
+  - file:
+      path: /home/ubuntu/tnf/targets/tnf_AB.pdb
+      include:
+        - chain: {id: A}
+        - chain: {id: B}
+      binding_types:
+        - chain: {id: A, binding: "81..83,85..87"}
+        - chain: {id: B, binding: "28,142"}
+      structure_groups: "all"

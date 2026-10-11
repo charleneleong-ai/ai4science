@@ -1,0 +1,26 @@
+{
+  "targets": [
+    {
+      "name": "hTNF",
+      "target_path": "/home/ubuntu/tnf/targets/tnf_trimer.pdb",
+      "chains": "A,B,C",
+      "hotspots": "A113,A115,A143,A144,A146,A147",
+      "coldspots": "A20,A31,A71,A72,A73,A85,A89,A97,A111"
+    },
+    {
+      "name": "mTNF",
+      "target_path": "/home/ubuntu/tnf/targets/mouse_tnf_trimer.pdb",
+      "chains": "A,B,C",
+      "hotspots": "A112,A114,A142,A143,A145,A146",
+      "coldspots": "A20,A31,A71,A72,A84,A88,A96,A110"
+    }
+  ],
+  "modality": "binder",
+  "binder_lengths": [65, 110],
+  "number_of_final_designs": 20,
+  "max_trajectories": 160,
+  "forced_targeting": true,
+  "campaign_name": "tnf_orthologs",
+  "project_folder": "/home/ubuntu/tnf/bc2_out/tnf_orthologs",
+  "aa_bias": {"C": 0}
+}
