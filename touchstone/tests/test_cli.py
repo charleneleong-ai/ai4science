@@ -54,6 +54,12 @@ class TestVerifyCLI:
         assert (_status(r, "expression"), r["verifiers"]["expression"]["label"]) == ("ran", "trust")
         assert (_status(r, "thermostability"), r["verifiers"]["thermostability"]["label"]) == ("ran", "trust")
 
+    def test_composition_flag_rejects_a_degenerate_sequence(self):
+        # model-free, so --sequence is the only other input it needs
+        r = _verify("--composition", "--sequence", "A" * 40)
+        assert (_status(r, "composition"), r["verifiers"]["composition"]["label"]) == ("ran", "weak")
+        assert _status(_verify("--sequence", "A" * 40), "composition") == "needs_input"  # off by default
+
 
 class TestRankCLI:
     def test_rank_precedent_flag_folds_into_the_reward(self):

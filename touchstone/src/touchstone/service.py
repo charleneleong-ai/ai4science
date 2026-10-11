@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Literal
 
 from .cofold import CofoldCrossCheck
+from .composition import CompositionVerifier
 from .core import BinderDesign, Verdict, Verifier, element_symbol
 from .expression import ExpressionVerifier
 from .geometry.bond_valence import BondValenceVerifier
@@ -49,6 +50,7 @@ GEOMETRY = GeometryVerifier(REFERENCE)
 BOND_VALENCE = BondValenceVerifier()
 COORD_SYMMETRY = CoordinationSymmetryVerifier()  # nVECSUM: is the metal enclosed?
 COORD_GEOMETRY = CoordinationGeometryVerifier()  # polyhedron shape vs ideal
+COMPOSITION = CompositionVerifier()  # model-free degenerate-sequence gate (opt-in; needs a sequence)
 
 # stages with a library verifier but no inline-available input (licence / prediction /
 # scorer) — advertised so an agent knows the full stack and how to enable each.
@@ -58,6 +60,10 @@ NEEDS_INPUT = {
                  "EXPERIMENTAL: the learned ANN is confidently-OOD on de-novo designs — coord_geometry "
                  "is the analytic geometry oracle, see docs/experiments/2026-07-07-metalhawk-ood-designed-sites.md)",
     "cofold": "a co-fold prediction (scripts/chai_crosscheck, alphafold3_crosscheck, or allmetal3d_crosscheck)",
+    "composition": "pass composition=True + sequence (model-free — no scorer, no licence, no GPU). "
+                   "Opt-in because it judges the sequence, not the coordination geometry the rest "
+                   "of the stack is calibrated against: interface-confidence models rank "
+                   "poly-Ala/Gly designs highly, so this is the cheapest gate that catches them",
     "expression": "a sequence scorer (scripts/expression_score)",
     "thermostability": "an MD/Tm scorer (scripts/thermostability_score)",
     "motif_selectivity": "pass selectivity_metals (no GPU — MetalPDB donor-set enrichment: is this "
@@ -83,8 +89,8 @@ MLIP_TIERS = ("mlip", "mlip_md", "trs")  # the deep tiers; `selectivity` joins t
 # status so the consensus is auditable, even tiers that didn't run on this input
 STACK_ORDER = (
     "geometry", "bond_valence", "coord_symmetry", "coord_geometry", "precedent", "motif_selectivity",
-    "metalhawk", "mogul", "mlip", "mlip_md", "trs", "selectivity", "cofold", "expression",
-    "thermostability",
+    "metalhawk", "mogul", "mlip", "mlip_md", "trs", "selectivity", "cofold", "composition",
+    "expression", "thermostability",
 )
 
 
@@ -192,7 +198,7 @@ def verify_structure(
     structure: str | Path, metal: str = "Ni2+", deep: bool = False, cutoff: float = 2.8, stress: bool = False,
     sequence: str = "",
     cofold_provider=None, metalhawk_scorer=None,
-    precedent: bool = True, precedent_search=None,
+    precedent: bool = True, precedent_search=None, composition: bool = False,
     expression_scorer=None, mogul_analyse=None, thermostability_predictor=None,
     selectivity_metals=None, calc=AUTO,
 ) -> dict:
@@ -207,8 +213,10 @@ def verify_structure(
     **precedent** tier runs by default — disable with `precedent=False`, override the searcher with
     `precedent_search`. `expression_scorer`, `mogul_analyse` (licensed CSD), and
     `thermostability_predictor` each enable their opt-in tier — an absent backend never collapses the
-    default consensus. The expression / thermostability scorers key by `sequence` (the site alone has
-    none), so pass `sequence` to enable them.
+    default consensus. The composition / expression / thermostability tiers key by `sequence` (the
+    site alone has none), so pass `sequence` to enable them; `composition=True` adds the model-free
+    degenerate-sequence gate, off by default because it judges the sequence rather than the
+    coordination geometry and so would move every existing reward.
     `selectivity_metals` (e.g. ("Ni2+","Cu2+","Co2+")) adds the MLIP metal-swap ΔE selectivity tier
     under `deep` — the physics discrimination geometry can't make (does the target bind best?). `calc`
     is an internal knob for batch callers (`rank_structures`) to share one MLIP backbone; leave it
@@ -225,6 +233,8 @@ def verify_structure(
         "mogul": mogul_analyse,  # licensed CSD Mogul geometry validation
         "thermostability": thermostability_predictor,  # whole-protein Tm (TemStaPro / DeepSTABp)
     }.items() if p is not None}
+    if composition and sequence:  # both required: the gate's only input *is* the sequence
+        verifiers["composition"] = COMPOSITION
 
     skipped: dict[str, dict] = {}
     if deep:
