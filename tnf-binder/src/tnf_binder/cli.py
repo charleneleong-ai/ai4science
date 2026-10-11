@@ -21,14 +21,11 @@ from rich.console import Console
 from rich.table import Table
 from touchstone.core import Verdict
 
+from tnf_binder.assess import assess
 from tnf_binder.confidence import DesignConfidence, rank_designs
-from tnf_binder.design import TnfDesign
-from tnf_binder.structure import Complex
 from tnf_binder.submission import csv_problems, row_problem
 from tnf_binder.target import LOBE, POCKET, TNFR2_EPITOPE, TnfTarget
 from tnf_binder.tracking import CREDIBLE_INTERFACE, FUNNELS, CampaignLogger
-from tnf_binder.verifiers import CompositionVerifier, InterfaceVerifier, PkaSwitchVerifier
-from tnf_binder.verifiers.interface import InterfaceMetrics
 
 VERDICT_COLOR = {"trust": "green", "weak": "yellow", "defer": "red"}
 JSON_HELP = "emit JSON (for agents / piping)"
@@ -140,20 +137,11 @@ def verify(
     as_json: bool = typer.Option(False, "--json", help=JSON_HELP),
 ) -> None:
     """Run every structural verifier on one design: trust / weak / defer, with reasons."""
-    complex_ = Complex.from_file(structure)
-    if not complex_.is_resolved:
+    assessment = assess(structure)
+    if not assessment.is_resolved:
         typer.echo(f"could not separate binder from target in {structure.name}", err=True)
         raise typer.Exit(code=2)
-
-    target = TnfTarget()
-    metrics = InterfaceMetrics.from_areas(complex_.buried_by_position(), epitope=POCKET,
-                                          divergent=target.divergent,
-                                          clashes=complex_.clashes())
-    design = TnfDesign(structure.stem, complex_.binder_sequence,
-                       structure=structure, metrics={"interface": metrics})
-    results = [("composition", CompositionVerifier().verify(design)),
-               ("interface", InterfaceVerifier().verify(design)),
-               ("pka_switch", PkaSwitchVerifier().verify(design))]
+    design, results = assessment.design, list(assessment.verdicts)
 
     if as_json:
         typer.echo(json.dumps({

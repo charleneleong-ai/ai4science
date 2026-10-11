@@ -15,6 +15,7 @@ import pytest
 from Bio.Data.IUPACData import protein_letters_1to3
 from Bio.PDB import PDBIO, StructureBuilder
 
+from tnf_binder.assess import assess
 from tnf_binder.structure import Complex, chain_sequence, contains_tnf
 from tnf_binder.target import HUMAN
 
@@ -117,3 +118,50 @@ class TestBuriedByPosition:
         overlapped = Complex.from_file(
             build_complex(tmp_path / "clash.pdb", target, BINDER, gap=0.5))
         assert overlapped.clashes() > 0
+
+
+class TestAssess:
+    """The step the CLI and the batch scorer now share, instead of each spelling it out."""
+
+    def test_judges_a_resolvable_complex(self, tmp_path, complex_):
+        path = build_complex(tmp_path / "c2.pdb", HUMAN[TARGET_START:TARGET_START + TARGET_LENGTH],
+                     BINDER, gap=4.0)
+        result = assess(path)
+        assert result.is_resolved
+        assert result.design.sequence == BINDER
+        assert [name for name, _ in result.verdicts] == [
+            "composition", "interface", "pka_switch"]
+
+    def test_unresolvable_complex_yields_no_design_rather_than_raising(self, tmp_path):
+        """A batch of hundreds must not stop because one file's chains cannot be split."""
+        target = HUMAN[TARGET_START:TARGET_START + TARGET_LENGTH]
+        path = build_complex(tmp_path / "lone.pdb", target, "LEE", gap=4.0)
+        result = assess(path)
+        assert not result.is_resolved
+        assert result.design is None and result.verdicts == ()
+        assert result.failures == ()
+
+    def test_pka_defers_without_measurements_rather_than_failing_the_design(self, tmp_path):
+        """No pKa predicted is 'cannot judge', not 'judged and found to have no switch'."""
+        path = build_complex(tmp_path / "c3.pdb", HUMAN[TARGET_START:TARGET_START + TARGET_LENGTH],
+                     BINDER, gap=4.0)
+        pka = dict(assess(path).verdicts)["pka_switch"]
+        assert pka.label == "defer"
+        assert pka.reason not in [v.reason for n, v in assess(path).verdicts if n != "pka_switch"]
+
+    def test_failures_excludes_deferrals(self, tmp_path):
+        """A gap in our inputs is not a defect in the design, and must not read as one."""
+        path = build_complex(tmp_path / "c4.pdb",
+                             HUMAN[TARGET_START:TARGET_START + TARGET_LENGTH], BINDER, gap=4.0)
+        result = assess(path)
+        assert "pka_switch" in result.deferred
+        assert not any("defer" in reason for reason in result.failures)
+        assert set(result.failures) == {v.reason for _, v in result.verdicts if v.label == "weak"}
+
+    def test_epitope_is_the_callers_choice(self, tmp_path):
+        """Measuring focus against pocket vs lobe is a result, so it cannot be hardcoded."""
+        path = build_complex(tmp_path / "c5.pdb", HUMAN[TARGET_START:TARGET_START + TARGET_LENGTH],
+                     BINDER, gap=4.0)
+        wide = assess(path, epitope=range(1, 158)).metrics.epitope_focus
+        narrow = assess(path, epitope=[1]).metrics.epitope_focus
+        assert wide > narrow

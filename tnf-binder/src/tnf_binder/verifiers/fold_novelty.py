@@ -38,7 +38,6 @@ value defaulted to zero.
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 
 from touchstone.core import Verdict
 from touchstone.search import FoldHit
