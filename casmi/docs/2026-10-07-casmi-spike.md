@@ -33,6 +33,7 @@ InChIKey connectivity block. Code competition: notebook only, internet off. Entr
 | same, [GLACIER](https://www.kaggle.com/datasets/ahmedberatozer/casmi26-glacier) fused beside ICEBERG (0.5 / 0.5) | **0.320** | — |
 | same, forward-model weights 1.0 / 1.0 (the 0.421 notebook's setting) | **0.349** | — |
 | same, GLACIER on `[M+H]+` spectra only (not kept: 4 top-1s changed) | 0.345 | — |
+| v15 with forward-model weights 1.5 / 1.5 (not kept) | 0.346 | — |
 | leaderboard top | 0.480 | 1 |
 | [public notebook, "v4n Fusion + PubChem"](https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421) | 0.421 | — |
 

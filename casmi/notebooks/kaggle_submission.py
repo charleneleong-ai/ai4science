@@ -20,7 +20,7 @@ Scores so far, each changing one thing:
   0.320  with GLACIER fused beside ICEBERG
   0.349  with both forward-model weights at 1.0 instead of 0.5
   0.345    with GLACIER on [M+H]+ spectra only — reverted
-  this   with both forward-model weights at 1.5
+  0.346    with both forward-model weights at 1.5 — reverted
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -96,8 +96,8 @@ PPM = 5.0
 TOP_K = 25
 SHORTLIST = 1000  # distinct connectivities per molecule, chosen by popularity; 300 scored 0.258
 RERANK_N = 60  # ranked list depth handed to ICEBERG; the dataset README's recommendation
-ICE_LAMBDA = 1.5  # weights on each forward model's z-score within a same-formula group; 0.5 (the
-GL_LAMBDA = 1.5  # datasets' READMEs) scored 0.320, 1.0 (the 0.421 notebook's config) 0.349
+ICE_LAMBDA = 1.0  # weights on each forward model's z-score within a same-formula group: 0.5 (the
+GL_LAMBDA = 1.0  # datasets' READMEs) scored 0.320, 1.0 (the 0.421 notebook's config) 0.349, 1.5 0.346
 ICE_BUDGET_S = 6 * 3600  # caps: ICEBERG took 20 min on a T4 and covered 269 / 371 in 6 h on CPU;
 GL_BUDGET_S = 3 * 3600  # the runners stop cleanly at them. GLACIER runs only on a GPU.
 POP_WEIGHT = 0.25  # on a z-scored spectral score, as in the published prior's recipe
