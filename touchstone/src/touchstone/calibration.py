@@ -76,6 +76,10 @@ class Outcome:
     kd_nm: float | None = None
     target: str = ""
     design_method: str = ""
+    # Proteinbase's own predictions, kept beside the outcome so a predictor can be calibrated
+    # against what happened rather than against another predictor.
+    boltz2_iptm: float | None = None
+    boltz2_ipsae: float | None = None
 
     def measured(self, outcome: str) -> bool | None:
         return self.expressed if outcome == EXPRESSED else self.binds
@@ -108,6 +112,11 @@ def load_export(path: str | Path, *, target: str | None = None) -> list[Outcome]
     A design is counted as expressing, or binding, if any replicate says so. Experimental rows
     only -- the export also carries computational predictions under the same metric names, and
     calibrating a predictor against another predictor measures agreement, not truth.
+
+    One outcome per design and target: a design tested against two targets is two outcomes,
+    because their base rates differ by two orders of magnitude and flattening them is what
+    makes a gate invert. A design with no experimental row at all yields nothing, so the row
+    count is outcomes rather than designs.
     """
     outcomes: list[Outcome] = []
     with Path(path).open(encoding="utf-8-sig") as handle:
@@ -119,28 +128,84 @@ def load_export(path: str | Path, *, target: str | None = None) -> list[Outcome]
                 evaluations = json.loads(row.get("evaluations") or "[]")
             except (TypeError, ValueError):
                 continue
-            seen: dict[str, list] = {}
-            hit = target is None
+            predictions: dict[str, float | None] = {}
+            # Experimental rows are grouped by the target they were measured against: a design
+            # tested on two targets is two outcomes, not one, and flattening them would put a
+            # result from an easy target next to a gate judged on a hard one.
+            by_target: dict[str, dict[str, list]] = {}
             for evaluation in evaluations:
+                metric = evaluation.get("metric", "")
+                if evaluation.get("type") == "computational":
+                    if metric in ("boltz2_iptm", "boltz2_ipsae"):
+                        predictions[metric] = _number(evaluation.get("value"))
+                    continue
                 if evaluation.get("type") != "experimental":
                     continue
-                if target is not None and evaluation.get("target") == target:
-                    hit = True
-                seen.setdefault(evaluation.get("metric", ""), []).append(evaluation.get("value"))
-            if not hit:
-                continue
-            expressed = [c for c in map(_truthy, seen.get("expressed", [])) if c is not None]
-            binds = [c for c in map(_truthy, seen.get("binding", [])) if c is not None]
-            kds = [k for k in map(_number, seen.get("kd", [])) if k is not None]
-            outcomes.append(Outcome(
-                sequence=sequence,
-                expressed=any(expressed) if expressed else None,
-                binds=any(binds) if binds else None,
-                kd_nm=min(kds) if kds else None,
-                target=target or "",
-                design_method=(row.get("designMethod") or "").strip(),
-            ))
+                slug = evaluation.get("target") or ""
+                by_target.setdefault(slug, {}).setdefault(metric, []).append(
+                    evaluation.get("value"))
+            for slug, seen in by_target.items():
+                if target is not None and slug != target:
+                    continue
+                expressed = [c for c in map(_truthy, seen.get("expressed", [])) if c is not None]
+                binds = [c for c in map(_truthy, seen.get("binding", [])) if c is not None]
+                kds = [k for k in map(_number, seen.get("kd", [])) if k is not None]
+                outcomes.append(Outcome(
+                    sequence=sequence,
+                    expressed=any(expressed) if expressed else None,
+                    binds=any(binds) if binds else None,
+                    kd_nm=min(kds) if kds else None,
+                    target=slug,
+                    design_method=(row.get("designMethod") or "").strip(),
+                    boltz2_iptm=predictions.get("boltz2_iptm"),
+                    boltz2_ipsae=predictions.get("boltz2_ipsae")))
     return outcomes
+
+
+EXTRACT_COLUMNS = ["sequence", "target", "design_method", "expressed", "binds", "kd_nm",
+                   "boltz2_iptm", "boltz2_ipsae"]
+
+
+def write_extract(outcomes: Iterable[Outcome], path: str | Path) -> int:
+    """Write the fields calibration actually reads, and nothing else.
+
+    A full export is ~32 MB, of which ~28 MB is kinetic-curve JSON that no gate here consumes.
+    The extract is small enough to commit beside an analysis, so the numbers in a write-up stay
+    checkable after the upstream snapshot has moved on, without redistributing the payloads.
+    """
+    rows = list(outcomes)
+    with Path(path).open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=EXTRACT_COLUMNS)
+        writer.writeheader()
+        for design in rows:
+            writer.writerow({
+                "sequence": design.sequence, "target": design.target,
+                "design_method": design.design_method,
+                "expressed": "" if design.expressed is None else int(design.expressed),
+                "binds": "" if design.binds is None else int(design.binds),
+                "kd_nm": "" if design.kd_nm is None else design.kd_nm,
+                "boltz2_iptm": "" if design.boltz2_iptm is None else design.boltz2_iptm,
+                "boltz2_ipsae": "" if design.boltz2_ipsae is None else design.boltz2_ipsae,
+            })
+    return len(rows)
+
+
+def load_extract(path: str | Path) -> list[Outcome]:
+    """Read back a file written by `write_extract`."""
+    def maybe(value: str, cast):
+        return cast(value) if value not in ("", None) else None
+    out = []
+    with Path(path).open(encoding="utf-8-sig") as handle:
+        for row in csv.DictReader(handle):
+            out.append(Outcome(
+                sequence=row["sequence"], target=row.get("target", ""),
+                design_method=row.get("design_method", ""),
+                expressed=maybe(row.get("expressed", ""), lambda v: bool(int(v))),
+                binds=maybe(row.get("binds", ""), lambda v: bool(int(v))),
+                kd_nm=maybe(row.get("kd_nm", ""), float),
+                boltz2_iptm=maybe(row.get("boltz2_iptm", ""), float),
+                boltz2_ipsae=maybe(row.get("boltz2_ipsae", ""), float)))
+    return out
 
 
 @dataclass(frozen=True)

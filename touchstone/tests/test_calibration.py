@@ -20,6 +20,8 @@ from touchstone.calibration import (
     bands,
     calibrate,
     calibrate_by_target,
+    load_extract,
+    write_extract,
     load_export,
 )
 
@@ -131,11 +133,19 @@ class TestLoadExport:
                                       "value": "true", "target": "tnf-a"}])
         assert load_export(path)[0].expressed is True
 
-    def test_a_computational_expressed_row_is_not_a_measurement(self, tmp_path):
+    def test_a_design_with_only_predictions_yields_no_outcome(self, tmp_path):
         """Calibrating a predictor against another predictor measures agreement, not truth."""
         path = self.write(tmp_path, [{"type": "computational", "metric": "expressed",
                                       "value": "true"}])
-        assert load_export(path)[0].expressed is None
+        assert load_export(path) == []
+
+    def test_a_design_tested_on_two_targets_is_two_outcomes(self, tmp_path):
+        """Their base rates differ by orders of magnitude; flattening them inverts a gate."""
+        path = self.write(tmp_path, [
+            {"type": "experimental", "metric": "binding", "value": "true", "target": "easy"},
+            {"type": "experimental", "metric": "binding", "value": "false", "target": "hard"}])
+        got = {o.target: o.binds for o in load_export(path)}
+        assert got == {"easy": True, "hard": False}
 
     def test_any_replicate_expressing_counts_as_expressed(self, tmp_path):
         path = self.write(tmp_path, [
@@ -245,3 +255,34 @@ class TestCalibrateByTarget:
                [Outcome("D", expressed=False, target="thin") for _ in range(40)]
         assert calibrate_by_target(thin, keeps_tagged) == {}
         assert "thin" in calibrate_by_target(thin, keeps_tagged, min_group=3)
+
+
+class TestExtract:
+    """The committed extract: small enough to keep, sufficient to re-check every number."""
+
+    FIXTURE = Path(__file__).parent / "fixtures" / "proteinbase-extract-2026-10-11.csv"
+
+    def test_round_trips_every_field_calibration_reads(self, tmp_path):
+        designs = [Outcome("MK", target="t", design_method="m", expressed=True, binds=False,
+                           kd_nm=23.7, boltz2_iptm=0.81, boltz2_ipsae=0.55),
+                   Outcome("MC")]  # nothing measured: every optional field stays None
+        path = tmp_path / "x.csv"
+        write_extract(designs, path)
+        assert load_extract(path) == designs
+
+    def test_the_committed_extract_reproduces_the_expression_calibration(self):
+        """+10.3% at z=9.8 — the number the README and PR quote."""
+        measured = [d for d in load_extract(self.FIXTURE) if d.expressed is not None]
+        assert len(measured) == 4067
+        c = calibrate(measured, lambda d: d.sequence.count("C") <= 1)
+        assert c.separation == pytest.approx(0.103, abs=0.002) and c.discriminates
+
+    def test_the_committed_extract_reproduces_the_per_target_inversion(self):
+        """Pooled, ipTM looks backwards; on Nipah it separates tenfold."""
+        designs = [d for d in load_extract(self.FIXTURE)
+                   if d.boltz2_iptm is not None and d.binds is not None]
+        gate = lambda d: d.boltz2_iptm >= 0.5  # noqa: E731
+        pooled = calibrate(designs, gate, outcome=BINDS)
+        nipah = calibrate_by_target(designs, gate, outcome=BINDS)["nipah-glycoprotein-g"]
+        assert pooled.separation < 0            # pooled: the gate reads as harmful
+        assert nipah.separation > 0.08 and nipah.discriminates

@@ -125,8 +125,12 @@ what differs.
 
 Every figure above is from the full Proteinbase export of **2026-10-11**
 (`proteinbase_all_data_11_10_2026.csv`, 4069 rows, sha256 `15be8539eee642b2…`), read on 2026-10-12.
-The export is a snapshot rather than a stable dataset and is not committed here — download a
-current one from the site header and expect the counts to move.
+The export itself is a snapshot rather than a stable dataset and is **not** committed — 32 MB,
+of which ~28 MB is kinetic-curve JSON no gate here reads. What *is* committed is a 1.3 MB
+extract of the fields calibration uses
+([`tests/fixtures/proteinbase-extract-2026-10-11.csv`](tests/fixtures/proteinbase-extract-2026-10-11.csv)),
+so every number above stays checkable after the upstream snapshot moves. Regenerate it for a
+newer export with `write_extract(load_export(path), out)`, and expect the counts to move.
 
 `calibrate()` and `bands()` are importable for a gate of your own; `bands()` is worth looking at
 first, because a feature whose outcome rate is flat across its range has no threshold worth
