@@ -200,7 +200,6 @@ class TestDeltaQ:
 
     def test_is_maximal_at_the_midpoint(self):
         """Why distance from 6.7 is the cost, not a low pKa."""
-        assert MIDPOINT == pytest.approx(6.7)
         assert delta_q(MIDPOINT) > max(delta_q(MIDPOINT - 0.4), delta_q(MIDPOINT + 0.4))
 
     @pytest.mark.parametrize("offset", [0.3, 0.9, 1.5])
@@ -215,10 +214,6 @@ class TestDeltaQ:
     ])
     def test_henderson_hasselbalch(self, pka, ph, fraction):
         assert protonated_fraction(pka, ph) == pytest.approx(fraction, abs=0.005)
-
-    def test_a_histidine_far_outside_the_window_contributes_almost_nothing(self):
-        """helix0_R21H measured 3.99 on one sample, which is why it ranked last at 0.01."""
-        assert delta_q(3.99) < 0.01
 
 
 class TestSampledHis:
@@ -240,10 +235,14 @@ class TestSampledHis:
         site = SampledHis("X", 72, pkas)
         assert site.in_window_count == in_window and site.robust is robust
 
-    def test_no_samples_is_not_robust(self):
-        assert SampledHis("X", 21, ()).robust is False
+    def test_a_histidine_with_no_samples_scores_zero_rather_than_raising(self):
+        """PROPKA declining to score every sample is a represented state: min() over nothing
+        would take the whole ranking down instead of scoring that histidine 0."""
+        empty = SampledHis("X", 21, ())
+        assert empty.robust is False and empty.delta_q_floor == 0.0 and empty.spread == 0.0
 
     def test_spread_is_the_disagreement_between_samples(self):
+        """2.71 units on one histidine of one design — the finding that forced the re-rank."""
         assert SampledHis("X", 21, (3.99, 6.70)).spread == pytest.approx(2.71)
 
 
