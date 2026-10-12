@@ -6,7 +6,7 @@ up to 25 ranked SMILES per test molecule, scored by MRR@25 on the InChIKey conne
 It is a code competition — a notebook, internet off — so every model and database is attached as a
 Kaggle dataset.
 
-**Best kept pipeline: 0.349** (v15, forward-model weights 1.0; v18 scored 0.353, within noise, and was reverted), against 0.421 for the public notebook its components come from and 0.48 at the top of the
+**Best kept pipeline: 0.356** (v19, 2026-10-12: a second PubChem pass that skips candidates similar to the copied train structure; +0.007 over v15, just above the ±0.005 noise), against 0.421 for the public notebook its components come from and 0.48 at the top of the
 leaderboard. The first submission scored 0.115 against a local estimate of 0.664; that estimate was
 retracted, and since then only the leaderboard is trusted. The full history, one change per
 submission, is in [PR #80](https://github.com/charleneleong-ai/ai4science/pull/80) and the
@@ -21,7 +21,11 @@ flowchart TD
     W --> TR["train structures in the window"]
     TR -->|"minus 1 copied structure per molecule"| C
     P --> C["candidates: median 1038 per molecule"]
-    C --> F["FPNet ensemble f·z + 0.25 × popularity"]
+    W --> S["second pass: ECFP4-block f·z over the whole window, top 5000"]
+    S -->|"894 dropped: Tanimoto ≥ 0.5 to the copied structure"| S2["100 best new connectivities, 396 / 400 molecules"]
+    S2 --> C2["candidates: median 1138 per molecule"]
+    C --> C2
+    C2 --> F["FPNet ensemble f·z + 0.25 × popularity"]
     F --> K["top 60 per molecule"]
     K -->|"371 / 400 molecules with [M+H]+ / [M+Na]+ spectra"| FM["ICEBERG + GLACIER predict spectra"]
     K -->|"29 molecules not covered"| OUT
@@ -47,9 +51,10 @@ The [`recall_probe.py`](notebooks/recall/recall_probe.py) kernel and [`recall.py
 measure what a spectrum-driven second PubChem pass (as in the 0.421 notebook) adds to the popularity
 shortlist on held-out train molecules. Scanning the whole window on the ECFP4 block and adding the 100
 best of its top 5000 lifts recall from 126 to 236 / 280 and MRR@25 from 0.241 to 0.405 (+0.164, 95% CI
-+0.124 to +0.209). On the leaderboard the same pass (v18) scored 0.353, within noise of 0.349, so it is switched off
-([`SECOND_PASS_KEEP`](notebooks/kaggle_submission.py)): the production FPNet memorised the copied
-spectra and steered the pass toward the copied structures.
++0.124 to +0.209). On the leaderboard the same pass (v18) scored 0.353, within noise of 0.349: the production FPNet
+memorised the copied spectra and steered the pass toward the copied structures. Skipping candidates
+with Tanimoto ≥ 0.5 to the copied structure ([`SecondPass.too_similar`](notebooks/kaggle_submission.py),
+threshold chosen after v18) scored 0.356 (v19) and is the pipeline now.
 
 ## Running
 

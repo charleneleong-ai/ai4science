@@ -4,9 +4,9 @@
 \usepackage{amsmath}
 \usepackage[hidelinks]{hyperref}
 
-\title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.349}
+\title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.356}
 \author{Charlene Leong}
-\date{11 October 2026}
+\date{12 October 2026}
 
 \begin{document}
 \maketitle
@@ -16,9 +16,10 @@ We rank candidate structures for 400 molecules from their tandem mass spectra in
 Kaggle competition, scored by MRR@25 on the InChIKey connectivity block. The first submission
 scored 0.115 against a local estimate of 0.664; the estimate came from labels drawn from the same
 data as the candidates, and was retracted. Since then every number reported is a public
-leaderboard score, and each of the 15 submissions changed one thing. A PubChem-scale pool with a
+leaderboard score, and each of the 16 submissions changed one thing. A PubChem-scale pool with a
 popularity prior, a learned spectrum-to-fingerprint model, and two forward models that predict each
-candidate's spectrum take the score to 0.349, against 0.421 for the public notebook these
+candidate's spectrum take the score to 0.349; a second PubChem pass that avoids structures similar
+to the copied train rows takes it to 0.356, against 0.421 for the public notebook these
 components come from. No local estimate of the score exists.
 \end{abstract}
 
@@ -79,10 +80,11 @@ v & change from the previous kept version & public MRR@25 \\
 12 & ICEBERG, CPU, 269 of 371 molecules scored & 0.286 \\
 13 & ICEBERG on a T4, all 371 & 0.292 \\
 14 & + GLACIER, $\lambda = 0.5$ & 0.320 \\
-15 & $\lambda = 1.0$ & \textbf{0.349} \\
+15 & $\lambda = 1.0$ & 0.349 \\
 16 & GLACIER on $[\mathrm{M{+}H}]^+$ only (not kept) & 0.345 \\
 17 & $\lambda = 1.5$ (not kept) & 0.346 \\
 18 & + spectrum-driven second PubChem pass (not kept) & 0.353 \\
+19 & the same, skipping candidates with Tanimoto $\geq 0.5$ to the copied structure & \textbf{0.356} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -97,7 +99,10 @@ never saw them, a second PubChem pass chosen by the spectrum lifted the answer's
 the candidates from 126 to 236 and MRR@25 from 0.241 to 0.405. On the test set it moved the score
 by $+0.004$. The production FPNet was trained on the train rows the test spectra copy, and the
 pass's top-1 picks moved toward those copied structures (median Tanimoto 0.26 to 0.42 over the 192
-molecules whose top-1 changed).
+molecules whose top-1 changed). v19 skips second-pass candidates with Tanimoto $\geq 0.5$ to the
+copied structure (894 dropped over 400 molecules) and scored 0.356, $+0.007$ over v15. The gain is
+just above the noise and the threshold was chosen after seeing v18, so it is not a pre-registered
+result.
 
 \section{What is not established}
 \begin{itemize}
@@ -105,7 +110,7 @@ molecules whose top-1 changed).
     at 0.030; consensus labels from ten public notebooks collapsed into three lineages agreeing on
     12 of 400 top-1 picks. Each submission is the only measurement.
   \item \textbf{The private score.} Three choices --- the shortlist size, $\lambda$, and GLACIER's
-    input --- were selected on the public split, so 0.349 is optimistic.
+    input --- were selected on the public split, as was v19's similarity threshold, so 0.356 is optimistic.
   \item \textbf{Candidate recall.} Whether the answer is among the candidates cannot be separated
     from ranking with one MRR.
   \item \textbf{Why the data is shaped as it is.} The copied train structures are the answer for at
