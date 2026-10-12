@@ -175,7 +175,7 @@ const SUBS = [
   [16, "GLACIER on [M+H]+ spectra only", 0.345, "DISCARD"],
   [17, "forward-model weights 1.5", 0.346, "DISCARD"],
   [18, "+ second PubChem pass chosen by the spectrum", 0.353, "DISCARD"],
-  [19, "second pass skips candidates similar to the copied structure", 0.356, "PROMOTE"],
+  [19, "second pass skips candidates similar to the copied structure", 0.356, "KEEP"],
 ];
 const best = Math.max(...SUBS.filter(s => s[3] !== "DISCARD").map(s => s[2]));
 

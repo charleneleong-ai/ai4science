@@ -100,9 +100,9 @@ the candidates from 126 to 236 and MRR@25 from 0.241 to 0.405. On the test set i
 by $+0.004$. The production FPNet was trained on the train rows the test spectra copy, and the
 pass's top-1 picks moved toward those copied structures (median Tanimoto 0.26 to 0.42 over the 192
 molecules whose top-1 changed). v19 skips second-pass candidates with Tanimoto $\geq 0.5$ to the
-copied structure (894 dropped over 400 molecules) and scored 0.356, $+0.007$ over v15. The gain is
-just above the noise and the threshold was chosen after seeing v18, so it is not a pre-registered
-result.
+copied structure (894 dropped over 400 molecules) and scored 0.356, $+0.007$ over v15. Against v18,
+which differs only by the filter, the gain is $+0.003$, inside the noise, so v19 is kept but does
+not clear G1; its threshold was also chosen after seeing v18.
 
 \section{What is not established}
 \begin{itemize}
