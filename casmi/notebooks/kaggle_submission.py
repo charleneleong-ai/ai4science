@@ -31,8 +31,7 @@ Scores so far, each changing one thing:
            (an identical re-run scored 0.353: run-to-run noise measured at 0.003)
   0.354    the same with the threshold at 0.4 (2566 dropped) — within noise, reverted
   0.333    v19 with ICEBERG's weight at 0.5, GLACIER's at 1.0 — reverted: ICEBERG carries its weight
-  v22      v19 with the threshold at 0.6 (restores v18's top-1 on 29 of the 65 molecules v19 changed)
-  v23      the best of v19-v22 with the second pass re-scoring the top 10,000 pass-1 rows, not 5000
+  v22      v19 with the second pass re-scoring the top 10,000 pass-1 rows, not 5000
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
