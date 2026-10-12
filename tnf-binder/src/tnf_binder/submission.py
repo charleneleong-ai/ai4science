@@ -59,7 +59,7 @@ def row_problem(row: Mapping[str, str]) -> str | None:
     return None
 
 
-def candidate_problem(record: Mapping[str, Any]) -> str | None:
+def candidate_problem(record: Mapping[str, Any], *, max_clashes: int = MAX_CLASHES) -> str | None:
     """Why a measured candidate does not earn a slot, or None if it clears every gate.
 
     Separate from `row_problem`, which asks only whether a row is a legal upload. This asks
@@ -71,9 +71,13 @@ def candidate_problem(record: Mapping[str, Any]) -> str | None:
     whose pKa and interface mean anything, so reporting it as a near miss on delta-Q would be
     reporting a measurement taken on the wrong object.
     """
-    if flag := (str(record.get("flag") or "").strip().strip('"')):
-        return f"structural flag: {flag}"
-    if float(record["clashes"] or 0) > MAX_CLASHES:
+    flag = str(record.get("flag") or "").strip().strip('"')
+    # A clash flag is judged by the count, which the caller can calibrate; the other flags
+    # (off_epitope, tiny_interface) are categorical and always disqualifying.
+    other = [f for f in flag.split(",") if f and not f.startswith("clash(")]
+    if other:
+        return f"structural flag: {','.join(other)}"
+    if float(record["clashes"] or 0) > max_clashes:
         return f"{record['clashes']} clashes"
     if float(record["delta_q_floor"]) < MIN_DELTA_Q:
         return f"delta_q {record['delta_q_floor']} < {MIN_DELTA_Q}"

@@ -4,20 +4,24 @@ Ranked on **ΔQ floor** (charge gained at the interface going pH 7.4 → 6.0, ea
 scored on whichever of its three structures gives the *smaller* swing — a lower bound),
 then mouse retention, then human affinity.
 
-`robust` = histidines staying inside 6.0–7.6 on **all three** structures; 9 of 26 across the
-set do not. `mouse` = interface confidence against mouse TNF-α as a fraction of the human
+`robust` = histidines staying inside 6.0–7.6 on **all three** structures; 9 of the 28 in this
+submission do not. `mouse` = interface confidence against mouse TNF-α as a fraction of the human
 value, same protocol both sides.
 
-`tnf2_13` filled one of the slots held for a campaign that produced nothing. It is the single
-survivor of eight further three-histidine combinations on `helix_0` put through the same
-gates — six failed on structure, one on mouse retention at 56 %. It scored 3/4 on novelty, as
-predicted from its 2-substitution distance to `tnf2_08`; **all 13 designs pass the ≥3/4 gate.**
+`tnf2_13`, `tnf2_14` and `tnf2_15` fill slots held for a campaign that produced nothing. They
+are the three survivors of **sixteen** further combinations on `helix_0`, folded against both
+orthologs in two rounds and put through the same gates; eight failed on structure and five on
+mouse retention or switch robustness. `tnf2_14` has the largest guaranteed swing in the set and
+retains 99 % of its human interface on mouse, and carries three steric clashes — the most of
+any design here, equal to `tnf2_04`.
 
 | # | design | aa | His | ΔQ floor | robust | mouse | buried Å² | human ipTM | Cys | novelty |
 |---|---|---|---|---|---|---|---|---|---|---|
+| tnf2_14 | `helix0_E38H_E67H_E70H` | 91 | 3 | **1.55** | 2/3 | 99% | 908 | 0.171 | 1 | pending |
 | tnf2_01 | `helix0_R21H_E67H_E70H` | 91 | 3 | **1.38** | 3/3 | 103% | 748 | 0.153 | 1 | 3/4 |
 | tnf2_13 | `helix0_R35H_E67H_E70H` | 91 | 3 | **1.35** | 2/3 | 98% | 658 | 0.207 | 1 | 3/4 |
 | tnf2_02 | `helix0_R21H_E67H_R72H` | 91 | 3 | **1.14** | 2/3 | 108% | 777 | 0.162 | 1 | 3/4 |
+| tnf2_15 | `helix0_R35H_E70H_R72H` | 91 | 3 | **1.07** | 2/3 | 82% | 731 | 0.209 | 1 | pending |
 | tnf2_03 | `helix0_E67H_R72H` | 91 | 2 | **1.03** | 1/2 | 88% | 528 | 0.159 | 1 | 3/4 |
 | tnf2_04 | `helix0_R21H_E70H` | 91 | 2 | **0.99** | 2/2 | 88% | 889 | 0.175 | 1 | 3/4 |
 | tnf2_05 | `helix0_E67H_E70H` | 91 | 2 | **0.89** | 2/2 | 110% | 716 | 0.151 | 1 | 3/4 |

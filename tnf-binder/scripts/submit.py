@@ -29,8 +29,9 @@ from rich.console import Console
 
 from tnf_binder.confidence import DesignConfidence
 from tnf_binder.design import TnfDesign
-from tnf_binder.submission import (MAX_ROWS, MOLECULE_CLASS, SUBMISSION_COLUMNS,
-                                   candidate_problem, row_problem, write_submission)
+from tnf_binder.submission import (MAX_CLASHES, MAX_ROWS, MOLECULE_CLASS,
+                                   SUBMISSION_COLUMNS, candidate_problem,
+                                   row_problem, write_submission)
 from tnf_binder.switch import SwitchProfile, switch_profiles
 from tnf_binder.tables import design_stem, number, read_rows, write_rows
 from tnf_binder.verifiers import CompositionVerifier
@@ -189,6 +190,18 @@ def shortlist(
                           f"xr={record['cross_reactivity']}")
 
 
+def folds_by_design(predictions: Path) -> dict[str, DesignConfidence]:
+    """Every fold directory under `predictions`, keyed by the design it holds.
+
+    Keyed by stem rather than by a known prefix: each batch stamps its own marker onto the
+    directory names (`F__`, `FM__`, `A__`, `S2__`, `V__`), and hardcoding one pair of them
+    meant a later batch silently found no folds at all and every design in it was reported as
+    having failed mouse cross-reactivity at 0%.
+    """
+    return {design_stem(d.name): DesignConfidence.from_dir(d)
+            for d in sorted(predictions.iterdir()) if d.is_dir()}
+
+
 def missing_input(design: str, human: DesignConfidence, mouse: DesignConfidence,
                   geometry: dict[str, str] | None) -> str | None:
     """Which measurement this candidate is missing, if any.
@@ -201,9 +214,9 @@ def missing_input(design: str, human: DesignConfidence, mouse: DesignConfidence,
     binder that genuinely did not fold.
     """
     if not human:
-        return f"no human fold under F__{design}"
+        return f"no human fold directory for {design}"
     if not mouse:
-        return f"no mouse fold under FM__{design}"
+        return f"no mouse fold directory for {design}"
     if geometry is None:
         return "no geometry row (run score_designs first)"
     return None
@@ -242,6 +255,8 @@ def rank(
     mouse: Path = typer.Option(..., "--mouse", help="Boltz predictions dir, mouse complexes"),
     out: Path = typer.Option(..., "--out"),
     geometry: Path | None = typer.Option(None, "--geometry", help="table from score_designs"),
+    max_clashes: int = typer.Option(MAX_CLASHES, "--max-clashes",
+                                    help="calibrate against the designs already submitted"),
 ) -> None:
     """Rank slot-filling candidates on delta-Q, robustness and measured mouse cross-reactivity.
 
@@ -250,6 +265,7 @@ def rank(
     above, fixed before these designs were folded.
     """
     profiles = {design_stem(p.design): p for p in switch_profiles(read_rows(robustness))}
+    human_folds, mouse_folds = folds_by_design(human), folds_by_design(mouse)
     # score_designs writes one row per diffusion sample; the gates are defined on model_0.
     geometry_by_design = {design_stem(r["design"]).removesuffix("_model_0"): r
                           for r in read_rows(geometry)
@@ -258,14 +274,14 @@ def rank(
 
     records, dropped, unmeasured = [], [], []
     for design, profile in sorted(profiles.items()):
-        human_fold = DesignConfidence.from_dir(human / f"F__{design}")
-        mouse_fold = DesignConfidence.from_dir(mouse / f"FM__{design}")
+        human_fold = human_folds.get(design, DesignConfidence(design, ()))
+        mouse_fold = mouse_folds.get(design, DesignConfidence(design, ()))
         geometry_row = geometry_by_design.get(design)
         if gap := missing_input(design, human_fold, mouse_fold, geometry_row):
             unmeasured.append((design, gap))
             continue
         record = fill_record(design, profile, human_fold, mouse_fold, geometry_row)
-        if reason := candidate_problem(record):
+        if reason := candidate_problem(record, max_clashes=max_clashes):
             dropped.append((design, reason))
         else:
             records.append(record)

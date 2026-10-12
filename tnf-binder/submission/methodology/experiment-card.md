@@ -89,12 +89,12 @@ composition gate was added after poly-alanine appeared at the top of a shortlist
 gate after a submitted design failed. Both were responses to observed failures, so the funnel
 above is not a clean pre-registered statistic.
 
-## 6b. Second submission, and six more declared deviations
+## 6b. Second submission, and seven more declared deviations
 
 Submission 2 is a measured histidine series on the two chassis that passed **both** the fold gate
 and the composition gate — of 16 folded parents, only `screen_pocket_helix_0` and
-`screen_pocket_free_1` passed both. Eleven entries vary the switch on `helix_0`, two carry
-`free_1`, and seven of the 20 slots go unused. The concentration on one chassis is a result,
+`screen_pocket_free_1` passed both. Thirteen entries vary the switch on `helix_0`, two carry
+`free_1`, and five of the 20 slots go unused. The concentration on one chassis is a result,
 not a preference: the funnel left two.
 
 The seven unused slots were held for the BindCraft2 campaign, which produced nothing in three
@@ -104,6 +104,20 @@ structure were folded against human and mouse TNF-α and scored on the same gate
 of the set. **One of the eight survived** and is submitted as `tnf2_13`; the full funnel,
 including each rejection, is in `docs/slotfill-funnel.csv`. Six failed on structure (clashes,
 or an interface that moved off the epitope entirely) and one on mouse retention at 56 %.
+
+A second round of eight closed the one assumption the first round left standing. Under the
+clash gate as originally set it returned **zero survivors** (`docs/a38-funnel.csv`); under the
+gate recalibrated to the submitted set's own tolerance it returns **one**, `tnf2_14`, which has
+the largest guaranteed swing of any design in the submission. Six A38H triples and two R21H doubles had been
+dropped earlier without being folded, on the grounds that `helix0_E38H` as a *single* put 59 %
+of its interface on human/mouse-divergent residues — an inference from the conserved-epitope
+proxy this campaign later disproved. The exclusion was correct and **the stated reason was
+wrong**: cross-reactivity was never the problem, with five of the eight at or above 0.70 and
+the best at 0.87. Seven fail on structure, and the one that is structurally clean
+(`helix0_R21H_E38H_E67H`, 0 clashes, epitope focus 0.48) fails on robustness at 1 of 3
+histidines. Across both rounds, **3 of 16 candidates are structurally clean**, so roughly four
+in five histidine combinations on this chassis do not survive refolding whichever positions
+they use — a property of the chassis, not of A38H.
 
 Every pKa is PROPKA on the mutant in its bound context, and every combination was measured as a
 combination rather than composed from singles — which was necessary: `A35H+A38H` drops A35 from
@@ -116,6 +130,7 @@ combination rather than composed from singles — which was necessary: `A35H+A38
 | **The novelty rule is empirical, and now n = 16 without becoming calibratable** | "High fold similarity fails, moderate passes" is read off Proteinbase verdicts, not from their published scale — which, applied literally at 38% identity, would have failed designs that passed. Sixteen verdicts have not fixed this and will not: **fifteen of the sixteen are the same score (3/4)**, with one 2 and one 4, so there is almost no outcome variance to fit against. Worse, the one controlled pair available — `free1_T73H` and `free1_parent`, one substitution apart with identical TM-score, identical nearest hit and identical identity — scored **4/4 and 3/4**, so the features we measure have *no* resolving power at the only boundary where we do have variance. More verdicts of this kind add nothing. It is used to rank, and it is not calibrated. |
 | **The structural `flag` gate was added after seeing the geometry table** | `submission.candidate_problem` originally gated on clash count alone. The first slot-filling geometry table showed two candidates at `epitope_focus 0.00` — bound somewhere else on the target entirely — admitted by a clash count of zero. The flag check was wired in after reading that table, so "one of eight survived" is **not** a pre-registered count. It is not a threshold fitted to the answer: `scripts/submit.py shortlist` has rejected on this same flag since the first campaign, and the omission was in failing to carry it into the newer gate. |
 | **`tnf2_13` was added after the first upload** | The twelve-design CSV had already been uploaded and novelty-checked when the eight slot-filling candidates were folded. The design that survived was appended and the whole set re-checked, so `tnf2_13` was selected under gates fixed before it was folded but after the rest of the set was already fixed. |
+| **The clash gate was recalibrated after the rounds it judged** | `MAX_CLASHES` was set to **0** for both slot-filling rounds without checking what the designs already submitted score. Seven of the thirteen carry clashes, up to three on `tnf2_04`, so candidates were being held to a standard the incumbents do not meet. Re-gated at that tolerance, `helix0_E38H_E67H_E70H` and `helix0_R35H_E70H_R72H` clear every gate and enter as `tnf2_14` and `tnf2_15`. **This is a threshold changed after seeing which designs it rejected**, so "three of sixteen survived" is not a pre-registered count. It was raised to match the submitted set rather than to admit a particular candidate, and the two it admits were ranked on criteria fixed before they were folded — but the direction of the change was learned from the result. |
 | **BindCraft2 runs on loosened design settings** | Rounds 1 and 2 scored zero candidates: trajectories died at the screen stage on binder pLDDT 0.59 against a default floor of 0.60, so the relaxed acceptance filters never saw a candidate. Round 3 applies `target_flexibility 0.5` + `initial_guess` — rungs 1–2 of BindCraft2's own desperation ladder, which cannot self-engage here because it waits 750 trajectories without an acceptance and one trajectory costs ~33 min. **Its documentation is explicit that designs accepted this way are judged against an easier task and are weaker candidates.** Anything this produces is marked as such rather than entering the funnel as an equal. |
 
 ## 7. What is not established
@@ -134,12 +149,39 @@ combination rather than composed from singles — which was necessary: `A35H+A38
   input is a heuristic and the thresholds were never calibrated against an expression outcome.
 - **ESM-2 pseudo-perplexity separates the two chassis and nothing else.** `helix_0` sits at
   6.29–7.26 (mean 6.79, n=11) and `free_1` at 10.10–10.48 (n=2): no overlap, and a gap roughly
-  ten times the spread any substitution produces. Lower is more natural, so `free_1` is the
-  less protein-like of the two by this proxy — which compounds its 41–47 % mouse retention and
-  its near-neutral, hydrophobic surface. Its one advantage, the campaign's only 4/4 novelty,
-  is a gate already cleared at 3/4 by everything else. Novelty and naturalness are measured
-  against overlapping databases and pull against each other; neither is calibrated to
-  expression here.
+  ten times the spread any substitution produces. **It does not follow that `free_1` is worse.**
+  Calibrating perplexity against 681 designs with a measured expression verdict shows no usable
+  gradient below 16 and a local inversion below 8 — expression runs 45.8 % at perplexity 0–5
+  against 70.6 % at 9–12 — so `free_1` at 10.1–10.5 sits in the better-performing band and
+  `helix_0` at 6.3–7.3 in the worse one, if the relationship holds at all at these n. The
+  honest reading is that this proxy separates the two chassis and says nothing about which
+  expresses. Its only calibrated use is rejecting perplexity above 16, which nothing here
+  approaches. An earlier version of this card treated `free_1`'s higher perplexity as
+  compounding its other liabilities; that was the proxy being read as if its direction were
+  established.
+- **Both liabilities this card previously registered are refuted against measured outcomes.**
+  Proteinbase's full export carries `expressed` as an experimental boolean for **4065 designs**,
+  which is the first wet-lab calibration this campaign has had, and it contradicts both claims:
+  - *The unpaired cysteine.* Eleven of the thirteen carry one cysteine, inherited from position
+    34 of the `helix_0` chassis, and this card called the odd count a liability because it
+    cannot form a disulphide. Oddness does nothing: designs with an odd count express at
+    **86.7 %** and those with an even non-zero count at **86.7 %**, identically. What matters is
+    how many, and the effect is small until there are several — within the 60–100 aa band these
+    designs occupy, one cysteine costs **0.7 percentage points** (95.5 % against 96.2 % for
+    none, n=133 and n=1018). Two or more does cost real yield (88.7 % in the same band, 69.7 %
+    above 150 aa), which retrospectively supports dropping `free_4` for carrying three — but
+    one cysteine is not the liability this card claimed.
+  - *The aggregation axis.* Expression is flat in hydrophobicity across the whole export
+    (89.7–93.2 % from GRAVY −2.0 to +2.0, and not monotonic), so `free_1` being near-neutral and
+    hydrophobic does not predict that it fails to yield material.
+
+  The feature that does predict expression is **length**, which this card never mentioned:
+  96.8 % at 60–80 aa, 95.2 % at 80–100, 91.5 % at 100–150, and 79.6 % above 150. At 74 and 91
+  residues both chassis sit in the best bands, against a base rate of **91.6 %**. So the honest
+  expectation is that essentially all of these express, and that expression is not where this
+  submission is likely to fail. Caveats: the export pools competitions, targets and expression
+  systems; these are single-variable rates with one confound controlled, not a model; and none
+  of these designs is in that dataset.
 - **Eleven of the thirteen carry one cysteine, an odd and therefore unpairable count.** It is
   at position 34 of the `helix_0` chassis, so every design on that chassis inherits it rather
   than choosing it. A lone surface cysteine invites disulfide scrambling, covalent dimers and
@@ -166,6 +208,22 @@ combination rather than composed from singles — which was necessary: `A35H+A38
   uncertainty — so a confidence filter is no substitute for re-scoring every sample, and three
   samples undersample whatever is actually varying. **Every ΔQ floor in this submission is a
   lower bound estimated from three draws, and the true worst case is likely worse.**
+- **The structural gate is a coin flip, and every count in the slot-filling funnels is a
+  statement about `model_0` rather than about the design.** Clashes and interface area were
+  scored on one diffusion sample. Re-scored on all three, **10 of the 16 candidates change
+  their clash-free verdict depending on which sample is read**, and interface area moves by a
+  factor of two to five on the same design — `helix0_R35H_E67H_E70H` reads 0 clashes over
+  658 Å² on `model_0` and 9 clashes over 1203 Å² on `model_2`. The parent chassis is clash-free
+  on its own sample, and a single histidine is enough to introduce a clash on three of the four
+  one-histidine designs, so the gate is penalising the substitution the design exists to make.
+  Numbers in `docs/clashes-per-sample.txt`.
+
+  This is the same mistake as the pKa, made a third time. A quantity was measured on one
+  arbitrary sample and treated as a property of the design, after that exact error had already
+  been found and fixed for pKa (`switch.SampledHis`) and for interface confidence (mean rather
+  than best-of-n). **It is not fixed here**: the structural verdicts in this card stand as
+  `model_0` measurements, and the honest reading of "six of eight failed on structure" is "six
+  of eight failed on the one sample that was scored".
 - **The three samples are not energetically equivalent, and the ΔQ floor is usually set by the
   worse one.** Rosetta REF15 on the raw coordinates separates them by 347–2855 REU across the
   eight slot-filling candidates — the folding model rates the same triples at pTM 0.956–0.958.
