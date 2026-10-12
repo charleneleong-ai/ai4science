@@ -42,9 +42,9 @@ below). No model here was trained or fine-tuned by this work; every weight is a 
 
 ## Budget — every attempt in the denominator
 
-- **15 submissions, 15 scored, 0 rejected.** Every one is in the
+- **16 submissions, 16 scored, 0 rejected.** Every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including the four not
-  kept (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise) in
+  kept (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise) and v19 (0.356, kept) in
   [PR #85](https://github.com/charleneleong-ai/ai4science/pull/85).
 - **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
   molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
@@ -64,8 +64,9 @@ below). No model here was trained or fine-tuned by this work; every weight is a 
 | drop the train structure behind each copied spectrum | before v11 was scored | analysis of the 0.421 notebook's picks, not of test labels |
 | forward-model weights 1.0 (from 0.5; 1.5 tried) | **after** scoring all three | public leaderboard |
 | GLACIER on all covered spectra (`[M+H]+`-only tried) | **after** scoring both | public leaderboard |
+| second pass skips candidates with Tanimoto ≥ 0.5 to the copied structure | **after** v18 scored | v18's changed top-1 picks drifted toward the copied structures; only 0.5 tried |
 
-Choices marked **after** were selected on the public leaderboard, so the reported 0.349 is an
+Choices marked **after** were selected on the public leaderboard, so the reported 0.356 is an
 optimistic estimate of the private score. Differences under about ±0.005 — the run-to-run noise
 of identical runs — were treated as no change.
 

@@ -37,4 +37,6 @@ submissions:
      change: "forward-model weights 1.5 / 1.5"}
   - {version: 18, ref: 57077612, date: 2026-10-11, family: candidate-pool, commit: 7e77e44, score: 0.353, verdict: DISCARD,
      change: "+ second PubChem pass chosen by the spectrum (100 best new of the ECFP4-block top 5000)"}
+  - {version: 19, ref: 57087161, date: 2026-10-12, family: candidate-pool, commit: d65ca26, score: 0.356, verdict: PROMOTE,
+     change: "second pass skips candidates with Tanimoto >= 0.5 to the copied structure (threshold post hoc)"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==
