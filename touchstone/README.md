@@ -151,6 +151,30 @@ newer export with `write_extract(load_export(path), out)`, and expect the counts
 first, because a feature whose outcome rate is flat across its range has no threshold worth
 choosing.
 
+## Is the verdict a property of the design, or of the sample you scored?
+
+A structure predictor emits several samples per design. Score one and you have a number; score
+all of them and you find out which it was. In one campaign that difference decided real
+verdicts three times — pKa on the design structure put 8 of 23 histidines in the switching
+window that leave it on a sibling; interface confidence taken best-of-n overstated the mean by
+up to 0.35; and steric clashes scored on `model_0` flipped the clash-free verdict for **10 of
+16** candidates, one design reading 0 clashes over 658 Å² on one sample and 9 over 1203 Å² on
+another. Each was found and fixed separately, twice, before the third was noticed.
+
+```python
+from touchstone import Sampled, stability
+
+measured = [Sampled.of(name, clashes_per_sample) for name, clashes_per_sample in designs]
+report = stability(measured, lambda c: c == 0)
+print(report)   # 0 keep, 2 drop, 6 sample-dependent (75%) — NOT trustworthy
+```
+
+`Sampled.worst()` is what a gate should read rather than the mean — a design that fails on any
+sample has an interpretation the mean does not, and the mean of a clash count over structures
+the model cannot tell apart is not a quantity anything measures. Run `stability` before quoting
+a count from a gate: a funnel built on an unstable one reports the sample that was scored, not
+the designs that were rejected.
+
 ## Close the loop (RLVR)
 
 The verdict doubles as a reward to fine-tune the generator on its own best designs
