@@ -42,9 +42,9 @@ below). No model here was trained or fine-tuned by this work; every weight is a 
 
 ## Budget — every attempt in the denominator
 
-- **16 submissions, 16 scored, 0 rejected.** Every one is in the
+- **19 submissions, 19 scored, 0 rejected** (one an identical re-run of v19 to measure noise: 0.353 vs 0.356). Every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including the four not
-  kept (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise) and v19 (0.356, kept) in
+  kept (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise) v19 (0.356, kept), v20 (0.354) and v21 (0.333) in
   [PR #85](https://github.com/charleneleong-ai/ai4science/pull/85).
 - **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
   molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
