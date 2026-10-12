@@ -19,6 +19,15 @@ have been caught here in one call:
   - a cysteine liability argued from first principles, worth 0.7 percentage points of measured
     expression once a control set existed.
 
+**Pool targets and the answer can invert.** Measured over 2214 designs with a Boltz-2 ipTM
+prediction and a binding outcome, ipTM looks useless or backwards: designs predicted at
+0.1-0.2 bound 45.7% of the time and those above 0.7 bound 33.1%. Split by target it predicts
+correctly -- on Nipah glycoprotein G, 1.1% of designs below 0.5 bound against 10.6% above, a
+tenfold separation. The pooled view is Simpson's paradox, because base rates run from 0.9% on
+15-PGDH to 84.3% on SARS-CoV-2 RBD and the high-ipTM bins are dominated by the hardest target.
+`calibrate_by_target` exists so this is the default way to look, and `calibrate` without a
+target should be read as a pooled summary that may be meaningless.
+
 A gate can also discriminate for the wrong reason, and this module will not catch that for
 you. "Even or no cysteine" separates outcomes at z=4.2 on the export -- but only because it
 sweeps the zero-cysteine designs into the kept group; odd against even *non-zero* is 86.7%
@@ -248,3 +257,25 @@ def bands(outcomes: Iterable[Outcome], feature: Callable[[Outcome], float],
         inside = [m for v, m in measured if low <= v < high]
         out.append(Band(low, high, len(inside), sum(inside)))
     return out
+
+
+def calibrate_by_target(outcomes: Iterable[Outcome], gate: Callable[[Outcome], bool], *,
+                        outcome: str = EXPRESSED, min_group: int = 15,
+                        ) -> dict[str, Calibration]:
+    """One calibration per target, which is the only safe way to read a gate across campaigns.
+
+    Base rates differ by two orders of magnitude between targets, so a gate pooled over all of
+    them can invert its own sign. Targets where either side of the gate holds fewer than
+    `min_group` designs are omitted rather than reported at a rate that cannot be distinguished
+    from noise.
+    """
+    grouped: dict[str, list[Outcome]] = {}
+    for design in outcomes:
+        if design.measured(outcome) is not None:
+            grouped.setdefault(design.target, []).append(design)
+    per_target = {}
+    for target, designs in grouped.items():
+        result = calibrate(designs, gate, outcome=outcome)
+        if min(result.kept, result.dropped) >= min_group:
+            per_target[target] = result
+    return per_target

@@ -158,6 +158,10 @@ def calibrate(
         raise typer.Exit(code=1)
     console.print(f"[bold]{len(designs)}[/] designs with a measured {outcome}"
                   + (f" against {target}" if target else ""))
+    if target is None:
+        console.print("[yellow]pooled over every target — base rates differ by two orders of "
+                      "magnitude between them, and a gate pooled this way can invert its own "
+                      "sign. Pass --target before believing anything below.[/]")
 
     table = Table(title=f"what each gate would have done ({outcome})")
     for column in ("gate", "verdict", "keeps", "drops", "separation", "z"):

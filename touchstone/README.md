@@ -109,6 +109,14 @@ Three findings from the first run, over 4065 designs with an experimental expres
 | under 150 residues | discriminates | 3522 at 93.5% | 545 at 79.6% | +13.8% |
 | hydrophilic (GRAVY < 0) | **undecided** | 3247 at 91.5% | 820 at 92.0% | −0.4% |
 
+**Pass `--target`.** Pooled over every target the answer can invert: measured over 2214
+designs with a Boltz-2 ipTM prediction and a binding outcome, ipTM looks useless — designs
+predicted at 0.1–0.2 bound 45.7% of the time and those above 0.7 bound 33.1%. Split by target
+it predicts correctly, and on Nipah glycoprotein G strongly: **1.1% of designs below ipTM 0.5
+bound, against 10.6% above**. The pooled view is Simpson's paradox, because base rates run from
+0.9% on 15-PGDH to 84.3% on SARS-CoV-2 RBD and the high-ipTM bins are dominated by the hardest
+target. `calibrate_by_target()` is the safe default; the CLI says so when you pool.
+
 A gate can also separate outcomes for the wrong reason, and this will not catch that for you.
 *Even-or-no cysteine* discriminates at z=4.2 — but only because it sweeps the zero-cysteine
 designs into the kept group. Odd against even **non-zero** is 86.7% against 86.7%, exactly

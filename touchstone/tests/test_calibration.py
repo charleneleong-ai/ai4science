@@ -19,6 +19,7 @@ from touchstone.calibration import (
     Outcome,
     bands,
     calibrate,
+    calibrate_by_target,
     load_export,
 )
 
@@ -205,3 +206,42 @@ class TestCalibrateCommand:
                          '"a","n","MKLV","x","m","[]"\n')
         result = CliRunner().invoke(app, ["calibrate", str(empty)])
         assert result.exit_code == 1
+
+
+class TestCalibrateByTarget:
+    """Pooling targets can invert a gate's sign, so per-target is the default way to look."""
+
+    @staticmethod
+    def two_targets() -> list[Outcome]:
+        """A gate that works on both targets, which pooling makes look useless.
+
+        Shaped after the real inversion: an easy target where almost everything succeeds and a
+        hard one where almost nothing does, with the gate keeping mostly hard-target designs.
+        """
+        # Shaped after the real inversion on ipTM: the gate keeps mostly hard-target designs
+        # and drops mostly easy-target ones, so pooling compares the two targets rather than
+        # the two sides of the gate. Within each target the gate is worth +10 points.
+        easy = ([Outcome("K", expressed=i < 18, target="easy") for i in range(20)]    # 90%
+                + [Outcome("D", expressed=i < 64, target="easy") for i in range(80)])  # 80%
+        hard = ([Outcome("K", expressed=i < 12, target="hard") for i in range(80)]     # 15%
+                + [Outcome("D", expressed=i < 1, target="hard") for i in range(20)])   # 5%
+        return easy + hard
+
+    def test_pooled_can_disagree_with_every_target(self):
+        designs = self.two_targets()
+        pooled = calibrate(designs, keeps_tagged)
+        per_target = calibrate_by_target(designs, keeps_tagged)
+        assert pooled.separation < 0                      # pooled: the gate looks backwards
+        assert all(c.separation > 0 for c in per_target.values())   # per target: it works
+
+    def test_each_target_is_reported_separately(self):
+        per_target = calibrate_by_target(self.two_targets(), keeps_tagged)
+        assert set(per_target) == {"easy", "hard"}
+        assert per_target["hard"].base_rate < per_target["easy"].base_rate
+
+    def test_a_target_with_too_few_on_one_side_is_omitted(self):
+        """A rate over three designs is not a rate; silence beats a number nobody should use."""
+        thin = [Outcome("K", expressed=True, target="thin") for _ in range(3)] + \
+               [Outcome("D", expressed=False, target="thin") for _ in range(40)]
+        assert calibrate_by_target(thin, keeps_tagged) == {}
+        assert "thin" in calibrate_by_target(thin, keeps_tagged, min_group=3)
