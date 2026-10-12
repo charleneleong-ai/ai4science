@@ -149,12 +149,16 @@ combination rather than composed from singles — which was necessary: `A35H+A38
   input is a heuristic and the thresholds were never calibrated against an expression outcome.
 - **ESM-2 pseudo-perplexity separates the two chassis and nothing else.** `helix_0` sits at
   6.29–7.26 (mean 6.79, n=11) and `free_1` at 10.10–10.48 (n=2): no overlap, and a gap roughly
-  ten times the spread any substitution produces. Lower is more natural, so `free_1` is the
-  less protein-like of the two by this proxy — which compounds its 41–47 % mouse retention and
-  its near-neutral, hydrophobic surface. Its one advantage, the campaign's only 4/4 novelty,
-  is a gate already cleared at 3/4 by everything else. Novelty and naturalness are measured
-  against overlapping databases and pull against each other; neither is calibrated to
-  expression here.
+  ten times the spread any substitution produces. **It does not follow that `free_1` is worse.**
+  Calibrating perplexity against 681 designs with a measured expression verdict shows no usable
+  gradient below 16 and a local inversion below 8 — expression runs 45.8 % at perplexity 0–5
+  against 70.6 % at 9–12 — so `free_1` at 10.1–10.5 sits in the better-performing band and
+  `helix_0` at 6.3–7.3 in the worse one, if the relationship holds at all at these n. The
+  honest reading is that this proxy separates the two chassis and says nothing about which
+  expresses. Its only calibrated use is rejecting perplexity above 16, which nothing here
+  approaches. An earlier version of this card treated `free_1`'s higher perplexity as
+  compounding its other liabilities; that was the proxy being read as if its direction were
+  established.
 - **Both liabilities this card previously registered are refuted against measured outcomes.**
   Proteinbase's full export carries `expressed` as an experimental boolean for **4065 designs**,
   which is the first wet-lab calibration this campaign has had, and it contradicts both claims:
@@ -178,21 +182,6 @@ combination rather than composed from singles — which was necessary: `A35H+A38
   submission is likely to fail. Caveats: the export pools competitions, targets and expression
   systems; these are single-variable rates with one confound controlled, not a model; and none
   of these designs is in that dataset.
-- **touchstone's `ExpressionVerifier` returns `trust` for all thirteen, which is not evidence.**
-  Its thresholds are library defaults — `max_perplexity` 12.0, `min_solubility` 0.4 — and this
-  set runs 6.3–10.5 and 0.51–0.78, so nothing here can fail it. A gate that passes 13/13 at
-  untouched defaults has measured nothing; only its *score* is usable, and that score (0.77–0.78
-  for `helix_0`, 0.51 for `free_1`) just restates the chassis split below. The solubility half is
-  touchstone's own declared placeholder (GRAVY + charge, pending NetSolP/CamSol), so half the
-  input is a heuristic and the thresholds were never calibrated against an expression outcome.
-- **ESM-2 pseudo-perplexity separates the two chassis and nothing else.** `helix_0` sits at
-  6.29–7.26 (mean 6.79, n=11) and `free_1` at 10.10–10.48 (n=2): no overlap, and a gap roughly
-  ten times the spread any substitution produces. Lower is more natural, so `free_1` is the
-  less protein-like of the two by this proxy — which compounds its 41–47 % mouse retention and
-  its near-neutral, hydrophobic surface. Its one advantage, the campaign's only 4/4 novelty,
-  is a gate already cleared at 3/4 by everything else. Novelty and naturalness are measured
-  against overlapping databases and pull against each other; neither is calibrated to
-  expression here.
 - **Eleven of the thirteen carry one cysteine, an odd and therefore unpairable count.** It is
   at position 34 of the `helix_0` chassis, so every design on that chassis inherits it rather
   than choosing it. A lone surface cysteine invites disulfide scrambling, covalent dimers and
