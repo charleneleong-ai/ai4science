@@ -4,7 +4,8 @@ The 0.349 notebook keeps the 1000 most-documented connectivities in the 5 ppm wi
 molecules that holds the answer for 43%. The 0.421 notebook adds a second pass chosen by the spectrum:
 FPNet's f.z on the ECFP4 block alone (cheap: one Morgan fingerprint per structure) over the whole window,
 the top N1 rows of that re-scored with the full fingerprint. This probe measures what that pass reaches,
-before any notebook change or submission.
+before any notebook change or submission. v2 kept N1 = 5000; v3 keeps the whole window, so any N1 can be
+read off locally.
 
 Queries are a seeded sample of the fold-safe `hold` molecules, scored by `fpnet_fold0.pt`, which never saw
 them. Per query it writes every popularity-shortlist row and every pass-1 top-N1 row with its full f.z,
@@ -29,7 +30,7 @@ import pyarrow.parquet as pq
 
 N_QUERIES = 300
 SEED = 1
-N1 = 5000  # pass-1 rows re-scored with the full fingerprint, as in the 0.421 notebook
+N1: int | None = None  # pass-1 rows kept with full f.z; None = the whole window (v2 kept 5000, as the 0.421 notebook)
 ECFP_SIZE = 4096  # raw fingerprint bits below this are the ECFP4 block
 WORKERS = 4
 CHECKPOINT = 50
