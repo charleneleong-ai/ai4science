@@ -162,6 +162,20 @@ def geometry_across_samples(rows: list[dict[str, str]]) -> dict[str, dict[str, s
     any sample raised: a design that clashes on one structure clashes, and one whose interface
     slid off the epitope on one structure did that too. `sample_spread` carries the clash range
     so a caller can say which verdicts were close.
+
+    **On the only data this has been tried against, it rejects everything.** All sixteen
+    slot-filling candidates fail under it, at a clash ceiling of zero and of three, including
+    both designs that were actually submitted: `helix0_R35H_E67H_E70H` reads epitope focus
+    0.51, 0.18 and 0.30 against a 0.25 bar, and `helix0_E38H_E67H_E70H` reads 0.22, 0.22 and
+    0.28. A gate that rejects everything discriminates exactly as much as one that accepts
+    everything.
+
+    That is not an argument for going back to reading `model_0`, which decided 10 of those 16
+    verdicts by which structure was opened. It is the finding that neither aggregation works
+    here: with three samples and this much variance, these structural gates cannot separate
+    these designs, and a verdict either way is noise. What would change that is more samples
+    before gating, or gating on the fraction of samples that pass rather than on any single
+    one -- a different design from this, and unbuilt.
     """
     by_design: dict[str, list[dict[str, str]]] = {}
     for row in rows:
