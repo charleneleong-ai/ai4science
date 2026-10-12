@@ -74,14 +74,14 @@ footer { font: 12px/1.5 var(--mono); color: var(--muted); }
       <div class="fig main"><b>0.356</b><span>best public MRR@25 · v19</span></div>
       <div class="fig"><b>0.115</b><span>first submission · v1</span></div>
       <div class="fig"><b>0.421</b><span>public notebook the parts come from</span></div>
-      <div class="fig"><b>16 / 16</b><span>submissions scored, none omitted</span></div>
+      <div class="fig"><b>18 / 18</b><span>submissions scored, none omitted</span></div>
     </div>
   </header>
 
   <section aria-labelledby="spec-h">
     <h2 id="spec-h">Every submission, drawn as a spectrum</h2>
     <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.48 leaderboard top.</p>
-    <div class="chart"><svg id="spectrum" viewBox="0 0 760 310" role="img" aria-label="Stick chart of 16 submission scores rising from 0.115 to 0.356"></svg>
+    <div class="chart"><svg id="spectrum" viewBox="0 0 760 310" role="img" aria-label="Stick chart of 18 submission scores rising from 0.115 to 0.356"></svg>
       <div class="legend"><span><i class="key" style="background:var(--peak)"></i>kept</span><span><i class="key" style="background:var(--dim)"></i>not kept</span><span><i class="key" style="background:var(--ref)"></i>reference scores</span></div>
     </div>
   </section>
@@ -125,7 +125,7 @@ flowchart TD
   </section>
 
   <section aria-labelledby="all-h">
-    <h2 id="all-h">All sixteen submissions</h2>
+    <h2 id="all-h">All eighteen submissions</h2>
     <p>Gate G1: beat the best so far by more than the ±0.005 run-to-run noise.</p>
     <div class="table-box"><table>
       <thead><tr><th>v</th><th>change</th><th style="text-align:right">MRR@25</th><th>verdict</th></tr></thead>
@@ -176,6 +176,8 @@ const SUBS = [
   [17, "forward-model weights 1.5", 0.346, "DISCARD"],
   [18, "+ second PubChem pass chosen by the spectrum", 0.353, "DISCARD"],
   [19, "second pass skips candidates similar to the copied structure", 0.356, "KEEP"],
+  [20, "similarity threshold 0.4 instead of 0.5", 0.354, "DISCARD"],
+  [21, "ICEBERG weight 0.5, GLACIER 1.0", 0.333, "DISCARD"],
 ];
 const best = Math.max(...SUBS.filter(s => s[3] !== "DISCARD").map(s => s[2]));
 

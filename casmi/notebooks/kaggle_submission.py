@@ -28,8 +28,9 @@ Scores so far, each changing one thing:
            (median Tanimoto 0.26 -> 0.42 on the 192 changed molecules)
   0.356  the same pass, dropping candidates with Tanimoto >= 0.5 to the copied train structure
          (threshold chosen after seeing v18, not pre-registered; 894 candidates dropped)
-  v20      the same with the threshold at 0.4
-  v21      v19 (threshold 0.5) with ICEBERG's weight at 0.5, GLACIER's at 1.0
+           (an identical re-run scored 0.353: run-to-run noise measured at 0.003)
+  0.354    the same with the threshold at 0.4 (2566 dropped) — within noise, reverted
+  0.333    v19 with ICEBERG's weight at 0.5, GLACIER's at 1.0 — reverted: ICEBERG carries its weight
   v22      v19 with the threshold at 0.6 (restores v18's top-1 on 29 of the 65 molecules v19 changed)
   v23      the best of v19-v22 with the second pass re-scoring the top 10,000 pass-1 rows, not 5000
 
@@ -114,7 +115,7 @@ TOP_K = 25
 SHORTLIST = 1000  # distinct connectivities per molecule, chosen by popularity; 300 scored 0.258
 RERANK_N = 60  # ranked list depth handed to ICEBERG; the dataset README's recommendation
 ICE_LAMBDA = 1.0  # weights on each forward model's z-score within a same-formula group: 0.5 (the
-GL_LAMBDA = 1.0  # datasets' READMEs) scored 0.320, 1.0 (the 0.421 notebook's config) 0.349, 1.5 0.346; v21 tries ICE 0.5 / GL 1.0
+GL_LAMBDA = 1.0  # datasets' READMEs) scored 0.320, 1.0 (the 0.421 notebook's config) 0.349, 1.5 0.346; ICE 0.5 / GL 1.0 0.333 (v21)
 ICE_BUDGET_S = 6 * 3600  # caps: ICEBERG took 20 min on a T4 and covered 269 / 371 in 6 h on CPU;
 GL_BUDGET_S = 3 * 3600  # the runners stop cleanly at them. GLACIER runs only on a GPU.
 POP_WEIGHT = 0.25  # on a z-scored spectral score, as in the published prior's recipe
