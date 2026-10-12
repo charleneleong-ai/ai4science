@@ -28,6 +28,7 @@ Scores so far, each changing one thing:
            (median Tanimoto 0.26 -> 0.42 on the 192 changed molecules)
   0.356  the same pass, dropping candidates with Tanimoto >= 0.5 to the copied train structure
          (threshold chosen after seeing v18, not pre-registered; 894 candidates dropped)
+  v20      the same with the threshold at 0.4
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -116,7 +117,7 @@ GL_BUDGET_S = 3 * 3600  # the runners stop cleanly at them. GLACIER runs only on
 POP_WEIGHT = 0.25  # on a z-scored spectral score, as in the published prior's recipe
 SECOND_PASS_N1 = 5000  # window rows given the full f.z after the ECFP4-block pass (1000: 179 / 280
 SECOND_PASS_KEEP = 100  # answers reached, 2000: 208, 5000: 236); 100 scored 0.353 (v18); with the similarity filter 0.356 (v19)
-COPIED_SIMILARITY_MAX = 0.5  # second-pass candidates at least this similar to the copied train structure
+COPIED_SIMILARITY_MAX = 0.4  # second-pass candidates at least this similar to the copied train structure
 ECFP_SIZE = 4096  # raw fingerprint bits below this are the ECFP4 block
 WORKERS = os.cpu_count() or 1
 MAX_BREAKS = 2
