@@ -16,11 +16,12 @@ if the choice is explicit at the call site.
 
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 from touchstone.core import Verdict
+from touchstone.sampled import Sampled, stability
 
 from tnf_binder.design import TnfDesign
 from tnf_binder.structure import Complex
@@ -83,3 +84,65 @@ def assess(path: Path, *, epitope: Collection[int] = POCKET,
                 ("interface", InterfaceVerifier().verify(design)),
                 ("pka_switch", PkaSwitchVerifier().verify(design)))
     return Assessment(path.stem, design, metrics, verdicts)
+
+
+@dataclass(frozen=True)
+class SampledAssessment:
+    """One design assessed on every diffusion sample of its complex, not just the first.
+
+    `assess` reads one structure, which is what the ranking used and what every structural
+    count in this campaign's funnels was computed from. Re-read across all three samples, 10
+    of 16 candidates change their clash-free verdict and interface area moves by a factor of
+    two to five on the same design -- one reads 0 clashes over 658 A^2 on `model_0` and 9 over
+    1203 A^2 on `model_2`.
+
+    This reports that and changes nothing. A verdict recomputed on aggregated structures would
+    reject a different set of designs, and swapping one selection for another after seeing
+    both is not a correction.
+    """
+
+    name: str
+    per_sample: tuple[Assessment, ...]
+
+    @property
+    def clashes(self) -> Sampled:
+        # Named for the design, not the metric: `stability` reports which designs flipped.
+        return Sampled.of(self.name, (a.metrics.clashes for a in self.per_sample if a.metrics))
+
+    @property
+    def interface_area(self) -> Sampled:
+        return Sampled.of(self.name,
+                          (a.metrics.area for a in self.per_sample if a.metrics))
+
+    @property
+    def clash_free_is_stable(self) -> bool:
+        """False when the clash-free verdict depends on which sample was scored."""
+        return self.clashes.is_stable(lambda c: c == 0)
+
+    def caveat(self) -> str | None:
+        """What to print beside a verdict that one more sample would have changed."""
+        if self.clash_free_is_stable:
+            return None
+        return (f"{self.name}: clash-free verdict is sample-dependent "
+                f"({[int(c) for c in self.clashes.values]}), "
+                f"interface area {self.interface_area.spread:.0f} A^2 apart across samples")
+
+
+def assess_samples(directory: Path, *, epitope: Collection[int] = POCKET,
+                   divergent: Collection[int] | None = None) -> SampledAssessment:
+    """Assess every `*_model_*.cif` under `directory` as one design."""
+    paths = sorted(directory.glob("*_model_*.cif"))
+    return SampledAssessment(directory.name,
+                             tuple(assess(p, epitope=epitope, divergent=divergent)
+                                   for p in paths))
+
+
+def unstable_verdicts(assessments: Sequence[SampledAssessment]) -> str:
+    """One line per design whose structural verdict rests on the sample that was scored.
+
+    Run this before quoting a count from a structural gate. A funnel built on an unstable one
+    reports the sample, not the designs.
+    """
+    report = stability([a.clashes for a in assessments], lambda c: c == 0)
+    lines = [str(report)] + [c for a in assessments if (c := a.caveat())]
+    return "\n".join(lines)
