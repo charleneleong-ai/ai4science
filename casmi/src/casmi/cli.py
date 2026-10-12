@@ -26,6 +26,7 @@ from .recall import Config, load, reciprocal_ranks
 from .stats import paired
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+WHOLE_WINDOW = 10**9  # an N1 beyond any window: the second pass over every row
 app = typer.Typer(add_completion=False, help="CASMI 2026 molecule-disjoint harness.")
 
 RANKERS: dict[str, str] = {
@@ -167,7 +168,7 @@ def train_ranker(
 
 @app.command()
 def recall_probe(
-    probe: Path = typer.Argument(Path.home() / "casmi-data/kernel_outputs/recall-v2",
+    probe: Path = typer.Argument(Path.home() / "casmi-data/kernel_outputs/recall-v3",
                                  help="recall-probe kernel output: probe/part-*.parquet and probe_stats.json"),
 ) -> None:
     """Recall and MRR@25 of the popularity shortlist plus a spectrum-driven second pass, per (N1, keep)."""
@@ -177,12 +178,12 @@ def recall_probe(
     table = Table("N1", "keep", "median candidates", "answer among candidates", "MRR@25", "Δ vs shortlist [95% CI]")
     table.add_row("—", "—", f"{np.median([len(q.candidates(Config(0, 0))) for q in queries]):.0f}",
                   f"{base_hits} / {total}", f"{base.mean():.3f}", "")
-    for n1, keep in product((1000, 2000, 5000), (100, 250, 500, 1000)):
+    for n1, keep in product((2000, 5000, 10_000, WHOLE_WINDOW), (100, 500)):
         cfg = Config(n1, keep)
         hits, rr = reciprocal_ranks(queries, cfg, total)
         r = paired(rr, base)
         lo, hi = r["ci95"]
-        table.add_row(str(n1), str(keep), f"{np.median([len(q.candidates(cfg)) for q in queries]):.0f}",
+        table.add_row("window" if n1 == WHOLE_WINDOW else str(n1), str(keep), f"{np.median([len(q.candidates(cfg)) for q in queries]):.0f}",
                       f"{hits} / {total}", f"{r['model']:.3f}", f"{r['delta']:+.3f} [{lo:+.3f}, {hi:+.3f}]")
     Console().print(table)
 
