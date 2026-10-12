@@ -31,6 +31,7 @@ Scores so far, each changing one thing:
   v20      the same with the threshold at 0.4
   v21      v19 (threshold 0.5) with ICEBERG's weight at 0.5, GLACIER's at 1.0
   v22      v19 with the threshold at 0.6 (restores v18's top-1 on 29 of the 65 molecules v19 changed)
+  v23      the best of v19-v22 with the second pass re-scoring the top 10,000 pass-1 rows, not 5000
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -117,9 +118,9 @@ GL_LAMBDA = 1.0  # datasets' READMEs) scored 0.320, 1.0 (the 0.421 notebook's co
 ICE_BUDGET_S = 6 * 3600  # caps: ICEBERG took 20 min on a T4 and covered 269 / 371 in 6 h on CPU;
 GL_BUDGET_S = 3 * 3600  # the runners stop cleanly at them. GLACIER runs only on a GPU.
 POP_WEIGHT = 0.25  # on a z-scored spectral score, as in the published prior's recipe
-SECOND_PASS_N1 = 5000  # window rows given the full f.z after the ECFP4-block pass (1000: 179 / 280
-SECOND_PASS_KEEP = 100  # answers reached, 2000: 208, 5000: 236); 100 scored 0.353 (v18); with the similarity filter 0.356 (v19)
-COPIED_SIMILARITY_MAX = 0.6  # second-pass candidates at least this similar to the copied train structure
+SECOND_PASS_N1 = 10_000  # window rows given the full f.z after the ECFP4-block pass (held-out answers
+SECOND_PASS_KEEP = 100  # reached, 2000: 208 / 280, 5000: 236, 10,000: 255, whole window: 258); 100 scored 0.353 (v18); with the similarity filter 0.356 (v19)
+COPIED_SIMILARITY_MAX = 0.5  # second-pass candidates at least this similar to the copied train structure
 ECFP_SIZE = 4096  # raw fingerprint bits below this are the ECFP4 block
 WORKERS = os.cpu_count() or 1
 MAX_BREAKS = 2
@@ -861,7 +862,8 @@ def rank_all(molecules: dict[str, dict], entries, pool_masses: list[float], pubc
     if added:
         print(f"second pass: {sum(a > 0 for a in added)}/{len(added)} molecules gained candidates, "
               f"median {int(np.median(added))} added  ({time.time()-t0:.0f}s)", flush=True)
-        print(f"second pass picks: top-1 for {from_second[0]} molecules, in the top 25 for {from_second[1]}", flush=True)
+        print(f"second pass picks: top-1 for {from_second[0]} molecules, in the top 25 for {from_second[1]} "
+              f"(N1 {SECOND_PASS_N1}, keep {SECOND_PASS_KEEP})", flush=True)
         print(f"second pass: dropped {second.dropped} candidates similar to a copied structure "
               f"(Tanimoto >= {COPIED_SIMILARITY_MAX})", flush=True)
     return ranked
