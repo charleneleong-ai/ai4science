@@ -84,6 +84,119 @@ uv run --extra viz python scripts/boltzgen_scores.py \
   --npz-dir <fold_out_npz> --cif-dir <refold_cif> --metal Ni2+ --wandb
 ```
 
+## Calibrate a gate before you trust it
+
+Every threshold in this package used to be a number someone chose, and four modules carried a
+docstring promising to calibrate against wet-lab data with nothing to calibrate against.
+Proteinbase publishes an export of designs with measured outcomes — whether each expressed,
+whether it bound, its KD — which is the missing control set.
+
+```bash
+touchstone calibrate proteinbase_export.csv --target egfr
+```
+
+It applies each sequence-level gate to the designs whose outcome is known and reports what the
+gate would have done, so a threshold can be chosen against a population rather than guessed.
+`discriminates` requires the gap between kept and dropped to survive the sampling noise in both
+groups, so a gate that looks good on a handful of designs reads as *undecided*, and one that
+keeps everything reads as *vacuous* rather than perfect.
+
+Three findings from the first run, over 4065 designs with an experimental expression verdict:
+
+| gate | verdict | keeps | drops | separation |
+| --- | --- | --- | --- | --- |
+| at most one cysteine | discriminates | 2686 at 95.1% | 1381 at 84.8% | +10.3% |
+| under 150 residues | discriminates | 3522 at 93.5% | 545 at 79.6% | +13.8% |
+| hydrophilic (GRAVY < 0) | **undecided** | 3247 at 91.5% | 820 at 92.0% | −0.4% |
+
+**Pass `--target`.** Pooled over every target the answer can invert: measured over 2214
+designs with a Boltz-2 ipTM prediction and a binding outcome, ipTM looks useless — designs
+predicted at 0.1–0.2 bound 45.7% of the time and those above 0.7 bound 33.1%. Split by target
+it predicts correctly, and on Nipah glycoprotein G strongly: **1.1% of designs below ipTM 0.5
+bound, against 10.6% above**. The pooled view is Simpson's paradox, because base rates run from
+0.9% on 15-PGDH to 84.3% on SARS-CoV-2 RBD and the high-ipTM bins are dominated by the hardest
+target. `calibrate_by_target()` is the safe default; the CLI says so when you pool.
+
+**ESM-2 pseudo-perplexity is a junk filter, not a ranker** — measured on a length-matched
+case-control sample of 681 designs (every non-expressing design in the export, paired with a
+success from the same length band, so a difference cannot be length in disguise):
+
+| what you want to do with it | verdict |
+| --- | --- |
+| rank designs by it | **refuted** — no length band separates (best p=0.056), pooled p=0.084, and below perplexity 8 it *inverts* (z=−2.9: lower perplexity, worse expression) |
+| reject the tail | **real** — above perplexity 16, expression is 9.3% against 52.7%, a plateau holding z>3.2 from cut 12 to 20 |
+
+So it earns a place as a gate on obviously-unnatural sequences and no place in a ranking. Worth
+knowing before applying it: de novo miniproteins sit far above the natural reference
+population, which has a median perplexity of 6.8 — a campaign whose designs span 6.3 to 10.5
+sits entirely in the flat-to-inverted region, where the useful cut would pass every one of them.
+Raw scores in [`tests/fixtures/esm-perplexity-case-control.json`](tests/fixtures/esm-perplexity-case-control.json).
+
+A gate can also separate outcomes for the wrong reason, and this will not catch that for you.
+*Even-or-no cysteine* discriminates at z=4.2 — but only because it sweeps the zero-cysteine
+designs into the kept group. Odd against even **non-zero** is 86.7% against 86.7%, exactly
+nothing. A significant separation says the two groups differ, not that the feature you named is
+what differs.
+
+Every figure above is from the full Proteinbase export of **2026-10-11**
+(`proteinbase_all_data_11_10_2026.csv`, 4069 rows, sha256 `15be8539eee642b2…`), read on 2026-10-12.
+The export itself is a snapshot rather than a stable dataset and is **not** committed — 32 MB,
+of which ~28 MB is kinetic-curve JSON no gate here reads. What *is* committed is a 1.3 MB
+extract of the fields calibration uses
+([`tests/fixtures/proteinbase-extract-2026-10-11.csv`](tests/fixtures/proteinbase-extract-2026-10-11.csv)),
+so every number above stays checkable after the upstream snapshot moves. Regenerate it for a
+newer export with `write_extract(load_export(path), out)`, and expect the counts to move.
+
+**What affinity is actually reachable on a target**, before quoting a predicted KD against
+nothing:
+
+```python
+for a in affinity_by_target(load_extract(path)).values():
+    print(a)   # pd-l1: best 0.0716 nM, median 152 nM over 216 fitted
+```
+
+| target | best | median | ≤10 nM |
+| --- | --- | --- | --- |
+| human-vegf110 | 0.077 nM | 26 nM | 41/157 |
+| nipah-glycoprotein-g | 0.297 nM | 25 nM | 32/102 |
+| egfr | 0.26 nM | 66 nM | 21/118 |
+| sars-cov-2-rbd | 2.14 nM | 96 nM | **6/222** |
+| pd-l1 | 0.072 nM | 152 nM | 38/216 |
+
+Medians differ six-fold between targets, so a bar set without one says more about which target
+was picked than about any method. `tighter_than(nm)` passes affinity to `calibrate` as the
+outcome, so a gate can be judged on how tight its binders are rather than on whether they bound
+at all — and a `Calibration` built from more than one target reports itself as `pooled`, because
+that pooling has inverted a verdict here twice.
+
+`calibrate()` and `bands()` are importable for a gate of your own; `bands()` is worth looking at
+first, because a feature whose outcome rate is flat across its range has no threshold worth
+choosing.
+
+## Is the verdict a property of the design, or of the sample you scored?
+
+A structure predictor emits several samples per design. Score one and you have a number; score
+all of them and you find out which it was. In one campaign that difference decided real
+verdicts three times — pKa on the design structure put 8 of 23 histidines in the switching
+window that leave it on a sibling; interface confidence taken best-of-n overstated the mean by
+up to 0.35; and steric clashes scored on `model_0` flipped the clash-free verdict for **10 of
+16** candidates, one design reading 0 clashes over 658 Å² on one sample and 9 over 1203 Å² on
+another. Each was found and fixed separately, twice, before the third was noticed.
+
+```python
+from touchstone import Sampled, stability
+
+measured = [Sampled.of(name, clashes_per_sample) for name, clashes_per_sample in designs]
+report = stability(measured, lambda c: c == 0)
+print(report)   # 0 keep, 2 drop, 6 sample-dependent (75%) — NOT trustworthy
+```
+
+`Sampled.worst()` is what a gate should read rather than the mean — a design that fails on any
+sample has an interpretation the mean does not, and the mean of a clash count over structures
+the model cannot tell apart is not a quantity anything measures. Run `stability` before quoting
+a count from a gate: a funnel built on an unstable one reports the sample that was scored, not
+the designs that were rejected.
+
 ## Close the loop (RLVR)
 
 The verdict doubles as a reward to fine-tune the generator on its own best designs

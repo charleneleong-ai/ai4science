@@ -70,9 +70,13 @@ from .thermostability import ThermostabilitySignal, ThermostabilityVerifier, tm_
 from .pipeline import CascadeResult, cascade, design_and_rank, rank, selectivity_profile, stress_profile
 from .reward import best_of_n, rank_structures, reward_from_result
 from .service import verify_structure
+from .sampled import Sampled, StabilityReport, stability
 
 __all__ = [
     "BinderDesign",
+    "Sampled",
+    "StabilityReport",
+    "stability",
     "CoordinationSite",
     "Generator",
     "Verdict",
