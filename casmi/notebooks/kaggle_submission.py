@@ -30,6 +30,7 @@ Scores so far, each changing one thing:
          (threshold chosen after seeing v18, not pre-registered; 894 candidates dropped)
   v20      the same with the threshold at 0.4
   v21      v19 (threshold 0.5) with ICEBERG's weight at 0.5, GLACIER's at 1.0
+  v22      v19 with the threshold at 0.6 (restores v18's top-1 on 29 of the 65 molecules v19 changed)
 
 Self-contained on purpose. `pip install` needs internet, so the `casmi` package logic is
 vendored here rather than imported; `tests/test_notebook_parity.py` in the repo pins this
@@ -111,14 +112,14 @@ PPM = 5.0
 TOP_K = 25
 SHORTLIST = 1000  # distinct connectivities per molecule, chosen by popularity; 300 scored 0.258
 RERANK_N = 60  # ranked list depth handed to ICEBERG; the dataset README's recommendation
-ICE_LAMBDA = 0.5  # weights on each forward model's z-score within a same-formula group: 0.5 (the
+ICE_LAMBDA = 1.0  # weights on each forward model's z-score within a same-formula group: 0.5 (the
 GL_LAMBDA = 1.0  # datasets' READMEs) scored 0.320, 1.0 (the 0.421 notebook's config) 0.349, 1.5 0.346; v21 tries ICE 0.5 / GL 1.0
 ICE_BUDGET_S = 6 * 3600  # caps: ICEBERG took 20 min on a T4 and covered 269 / 371 in 6 h on CPU;
 GL_BUDGET_S = 3 * 3600  # the runners stop cleanly at them. GLACIER runs only on a GPU.
 POP_WEIGHT = 0.25  # on a z-scored spectral score, as in the published prior's recipe
 SECOND_PASS_N1 = 5000  # window rows given the full f.z after the ECFP4-block pass (1000: 179 / 280
 SECOND_PASS_KEEP = 100  # answers reached, 2000: 208, 5000: 236); 100 scored 0.353 (v18); with the similarity filter 0.356 (v19)
-COPIED_SIMILARITY_MAX = 0.5  # second-pass candidates at least this similar to the copied train structure
+COPIED_SIMILARITY_MAX = 0.6  # second-pass candidates at least this similar to the copied train structure
 ECFP_SIZE = 4096  # raw fingerprint bits below this are the ECFP4 block
 WORKERS = os.cpu_count() or 1
 MAX_BREAKS = 2
