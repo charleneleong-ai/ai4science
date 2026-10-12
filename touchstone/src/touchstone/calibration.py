@@ -57,11 +57,15 @@ from __future__ import annotations
 import csv
 import json
 import math
+import statistics as st
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 EXPRESSED, BINDS = "expressed", "binds"
+# The export declares a unit per row and states KD in molar; reading the number without the
+# unit gives a dissociation constant wrong by a factor of a billion.
+TO_NANOMOLAR = {"M": 1e9, "mM": 1e6, "uM": 1e3, "µM": 1e3, "nM": 1.0, "pM": 1e-3}
 STANDARD_AA = frozenset("ACDEFGHIKLMNPQRSTVWY")
 # Two-sided 95%: a gate has to clear this to be called discriminating rather than undecided.
 Z_95 = 1.96
@@ -82,7 +86,9 @@ class Outcome:
     boltz2_iptm: float | None = None
     boltz2_ipsae: float | None = None
 
-    def measured(self, outcome: str) -> bool | None:
+    def measured(self, outcome: str | Callable[["Outcome"], bool | None]) -> bool | None:
+        if callable(outcome):
+            return outcome(self)
         return self.expressed if outcome == EXPRESSED else self.binds
 
 
@@ -101,6 +107,31 @@ def _number(value: object) -> float | None:
         return float(value)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return None
+
+
+def _parse_evaluations(evaluations: list[dict]) -> tuple[dict[str, float | None], dict]:
+    """Split one design's evaluations into its predictions and its outcomes per target.
+
+    Experimental rows are grouped by the target they were measured against: a design tested on
+    two targets is two outcomes, and flattening them puts a result from an easy target beside
+    a gate judged on a hard one.
+    """
+    predictions: dict[str, float | None] = {}
+    by_target: dict[str, dict[str, list]] = {}
+    for evaluation in evaluations:
+        metric = evaluation.get("metric", "")
+        if evaluation.get("type") == "computational":
+            if metric in ("boltz2_iptm", "boltz2_ipsae"):
+                predictions[metric] = _number(evaluation.get("value"))
+            continue
+        if evaluation.get("type") != "experimental":
+            continue
+        value = evaluation.get("value")
+        if metric == "kd":  # carried with its unit, converted on read
+            value = (_number(value), evaluation.get("unit") or "")
+        by_target.setdefault(evaluation.get("target") or "", {}).setdefault(
+            metric, []).append(value)
+    return predictions, by_target
 
 
 def load_export(path: str | Path, *, target: str | None = None) -> list[Outcome]:
@@ -132,28 +163,14 @@ def load_export(path: str | Path, *, target: str | None = None) -> list[Outcome]
                 evaluations = json.loads(row.get("evaluations") or "[]")
             except (TypeError, ValueError):
                 continue
-            predictions: dict[str, float | None] = {}
-            # Experimental rows are grouped by the target they were measured against: a design
-            # tested on two targets is two outcomes, not one, and flattening them would put a
-            # result from an easy target next to a gate judged on a hard one.
-            by_target: dict[str, dict[str, list]] = {}
-            for evaluation in evaluations:
-                metric = evaluation.get("metric", "")
-                if evaluation.get("type") == "computational":
-                    if metric in ("boltz2_iptm", "boltz2_ipsae"):
-                        predictions[metric] = _number(evaluation.get("value"))
-                    continue
-                if evaluation.get("type") != "experimental":
-                    continue
-                slug = evaluation.get("target") or ""
-                by_target.setdefault(slug, {}).setdefault(metric, []).append(
-                    evaluation.get("value"))
+            predictions, by_target = _parse_evaluations(evaluations)
             for slug, seen in by_target.items():
                 if target is not None and slug != target:
                     continue
                 expressed = [c for c in map(_truthy, seen.get("expressed", [])) if c is not None]
                 binds = [c for c in map(_truthy, seen.get("binding", [])) if c is not None]
-                kds = [k for k in map(_number, seen.get("kd", [])) if k is not None]
+                kds = [k * TO_NANOMOLAR[u] for k, u in seen.get("kd", [])
+                       if k is not None and u in TO_NANOMOLAR]
                 outcomes.append(Outcome(
                     sequence=sequence,
                     expressed=any(expressed) if expressed else None,
@@ -221,6 +238,10 @@ class Calibration:
     kept_successes: int
     dropped_successes: int
     outcome: str = EXPRESSED
+    # How many targets the input spanned. More than one and the result compares targets as
+    # much as it compares the two sides of the gate, so the object says so rather than
+    # relying on the reader to remember -- this has inverted a verdict twice.
+    targets: int = 1
 
     @property
     def total(self) -> int:
@@ -272,17 +293,27 @@ class Calibration:
         return bool(self.kept and self.dropped) and abs(self.z) >= Z_95
 
     @property
+    def pooled(self) -> bool:
+        """True when the input spanned targets, which makes every other property suspect."""
+        return self.targets > 1
+
+    @property
     def verdict(self) -> str:
         if not (self.kept and self.dropped):
             return "vacuous"
+        if self.pooled:
+            return "pooled"
         if not self.discriminates:
             return "undecided"
         return "discriminates" if self.separation > 0 else "inverted"
 
     def __str__(self) -> str:
+        suffix = (f" — pooled over {self.targets} targets, split before believing it"
+                  if self.pooled else "")
         return (f"{self.verdict}: keeps {self.kept} at {self.kept_rate:.1%}, "
                 f"drops {self.dropped} at {self.dropped_rate:.1%} "
-                f"(base {self.base_rate:.1%}, separation {self.separation:+.1%}, z={self.z:.1f})")
+                f"(base {self.base_rate:.1%}, separation {self.separation:+.1%}, "
+                f"z={self.z:.1f}){suffix}")
 
 
 def calibrate(outcomes: Iterable[Outcome], gate: Callable[[Outcome], bool], *,
@@ -294,17 +325,20 @@ def calibrate(outcomes: Iterable[Outcome], gate: Callable[[Outcome], bool], *,
     failed one, and collapsing the two is how a gate acquires a track record it never earned.
     """
     kept = dropped = kept_ok = dropped_ok = 0
+    targets = set()
     for design in outcomes:
         measured = design.measured(outcome)
         if measured is None:
             continue
+        targets.add(design.target)
         if gate(design):
             kept += 1
             kept_ok += measured
         else:
             dropped += 1
             dropped_ok += measured
-    return Calibration(kept, dropped, kept_ok, dropped_ok, outcome)
+    name = outcome if isinstance(outcome, str) else getattr(outcome, "__name__", "custom")
+    return Calibration(kept, dropped, kept_ok, dropped_ok, name, max(len(targets), 1))
 
 
 @dataclass(frozen=True)
@@ -361,3 +395,57 @@ def calibrate_by_target(outcomes: Iterable[Outcome], gate: Callable[[Outcome], b
         if min(result.kept, result.dropped) >= min_group:
             per_target[target] = result
     return per_target
+
+
+def tighter_than(nanomolar: float) -> Callable[[Outcome], bool | None]:
+    """An outcome: did this design bind tighter than `nanomolar`?
+
+    Passed to `calibrate` in place of a metric name, so a gate can be judged on affinity rather
+    than on the binary binding call. `None` where no KD was fitted, which excludes the design
+    rather than counting it as a weak binder -- most designs that bind never get a KD, and
+    treating an unfitted one as failing would make every gate look better than it is.
+    """
+    def outcome(design: Outcome) -> bool | None:
+        return None if design.kd_nm is None else design.kd_nm <= nanomolar
+    return outcome
+
+
+@dataclass(frozen=True)
+class Affinity:
+    """What affinity has actually been reached on one target."""
+
+    target: str
+    kds_nm: tuple[float, ...]
+
+    @property
+    def n(self) -> int:
+        return len(self.kds_nm)
+
+    @property
+    def best(self) -> float:
+        return min(self.kds_nm)
+
+    @property
+    def median(self) -> float:
+        return st.median(self.kds_nm)
+
+    def reached(self, nanomolar: float) -> int:
+        return sum(k <= nanomolar for k in self.kds_nm)
+
+    def __str__(self) -> str:
+        return (f"{self.target}: best {self.best:.3g} nM, median {self.median:.3g} nM "
+                f"over {self.n} fitted")
+
+
+def affinity_by_target(outcomes: Iterable[Outcome], *, min_fitted: int = 5) -> dict[str, Affinity]:
+    """Per target, the affinities actually achieved -- the realistic bar for a new campaign.
+
+    Worth reading before setting one. The spread between targets is large: a median near 25 nM
+    on one and 150 nM on another says more about which target was picked than about any method,
+    and a campaign quoting a predicted KD without it has no scale to quote against.
+    """
+    grouped: dict[str, list[float]] = {}
+    for design in outcomes:
+        if design.kd_nm is not None:
+            grouped.setdefault(design.target, []).append(design.kd_nm)
+    return {t: Affinity(t, tuple(sorted(k))) for t, k in grouped.items() if len(k) >= min_fitted}

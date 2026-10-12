@@ -19,7 +19,10 @@ from touchstone.calibration import (
     bands,
     calibrate,
     calibrate_by_target,
+    Affinity,
+    affinity_by_target,
     load_extract,
+    tighter_than,
     write_extract,
     load_export,
 )
@@ -149,10 +152,17 @@ class TestLoadExport:
             {"type": "experimental", "metric": "expressed", "value": "true"}])
         assert load_export(path)[0].expressed is True
 
-    def test_kd_takes_the_tightest_measurement(self, tmp_path):
-        path = self.write(tmp_path, [{"type": "experimental", "metric": "kd", "value": "23.7"},
-                                     {"type": "experimental", "metric": "kd", "value": "491"}])
+    def test_kd_takes_the_tightest_measurement_and_converts_from_its_unit(self, tmp_path):
+        """The export states KD in molar; reading the number without the unit is out by 1e9."""
+        path = self.write(tmp_path, [
+            {"type": "experimental", "metric": "kd", "value": "2.37e-8", "unit": "M"},
+            {"type": "experimental", "metric": "kd", "value": "4.91e-7", "unit": "M"}])
         assert load_export(path)[0].kd_nm == pytest.approx(23.7)
+
+    def test_a_kd_without_a_declared_unit_is_dropped(self, tmp_path):
+        """Guessing the unit of a dissociation constant is a factor-of-a-billion guess."""
+        path = self.write(tmp_path, [{"type": "experimental", "metric": "kd", "value": "23.7"}])
+        assert load_export(path)[0].kd_nm is None
 
     def test_target_filter_keeps_only_designs_measured_against_it(self, tmp_path):
         path = self.write(tmp_path, [{"type": "experimental", "metric": "expressed",
@@ -287,3 +297,48 @@ class TestExtract:
         nipah = calibrate_by_target(designs, gate, outcome=BINDS)["nipah-glycoprotein-g"]
         assert pooled.separation < 0            # pooled: the gate reads as harmful
         assert nipah.separation > 0.08 and nipah.discriminates
+
+
+class TestAffinity:
+    """What KD has actually been reached, and gates judged on it rather than on binary binding."""
+
+    FIXTURE = Path(__file__).parent / "fixtures" / "proteinbase-extract-2026-10-11.csv"
+
+    def test_the_conversion_matches_a_published_figure(self):
+        """Proteinbase's competitions page reports the Nipah competition's best affinity as
+        0.37 nM. Reading the export without its unit would give 3.7e-10."""
+        best = affinity_by_target(load_extract(self.FIXTURE))["nipah-glycoprotein-g"].best
+        assert 0.2 < best < 0.5
+
+    def test_targets_differ_enough_that_a_pooled_bar_is_meaningless(self):
+        """Medians run from ~25 nM to ~150 nM, so a predicted KD needs its target to mean anything."""
+        by_target = affinity_by_target(load_extract(self.FIXTURE))
+        medians = [a.median for a in by_target.values() if a.n >= 100]
+        assert max(medians) / min(medians) > 4
+
+    def test_reached_counts_designs_at_or_under_a_bar(self):
+        a = Affinity("t", (0.5, 5.0, 50.0, 500.0))
+        assert (a.reached(10), a.reached(0.1), a.best, a.n) == (2, 0, 0.5, 4)
+
+    def test_a_target_with_too_few_fitted_kds_is_omitted(self):
+        thin = [Outcome("MK", target="thin", kd_nm=1.0) for _ in range(4)]
+        assert affinity_by_target(thin) == {}
+        assert "thin" in affinity_by_target(thin, min_fitted=4)
+
+    def test_an_unfitted_kd_excludes_the_design_rather_than_failing_it(self):
+        """Most designs that bind never get a KD; counting them as weak flatters every gate."""
+        designs = [Outcome("K", kd_nm=1.0), Outcome("D", kd_nm=None), Outcome("D2", binds=True)]
+        c = calibrate(designs, lambda d: d.sequence == "K", outcome=tighter_than(10.0))
+        assert c.total == 1
+
+    def test_pooling_targets_marks_the_result_rather_than_trusting_the_reader(self):
+        """ipTM against 'tighter than 10 nM' reads z=5.7 pooled and z=0.1 on the one target
+        with enough designs either side — the pooled number has to flag itself."""
+        designs = [Outcome("K", target="a", kd_nm=1.0), Outcome("D", target="b", kd_nm=100.0)]
+        c = calibrate(designs, lambda d: d.sequence == "K", outcome=tighter_than(10.0))
+        assert c.pooled and c.verdict == "pooled" and "split before believing it" in str(c)
+
+    def test_a_single_target_result_is_not_marked_pooled(self):
+        designs = [Outcome("K", target="a", kd_nm=1.0), Outcome("D", target="a", kd_nm=100.0)]
+        assert not calibrate(designs, lambda d: d.sequence == "K",
+                             outcome=tighter_than(10.0)).pooled

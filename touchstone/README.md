@@ -147,6 +147,28 @@ extract of the fields calibration uses
 so every number above stays checkable after the upstream snapshot moves. Regenerate it for a
 newer export with `write_extract(load_export(path), out)`, and expect the counts to move.
 
+**What affinity is actually reachable on a target**, before quoting a predicted KD against
+nothing:
+
+```python
+for a in affinity_by_target(load_extract(path)).values():
+    print(a)   # pd-l1: best 0.0716 nM, median 152 nM over 216 fitted
+```
+
+| target | best | median | ≤10 nM |
+| --- | --- | --- | --- |
+| human-vegf110 | 0.077 nM | 26 nM | 41/157 |
+| nipah-glycoprotein-g | 0.297 nM | 25 nM | 32/102 |
+| egfr | 0.26 nM | 66 nM | 21/118 |
+| sars-cov-2-rbd | 2.14 nM | 96 nM | **6/222** |
+| pd-l1 | 0.072 nM | 152 nM | 38/216 |
+
+Medians differ six-fold between targets, so a bar set without one says more about which target
+was picked than about any method. `tighter_than(nm)` passes affinity to `calibrate` as the
+outcome, so a gate can be judged on how tight its binders are rather than on whether they bound
+at all — and a `Calibration` built from more than one target reports itself as `pooled`, because
+that pooling has inverted a verdict here twice.
+
 `calibrate()` and `bands()` are importable for a gate of your own; `bands()` is worth looking at
 first, because a feature whose outcome rate is flat across its range has no threshold worth
 choosing.
