@@ -1,0 +1,4088 @@
+{
+  "no_0": {
+    "length": 41,
+    "pseudo_perplexity": 8.669,
+    "gravy": -0.38,
+    "cysteines": 0
+  },
+  "no_1": {
+    "length": 34,
+    "pseudo_perplexity": 5.18,
+    "gravy": -0.4,
+    "cysteines": 0
+  },
+  "no_2": {
+    "length": 44,
+    "pseudo_perplexity": 6.839,
+    "gravy": -0.16,
+    "cysteines": 0
+  },
+  "no_3": {
+    "length": 42,
+    "pseudo_perplexity": 12.684,
+    "gravy": 1.74,
+    "cysteines": 0
+  },
+  "no_4": {
+    "length": 55,
+    "pseudo_perplexity": 7.752,
+    "gravy": -0.52,
+    "cysteines": 0
+  },
+  "no_5": {
+    "length": 55,
+    "pseudo_perplexity": 8.848,
+    "gravy": -0.71,
+    "cysteines": 0
+  },
+  "no_6": {
+    "length": 30,
+    "pseudo_perplexity": 17.418,
+    "gravy": 0.48,
+    "cysteines": 0
+  },
+  "no_7": {
+    "length": 25,
+    "pseudo_perplexity": 17.628,
+    "gravy": 0.32,
+    "cysteines": 0
+  },
+  "no_8": {
+    "length": 33,
+    "pseudo_perplexity": 21.085,
+    "gravy": -0.11,
+    "cysteines": 0
+  },
+  "no_9": {
+    "length": 57,
+    "pseudo_perplexity": 23.351,
+    "gravy": -0.15,
+    "cysteines": 0
+  },
+  "no_10": {
+    "length": 46,
+    "pseudo_perplexity": 24.147,
+    "gravy": 0.16,
+    "cysteines": 0
+  },
+  "no_11": {
+    "length": 20,
+    "pseudo_perplexity": 23.438,
+    "gravy": 0.52,
+    "cysteines": 0
+  },
+  "no_12": {
+    "length": 56,
+    "pseudo_perplexity": 10.773,
+    "gravy": 0.83,
+    "cysteines": 0
+  },
+  "no_13": {
+    "length": 12,
+    "pseudo_perplexity": 19.272,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "no_14": {
+    "length": 13,
+    "pseudo_perplexity": 24.615,
+    "gravy": -0.89,
+    "cysteines": 0
+  },
+  "no_15": {
+    "length": 15,
+    "pseudo_perplexity": 32.444,
+    "gravy": -1.27,
+    "cysteines": 0
+  },
+  "no_16": {
+    "length": 56,
+    "pseudo_perplexity": 6.286,
+    "gravy": -0.09,
+    "cysteines": 0
+  },
+  "no_17": {
+    "length": 56,
+    "pseudo_perplexity": 6.796,
+    "gravy": 0.11,
+    "cysteines": 0
+  },
+  "no_18": {
+    "length": 52,
+    "pseudo_perplexity": 24.365,
+    "gravy": -0.55,
+    "cysteines": 0
+  },
+  "no_19": {
+    "length": 51,
+    "pseudo_perplexity": 23.781,
+    "gravy": -0.43,
+    "cysteines": 0
+  },
+  "no_20": {
+    "length": 10,
+    "pseudo_perplexity": 26.985,
+    "gravy": -0.7,
+    "cysteines": 0
+  },
+  "no_21": {
+    "length": 52,
+    "pseudo_perplexity": 5.317,
+    "gravy": -0.38,
+    "cysteines": 0
+  },
+  "no_22": {
+    "length": 55,
+    "pseudo_perplexity": 12.08,
+    "gravy": -0.53,
+    "cysteines": 0
+  },
+  "no_23": {
+    "length": 51,
+    "pseudo_perplexity": 5.633,
+    "gravy": -0.42,
+    "cysteines": 0
+  },
+  "no_24": {
+    "length": 56,
+    "pseudo_perplexity": 7.492,
+    "gravy": -0.4,
+    "cysteines": 0
+  },
+  "no_25": {
+    "length": 58,
+    "pseudo_perplexity": 7.33,
+    "gravy": -0.53,
+    "cysteines": 0
+  },
+  "ok_26": {
+    "length": 30,
+    "pseudo_perplexity": 15.553,
+    "gravy": -1.54,
+    "cysteines": 0
+  },
+  "ok_27": {
+    "length": 10,
+    "pseudo_perplexity": 14.758,
+    "gravy": 2.6,
+    "cysteines": 0
+  },
+  "ok_28": {
+    "length": 53,
+    "pseudo_perplexity": 5.578,
+    "gravy": -0.46,
+    "cysteines": 0
+  },
+  "ok_29": {
+    "length": 58,
+    "pseudo_perplexity": 2.883,
+    "gravy": -0.24,
+    "cysteines": 0
+  },
+  "ok_30": {
+    "length": 49,
+    "pseudo_perplexity": 5.091,
+    "gravy": 0.02,
+    "cysteines": 0
+  },
+  "ok_31": {
+    "length": 27,
+    "pseudo_perplexity": 13.485,
+    "gravy": -0.21,
+    "cysteines": 0
+  },
+  "ok_32": {
+    "length": 13,
+    "pseudo_perplexity": 20.751,
+    "gravy": -1.06,
+    "cysteines": 0
+  },
+  "ok_33": {
+    "length": 47,
+    "pseudo_perplexity": 5.347,
+    "gravy": -0.87,
+    "cysteines": 0
+  },
+  "ok_34": {
+    "length": 52,
+    "pseudo_perplexity": 6.566,
+    "gravy": -0.46,
+    "cysteines": 0
+  },
+  "ok_35": {
+    "length": 52,
+    "pseudo_perplexity": 4.96,
+    "gravy": -0.28,
+    "cysteines": 0
+  },
+  "ok_36": {
+    "length": 10,
+    "pseudo_perplexity": 28.449,
+    "gravy": -1.33,
+    "cysteines": 0
+  },
+  "ok_37": {
+    "length": 45,
+    "pseudo_perplexity": 6.592,
+    "gravy": -0.81,
+    "cysteines": 0
+  },
+  "ok_38": {
+    "length": 48,
+    "pseudo_perplexity": 8.925,
+    "gravy": -0.42,
+    "cysteines": 0
+  },
+  "ok_39": {
+    "length": 47,
+    "pseudo_perplexity": 5.54,
+    "gravy": -0.09,
+    "cysteines": 0
+  },
+  "ok_40": {
+    "length": 52,
+    "pseudo_perplexity": 5.848,
+    "gravy": -0.98,
+    "cysteines": 0
+  },
+  "ok_41": {
+    "length": 19,
+    "pseudo_perplexity": 21.188,
+    "gravy": -0.91,
+    "cysteines": 0
+  },
+  "ok_42": {
+    "length": 50,
+    "pseudo_perplexity": 9.491,
+    "gravy": -0.62,
+    "cysteines": 0
+  },
+  "ok_43": {
+    "length": 10,
+    "pseudo_perplexity": 20.53,
+    "gravy": -1.6,
+    "cysteines": 0
+  },
+  "ok_44": {
+    "length": 50,
+    "pseudo_perplexity": 9.559,
+    "gravy": -0.02,
+    "cysteines": 0
+  },
+  "ok_45": {
+    "length": 47,
+    "pseudo_perplexity": 4.858,
+    "gravy": -0.04,
+    "cysteines": 0
+  },
+  "ok_46": {
+    "length": 50,
+    "pseudo_perplexity": 9.28,
+    "gravy": -0.74,
+    "cysteines": 0
+  },
+  "ok_47": {
+    "length": 47,
+    "pseudo_perplexity": 14.969,
+    "gravy": 0.17,
+    "cysteines": 0
+  },
+  "ok_48": {
+    "length": 50,
+    "pseudo_perplexity": 11.781,
+    "gravy": -0.07,
+    "cysteines": 0
+  },
+  "ok_49": {
+    "length": 46,
+    "pseudo_perplexity": 14.212,
+    "gravy": -1.02,
+    "cysteines": 0
+  },
+  "ok_50": {
+    "length": 35,
+    "pseudo_perplexity": 12.35,
+    "gravy": 0.22,
+    "cysteines": 0
+  },
+  "ok_51": {
+    "length": 58,
+    "pseudo_perplexity": 8.812,
+    "gravy": -0.91,
+    "cysteines": 0
+  },
+  "no_52": {
+    "length": 67,
+    "pseudo_perplexity": 12.39,
+    "gravy": -0.23,
+    "cysteines": 0
+  },
+  "no_53": {
+    "length": 75,
+    "pseudo_perplexity": 13.387,
+    "gravy": -0.43,
+    "cysteines": 0
+  },
+  "no_54": {
+    "length": 63,
+    "pseudo_perplexity": 15.366,
+    "gravy": 0.29,
+    "cysteines": 0
+  },
+  "no_55": {
+    "length": 65,
+    "pseudo_perplexity": 12.551,
+    "gravy": -0.2,
+    "cysteines": 0
+  },
+  "no_56": {
+    "length": 61,
+    "pseudo_perplexity": 24.102,
+    "gravy": -0.54,
+    "cysteines": 0
+  },
+  "no_57": {
+    "length": 77,
+    "pseudo_perplexity": 7.016,
+    "gravy": 0.51,
+    "cysteines": 0
+  },
+  "no_58": {
+    "length": 65,
+    "pseudo_perplexity": 4.166,
+    "gravy": 1.26,
+    "cysteines": 0
+  },
+  "no_59": {
+    "length": 78,
+    "pseudo_perplexity": 4.524,
+    "gravy": 1.13,
+    "cysteines": 0
+  },
+  "no_60": {
+    "length": 79,
+    "pseudo_perplexity": 15.581,
+    "gravy": -0.63,
+    "cysteines": 0
+  },
+  "no_61": {
+    "length": 74,
+    "pseudo_perplexity": 16.194,
+    "gravy": -0.75,
+    "cysteines": 0
+  },
+  "no_62": {
+    "length": 64,
+    "pseudo_perplexity": 7.534,
+    "gravy": -0.59,
+    "cysteines": 0
+  },
+  "ok_63": {
+    "length": 60,
+    "pseudo_perplexity": 8.189,
+    "gravy": -0.75,
+    "cysteines": 0
+  },
+  "ok_64": {
+    "length": 75,
+    "pseudo_perplexity": 13.506,
+    "gravy": -0.38,
+    "cysteines": 0
+  },
+  "ok_65": {
+    "length": 77,
+    "pseudo_perplexity": 3.797,
+    "gravy": -0.29,
+    "cysteines": 0
+  },
+  "ok_66": {
+    "length": 60,
+    "pseudo_perplexity": 15.137,
+    "gravy": 0.56,
+    "cysteines": 0
+  },
+  "ok_67": {
+    "length": 60,
+    "pseudo_perplexity": 7.933,
+    "gravy": -0.92,
+    "cysteines": 0
+  },
+  "ok_68": {
+    "length": 66,
+    "pseudo_perplexity": 8.911,
+    "gravy": -0.13,
+    "cysteines": 0
+  },
+  "ok_69": {
+    "length": 72,
+    "pseudo_perplexity": 8.238,
+    "gravy": -0.47,
+    "cysteines": 0
+  },
+  "ok_70": {
+    "length": 67,
+    "pseudo_perplexity": 9.142,
+    "gravy": 0.18,
+    "cysteines": 0
+  },
+  "ok_71": {
+    "length": 64,
+    "pseudo_perplexity": 6.583,
+    "gravy": -0.11,
+    "cysteines": 0
+  },
+  "ok_72": {
+    "length": 64,
+    "pseudo_perplexity": 9.353,
+    "gravy": -1.08,
+    "cysteines": 0
+  },
+  "ok_73": {
+    "length": 71,
+    "pseudo_perplexity": 7.043,
+    "gravy": -0.84,
+    "cysteines": 0
+  },
+  "no_74": {
+    "length": 90,
+    "pseudo_perplexity": 16.835,
+    "gravy": -1.18,
+    "cysteines": 0
+  },
+  "no_75": {
+    "length": 82,
+    "pseudo_perplexity": 5.367,
+    "gravy": 0.09,
+    "cysteines": 0
+  },
+  "no_76": {
+    "length": 84,
+    "pseudo_perplexity": 9.311,
+    "gravy": -0.38,
+    "cysteines": 0
+  },
+  "no_77": {
+    "length": 90,
+    "pseudo_perplexity": 16.306,
+    "gravy": -1.42,
+    "cysteines": 0
+  },
+  "no_78": {
+    "length": 92,
+    "pseudo_perplexity": 6.028,
+    "gravy": -0.11,
+    "cysteines": 0
+  },
+  "no_79": {
+    "length": 81,
+    "pseudo_perplexity": 14.286,
+    "gravy": -1.13,
+    "cysteines": 0
+  },
+  "no_80": {
+    "length": 90,
+    "pseudo_perplexity": 14.608,
+    "gravy": -0.89,
+    "cysteines": 0
+  },
+  "no_81": {
+    "length": 98,
+    "pseudo_perplexity": 5.361,
+    "gravy": -0.13,
+    "cysteines": 0
+  },
+  "no_82": {
+    "length": 99,
+    "pseudo_perplexity": 7.547,
+    "gravy": 0.45,
+    "cysteines": 0
+  },
+  "no_83": {
+    "length": 99,
+    "pseudo_perplexity": 9.466,
+    "gravy": 0.7,
+    "cysteines": 0
+  },
+  "no_84": {
+    "length": 99,
+    "pseudo_perplexity": 7.787,
+    "gravy": 0.82,
+    "cysteines": 0
+  },
+  "no_85": {
+    "length": 90,
+    "pseudo_perplexity": 4.555,
+    "gravy": 0.46,
+    "cysteines": 0
+  },
+  "no_86": {
+    "length": 80,
+    "pseudo_perplexity": 6.24,
+    "gravy": 0.67,
+    "cysteines": 0
+  },
+  "no_87": {
+    "length": 80,
+    "pseudo_perplexity": 9.754,
+    "gravy": 0.29,
+    "cysteines": 0
+  },
+  "no_88": {
+    "length": 80,
+    "pseudo_perplexity": 5.21,
+    "gravy": 0.15,
+    "cysteines": 0
+  },
+  "no_89": {
+    "length": 92,
+    "pseudo_perplexity": 9.41,
+    "gravy": -0.42,
+    "cysteines": 0
+  },
+  "no_90": {
+    "length": 82,
+    "pseudo_perplexity": 6.032,
+    "gravy": -0.69,
+    "cysteines": 0
+  },
+  "no_91": {
+    "length": 85,
+    "pseudo_perplexity": 14.129,
+    "gravy": -2.2,
+    "cysteines": 0
+  },
+  "no_92": {
+    "length": 85,
+    "pseudo_perplexity": 16.417,
+    "gravy": -2.13,
+    "cysteines": 0
+  },
+  "no_93": {
+    "length": 92,
+    "pseudo_perplexity": 15.255,
+    "gravy": -0.46,
+    "cysteines": 0
+  },
+  "no_94": {
+    "length": 80,
+    "pseudo_perplexity": 12.18,
+    "gravy": -0.28,
+    "cysteines": 0
+  },
+  "no_95": {
+    "length": 87,
+    "pseudo_perplexity": 9.66,
+    "gravy": -0.13,
+    "cysteines": 0
+  },
+  "no_96": {
+    "length": 80,
+    "pseudo_perplexity": 10.39,
+    "gravy": 0.01,
+    "cysteines": 0
+  },
+  "no_97": {
+    "length": 86,
+    "pseudo_perplexity": 8.411,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "no_98": {
+    "length": 94,
+    "pseudo_perplexity": 6.372,
+    "gravy": -0.59,
+    "cysteines": 0
+  },
+  "no_99": {
+    "length": 96,
+    "pseudo_perplexity": 6.341,
+    "gravy": -0.09,
+    "cysteines": 0
+  },
+  "no_100": {
+    "length": 81,
+    "pseudo_perplexity": 6.674,
+    "gravy": -0.1,
+    "cysteines": 0
+  },
+  "no_101": {
+    "length": 95,
+    "pseudo_perplexity": 5.792,
+    "gravy": -0.07,
+    "cysteines": 0
+  },
+  "no_102": {
+    "length": 96,
+    "pseudo_perplexity": 6.564,
+    "gravy": -0.08,
+    "cysteines": 0
+  },
+  "no_103": {
+    "length": 83,
+    "pseudo_perplexity": 7.861,
+    "gravy": -0.24,
+    "cysteines": 0
+  },
+  "no_104": {
+    "length": 95,
+    "pseudo_perplexity": 6.783,
+    "gravy": -0.04,
+    "cysteines": 0
+  },
+  "no_105": {
+    "length": 84,
+    "pseudo_perplexity": 8.259,
+    "gravy": 0.23,
+    "cysteines": 0
+  },
+  "no_106": {
+    "length": 83,
+    "pseudo_perplexity": 8.373,
+    "gravy": 0.23,
+    "cysteines": 0
+  },
+  "no_107": {
+    "length": 86,
+    "pseudo_perplexity": 10.76,
+    "gravy": -0.67,
+    "cysteines": 0
+  },
+  "no_108": {
+    "length": 84,
+    "pseudo_perplexity": 6.047,
+    "gravy": -0.46,
+    "cysteines": 0
+  },
+  "no_109": {
+    "length": 95,
+    "pseudo_perplexity": 7.063,
+    "gravy": 0.18,
+    "cysteines": 0
+  },
+  "no_110": {
+    "length": 88,
+    "pseudo_perplexity": 6.828,
+    "gravy": -0.03,
+    "cysteines": 0
+  },
+  "no_111": {
+    "length": 97,
+    "pseudo_perplexity": 6.198,
+    "gravy": -0.84,
+    "cysteines": 0
+  },
+  "no_112": {
+    "length": 92,
+    "pseudo_perplexity": 6.059,
+    "gravy": -0.69,
+    "cysteines": 0
+  },
+  "no_113": {
+    "length": 84,
+    "pseudo_perplexity": 7.5,
+    "gravy": -0.77,
+    "cysteines": 0
+  },
+  "no_114": {
+    "length": 90,
+    "pseudo_perplexity": 4.898,
+    "gravy": -0.7,
+    "cysteines": 0
+  },
+  "no_115": {
+    "length": 80,
+    "pseudo_perplexity": 9.016,
+    "gravy": 0.21,
+    "cysteines": 0
+  },
+  "ok_116": {
+    "length": 85,
+    "pseudo_perplexity": 6.101,
+    "gravy": -0.18,
+    "cysteines": 0
+  },
+  "ok_117": {
+    "length": 81,
+    "pseudo_perplexity": 6.096,
+    "gravy": -0.52,
+    "cysteines": 0
+  },
+  "ok_118": {
+    "length": 91,
+    "pseudo_perplexity": 8.716,
+    "gravy": 0.21,
+    "cysteines": 0
+  },
+  "ok_119": {
+    "length": 82,
+    "pseudo_perplexity": 6.478,
+    "gravy": 0.32,
+    "cysteines": 0
+  },
+  "ok_120": {
+    "length": 84,
+    "pseudo_perplexity": 8.174,
+    "gravy": 0.86,
+    "cysteines": 0
+  },
+  "ok_121": {
+    "length": 84,
+    "pseudo_perplexity": 5.926,
+    "gravy": -0.2,
+    "cysteines": 0
+  },
+  "ok_122": {
+    "length": 92,
+    "pseudo_perplexity": 6.708,
+    "gravy": -0.52,
+    "cysteines": 0
+  },
+  "ok_123": {
+    "length": 89,
+    "pseudo_perplexity": 8.14,
+    "gravy": -0.23,
+    "cysteines": 0
+  },
+  "ok_124": {
+    "length": 83,
+    "pseudo_perplexity": 11.923,
+    "gravy": -0.32,
+    "cysteines": 0
+  },
+  "ok_125": {
+    "length": 99,
+    "pseudo_perplexity": 6.95,
+    "gravy": -0.51,
+    "cysteines": 0
+  },
+  "ok_126": {
+    "length": 80,
+    "pseudo_perplexity": 9.065,
+    "gravy": -0.37,
+    "cysteines": 0
+  },
+  "ok_127": {
+    "length": 85,
+    "pseudo_perplexity": 3.203,
+    "gravy": -1.72,
+    "cysteines": 0
+  },
+  "ok_128": {
+    "length": 80,
+    "pseudo_perplexity": 9.21,
+    "gravy": -0.25,
+    "cysteines": 0
+  },
+  "ok_129": {
+    "length": 98,
+    "pseudo_perplexity": 9.893,
+    "gravy": -0.24,
+    "cysteines": 0
+  },
+  "ok_130": {
+    "length": 80,
+    "pseudo_perplexity": 4.691,
+    "gravy": -0.6,
+    "cysteines": 0
+  },
+  "ok_131": {
+    "length": 87,
+    "pseudo_perplexity": 7.358,
+    "gravy": 0.02,
+    "cysteines": 0
+  },
+  "ok_132": {
+    "length": 87,
+    "pseudo_perplexity": 10.293,
+    "gravy": -0.48,
+    "cysteines": 0
+  },
+  "ok_133": {
+    "length": 99,
+    "pseudo_perplexity": 5.823,
+    "gravy": -0.43,
+    "cysteines": 0
+  },
+  "ok_134": {
+    "length": 89,
+    "pseudo_perplexity": 5.473,
+    "gravy": -0.68,
+    "cysteines": 0
+  },
+  "ok_135": {
+    "length": 90,
+    "pseudo_perplexity": 8.532,
+    "gravy": -1.02,
+    "cysteines": 0
+  },
+  "ok_136": {
+    "length": 84,
+    "pseudo_perplexity": 7.945,
+    "gravy": -0.16,
+    "cysteines": 0
+  },
+  "ok_137": {
+    "length": 80,
+    "pseudo_perplexity": 9.205,
+    "gravy": -0.62,
+    "cysteines": 0
+  },
+  "ok_138": {
+    "length": 87,
+    "pseudo_perplexity": 4.069,
+    "gravy": -0.32,
+    "cysteines": 0
+  },
+  "ok_139": {
+    "length": 86,
+    "pseudo_perplexity": 3.956,
+    "gravy": -0.6,
+    "cysteines": 0
+  },
+  "ok_140": {
+    "length": 87,
+    "pseudo_perplexity": 7.372,
+    "gravy": 0.21,
+    "cysteines": 0
+  },
+  "ok_141": {
+    "length": 89,
+    "pseudo_perplexity": 5.757,
+    "gravy": -0.17,
+    "cysteines": 0
+  },
+  "ok_142": {
+    "length": 82,
+    "pseudo_perplexity": 9.998,
+    "gravy": -0.41,
+    "cysteines": 0
+  },
+  "ok_143": {
+    "length": 99,
+    "pseudo_perplexity": 7.818,
+    "gravy": -0.34,
+    "cysteines": 0
+  },
+  "ok_144": {
+    "length": 92,
+    "pseudo_perplexity": 9.475,
+    "gravy": -0.58,
+    "cysteines": 0
+  },
+  "ok_145": {
+    "length": 91,
+    "pseudo_perplexity": 7.123,
+    "gravy": -0.65,
+    "cysteines": 0
+  },
+  "ok_146": {
+    "length": 85,
+    "pseudo_perplexity": 6.304,
+    "gravy": 0.39,
+    "cysteines": 0
+  },
+  "ok_147": {
+    "length": 92,
+    "pseudo_perplexity": 11.508,
+    "gravy": -0.23,
+    "cysteines": 0
+  },
+  "ok_148": {
+    "length": 99,
+    "pseudo_perplexity": 6.714,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "ok_149": {
+    "length": 81,
+    "pseudo_perplexity": 15.398,
+    "gravy": -0.35,
+    "cysteines": 0
+  },
+  "ok_150": {
+    "length": 91,
+    "pseudo_perplexity": 8.618,
+    "gravy": -0.55,
+    "cysteines": 0
+  },
+  "ok_151": {
+    "length": 90,
+    "pseudo_perplexity": 8.675,
+    "gravy": -0.98,
+    "cysteines": 0
+  },
+  "ok_152": {
+    "length": 86,
+    "pseudo_perplexity": 8.75,
+    "gravy": -0.15,
+    "cysteines": 0
+  },
+  "ok_153": {
+    "length": 80,
+    "pseudo_perplexity": 9.513,
+    "gravy": -0.74,
+    "cysteines": 0
+  },
+  "ok_154": {
+    "length": 94,
+    "pseudo_perplexity": 11.878,
+    "gravy": -0.19,
+    "cysteines": 0
+  },
+  "ok_155": {
+    "length": 86,
+    "pseudo_perplexity": 9.629,
+    "gravy": 0.13,
+    "cysteines": 0
+  },
+  "ok_156": {
+    "length": 82,
+    "pseudo_perplexity": 8.517,
+    "gravy": -0.46,
+    "cysteines": 0
+  },
+  "ok_157": {
+    "length": 98,
+    "pseudo_perplexity": 8.95,
+    "gravy": 0.02,
+    "cysteines": 0
+  },
+  "no_158": {
+    "length": 101,
+    "pseudo_perplexity": 8.817,
+    "gravy": 0.07,
+    "cysteines": 0
+  },
+  "no_159": {
+    "length": 101,
+    "pseudo_perplexity": 8.299,
+    "gravy": -0.09,
+    "cysteines": 0
+  },
+  "no_160": {
+    "length": 101,
+    "pseudo_perplexity": 9.176,
+    "gravy": 0.04,
+    "cysteines": 0
+  },
+  "no_161": {
+    "length": 101,
+    "pseudo_perplexity": 8.773,
+    "gravy": -0.09,
+    "cysteines": 0
+  },
+  "no_162": {
+    "length": 101,
+    "pseudo_perplexity": 7.979,
+    "gravy": -0.24,
+    "cysteines": 0
+  },
+  "no_163": {
+    "length": 133,
+    "pseudo_perplexity": 7.475,
+    "gravy": 0.15,
+    "cysteines": 0
+  },
+  "no_164": {
+    "length": 120,
+    "pseudo_perplexity": 7.923,
+    "gravy": -0.72,
+    "cysteines": 0
+  },
+  "no_165": {
+    "length": 120,
+    "pseudo_perplexity": 17.944,
+    "gravy": -0.53,
+    "cysteines": 0
+  },
+  "no_166": {
+    "length": 120,
+    "pseudo_perplexity": 9.946,
+    "gravy": 0.23,
+    "cysteines": 0
+  },
+  "no_167": {
+    "length": 127,
+    "pseudo_perplexity": 4.849,
+    "gravy": -0.26,
+    "cysteines": 0
+  },
+  "no_168": {
+    "length": 101,
+    "pseudo_perplexity": 8.475,
+    "gravy": -0.03,
+    "cysteines": 0
+  },
+  "no_169": {
+    "length": 140,
+    "pseudo_perplexity": 7.386,
+    "gravy": -0.0,
+    "cysteines": 0
+  },
+  "no_170": {
+    "length": 120,
+    "pseudo_perplexity": 9.61,
+    "gravy": 0.15,
+    "cysteines": 0
+  },
+  "no_171": {
+    "length": 116,
+    "pseudo_perplexity": 15.83,
+    "gravy": -0.65,
+    "cysteines": 0
+  },
+  "no_172": {
+    "length": 128,
+    "pseudo_perplexity": 8.178,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "no_173": {
+    "length": 128,
+    "pseudo_perplexity": 9.94,
+    "gravy": 0.17,
+    "cysteines": 0
+  },
+  "no_174": {
+    "length": 120,
+    "pseudo_perplexity": 6.764,
+    "gravy": -0.34,
+    "cysteines": 0
+  },
+  "no_175": {
+    "length": 112,
+    "pseudo_perplexity": 8.493,
+    "gravy": -0.34,
+    "cysteines": 0
+  },
+  "no_176": {
+    "length": 136,
+    "pseudo_perplexity": 7.415,
+    "gravy": 0.06,
+    "cysteines": 0
+  },
+  "no_177": {
+    "length": 100,
+    "pseudo_perplexity": 18.203,
+    "gravy": 0.55,
+    "cysteines": 0
+  },
+  "no_178": {
+    "length": 100,
+    "pseudo_perplexity": 13.721,
+    "gravy": 0.14,
+    "cysteines": 0
+  },
+  "no_179": {
+    "length": 100,
+    "pseudo_perplexity": 13.194,
+    "gravy": 1.0,
+    "cysteines": 0
+  },
+  "no_180": {
+    "length": 100,
+    "pseudo_perplexity": 14.296,
+    "gravy": 0.26,
+    "cysteines": 0
+  },
+  "no_181": {
+    "length": 132,
+    "pseudo_perplexity": 13.759,
+    "gravy": -0.3,
+    "cysteines": 0
+  },
+  "no_182": {
+    "length": 132,
+    "pseudo_perplexity": 14.019,
+    "gravy": -1.13,
+    "cysteines": 0
+  },
+  "no_183": {
+    "length": 110,
+    "pseudo_perplexity": 6.312,
+    "gravy": 0.08,
+    "cysteines": 0
+  },
+  "no_184": {
+    "length": 120,
+    "pseudo_perplexity": 5.148,
+    "gravy": 0.17,
+    "cysteines": 0
+  },
+  "no_185": {
+    "length": 110,
+    "pseudo_perplexity": 3.895,
+    "gravy": -0.18,
+    "cysteines": 0
+  },
+  "no_186": {
+    "length": 120,
+    "pseudo_perplexity": 4.591,
+    "gravy": -0.26,
+    "cysteines": 0
+  },
+  "no_187": {
+    "length": 130,
+    "pseudo_perplexity": 4.517,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "no_188": {
+    "length": 100,
+    "pseudo_perplexity": 5.692,
+    "gravy": 0.28,
+    "cysteines": 0
+  },
+  "no_189": {
+    "length": 120,
+    "pseudo_perplexity": 3.307,
+    "gravy": -0.29,
+    "cysteines": 0
+  },
+  "no_190": {
+    "length": 140,
+    "pseudo_perplexity": 4.593,
+    "gravy": 0.1,
+    "cysteines": 0
+  },
+  "no_191": {
+    "length": 140,
+    "pseudo_perplexity": 4.482,
+    "gravy": 0.11,
+    "cysteines": 0
+  },
+  "no_192": {
+    "length": 129,
+    "pseudo_perplexity": 4.987,
+    "gravy": -0.04,
+    "cysteines": 0
+  },
+  "no_193": {
+    "length": 122,
+    "pseudo_perplexity": 5.871,
+    "gravy": -0.6,
+    "cysteines": 0
+  },
+  "no_194": {
+    "length": 131,
+    "pseudo_perplexity": 5.078,
+    "gravy": -0.42,
+    "cysteines": 0
+  },
+  "no_195": {
+    "length": 140,
+    "pseudo_perplexity": 7.229,
+    "gravy": -0.19,
+    "cysteines": 0
+  },
+  "no_196": {
+    "length": 131,
+    "pseudo_perplexity": 11.641,
+    "gravy": 0.04,
+    "cysteines": 0
+  },
+  "no_197": {
+    "length": 119,
+    "pseudo_perplexity": 3.658,
+    "gravy": -0.16,
+    "cysteines": 0
+  },
+  "no_198": {
+    "length": 126,
+    "pseudo_perplexity": 5.592,
+    "gravy": 0.15,
+    "cysteines": 0
+  },
+  "no_199": {
+    "length": 137,
+    "pseudo_perplexity": 18.797,
+    "gravy": -0.78,
+    "cysteines": 0
+  },
+  "no_200": {
+    "length": 137,
+    "pseudo_perplexity": 20.022,
+    "gravy": -0.78,
+    "cysteines": 0
+  },
+  "no_201": {
+    "length": 132,
+    "pseudo_perplexity": 3.458,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "no_202": {
+    "length": 140,
+    "pseudo_perplexity": 1.333,
+    "gravy": -0.48,
+    "cysteines": 0
+  },
+  "no_203": {
+    "length": 136,
+    "pseudo_perplexity": 12.436,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "no_204": {
+    "length": 119,
+    "pseudo_perplexity": 3.06,
+    "gravy": -0.11,
+    "cysteines": 0
+  },
+  "no_205": {
+    "length": 121,
+    "pseudo_perplexity": 5.239,
+    "gravy": -0.34,
+    "cysteines": 0
+  },
+  "no_206": {
+    "length": 121,
+    "pseudo_perplexity": 5.352,
+    "gravy": -0.23,
+    "cysteines": 0
+  },
+  "no_207": {
+    "length": 130,
+    "pseudo_perplexity": 4.148,
+    "gravy": -0.34,
+    "cysteines": 0
+  },
+  "no_208": {
+    "length": 128,
+    "pseudo_perplexity": 3.906,
+    "gravy": -0.18,
+    "cysteines": 0
+  },
+  "no_209": {
+    "length": 121,
+    "pseudo_perplexity": 4.341,
+    "gravy": -0.41,
+    "cysteines": 0
+  },
+  "no_210": {
+    "length": 121,
+    "pseudo_perplexity": 4.953,
+    "gravy": -0.4,
+    "cysteines": 0
+  },
+  "no_211": {
+    "length": 121,
+    "pseudo_perplexity": 4.915,
+    "gravy": -0.43,
+    "cysteines": 0
+  },
+  "no_212": {
+    "length": 128,
+    "pseudo_perplexity": 5.802,
+    "gravy": -0.36,
+    "cysteines": 0
+  },
+  "no_213": {
+    "length": 128,
+    "pseudo_perplexity": 6.005,
+    "gravy": -0.21,
+    "cysteines": 0
+  },
+  "no_214": {
+    "length": 128,
+    "pseudo_perplexity": 5.572,
+    "gravy": -0.36,
+    "cysteines": 0
+  },
+  "no_215": {
+    "length": 128,
+    "pseudo_perplexity": 6.221,
+    "gravy": -0.38,
+    "cysteines": 0
+  },
+  "no_216": {
+    "length": 101,
+    "pseudo_perplexity": 7.493,
+    "gravy": 0.04,
+    "cysteines": 0
+  },
+  "no_217": {
+    "length": 100,
+    "pseudo_perplexity": 14.585,
+    "gravy": -0.13,
+    "cysteines": 0
+  },
+  "no_218": {
+    "length": 100,
+    "pseudo_perplexity": 6.662,
+    "gravy": 0.32,
+    "cysteines": 0
+  },
+  "no_219": {
+    "length": 128,
+    "pseudo_perplexity": 5.107,
+    "gravy": -0.32,
+    "cysteines": 0
+  },
+  "no_220": {
+    "length": 138,
+    "pseudo_perplexity": 3.273,
+    "gravy": -0.56,
+    "cysteines": 0
+  },
+  "no_221": {
+    "length": 138,
+    "pseudo_perplexity": 3.269,
+    "gravy": -0.58,
+    "cysteines": 0
+  },
+  "no_222": {
+    "length": 138,
+    "pseudo_perplexity": 3.123,
+    "gravy": -0.56,
+    "cysteines": 0
+  },
+  "no_223": {
+    "length": 138,
+    "pseudo_perplexity": 3.225,
+    "gravy": -0.54,
+    "cysteines": 0
+  },
+  "no_224": {
+    "length": 138,
+    "pseudo_perplexity": 3.086,
+    "gravy": -0.56,
+    "cysteines": 0
+  },
+  "no_225": {
+    "length": 138,
+    "pseudo_perplexity": 3.243,
+    "gravy": -0.62,
+    "cysteines": 0
+  },
+  "no_226": {
+    "length": 138,
+    "pseudo_perplexity": 3.145,
+    "gravy": -0.56,
+    "cysteines": 0
+  },
+  "no_227": {
+    "length": 138,
+    "pseudo_perplexity": 3.251,
+    "gravy": -0.56,
+    "cysteines": 0
+  },
+  "no_228": {
+    "length": 138,
+    "pseudo_perplexity": 3.238,
+    "gravy": -0.53,
+    "cysteines": 0
+  },
+  "no_229": {
+    "length": 140,
+    "pseudo_perplexity": 3.321,
+    "gravy": -0.66,
+    "cysteines": 0
+  },
+  "no_230": {
+    "length": 140,
+    "pseudo_perplexity": 3.305,
+    "gravy": -0.61,
+    "cysteines": 0
+  },
+  "no_231": {
+    "length": 140,
+    "pseudo_perplexity": 3.08,
+    "gravy": -0.65,
+    "cysteines": 0
+  },
+  "no_232": {
+    "length": 140,
+    "pseudo_perplexity": 3.574,
+    "gravy": -0.7,
+    "cysteines": 0
+  },
+  "no_233": {
+    "length": 140,
+    "pseudo_perplexity": 2.891,
+    "gravy": -0.63,
+    "cysteines": 0
+  },
+  "no_234": {
+    "length": 140,
+    "pseudo_perplexity": 3.439,
+    "gravy": -0.62,
+    "cysteines": 0
+  },
+  "no_235": {
+    "length": 140,
+    "pseudo_perplexity": 3.486,
+    "gravy": -0.61,
+    "cysteines": 0
+  },
+  "no_236": {
+    "length": 140,
+    "pseudo_perplexity": 3.511,
+    "gravy": -0.69,
+    "cysteines": 0
+  },
+  "no_237": {
+    "length": 140,
+    "pseudo_perplexity": 2.461,
+    "gravy": -0.27,
+    "cysteines": 0
+  },
+  "no_238": {
+    "length": 140,
+    "pseudo_perplexity": 2.832,
+    "gravy": -0.16,
+    "cysteines": 0
+  },
+  "no_239": {
+    "length": 134,
+    "pseudo_perplexity": 5.112,
+    "gravy": -0.29,
+    "cysteines": 0
+  },
+  "no_240": {
+    "length": 140,
+    "pseudo_perplexity": 2.179,
+    "gravy": -0.53,
+    "cysteines": 0
+  },
+  "no_241": {
+    "length": 137,
+    "pseudo_perplexity": 2.284,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "no_242": {
+    "length": 137,
+    "pseudo_perplexity": 1.989,
+    "gravy": -0.55,
+    "cysteines": 0
+  },
+  "no_243": {
+    "length": 133,
+    "pseudo_perplexity": 16.896,
+    "gravy": -0.12,
+    "cysteines": 0
+  },
+  "no_244": {
+    "length": 141,
+    "pseudo_perplexity": 3.003,
+    "gravy": -0.58,
+    "cysteines": 0
+  },
+  "no_245": {
+    "length": 118,
+    "pseudo_perplexity": 16.584,
+    "gravy": -0.41,
+    "cysteines": 0
+  },
+  "no_246": {
+    "length": 147,
+    "pseudo_perplexity": 13.769,
+    "gravy": -0.37,
+    "cysteines": 0
+  },
+  "no_247": {
+    "length": 141,
+    "pseudo_perplexity": 16.353,
+    "gravy": -0.15,
+    "cysteines": 0
+  },
+  "no_248": {
+    "length": 137,
+    "pseudo_perplexity": 2.038,
+    "gravy": -0.59,
+    "cysteines": 0
+  },
+  "no_249": {
+    "length": 138,
+    "pseudo_perplexity": 3.079,
+    "gravy": -0.58,
+    "cysteines": 0
+  },
+  "no_250": {
+    "length": 137,
+    "pseudo_perplexity": 3.109,
+    "gravy": -0.45,
+    "cysteines": 0
+  },
+  "no_251": {
+    "length": 137,
+    "pseudo_perplexity": 2.377,
+    "gravy": -0.42,
+    "cysteines": 0
+  },
+  "no_252": {
+    "length": 118,
+    "pseudo_perplexity": 3.362,
+    "gravy": -0.39,
+    "cysteines": 0
+  },
+  "no_253": {
+    "length": 129,
+    "pseudo_perplexity": 5.712,
+    "gravy": -0.32,
+    "cysteines": 0
+  },
+  "no_254": {
+    "length": 128,
+    "pseudo_perplexity": 4.485,
+    "gravy": -0.39,
+    "cysteines": 0
+  },
+  "no_255": {
+    "length": 104,
+    "pseudo_perplexity": 11.832,
+    "gravy": -0.09,
+    "cysteines": 0
+  },
+  "no_256": {
+    "length": 104,
+    "pseudo_perplexity": 10.143,
+    "gravy": 0.1,
+    "cysteines": 0
+  },
+  "no_257": {
+    "length": 100,
+    "pseudo_perplexity": 17.02,
+    "gravy": -0.48,
+    "cysteines": 0
+  },
+  "no_258": {
+    "length": 111,
+    "pseudo_perplexity": 2.29,
+    "gravy": -0.68,
+    "cysteines": 0
+  },
+  "no_259": {
+    "length": 128,
+    "pseudo_perplexity": 5.036,
+    "gravy": -0.54,
+    "cysteines": 0
+  },
+  "no_260": {
+    "length": 137,
+    "pseudo_perplexity": 3.514,
+    "gravy": -0.35,
+    "cysteines": 0
+  },
+  "no_261": {
+    "length": 149,
+    "pseudo_perplexity": 4.914,
+    "gravy": 0.14,
+    "cysteines": 0
+  },
+  "no_262": {
+    "length": 130,
+    "pseudo_perplexity": 16.307,
+    "gravy": -0.17,
+    "cysteines": 0
+  },
+  "no_263": {
+    "length": 140,
+    "pseudo_perplexity": 2.285,
+    "gravy": -0.56,
+    "cysteines": 0
+  },
+  "no_264": {
+    "length": 128,
+    "pseudo_perplexity": 4.527,
+    "gravy": -0.53,
+    "cysteines": 0
+  },
+  "no_265": {
+    "length": 147,
+    "pseudo_perplexity": 15.138,
+    "gravy": -0.13,
+    "cysteines": 0
+  },
+  "no_266": {
+    "length": 119,
+    "pseudo_perplexity": 3.243,
+    "gravy": -0.37,
+    "cysteines": 0
+  },
+  "no_267": {
+    "length": 122,
+    "pseudo_perplexity": 3.514,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "no_268": {
+    "length": 125,
+    "pseudo_perplexity": 3.459,
+    "gravy": -0.46,
+    "cysteines": 0
+  },
+  "no_269": {
+    "length": 112,
+    "pseudo_perplexity": 4.505,
+    "gravy": -0.37,
+    "cysteines": 0
+  },
+  "no_270": {
+    "length": 112,
+    "pseudo_perplexity": 6.443,
+    "gravy": 0.03,
+    "cysteines": 0
+  },
+  "no_271": {
+    "length": 119,
+    "pseudo_perplexity": 3.6,
+    "gravy": -0.29,
+    "cysteines": 0
+  },
+  "no_272": {
+    "length": 132,
+    "pseudo_perplexity": 3.675,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "no_273": {
+    "length": 128,
+    "pseudo_perplexity": 3.682,
+    "gravy": -0.2,
+    "cysteines": 0
+  },
+  "no_274": {
+    "length": 134,
+    "pseudo_perplexity": 3.858,
+    "gravy": -0.26,
+    "cysteines": 0
+  },
+  "no_275": {
+    "length": 102,
+    "pseudo_perplexity": 7.831,
+    "gravy": -0.25,
+    "cysteines": 0
+  },
+  "no_276": {
+    "length": 101,
+    "pseudo_perplexity": 5.951,
+    "gravy": -0.23,
+    "cysteines": 0
+  },
+  "no_277": {
+    "length": 129,
+    "pseudo_perplexity": 3.733,
+    "gravy": -0.45,
+    "cysteines": 0
+  },
+  "no_278": {
+    "length": 131,
+    "pseudo_perplexity": 3.687,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "no_279": {
+    "length": 124,
+    "pseudo_perplexity": 3.479,
+    "gravy": -0.3,
+    "cysteines": 0
+  },
+  "no_280": {
+    "length": 100,
+    "pseudo_perplexity": 7.872,
+    "gravy": -0.4,
+    "cysteines": 0
+  },
+  "no_281": {
+    "length": 126,
+    "pseudo_perplexity": 3.546,
+    "gravy": -0.11,
+    "cysteines": 0
+  },
+  "no_282": {
+    "length": 116,
+    "pseudo_perplexity": 3.942,
+    "gravy": -0.39,
+    "cysteines": 0
+  },
+  "no_283": {
+    "length": 138,
+    "pseudo_perplexity": 8.809,
+    "gravy": 0.41,
+    "cysteines": 0
+  },
+  "no_284": {
+    "length": 125,
+    "pseudo_perplexity": 7.008,
+    "gravy": -0.08,
+    "cysteines": 0
+  },
+  "no_285": {
+    "length": 132,
+    "pseudo_perplexity": 4.088,
+    "gravy": -0.47,
+    "cysteines": 0
+  },
+  "no_286": {
+    "length": 127,
+    "pseudo_perplexity": 3.748,
+    "gravy": -0.44,
+    "cysteines": 0
+  },
+  "no_287": {
+    "length": 116,
+    "pseudo_perplexity": 3.849,
+    "gravy": -0.48,
+    "cysteines": 0
+  },
+  "no_288": {
+    "length": 110,
+    "pseudo_perplexity": 7.311,
+    "gravy": -0.42,
+    "cysteines": 0
+  },
+  "no_289": {
+    "length": 120,
+    "pseudo_perplexity": 4.446,
+    "gravy": -0.45,
+    "cysteines": 0
+  },
+  "no_290": {
+    "length": 138,
+    "pseudo_perplexity": 7.896,
+    "gravy": 0.77,
+    "cysteines": 0
+  },
+  "no_291": {
+    "length": 121,
+    "pseudo_perplexity": 6.198,
+    "gravy": -0.44,
+    "cysteines": 0
+  },
+  "no_292": {
+    "length": 116,
+    "pseudo_perplexity": 6.211,
+    "gravy": -0.06,
+    "cysteines": 0
+  },
+  "no_293": {
+    "length": 116,
+    "pseudo_perplexity": 5.253,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "no_294": {
+    "length": 116,
+    "pseudo_perplexity": 5.526,
+    "gravy": -0.35,
+    "cysteines": 0
+  },
+  "no_295": {
+    "length": 116,
+    "pseudo_perplexity": 4.82,
+    "gravy": -0.29,
+    "cysteines": 0
+  },
+  "no_296": {
+    "length": 116,
+    "pseudo_perplexity": 4.686,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "no_297": {
+    "length": 126,
+    "pseudo_perplexity": 4.413,
+    "gravy": -0.11,
+    "cysteines": 0
+  },
+  "no_298": {
+    "length": 128,
+    "pseudo_perplexity": 11.054,
+    "gravy": -0.21,
+    "cysteines": 0
+  },
+  "no_299": {
+    "length": 100,
+    "pseudo_perplexity": 11.399,
+    "gravy": -0.83,
+    "cysteines": 0
+  },
+  "no_300": {
+    "length": 127,
+    "pseudo_perplexity": 6.216,
+    "gravy": -0.4,
+    "cysteines": 0
+  },
+  "no_301": {
+    "length": 127,
+    "pseudo_perplexity": 2.972,
+    "gravy": -0.4,
+    "cysteines": 0
+  },
+  "no_302": {
+    "length": 124,
+    "pseudo_perplexity": 4.135,
+    "gravy": -0.53,
+    "cysteines": 0
+  },
+  "no_303": {
+    "length": 122,
+    "pseudo_perplexity": 3.485,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "no_304": {
+    "length": 127,
+    "pseudo_perplexity": 6.363,
+    "gravy": -0.45,
+    "cysteines": 0
+  },
+  "no_305": {
+    "length": 124,
+    "pseudo_perplexity": 3.408,
+    "gravy": -0.4,
+    "cysteines": 0
+  },
+  "no_306": {
+    "length": 119,
+    "pseudo_perplexity": 2.431,
+    "gravy": -0.19,
+    "cysteines": 0
+  },
+  "no_307": {
+    "length": 122,
+    "pseudo_perplexity": 7.212,
+    "gravy": -0.34,
+    "cysteines": 0
+  },
+  "no_308": {
+    "length": 119,
+    "pseudo_perplexity": 10.091,
+    "gravy": -0.07,
+    "cysteines": 0
+  },
+  "ok_309": {
+    "length": 101,
+    "pseudo_perplexity": 7.535,
+    "gravy": 0.17,
+    "cysteines": 0
+  },
+  "ok_310": {
+    "length": 120,
+    "pseudo_perplexity": 7.972,
+    "gravy": -1.38,
+    "cysteines": 0
+  },
+  "ok_311": {
+    "length": 115,
+    "pseudo_perplexity": 7.71,
+    "gravy": -0.72,
+    "cysteines": 0
+  },
+  "ok_312": {
+    "length": 120,
+    "pseudo_perplexity": 3.611,
+    "gravy": -0.25,
+    "cysteines": 0
+  },
+  "ok_313": {
+    "length": 123,
+    "pseudo_perplexity": 10.906,
+    "gravy": 0.25,
+    "cysteines": 0
+  },
+  "ok_314": {
+    "length": 115,
+    "pseudo_perplexity": 8.994,
+    "gravy": -0.19,
+    "cysteines": 0
+  },
+  "ok_315": {
+    "length": 121,
+    "pseudo_perplexity": 2.8,
+    "gravy": -0.42,
+    "cysteines": 0
+  },
+  "ok_316": {
+    "length": 133,
+    "pseudo_perplexity": 6.227,
+    "gravy": -0.21,
+    "cysteines": 0
+  },
+  "ok_317": {
+    "length": 122,
+    "pseudo_perplexity": 4.14,
+    "gravy": -0.39,
+    "cysteines": 0
+  },
+  "ok_318": {
+    "length": 120,
+    "pseudo_perplexity": 6.947,
+    "gravy": -0.37,
+    "cysteines": 0
+  },
+  "ok_319": {
+    "length": 128,
+    "pseudo_perplexity": 4.277,
+    "gravy": -0.44,
+    "cysteines": 0
+  },
+  "ok_320": {
+    "length": 100,
+    "pseudo_perplexity": 7.113,
+    "gravy": -0.86,
+    "cysteines": 0
+  },
+  "ok_321": {
+    "length": 117,
+    "pseudo_perplexity": 8.511,
+    "gravy": -0.64,
+    "cysteines": 0
+  },
+  "ok_322": {
+    "length": 124,
+    "pseudo_perplexity": 11.769,
+    "gravy": -0.2,
+    "cysteines": 0
+  },
+  "ok_323": {
+    "length": 131,
+    "pseudo_perplexity": 3.56,
+    "gravy": -0.25,
+    "cysteines": 0
+  },
+  "ok_324": {
+    "length": 125,
+    "pseudo_perplexity": 3.828,
+    "gravy": -0.62,
+    "cysteines": 0
+  },
+  "ok_325": {
+    "length": 116,
+    "pseudo_perplexity": 3.314,
+    "gravy": -0.01,
+    "cysteines": 0
+  },
+  "ok_326": {
+    "length": 111,
+    "pseudo_perplexity": 5.999,
+    "gravy": -0.29,
+    "cysteines": 0
+  },
+  "ok_327": {
+    "length": 101,
+    "pseudo_perplexity": 7.834,
+    "gravy": -0.55,
+    "cysteines": 0
+  },
+  "ok_328": {
+    "length": 118,
+    "pseudo_perplexity": 8.981,
+    "gravy": -0.25,
+    "cysteines": 0
+  },
+  "ok_329": {
+    "length": 132,
+    "pseudo_perplexity": 4.079,
+    "gravy": -0.43,
+    "cysteines": 0
+  },
+  "ok_330": {
+    "length": 124,
+    "pseudo_perplexity": 8.711,
+    "gravy": -0.51,
+    "cysteines": 0
+  },
+  "ok_331": {
+    "length": 112,
+    "pseudo_perplexity": 3.809,
+    "gravy": -0.72,
+    "cysteines": 0
+  },
+  "ok_332": {
+    "length": 107,
+    "pseudo_perplexity": 5.332,
+    "gravy": -0.24,
+    "cysteines": 0
+  },
+  "ok_333": {
+    "length": 125,
+    "pseudo_perplexity": 8.224,
+    "gravy": -0.08,
+    "cysteines": 0
+  },
+  "ok_334": {
+    "length": 103,
+    "pseudo_perplexity": 9.975,
+    "gravy": -0.25,
+    "cysteines": 0
+  },
+  "ok_335": {
+    "length": 127,
+    "pseudo_perplexity": 7.153,
+    "gravy": -0.05,
+    "cysteines": 0
+  },
+  "ok_336": {
+    "length": 123,
+    "pseudo_perplexity": 10.132,
+    "gravy": -0.09,
+    "cysteines": 0
+  },
+  "ok_337": {
+    "length": 132,
+    "pseudo_perplexity": 7.643,
+    "gravy": 0.17,
+    "cysteines": 0
+  },
+  "ok_338": {
+    "length": 136,
+    "pseudo_perplexity": 7.655,
+    "gravy": -0.4,
+    "cysteines": 0
+  },
+  "ok_339": {
+    "length": 101,
+    "pseudo_perplexity": 8.697,
+    "gravy": -0.03,
+    "cysteines": 0
+  },
+  "ok_340": {
+    "length": 132,
+    "pseudo_perplexity": 4.309,
+    "gravy": -0.46,
+    "cysteines": 0
+  },
+  "ok_341": {
+    "length": 127,
+    "pseudo_perplexity": 9.79,
+    "gravy": 0.1,
+    "cysteines": 0
+  },
+  "ok_342": {
+    "length": 101,
+    "pseudo_perplexity": 13.597,
+    "gravy": -0.88,
+    "cysteines": 0
+  },
+  "ok_343": {
+    "length": 118,
+    "pseudo_perplexity": 6.754,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "ok_344": {
+    "length": 118,
+    "pseudo_perplexity": 10.058,
+    "gravy": -0.2,
+    "cysteines": 0
+  },
+  "ok_345": {
+    "length": 120,
+    "pseudo_perplexity": 6.291,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "ok_346": {
+    "length": 122,
+    "pseudo_perplexity": 2.66,
+    "gravy": -0.3,
+    "cysteines": 0
+  },
+  "ok_347": {
+    "length": 120,
+    "pseudo_perplexity": 5.0,
+    "gravy": 0.11,
+    "cysteines": 0
+  },
+  "ok_348": {
+    "length": 120,
+    "pseudo_perplexity": 5.31,
+    "gravy": 0.09,
+    "cysteines": 0
+  },
+  "ok_349": {
+    "length": 101,
+    "pseudo_perplexity": 9.979,
+    "gravy": 0.24,
+    "cysteines": 0
+  },
+  "ok_350": {
+    "length": 122,
+    "pseudo_perplexity": 4.232,
+    "gravy": -0.48,
+    "cysteines": 0
+  },
+  "ok_351": {
+    "length": 100,
+    "pseudo_perplexity": 5.86,
+    "gravy": -0.89,
+    "cysteines": 0
+  },
+  "ok_352": {
+    "length": 122,
+    "pseudo_perplexity": 4.469,
+    "gravy": -0.52,
+    "cysteines": 0
+  },
+  "ok_353": {
+    "length": 135,
+    "pseudo_perplexity": 7.268,
+    "gravy": -0.21,
+    "cysteines": 0
+  },
+  "ok_354": {
+    "length": 122,
+    "pseudo_perplexity": 4.883,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "ok_355": {
+    "length": 137,
+    "pseudo_perplexity": 3.794,
+    "gravy": -0.34,
+    "cysteines": 0
+  },
+  "ok_356": {
+    "length": 131,
+    "pseudo_perplexity": 9.952,
+    "gravy": -0.68,
+    "cysteines": 0
+  },
+  "ok_357": {
+    "length": 137,
+    "pseudo_perplexity": 3.88,
+    "gravy": -0.51,
+    "cysteines": 0
+  },
+  "ok_358": {
+    "length": 136,
+    "pseudo_perplexity": 7.194,
+    "gravy": 0.01,
+    "cysteines": 0
+  },
+  "ok_359": {
+    "length": 125,
+    "pseudo_perplexity": 9.773,
+    "gravy": 0.47,
+    "cysteines": 0
+  },
+  "ok_360": {
+    "length": 120,
+    "pseudo_perplexity": 6.67,
+    "gravy": -0.39,
+    "cysteines": 0
+  },
+  "ok_361": {
+    "length": 120,
+    "pseudo_perplexity": 3.556,
+    "gravy": -0.19,
+    "cysteines": 0
+  },
+  "ok_362": {
+    "length": 129,
+    "pseudo_perplexity": 5.055,
+    "gravy": -0.47,
+    "cysteines": 0
+  },
+  "ok_363": {
+    "length": 119,
+    "pseudo_perplexity": 3.68,
+    "gravy": -0.16,
+    "cysteines": 0
+  },
+  "ok_364": {
+    "length": 146,
+    "pseudo_perplexity": 6.919,
+    "gravy": 0.5,
+    "cysteines": 0
+  },
+  "ok_365": {
+    "length": 137,
+    "pseudo_perplexity": 2.022,
+    "gravy": -0.52,
+    "cysteines": 0
+  },
+  "ok_366": {
+    "length": 123,
+    "pseudo_perplexity": 3.69,
+    "gravy": -0.15,
+    "cysteines": 0
+  },
+  "ok_367": {
+    "length": 124,
+    "pseudo_perplexity": 2.988,
+    "gravy": -0.49,
+    "cysteines": 0
+  },
+  "ok_368": {
+    "length": 134,
+    "pseudo_perplexity": 3.807,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "ok_369": {
+    "length": 122,
+    "pseudo_perplexity": 5.774,
+    "gravy": -0.46,
+    "cysteines": 0
+  },
+  "ok_370": {
+    "length": 119,
+    "pseudo_perplexity": 4.105,
+    "gravy": -0.21,
+    "cysteines": 0
+  },
+  "ok_371": {
+    "length": 123,
+    "pseudo_perplexity": 9.157,
+    "gravy": 0.22,
+    "cysteines": 0
+  },
+  "ok_372": {
+    "length": 109,
+    "pseudo_perplexity": 8.921,
+    "gravy": 0.0,
+    "cysteines": 0
+  },
+  "ok_373": {
+    "length": 107,
+    "pseudo_perplexity": 6.834,
+    "gravy": -0.18,
+    "cysteines": 0
+  },
+  "ok_374": {
+    "length": 100,
+    "pseudo_perplexity": 6.156,
+    "gravy": 0.19,
+    "cysteines": 0
+  },
+  "ok_375": {
+    "length": 121,
+    "pseudo_perplexity": 3.451,
+    "gravy": -0.32,
+    "cysteines": 0
+  },
+  "ok_376": {
+    "length": 126,
+    "pseudo_perplexity": 3.559,
+    "gravy": -0.17,
+    "cysteines": 0
+  },
+  "ok_377": {
+    "length": 122,
+    "pseudo_perplexity": 3.661,
+    "gravy": -0.39,
+    "cysteines": 0
+  },
+  "ok_378": {
+    "length": 123,
+    "pseudo_perplexity": 11.649,
+    "gravy": -0.1,
+    "cysteines": 0
+  },
+  "ok_379": {
+    "length": 125,
+    "pseudo_perplexity": 8.792,
+    "gravy": -0.04,
+    "cysteines": 0
+  },
+  "ok_380": {
+    "length": 101,
+    "pseudo_perplexity": 5.925,
+    "gravy": 0.23,
+    "cysteines": 0
+  },
+  "ok_381": {
+    "length": 134,
+    "pseudo_perplexity": 9.993,
+    "gravy": -0.5,
+    "cysteines": 0
+  },
+  "ok_382": {
+    "length": 120,
+    "pseudo_perplexity": 13.132,
+    "gravy": -0.57,
+    "cysteines": 0
+  },
+  "ok_383": {
+    "length": 118,
+    "pseudo_perplexity": 9.609,
+    "gravy": -0.1,
+    "cysteines": 0
+  },
+  "ok_384": {
+    "length": 133,
+    "pseudo_perplexity": 6.519,
+    "gravy": 0.08,
+    "cysteines": 0
+  },
+  "ok_385": {
+    "length": 100,
+    "pseudo_perplexity": 4.543,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "ok_386": {
+    "length": 113,
+    "pseudo_perplexity": 6.768,
+    "gravy": -0.68,
+    "cysteines": 0
+  },
+  "ok_387": {
+    "length": 100,
+    "pseudo_perplexity": 15.132,
+    "gravy": -0.67,
+    "cysteines": 0
+  },
+  "ok_388": {
+    "length": 136,
+    "pseudo_perplexity": 5.283,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "ok_389": {
+    "length": 120,
+    "pseudo_perplexity": 10.76,
+    "gravy": 0.23,
+    "cysteines": 0
+  },
+  "ok_390": {
+    "length": 127,
+    "pseudo_perplexity": 3.814,
+    "gravy": -0.46,
+    "cysteines": 0
+  },
+  "ok_391": {
+    "length": 120,
+    "pseudo_perplexity": 7.909,
+    "gravy": 0.12,
+    "cysteines": 0
+  },
+  "ok_392": {
+    "length": 122,
+    "pseudo_perplexity": 4.864,
+    "gravy": -0.49,
+    "cysteines": 0
+  },
+  "ok_393": {
+    "length": 132,
+    "pseudo_perplexity": 8.562,
+    "gravy": 0.16,
+    "cysteines": 0
+  },
+  "ok_394": {
+    "length": 122,
+    "pseudo_perplexity": 10.65,
+    "gravy": 0.23,
+    "cysteines": 0
+  },
+  "ok_395": {
+    "length": 122,
+    "pseudo_perplexity": 3.692,
+    "gravy": -0.26,
+    "cysteines": 0
+  },
+  "ok_396": {
+    "length": 126,
+    "pseudo_perplexity": 4.199,
+    "gravy": -0.35,
+    "cysteines": 0
+  },
+  "ok_397": {
+    "length": 120,
+    "pseudo_perplexity": 3.661,
+    "gravy": -0.27,
+    "cysteines": 0
+  },
+  "ok_398": {
+    "length": 133,
+    "pseudo_perplexity": 4.008,
+    "gravy": -0.26,
+    "cysteines": 0
+  },
+  "ok_399": {
+    "length": 123,
+    "pseudo_perplexity": 4.015,
+    "gravy": -0.18,
+    "cysteines": 0
+  },
+  "ok_400": {
+    "length": 109,
+    "pseudo_perplexity": 9.492,
+    "gravy": -0.01,
+    "cysteines": 0
+  },
+  "ok_401": {
+    "length": 100,
+    "pseudo_perplexity": 7.0,
+    "gravy": 0.12,
+    "cysteines": 0
+  },
+  "ok_402": {
+    "length": 120,
+    "pseudo_perplexity": 6.334,
+    "gravy": -0.39,
+    "cysteines": 0
+  },
+  "ok_403": {
+    "length": 129,
+    "pseudo_perplexity": 4.223,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "ok_404": {
+    "length": 127,
+    "pseudo_perplexity": 9.329,
+    "gravy": 0.0,
+    "cysteines": 0
+  },
+  "ok_405": {
+    "length": 133,
+    "pseudo_perplexity": 3.776,
+    "gravy": -0.27,
+    "cysteines": 0
+  },
+  "ok_406": {
+    "length": 125,
+    "pseudo_perplexity": 3.888,
+    "gravy": -0.3,
+    "cysteines": 0
+  },
+  "ok_407": {
+    "length": 120,
+    "pseudo_perplexity": 7.338,
+    "gravy": -0.35,
+    "cysteines": 0
+  },
+  "ok_408": {
+    "length": 116,
+    "pseudo_perplexity": 4.895,
+    "gravy": 0.19,
+    "cysteines": 0
+  },
+  "ok_409": {
+    "length": 107,
+    "pseudo_perplexity": 7.509,
+    "gravy": -0.3,
+    "cysteines": 0
+  },
+  "ok_410": {
+    "length": 101,
+    "pseudo_perplexity": 9.311,
+    "gravy": 0.19,
+    "cysteines": 0
+  },
+  "ok_411": {
+    "length": 134,
+    "pseudo_perplexity": 4.071,
+    "gravy": -0.36,
+    "cysteines": 0
+  },
+  "ok_412": {
+    "length": 121,
+    "pseudo_perplexity": 8.914,
+    "gravy": 0.04,
+    "cysteines": 0
+  },
+  "ok_413": {
+    "length": 132,
+    "pseudo_perplexity": 6.757,
+    "gravy": 0.04,
+    "cysteines": 0
+  },
+  "ok_414": {
+    "length": 123,
+    "pseudo_perplexity": 9.013,
+    "gravy": 0.03,
+    "cysteines": 0
+  },
+  "ok_415": {
+    "length": 122,
+    "pseudo_perplexity": 2.939,
+    "gravy": -0.36,
+    "cysteines": 0
+  },
+  "ok_416": {
+    "length": 118,
+    "pseudo_perplexity": 7.314,
+    "gravy": 0.08,
+    "cysteines": 0
+  },
+  "ok_417": {
+    "length": 119,
+    "pseudo_perplexity": 8.311,
+    "gravy": -0.35,
+    "cysteines": 0
+  },
+  "ok_418": {
+    "length": 125,
+    "pseudo_perplexity": 7.639,
+    "gravy": 0.15,
+    "cysteines": 0
+  },
+  "ok_419": {
+    "length": 111,
+    "pseudo_perplexity": 10.878,
+    "gravy": -0.07,
+    "cysteines": 0
+  },
+  "ok_420": {
+    "length": 136,
+    "pseudo_perplexity": 7.383,
+    "gravy": -0.18,
+    "cysteines": 0
+  },
+  "ok_421": {
+    "length": 123,
+    "pseudo_perplexity": 9.105,
+    "gravy": 0.39,
+    "cysteines": 0
+  },
+  "ok_422": {
+    "length": 137,
+    "pseudo_perplexity": 2.172,
+    "gravy": -0.5,
+    "cysteines": 0
+  },
+  "ok_423": {
+    "length": 125,
+    "pseudo_perplexity": 10.208,
+    "gravy": -0.53,
+    "cysteines": 0
+  },
+  "ok_424": {
+    "length": 132,
+    "pseudo_perplexity": 3.597,
+    "gravy": -0.17,
+    "cysteines": 0
+  },
+  "ok_425": {
+    "length": 120,
+    "pseudo_perplexity": 7.143,
+    "gravy": 0.02,
+    "cysteines": 0
+  },
+  "ok_426": {
+    "length": 101,
+    "pseudo_perplexity": 8.039,
+    "gravy": 0.27,
+    "cysteines": 0
+  },
+  "ok_427": {
+    "length": 121,
+    "pseudo_perplexity": 11.752,
+    "gravy": 0.02,
+    "cysteines": 0
+  },
+  "ok_428": {
+    "length": 101,
+    "pseudo_perplexity": 7.089,
+    "gravy": 0.42,
+    "cysteines": 0
+  },
+  "ok_429": {
+    "length": 138,
+    "pseudo_perplexity": 8.792,
+    "gravy": 0.47,
+    "cysteines": 0
+  },
+  "ok_430": {
+    "length": 106,
+    "pseudo_perplexity": 7.264,
+    "gravy": -0.42,
+    "cysteines": 0
+  },
+  "ok_431": {
+    "length": 105,
+    "pseudo_perplexity": 8.612,
+    "gravy": -0.11,
+    "cysteines": 0
+  },
+  "ok_432": {
+    "length": 120,
+    "pseudo_perplexity": 3.984,
+    "gravy": -0.3,
+    "cysteines": 0
+  },
+  "ok_433": {
+    "length": 124,
+    "pseudo_perplexity": 9.146,
+    "gravy": 0.07,
+    "cysteines": 0
+  },
+  "ok_434": {
+    "length": 109,
+    "pseudo_perplexity": 7.344,
+    "gravy": 0.03,
+    "cysteines": 0
+  },
+  "ok_435": {
+    "length": 113,
+    "pseudo_perplexity": 3.393,
+    "gravy": -0.24,
+    "cysteines": 0
+  },
+  "ok_436": {
+    "length": 109,
+    "pseudo_perplexity": 12.243,
+    "gravy": 0.01,
+    "cysteines": 0
+  },
+  "ok_437": {
+    "length": 129,
+    "pseudo_perplexity": 10.644,
+    "gravy": -0.17,
+    "cysteines": 0
+  },
+  "ok_438": {
+    "length": 116,
+    "pseudo_perplexity": 2.496,
+    "gravy": -0.16,
+    "cysteines": 0
+  },
+  "ok_439": {
+    "length": 137,
+    "pseudo_perplexity": 1.882,
+    "gravy": -0.44,
+    "cysteines": 0
+  },
+  "ok_440": {
+    "length": 132,
+    "pseudo_perplexity": 3.783,
+    "gravy": -0.28,
+    "cysteines": 0
+  },
+  "ok_441": {
+    "length": 136,
+    "pseudo_perplexity": 6.236,
+    "gravy": 0.2,
+    "cysteines": 0
+  },
+  "ok_442": {
+    "length": 120,
+    "pseudo_perplexity": 5.794,
+    "gravy": -0.35,
+    "cysteines": 0
+  },
+  "ok_443": {
+    "length": 132,
+    "pseudo_perplexity": 4.301,
+    "gravy": -0.42,
+    "cysteines": 0
+  },
+  "ok_444": {
+    "length": 118,
+    "pseudo_perplexity": 5.37,
+    "gravy": -0.24,
+    "cysteines": 0
+  },
+  "ok_445": {
+    "length": 122,
+    "pseudo_perplexity": 3.728,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "ok_446": {
+    "length": 120,
+    "pseudo_perplexity": 6.211,
+    "gravy": -0.17,
+    "cysteines": 0
+  },
+  "ok_447": {
+    "length": 105,
+    "pseudo_perplexity": 10.261,
+    "gravy": -0.29,
+    "cysteines": 0
+  },
+  "ok_448": {
+    "length": 127,
+    "pseudo_perplexity": 8.802,
+    "gravy": -0.05,
+    "cysteines": 0
+  },
+  "ok_449": {
+    "length": 111,
+    "pseudo_perplexity": 3.42,
+    "gravy": 0.12,
+    "cysteines": 0
+  },
+  "ok_450": {
+    "length": 149,
+    "pseudo_perplexity": 4.774,
+    "gravy": 0.2,
+    "cysteines": 0
+  },
+  "ok_451": {
+    "length": 125,
+    "pseudo_perplexity": 8.802,
+    "gravy": 0.13,
+    "cysteines": 0
+  },
+  "ok_452": {
+    "length": 118,
+    "pseudo_perplexity": 6.67,
+    "gravy": -0.18,
+    "cysteines": 0
+  },
+  "ok_453": {
+    "length": 125,
+    "pseudo_perplexity": 3.667,
+    "gravy": -0.39,
+    "cysteines": 0
+  },
+  "ok_454": {
+    "length": 146,
+    "pseudo_perplexity": 12.33,
+    "gravy": 0.24,
+    "cysteines": 0
+  },
+  "ok_455": {
+    "length": 116,
+    "pseudo_perplexity": 3.253,
+    "gravy": -0.53,
+    "cysteines": 0
+  },
+  "ok_456": {
+    "length": 123,
+    "pseudo_perplexity": 9.082,
+    "gravy": 0.2,
+    "cysteines": 0
+  },
+  "ok_457": {
+    "length": 101,
+    "pseudo_perplexity": 9.06,
+    "gravy": 0.34,
+    "cysteines": 0
+  },
+  "ok_458": {
+    "length": 137,
+    "pseudo_perplexity": 1.807,
+    "gravy": -0.75,
+    "cysteines": 0
+  },
+  "ok_459": {
+    "length": 122,
+    "pseudo_perplexity": 3.955,
+    "gravy": -0.36,
+    "cysteines": 0
+  },
+  "no_460": {
+    "length": 160,
+    "pseudo_perplexity": 12.256,
+    "gravy": 0.1,
+    "cysteines": 0
+  },
+  "no_461": {
+    "length": 210,
+    "pseudo_perplexity": 9.521,
+    "gravy": 0.46,
+    "cysteines": 0
+  },
+  "no_462": {
+    "length": 211,
+    "pseudo_perplexity": 9.658,
+    "gravy": 0.07,
+    "cysteines": 0
+  },
+  "no_463": {
+    "length": 218,
+    "pseudo_perplexity": 10.078,
+    "gravy": 0.21,
+    "cysteines": 0
+  },
+  "no_464": {
+    "length": 204,
+    "pseudo_perplexity": 10.46,
+    "gravy": 0.86,
+    "cysteines": 0
+  },
+  "no_465": {
+    "length": 221,
+    "pseudo_perplexity": 10.547,
+    "gravy": 0.3,
+    "cysteines": 0
+  },
+  "no_466": {
+    "length": 228,
+    "pseudo_perplexity": 5.464,
+    "gravy": 0.23,
+    "cysteines": 0
+  },
+  "no_467": {
+    "length": 202,
+    "pseudo_perplexity": 9.841,
+    "gravy": 0.39,
+    "cysteines": 0
+  },
+  "no_468": {
+    "length": 200,
+    "pseudo_perplexity": 10.291,
+    "gravy": 0.5,
+    "cysteines": 0
+  },
+  "no_469": {
+    "length": 248,
+    "pseudo_perplexity": 11.645,
+    "gravy": -0.11,
+    "cysteines": 0
+  },
+  "no_470": {
+    "length": 226,
+    "pseudo_perplexity": 11.724,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "no_471": {
+    "length": 162,
+    "pseudo_perplexity": 5.79,
+    "gravy": 0.13,
+    "cysteines": 0
+  },
+  "no_472": {
+    "length": 249,
+    "pseudo_perplexity": 4.366,
+    "gravy": -0.14,
+    "cysteines": 0
+  },
+  "no_473": {
+    "length": 208,
+    "pseudo_perplexity": 1.486,
+    "gravy": -0.28,
+    "cysteines": 0
+  },
+  "no_474": {
+    "length": 236,
+    "pseudo_perplexity": 11.476,
+    "gravy": -0.07,
+    "cysteines": 0
+  },
+  "no_475": {
+    "length": 241,
+    "pseudo_perplexity": 9.649,
+    "gravy": 0.11,
+    "cysteines": 0
+  },
+  "no_476": {
+    "length": 243,
+    "pseudo_perplexity": 9.091,
+    "gravy": -0.27,
+    "cysteines": 0
+  },
+  "no_477": {
+    "length": 243,
+    "pseudo_perplexity": 10.166,
+    "gravy": -0.12,
+    "cysteines": 0
+  },
+  "no_478": {
+    "length": 243,
+    "pseudo_perplexity": 7.502,
+    "gravy": 0.12,
+    "cysteines": 0
+  },
+  "no_479": {
+    "length": 243,
+    "pseudo_perplexity": 8.948,
+    "gravy": 0.02,
+    "cysteines": 0
+  },
+  "no_480": {
+    "length": 243,
+    "pseudo_perplexity": 7.039,
+    "gravy": -0.01,
+    "cysteines": 0
+  },
+  "no_481": {
+    "length": 243,
+    "pseudo_perplexity": 9.902,
+    "gravy": -0.23,
+    "cysteines": 0
+  },
+  "no_482": {
+    "length": 243,
+    "pseudo_perplexity": 7.037,
+    "gravy": 0.29,
+    "cysteines": 0
+  },
+  "no_483": {
+    "length": 153,
+    "pseudo_perplexity": 9.849,
+    "gravy": -0.85,
+    "cysteines": 0
+  },
+  "no_484": {
+    "length": 230,
+    "pseudo_perplexity": 8.591,
+    "gravy": -0.67,
+    "cysteines": 0
+  },
+  "no_485": {
+    "length": 179,
+    "pseudo_perplexity": 17.541,
+    "gravy": -0.67,
+    "cysteines": 0
+  },
+  "no_486": {
+    "length": 235,
+    "pseudo_perplexity": 4.958,
+    "gravy": -0.15,
+    "cysteines": 0
+  },
+  "no_487": {
+    "length": 236,
+    "pseudo_perplexity": 4.82,
+    "gravy": -0.16,
+    "cysteines": 0
+  },
+  "no_488": {
+    "length": 180,
+    "pseudo_perplexity": 2.696,
+    "gravy": -0.4,
+    "cysteines": 0
+  },
+  "no_489": {
+    "length": 241,
+    "pseudo_perplexity": 20.354,
+    "gravy": -0.81,
+    "cysteines": 0
+  },
+  "no_490": {
+    "length": 241,
+    "pseudo_perplexity": 21.232,
+    "gravy": -0.57,
+    "cysteines": 0
+  },
+  "no_491": {
+    "length": 241,
+    "pseudo_perplexity": 21.006,
+    "gravy": -0.29,
+    "cysteines": 0
+  },
+  "no_492": {
+    "length": 241,
+    "pseudo_perplexity": 20.955,
+    "gravy": -0.62,
+    "cysteines": 0
+  },
+  "no_493": {
+    "length": 241,
+    "pseudo_perplexity": 21.407,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "no_494": {
+    "length": 241,
+    "pseudo_perplexity": 19.874,
+    "gravy": -0.26,
+    "cysteines": 0
+  },
+  "no_495": {
+    "length": 241,
+    "pseudo_perplexity": 20.997,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "no_496": {
+    "length": 241,
+    "pseudo_perplexity": 19.057,
+    "gravy": -0.38,
+    "cysteines": 0
+  },
+  "no_497": {
+    "length": 241,
+    "pseudo_perplexity": 20.583,
+    "gravy": -0.35,
+    "cysteines": 0
+  },
+  "no_498": {
+    "length": 176,
+    "pseudo_perplexity": 6.643,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "no_499": {
+    "length": 245,
+    "pseudo_perplexity": 3.651,
+    "gravy": -0.46,
+    "cysteines": 0
+  },
+  "no_500": {
+    "length": 245,
+    "pseudo_perplexity": 3.698,
+    "gravy": -0.43,
+    "cysteines": 0
+  },
+  "no_501": {
+    "length": 182,
+    "pseudo_perplexity": 3.646,
+    "gravy": -0.27,
+    "cysteines": 0
+  },
+  "no_502": {
+    "length": 182,
+    "pseudo_perplexity": 4.255,
+    "gravy": -0.56,
+    "cysteines": 0
+  },
+  "no_503": {
+    "length": 182,
+    "pseudo_perplexity": 3.79,
+    "gravy": -0.52,
+    "cysteines": 0
+  },
+  "no_504": {
+    "length": 155,
+    "pseudo_perplexity": 14.455,
+    "gravy": 0.12,
+    "cysteines": 0
+  },
+  "no_505": {
+    "length": 250,
+    "pseudo_perplexity": 3.314,
+    "gravy": -0.26,
+    "cysteines": 0
+  },
+  "no_506": {
+    "length": 246,
+    "pseudo_perplexity": 3.654,
+    "gravy": -0.26,
+    "cysteines": 0
+  },
+  "no_507": {
+    "length": 151,
+    "pseudo_perplexity": 14.76,
+    "gravy": -0.03,
+    "cysteines": 0
+  },
+  "no_508": {
+    "length": 155,
+    "pseudo_perplexity": 13.927,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "no_509": {
+    "length": 250,
+    "pseudo_perplexity": 3.831,
+    "gravy": -0.32,
+    "cysteines": 0
+  },
+  "no_510": {
+    "length": 207,
+    "pseudo_perplexity": 15.581,
+    "gravy": 0.3,
+    "cysteines": 0
+  },
+  "no_511": {
+    "length": 179,
+    "pseudo_perplexity": 13.432,
+    "gravy": -0.19,
+    "cysteines": 0
+  },
+  "no_512": {
+    "length": 155,
+    "pseudo_perplexity": 14.757,
+    "gravy": -0.25,
+    "cysteines": 0
+  },
+  "no_513": {
+    "length": 234,
+    "pseudo_perplexity": 4.693,
+    "gravy": -0.28,
+    "cysteines": 0
+  },
+  "no_514": {
+    "length": 242,
+    "pseudo_perplexity": 5.961,
+    "gravy": -0.23,
+    "cysteines": 0
+  },
+  "no_515": {
+    "length": 241,
+    "pseudo_perplexity": 5.683,
+    "gravy": -0.18,
+    "cysteines": 0
+  },
+  "no_516": {
+    "length": 240,
+    "pseudo_perplexity": 6.139,
+    "gravy": -0.13,
+    "cysteines": 0
+  },
+  "no_517": {
+    "length": 235,
+    "pseudo_perplexity": 4.604,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "no_518": {
+    "length": 241,
+    "pseudo_perplexity": 6.907,
+    "gravy": -0.35,
+    "cysteines": 0
+  },
+  "no_519": {
+    "length": 241,
+    "pseudo_perplexity": 6.101,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "no_520": {
+    "length": 239,
+    "pseudo_perplexity": 6.831,
+    "gravy": -0.25,
+    "cysteines": 0
+  },
+  "no_521": {
+    "length": 240,
+    "pseudo_perplexity": 6.371,
+    "gravy": -0.23,
+    "cysteines": 0
+  },
+  "no_522": {
+    "length": 239,
+    "pseudo_perplexity": 7.067,
+    "gravy": -0.09,
+    "cysteines": 0
+  },
+  "no_523": {
+    "length": 240,
+    "pseudo_perplexity": 6.709,
+    "gravy": -0.15,
+    "cysteines": 0
+  },
+  "no_524": {
+    "length": 239,
+    "pseudo_perplexity": 6.722,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "no_525": {
+    "length": 238,
+    "pseudo_perplexity": 5.835,
+    "gravy": -0.13,
+    "cysteines": 0
+  },
+  "no_526": {
+    "length": 239,
+    "pseudo_perplexity": 6.75,
+    "gravy": -0.1,
+    "cysteines": 0
+  },
+  "no_527": {
+    "length": 240,
+    "pseudo_perplexity": 6.573,
+    "gravy": -0.17,
+    "cysteines": 0
+  },
+  "no_528": {
+    "length": 240,
+    "pseudo_perplexity": 6.718,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "no_529": {
+    "length": 241,
+    "pseudo_perplexity": 6.984,
+    "gravy": -0.15,
+    "cysteines": 0
+  },
+  "no_530": {
+    "length": 240,
+    "pseudo_perplexity": 6.213,
+    "gravy": -0.15,
+    "cysteines": 0
+  },
+  "no_531": {
+    "length": 242,
+    "pseudo_perplexity": 5.6,
+    "gravy": -0.19,
+    "cysteines": 0
+  },
+  "no_532": {
+    "length": 240,
+    "pseudo_perplexity": 5.25,
+    "gravy": -0.08,
+    "cysteines": 0
+  },
+  "no_533": {
+    "length": 239,
+    "pseudo_perplexity": 6.125,
+    "gravy": -0.1,
+    "cysteines": 0
+  },
+  "no_534": {
+    "length": 240,
+    "pseudo_perplexity": 6.318,
+    "gravy": -0.22,
+    "cysteines": 0
+  },
+  "no_535": {
+    "length": 240,
+    "pseudo_perplexity": 6.421,
+    "gravy": -0.21,
+    "cysteines": 0
+  },
+  "no_536": {
+    "length": 240,
+    "pseudo_perplexity": 6.704,
+    "gravy": -0.16,
+    "cysteines": 0
+  },
+  "no_537": {
+    "length": 240,
+    "pseudo_perplexity": 7.11,
+    "gravy": -0.15,
+    "cysteines": 0
+  },
+  "no_538": {
+    "length": 242,
+    "pseudo_perplexity": 6.963,
+    "gravy": -0.11,
+    "cysteines": 0
+  },
+  "no_539": {
+    "length": 239,
+    "pseudo_perplexity": 6.094,
+    "gravy": -0.17,
+    "cysteines": 0
+  },
+  "no_540": {
+    "length": 247,
+    "pseudo_perplexity": 3.415,
+    "gravy": -0.4,
+    "cysteines": 0
+  },
+  "no_541": {
+    "length": 200,
+    "pseudo_perplexity": 16.097,
+    "gravy": -0.38,
+    "cysteines": 0
+  },
+  "no_542": {
+    "length": 200,
+    "pseudo_perplexity": 3.718,
+    "gravy": -0.39,
+    "cysteines": 0
+  },
+  "no_543": {
+    "length": 200,
+    "pseudo_perplexity": 8.379,
+    "gravy": 0.24,
+    "cysteines": 0
+  },
+  "no_544": {
+    "length": 156,
+    "pseudo_perplexity": 4.9,
+    "gravy": -0.62,
+    "cysteines": 0
+  },
+  "no_545": {
+    "length": 200,
+    "pseudo_perplexity": 17.38,
+    "gravy": -0.69,
+    "cysteines": 0
+  },
+  "no_546": {
+    "length": 200,
+    "pseudo_perplexity": 16.246,
+    "gravy": -0.59,
+    "cysteines": 0
+  },
+  "no_547": {
+    "length": 156,
+    "pseudo_perplexity": 5.816,
+    "gravy": -0.66,
+    "cysteines": 0
+  },
+  "no_548": {
+    "length": 155,
+    "pseudo_perplexity": 5.112,
+    "gravy": -0.42,
+    "cysteines": 0
+  },
+  "no_549": {
+    "length": 154,
+    "pseudo_perplexity": 5.618,
+    "gravy": -0.47,
+    "cysteines": 0
+  },
+  "no_550": {
+    "length": 241,
+    "pseudo_perplexity": 5.481,
+    "gravy": -0.39,
+    "cysteines": 0
+  },
+  "no_551": {
+    "length": 241,
+    "pseudo_perplexity": 3.43,
+    "gravy": -0.34,
+    "cysteines": 0
+  },
+  "no_552": {
+    "length": 241,
+    "pseudo_perplexity": 4.617,
+    "gravy": -0.36,
+    "cysteines": 0
+  },
+  "no_553": {
+    "length": 241,
+    "pseudo_perplexity": 3.409,
+    "gravy": -0.3,
+    "cysteines": 0
+  },
+  "no_554": {
+    "length": 241,
+    "pseudo_perplexity": 3.391,
+    "gravy": -0.27,
+    "cysteines": 0
+  },
+  "no_555": {
+    "length": 241,
+    "pseudo_perplexity": 3.492,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "no_556": {
+    "length": 241,
+    "pseudo_perplexity": 3.492,
+    "gravy": -0.38,
+    "cysteines": 0
+  },
+  "no_557": {
+    "length": 241,
+    "pseudo_perplexity": 3.449,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "no_558": {
+    "length": 241,
+    "pseudo_perplexity": 3.377,
+    "gravy": -0.3,
+    "cysteines": 0
+  },
+  "no_559": {
+    "length": 239,
+    "pseudo_perplexity": 10.334,
+    "gravy": -0.36,
+    "cysteines": 0
+  },
+  "no_560": {
+    "length": 241,
+    "pseudo_perplexity": 3.391,
+    "gravy": -0.36,
+    "cysteines": 0
+  },
+  "no_561": {
+    "length": 250,
+    "pseudo_perplexity": 8.554,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "no_562": {
+    "length": 241,
+    "pseudo_perplexity": 3.286,
+    "gravy": -0.33,
+    "cysteines": 0
+  },
+  "no_563": {
+    "length": 241,
+    "pseudo_perplexity": 3.647,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "no_564": {
+    "length": 247,
+    "pseudo_perplexity": 3.877,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "no_565": {
+    "length": 250,
+    "pseudo_perplexity": 3.237,
+    "gravy": -0.29,
+    "cysteines": 0
+  },
+  "no_566": {
+    "length": 246,
+    "pseudo_perplexity": 3.214,
+    "gravy": -0.32,
+    "cysteines": 0
+  },
+  "no_567": {
+    "length": 247,
+    "pseudo_perplexity": 3.924,
+    "gravy": -0.3,
+    "cysteines": 0
+  },
+  "no_568": {
+    "length": 242,
+    "pseudo_perplexity": 4.845,
+    "gravy": -0.23,
+    "cysteines": 0
+  },
+  "no_569": {
+    "length": 247,
+    "pseudo_perplexity": 3.864,
+    "gravy": -0.3,
+    "cysteines": 0
+  },
+  "no_570": {
+    "length": 247,
+    "pseudo_perplexity": 3.74,
+    "gravy": -0.26,
+    "cysteines": 0
+  },
+  "ok_571": {
+    "length": 220,
+    "pseudo_perplexity": 7.814,
+    "gravy": 0.08,
+    "cysteines": 0
+  },
+  "ok_572": {
+    "length": 157,
+    "pseudo_perplexity": 2.853,
+    "gravy": -0.07,
+    "cysteines": 0
+  },
+  "ok_573": {
+    "length": 175,
+    "pseudo_perplexity": 9.185,
+    "gravy": -0.73,
+    "cysteines": 0
+  },
+  "ok_574": {
+    "length": 151,
+    "pseudo_perplexity": 7.303,
+    "gravy": -0.09,
+    "cysteines": 0
+  },
+  "ok_575": {
+    "length": 183,
+    "pseudo_perplexity": 3.902,
+    "gravy": -0.36,
+    "cysteines": 0
+  },
+  "ok_576": {
+    "length": 155,
+    "pseudo_perplexity": 9.475,
+    "gravy": -1.07,
+    "cysteines": 0
+  },
+  "ok_577": {
+    "length": 220,
+    "pseudo_perplexity": 6.051,
+    "gravy": 0.04,
+    "cysteines": 0
+  },
+  "ok_578": {
+    "length": 241,
+    "pseudo_perplexity": 3.487,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "ok_579": {
+    "length": 185,
+    "pseudo_perplexity": 9.049,
+    "gravy": -0.16,
+    "cysteines": 0
+  },
+  "ok_580": {
+    "length": 201,
+    "pseudo_perplexity": 15.404,
+    "gravy": -0.38,
+    "cysteines": 0
+  },
+  "ok_581": {
+    "length": 156,
+    "pseudo_perplexity": 6.033,
+    "gravy": -0.93,
+    "cysteines": 0
+  },
+  "ok_582": {
+    "length": 178,
+    "pseudo_perplexity": 11.126,
+    "gravy": -0.23,
+    "cysteines": 0
+  },
+  "ok_583": {
+    "length": 213,
+    "pseudo_perplexity": 11.71,
+    "gravy": 0.56,
+    "cysteines": 0
+  },
+  "ok_584": {
+    "length": 240,
+    "pseudo_perplexity": 6.256,
+    "gravy": -0.13,
+    "cysteines": 0
+  },
+  "ok_585": {
+    "length": 241,
+    "pseudo_perplexity": 3.616,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "ok_586": {
+    "length": 222,
+    "pseudo_perplexity": 13.465,
+    "gravy": -0.13,
+    "cysteines": 0
+  },
+  "ok_587": {
+    "length": 150,
+    "pseudo_perplexity": 8.588,
+    "gravy": 0.33,
+    "cysteines": 0
+  },
+  "ok_588": {
+    "length": 220,
+    "pseudo_perplexity": 2.28,
+    "gravy": 0.1,
+    "cysteines": 0
+  },
+  "ok_589": {
+    "length": 207,
+    "pseudo_perplexity": 9.858,
+    "gravy": 0.69,
+    "cysteines": 0
+  },
+  "ok_590": {
+    "length": 200,
+    "pseudo_perplexity": 12.515,
+    "gravy": -0.31,
+    "cysteines": 0
+  },
+  "ok_591": {
+    "length": 182,
+    "pseudo_perplexity": 4.097,
+    "gravy": -0.59,
+    "cysteines": 0
+  },
+  "ok_592": {
+    "length": 156,
+    "pseudo_perplexity": 8.655,
+    "gravy": -0.55,
+    "cysteines": 0
+  },
+  "ok_593": {
+    "length": 168,
+    "pseudo_perplexity": 8.803,
+    "gravy": 0.03,
+    "cysteines": 0
+  },
+  "ok_594": {
+    "length": 241,
+    "pseudo_perplexity": 4.928,
+    "gravy": -0.29,
+    "cysteines": 0
+  },
+  "ok_595": {
+    "length": 185,
+    "pseudo_perplexity": 9.836,
+    "gravy": -0.36,
+    "cysteines": 0
+  },
+  "ok_596": {
+    "length": 197,
+    "pseudo_perplexity": 9.484,
+    "gravy": -0.95,
+    "cysteines": 0
+  },
+  "ok_598": {
+    "length": 157,
+    "pseudo_perplexity": 9.76,
+    "gravy": -0.14,
+    "cysteines": 0
+  },
+  "ok_599": {
+    "length": 241,
+    "pseudo_perplexity": 3.282,
+    "gravy": -0.332,
+    "cysteines": 4
+  },
+  "ok_600": {
+    "length": 244,
+    "pseudo_perplexity": 3.187,
+    "gravy": -0.288,
+    "cysteines": 2
+  },
+  "ok_601": {
+    "length": 151,
+    "pseudo_perplexity": 13.447,
+    "gravy": -0.096,
+    "cysteines": 3
+  },
+  "ok_602": {
+    "length": 200,
+    "pseudo_perplexity": 2.944,
+    "gravy": -0.141,
+    "cysteines": 4
+  },
+  "ok_603": {
+    "length": 155,
+    "pseudo_perplexity": 4.798,
+    "gravy": -0.617,
+    "cysteines": 3
+  },
+  "ok_604": {
+    "length": 176,
+    "pseudo_perplexity": 8.88,
+    "gravy": -0.63,
+    "cysteines": 0
+  },
+  "ok_605": {
+    "length": 167,
+    "pseudo_perplexity": 8.798,
+    "gravy": -0.364,
+    "cysteines": 0
+  },
+  "ok_606": {
+    "length": 155,
+    "pseudo_perplexity": 11.097,
+    "gravy": -0.15,
+    "cysteines": 2
+  },
+  "ok_607": {
+    "length": 238,
+    "pseudo_perplexity": 7.792,
+    "gravy": -0.845,
+    "cysteines": 0
+  },
+  "ok_608": {
+    "length": 194,
+    "pseudo_perplexity": 10.729,
+    "gravy": -0.543,
+    "cysteines": 0
+  },
+  "ok_609": {
+    "length": 244,
+    "pseudo_perplexity": 3.624,
+    "gravy": -0.278,
+    "cysteines": 4
+  },
+  "ok_610": {
+    "length": 241,
+    "pseudo_perplexity": 3.5,
+    "gravy": -0.23,
+    "cysteines": 4
+  },
+  "ok_611": {
+    "length": 226,
+    "pseudo_perplexity": 11.985,
+    "gravy": -0.42,
+    "cysteines": 2
+  },
+  "ok_612": {
+    "length": 160,
+    "pseudo_perplexity": 10.494,
+    "gravy": 0.029,
+    "cysteines": 0
+  },
+  "ok_613": {
+    "length": 150,
+    "pseudo_perplexity": 11.778,
+    "gravy": -0.205,
+    "cysteines": 3
+  },
+  "ok_614": {
+    "length": 247,
+    "pseudo_perplexity": 3.66,
+    "gravy": -0.321,
+    "cysteines": 4
+  },
+  "ok_615": {
+    "length": 157,
+    "pseudo_perplexity": 8.929,
+    "gravy": -0.424,
+    "cysteines": 0
+  },
+  "ok_616": {
+    "length": 248,
+    "pseudo_perplexity": 3.128,
+    "gravy": -0.22,
+    "cysteines": 6
+  },
+  "ok_617": {
+    "length": 174,
+    "pseudo_perplexity": 8.344,
+    "gravy": 0.077,
+    "cysteines": 0
+  },
+  "ok_618": {
+    "length": 192,
+    "pseudo_perplexity": 9.717,
+    "gravy": -0.768,
+    "cysteines": 0
+  },
+  "ok_619": {
+    "length": 150,
+    "pseudo_perplexity": 10.415,
+    "gravy": 0.367,
+    "cysteines": 1
+  },
+  "ok_620": {
+    "length": 162,
+    "pseudo_perplexity": 3.262,
+    "gravy": -0.152,
+    "cysteines": 4
+  },
+  "ok_621": {
+    "length": 241,
+    "pseudo_perplexity": 6.142,
+    "gravy": -0.256,
+    "cysteines": 9
+  },
+  "ok_622": {
+    "length": 250,
+    "pseudo_perplexity": 3.086,
+    "gravy": -0.292,
+    "cysteines": 4
+  },
+  "ok_623": {
+    "length": 228,
+    "pseudo_perplexity": 1.042,
+    "gravy": -0.954,
+    "cysteines": 0
+  },
+  "ok_624": {
+    "length": 248,
+    "pseudo_perplexity": 2.872,
+    "gravy": -0.351,
+    "cysteines": 4
+  },
+  "ok_625": {
+    "length": 186,
+    "pseudo_perplexity": 4.506,
+    "gravy": -0.438,
+    "cysteines": 11
+  },
+  "ok_626": {
+    "length": 194,
+    "pseudo_perplexity": 9.545,
+    "gravy": -0.629,
+    "cysteines": 0
+  },
+  "ok_627": {
+    "length": 222,
+    "pseudo_perplexity": 10.434,
+    "gravy": 0.323,
+    "cysteines": 6
+  },
+  "ok_628": {
+    "length": 150,
+    "pseudo_perplexity": 5.813,
+    "gravy": 0.034,
+    "cysteines": 0
+  },
+  "ok_629": {
+    "length": 172,
+    "pseudo_perplexity": 10.871,
+    "gravy": -0.548,
+    "cysteines": 0
+  },
+  "ok_630": {
+    "length": 179,
+    "pseudo_perplexity": 9.8,
+    "gravy": -0.315,
+    "cysteines": 0
+  },
+  "ok_631": {
+    "length": 184,
+    "pseudo_perplexity": 14.041,
+    "gravy": -0.02,
+    "cysteines": 0
+  },
+  "ok_632": {
+    "length": 241,
+    "pseudo_perplexity": 3.49,
+    "gravy": -0.306,
+    "cysteines": 4
+  },
+  "ok_633": {
+    "length": 250,
+    "pseudo_perplexity": 10.775,
+    "gravy": -0.492,
+    "cysteines": 2
+  },
+  "ok_634": {
+    "length": 194,
+    "pseudo_perplexity": 13.959,
+    "gravy": -0.629,
+    "cysteines": 0
+  },
+  "ok_635": {
+    "length": 174,
+    "pseudo_perplexity": 9.027,
+    "gravy": -0.094,
+    "cysteines": 0
+  },
+  "ok_636": {
+    "length": 237,
+    "pseudo_perplexity": 4.56,
+    "gravy": -0.264,
+    "cysteines": 6
+  },
+  "ok_637": {
+    "length": 215,
+    "pseudo_perplexity": 9.732,
+    "gravy": 0.897,
+    "cysteines": 0
+  },
+  "ok_638": {
+    "length": 157,
+    "pseudo_perplexity": 9.238,
+    "gravy": -0.651,
+    "cysteines": 0
+  },
+  "ok_639": {
+    "length": 248,
+    "pseudo_perplexity": 2.807,
+    "gravy": -0.363,
+    "cysteines": 4
+  },
+  "ok_640": {
+    "length": 174,
+    "pseudo_perplexity": 8.494,
+    "gravy": -0.099,
+    "cysteines": 0
+  },
+  "ok_641": {
+    "length": 162,
+    "pseudo_perplexity": 6.414,
+    "gravy": -0.646,
+    "cysteines": 0
+  },
+  "ok_642": {
+    "length": 241,
+    "pseudo_perplexity": 3.553,
+    "gravy": -0.311,
+    "cysteines": 4
+  },
+  "ok_643": {
+    "length": 162,
+    "pseudo_perplexity": 9.683,
+    "gravy": 0.743,
+    "cysteines": 2
+  },
+  "ok_644": {
+    "length": 150,
+    "pseudo_perplexity": 10.106,
+    "gravy": 0.449,
+    "cysteines": 0
+  },
+  "ok_645": {
+    "length": 155,
+    "pseudo_perplexity": 5.357,
+    "gravy": -0.577,
+    "cysteines": 3
+  },
+  "ok_646": {
+    "length": 241,
+    "pseudo_perplexity": 4.154,
+    "gravy": -0.359,
+    "cysteines": 4
+  },
+  "ok_647": {
+    "length": 220,
+    "pseudo_perplexity": 10.179,
+    "gravy": 0.2,
+    "cysteines": 4
+  },
+  "ok_648": {
+    "length": 245,
+    "pseudo_perplexity": 3.604,
+    "gravy": -0.283,
+    "cysteines": 4
+  },
+  "ok_649": {
+    "length": 150,
+    "pseudo_perplexity": 8.651,
+    "gravy": 0.315,
+    "cysteines": 0
+  },
+  "ok_650": {
+    "length": 170,
+    "pseudo_perplexity": 12.282,
+    "gravy": -0.282,
+    "cysteines": 0
+  },
+  "ok_651": {
+    "length": 239,
+    "pseudo_perplexity": 6.552,
+    "gravy": -0.073,
+    "cysteines": 9
+  },
+  "ok_652": {
+    "length": 193,
+    "pseudo_perplexity": 12.266,
+    "gravy": 0.522,
+    "cysteines": 8
+  },
+  "ok_653": {
+    "length": 175,
+    "pseudo_perplexity": 1.065,
+    "gravy": -0.63,
+    "cysteines": 20
+  },
+  "ok_654": {
+    "length": 159,
+    "pseudo_perplexity": 8.695,
+    "gravy": -0.395,
+    "cysteines": 0
+  },
+  "ok_655": {
+    "length": 180,
+    "pseudo_perplexity": 10.94,
+    "gravy": -0.596,
+    "cysteines": 0
+  },
+  "ok_656": {
+    "length": 241,
+    "pseudo_perplexity": 11.769,
+    "gravy": -0.527,
+    "cysteines": 8
+  },
+  "ok_657": {
+    "length": 211,
+    "pseudo_perplexity": 9.937,
+    "gravy": -0.401,
+    "cysteines": 0
+  },
+  "ok_658": {
+    "length": 176,
+    "pseudo_perplexity": 9.854,
+    "gravy": -0.669,
+    "cysteines": 0
+  },
+  "ok_659": {
+    "length": 208,
+    "pseudo_perplexity": 10.737,
+    "gravy": 0.77,
+    "cysteines": 3
+  },
+  "ok_660": {
+    "length": 246,
+    "pseudo_perplexity": 3.207,
+    "gravy": -0.239,
+    "cysteines": 4
+  },
+  "ok_661": {
+    "length": 244,
+    "pseudo_perplexity": 3.542,
+    "gravy": -0.282,
+    "cysteines": 4
+  },
+  "ok_662": {
+    "length": 150,
+    "pseudo_perplexity": 8.997,
+    "gravy": 0.365,
+    "cysteines": 0
+  },
+  "ok_663": {
+    "length": 160,
+    "pseudo_perplexity": 10.567,
+    "gravy": 0.019,
+    "cysteines": 0
+  },
+  "ok_664": {
+    "length": 158,
+    "pseudo_perplexity": 13.883,
+    "gravy": 0.132,
+    "cysteines": 0
+  },
+  "ok_665": {
+    "length": 174,
+    "pseudo_perplexity": 9.667,
+    "gravy": -0.352,
+    "cysteines": 0
+  },
+  "ok_666": {
+    "length": 241,
+    "pseudo_perplexity": 3.462,
+    "gravy": -0.331,
+    "cysteines": 4
+  },
+  "ok_667": {
+    "length": 250,
+    "pseudo_perplexity": 8.754,
+    "gravy": -0.803,
+    "cysteines": 0
+  },
+  "ok_668": {
+    "length": 155,
+    "pseudo_perplexity": 4.606,
+    "gravy": -0.62,
+    "cysteines": 3
+  },
+  "ok_669": {
+    "length": 191,
+    "pseudo_perplexity": 6.705,
+    "gravy": -0.395,
+    "cysteines": 2
+  },
+  "ok_670": {
+    "length": 254,
+    "pseudo_perplexity": 3.2,
+    "gravy": -0.416,
+    "cysteines": 4
+  },
+  "ok_671": {
+    "length": 226,
+    "pseudo_perplexity": 8.039,
+    "gravy": -0.135,
+    "cysteines": 7
+  },
+  "ok_672": {
+    "length": 155,
+    "pseudo_perplexity": 5.036,
+    "gravy": -0.652,
+    "cysteines": 3
+  },
+  "ok_673": {
+    "length": 249,
+    "pseudo_perplexity": 3.542,
+    "gravy": -0.352,
+    "cysteines": 4
+  },
+  "ok_674": {
+    "length": 249,
+    "pseudo_perplexity": 3.109,
+    "gravy": -0.235,
+    "cysteines": 4
+  },
+  "ok_675": {
+    "length": 194,
+    "pseudo_perplexity": 9.195,
+    "gravy": -0.901,
+    "cysteines": 0
+  },
+  "ok_676": {
+    "length": 229,
+    "pseudo_perplexity": 9.328,
+    "gravy": -0.04,
+    "cysteines": 0
+  },
+  "ok_677": {
+    "length": 249,
+    "pseudo_perplexity": 4.724,
+    "gravy": -0.263,
+    "cysteines": 4
+  },
+  "ok_678": {
+    "length": 187,
+    "pseudo_perplexity": 10.578,
+    "gravy": -0.763,
+    "cysteines": 0
+  },
+  "ok_679": {
+    "length": 150,
+    "pseudo_perplexity": 8.819,
+    "gravy": 0.339,
+    "cysteines": 0
+  },
+  "ok_680": {
+    "length": 155,
+    "pseudo_perplexity": 5.294,
+    "gravy": -0.497,
+    "cysteines": 3
+  },
+  "ok_681": {
+    "length": 250,
+    "pseudo_perplexity": 11.009,
+    "gravy": -0.37,
+    "cysteines": 4
+  }
+}

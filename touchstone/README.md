@@ -117,6 +117,21 @@ bound, against 10.6% above**. The pooled view is Simpson's paradox, because base
 0.9% on 15-PGDH to 84.3% on SARS-CoV-2 RBD and the high-ipTM bins are dominated by the hardest
 target. `calibrate_by_target()` is the safe default; the CLI says so when you pool.
 
+**ESM-2 pseudo-perplexity is a junk filter, not a ranker** — measured on a length-matched
+case-control sample of 681 designs (every non-expressing design in the export, paired with a
+success from the same length band, so a difference cannot be length in disguise):
+
+| what you want to do with it | verdict |
+| --- | --- |
+| rank designs by it | **refuted** — no length band separates (best p=0.056), pooled p=0.084, and below perplexity 8 it *inverts* (z=−2.9: lower perplexity, worse expression) |
+| reject the tail | **real** — above perplexity 16, expression is 9.3% against 52.7%, a plateau holding z>3.2 from cut 12 to 20 |
+
+So it earns a place as a gate on obviously-unnatural sequences and no place in a ranking. Worth
+knowing before applying it: de novo miniproteins sit far above the natural reference
+population, which has a median perplexity of 6.8 — a campaign whose designs span 6.3 to 10.5
+sits entirely in the flat-to-inverted region, where the useful cut would pass every one of them.
+Raw scores in [`tests/fixtures/esm-perplexity-case-control.json`](tests/fixtures/esm-perplexity-case-control.json).
+
 A gate can also separate outcomes for the wrong reason, and this will not catch that for you.
 *Even-or-no cysteine* discriminates at z=4.2 — but only because it sweeps the zero-cysteine
 designs into the kept group. Odd against even **non-zero** is 86.7% against 86.7%, exactly

@@ -62,6 +62,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 EXPRESSED, BINDS = "expressed", "binds"
+STANDARD_AA = frozenset("ACDEFGHIKLMNPQRSTVWY")
 # Two-sided 95%: a gate has to clear this to be called discriminating rather than undecided.
 Z_95 = 1.96
 
@@ -122,7 +123,10 @@ def load_export(path: str | Path, *, target: str | None = None) -> list[Outcome]
     with Path(path).open(encoding="utf-8-sig") as handle:
         for row in csv.DictReader(handle):
             sequence = (row.get("sequence") or "").strip().upper()
-            if not sequence:
+            # A chain separator makes "length" the sum of two chains and breaks any tokenizer
+            # downstream -- ESM-2 raises KeyError(':') and takes an hour of GPU with it. Two
+            # entries in the 2026-10-11 export are written this way.
+            if not sequence or set(sequence) - STANDARD_AA:
                 continue
             try:
                 evaluations = json.loads(row.get("evaluations") or "[]")

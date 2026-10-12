@@ -159,6 +159,14 @@ class TestLoadExport:
                                       "value": "true", "target": "egfr"}])
         assert load_export(path, target="egfr") and not load_export(path, target="tnf-a")
 
+    def test_a_multi_chain_sequence_is_skipped(self, tmp_path):
+        """`A:B` makes length the sum of two chains and raises KeyError in ESM-2's tokenizer,
+        which cost an hour of GPU before this guard existed. Two rows in the 2026-10-11
+        export are written that way."""
+        path = self.write(tmp_path, [{"type": "experimental", "metric": "expressed",
+                                      "value": "true"}], sequence="MKLV:MKLV")
+        assert load_export(path) == []
+
     def test_a_row_without_a_sequence_is_skipped(self, tmp_path):
         path = self.write(tmp_path, [{"type": "experimental", "metric": "expressed",
                                       "value": "true"}], sequence="")
@@ -266,7 +274,7 @@ class TestExtract:
     def test_the_committed_extract_reproduces_the_expression_calibration(self):
         """+10.3% at z=9.8 — the number the README and PR quote."""
         measured = [d for d in load_extract(self.FIXTURE) if d.expressed is not None]
-        assert len(measured) == 4067
+        assert len(measured) == 4065
         c = calibrate(measured, lambda d: d.sequence.count("C") <= 1)
         assert c.separation == pytest.approx(0.103, abs=0.002) and c.discriminates
 
