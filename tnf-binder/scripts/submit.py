@@ -28,6 +28,7 @@ import typer
 from rich.console import Console
 
 from tnf_binder.confidence import DesignConfidence
+from tnf_binder.assess import geometry_across_samples
 from tnf_binder.design import TnfDesign
 from tnf_binder.submission import (MAX_CLASHES, MAX_ROWS, MOLECULE_CLASS,
                                    SUBMISSION_COLUMNS, candidate_problem,
@@ -266,10 +267,7 @@ def rank(
     """
     profiles = {design_stem(p.design): p for p in switch_profiles(read_rows(robustness))}
     human_folds, mouse_folds = folds_by_design(human), folds_by_design(mouse)
-    # score_designs writes one row per diffusion sample; the gates are defined on model_0.
-    geometry_by_design = {design_stem(r["design"]).removesuffix("_model_0"): r
-                          for r in read_rows(geometry)
-                          if r["design"].endswith("_model_0")} if geometry else {}
+    geometry_by_design = geometry_across_samples(read_rows(geometry)) if geometry else {}
     console.print(f"{len(profiles)} candidates with pKa measured across samples")
 
     records, dropped, unmeasured = [], [], []
@@ -285,6 +283,19 @@ def rank(
             dropped.append((design, reason))
         else:
             records.append(record)
+
+    # Gating on the worst sample is the same convention delta_q_floor uses, and it rejects
+    # more than reading one structure did. Say which designs that is, so a funnel count is not
+    # mistaken for a statement about designs that fail consistently.
+    unstable = [(d, g) for d, g in sorted(geometry_by_design.items())
+                if g.get("sample_spread", "0-0").split("-")[0] == "0"
+                and g.get("sample_spread", "0-0") != "0-0"]
+    if unstable:
+        console.print(f"[yellow]{len(unstable)} designs are clash-free on some samples and not "
+                      f"others, and are gated on their worst[/]")
+        for design, g in unstable:
+            console.print(f"  [dim]{design}: clashes {g['sample_spread']}, "
+                          f"epitope focus {g['focus_spread']} across {g['n_samples']} samples[/]")
 
     records.sort(key=lambda r: (-r["delta_q_floor"], -r["mouse_retained"]))
     console.print(f"gates: kept [bold]{len(records)}[/] of {len(profiles)}, "

@@ -8,7 +8,14 @@ flip rate that prompted it.
 from __future__ import annotations
 
 
-from tnf_binder.assess import Assessment, SampledAssessment, unstable_verdicts
+import pytest
+
+from tnf_binder.assess import (
+    Assessment,
+    SampledAssessment,
+    geometry_across_samples,
+    unstable_verdicts,
+)
 from tnf_binder.verifiers.interface import InterfaceMetrics
 
 # design -> clashes on model_0, model_1, model_2, measured on all three structures
@@ -72,3 +79,45 @@ class TestUnstableVerdicts:
     def test_a_wholly_stable_set_says_so_without_caveats(self):
         report = unstable_verdicts([sampled("a", (0, 0, 0)), sampled("b", (2, 2, 2))])
         assert "0 sample-dependent" in report and "NOT trustworthy" not in report
+
+
+class TestGeometryAcrossSamples:
+    """Merging score_designs rows per design, at the least favourable sample.
+
+    Numbers are the real ones for `helix0_R21H_E38H_E67H` from the A38 round, whose clash-free
+    verdict and epitope focus both depend on which structure is read.
+    """
+
+    ROWS = [
+        {"design": "A__helix0_R21H_E38H_E67H_model_0", "clashes": "0",
+         "interface_area": "629.7", "epitope_focus": "0.48", "flag": ""},
+        {"design": "A__helix0_R21H_E38H_E67H_model_1", "clashes": "0",
+         "interface_area": "1333.0", "epitope_focus": "0.24", "flag": "off_epitope"},
+        {"design": "A__helix0_R21H_E38H_E67H_model_2", "clashes": "1",
+         "interface_area": "1303.0", "epitope_focus": "0.22", "flag": "clash(1),off_epitope"},
+    ]
+
+    def test_merges_every_sample_into_one_row_per_design(self):
+        merged = geometry_across_samples(self.ROWS)
+        assert list(merged) == ["helix0_R21H_E38H_E67H"]
+        assert merged["helix0_R21H_E38H_E67H"]["n_samples"] == "3"
+
+    def test_takes_the_least_favourable_sample_of_each_metric(self):
+        """Worst case, the same convention delta_q_floor uses: most clashes, least area,
+        least focus. Reading model_0 alone would have called this one clash-free at 0.48."""
+        g = geometry_across_samples(self.ROWS)["helix0_R21H_E38H_E67H"]
+        assert g["clashes"] == "1"
+        assert float(g["interface_area"]) == pytest.approx(629.7)
+        assert float(g["epitope_focus"]) == pytest.approx(0.22)
+
+    def test_a_flag_raised_on_any_sample_is_carried(self):
+        g = geometry_across_samples(self.ROWS)["helix0_R21H_E38H_E67H"]
+        assert "off_epitope" in g["flag"] and "clash(1)" in g["flag"]
+
+    def test_records_the_spread_so_a_caller_can_say_the_verdict_was_close(self):
+        g = geometry_across_samples(self.ROWS)["helix0_R21H_E38H_E67H"]
+        assert g["sample_spread"] == "0-1" and g["focus_spread"] == "0.22-0.48"
+
+    def test_a_design_with_one_sample_is_unchanged_and_marked_as_one(self):
+        g = geometry_across_samples(self.ROWS[:1])["helix0_R21H_E38H_E67H"]
+        assert g["n_samples"] == "1" and g["clashes"] == "0" and g["sample_spread"] == "0-0"
