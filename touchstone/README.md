@@ -84,6 +84,41 @@ uv run --extra viz python scripts/boltzgen_scores.py \
   --npz-dir <fold_out_npz> --cif-dir <refold_cif> --metal Ni2+ --wandb
 ```
 
+## Calibrate a gate before you trust it
+
+Every threshold in this package used to be a number someone chose, and four modules carried a
+docstring promising to calibrate against wet-lab data with nothing to calibrate against.
+Proteinbase publishes an export of designs with measured outcomes — whether each expressed,
+whether it bound, its KD — which is the missing control set.
+
+```bash
+touchstone calibrate proteinbase_export.csv --target egfr
+```
+
+It applies each sequence-level gate to the designs whose outcome is known and reports what the
+gate would have done, so a threshold can be chosen against a population rather than guessed.
+`discriminates` requires the gap between kept and dropped to survive the sampling noise in both
+groups, so a gate that looks good on a handful of designs reads as *undecided*, and one that
+keeps everything reads as *vacuous* rather than perfect.
+
+Three findings from the first run, over 4065 designs with an experimental expression verdict:
+
+| gate | verdict | keeps | drops | separation |
+| --- | --- | --- | --- | --- |
+| at most one cysteine | discriminates | 2686 at 95.1% | 1381 at 84.8% | +10.3% |
+| under 150 residues | discriminates | 3522 at 93.5% | 545 at 79.6% | +13.8% |
+| hydrophilic (GRAVY < 0) | **undecided** | 3247 at 91.5% | 820 at 92.0% | −0.4% |
+
+A gate can also separate outcomes for the wrong reason, and this will not catch that for you.
+*Even-or-no cysteine* discriminates at z=4.2 — but only because it sweeps the zero-cysteine
+designs into the kept group. Odd against even **non-zero** is 86.7% against 86.7%, exactly
+nothing. A significant separation says the two groups differ, not that the feature you named is
+what differs.
+
+`calibrate()` and `bands()` are importable for a gate of your own; `bands()` is worth looking at
+first, because a feature whose outcome rate is flat across its range has no threshold worth
+choosing.
+
 ## Close the loop (RLVR)
 
 The verdict doubles as a reward to fine-tune the generator on its own best designs
