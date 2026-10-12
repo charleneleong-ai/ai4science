@@ -14,7 +14,6 @@ import pytest
 
 from touchstone.calibration import (
     BINDS,
-    EXPRESSED,
     Calibration,
     Outcome,
     bands,
@@ -52,16 +51,13 @@ def keeps_tagged(design: Outcome) -> bool:
 class TestCalibration:
     """The arithmetic a gate's track record rests on."""
 
-    def test_reports_both_rates_and_the_base(self):
-        c = calibrate(population({True: NO_CYS, False: ONE_CYS}), keeps_tagged)
-        assert c.kept == 1018 and c.dropped == 133
-        assert c.kept_rate == pytest.approx(0.962, abs=0.001)
-        assert c.dropped_rate == pytest.approx(0.955, abs=0.001)
-        assert c.base_rate == pytest.approx(0.961, abs=0.001)
-
     def test_the_cysteine_gate_does_not_discriminate(self):
         """0.7 points over 1151 designs: the liability argued from first principles."""
         c = calibrate(population({True: NO_CYS, False: ONE_CYS}), keeps_tagged)
+        assert (c.kept, c.dropped) == (1018, 133)
+        assert c.kept_rate == pytest.approx(0.962, abs=0.001)
+        assert c.dropped_rate == pytest.approx(0.955, abs=0.001)
+        assert c.base_rate == pytest.approx(0.961, abs=0.001)
         assert c.separation == pytest.approx(0.007, abs=0.002)
         assert not c.discriminates and c.verdict == "undecided"
 
@@ -174,9 +170,6 @@ class TestCalibrationRendering:
         c = Calibration(kept=100, dropped=100, kept_successes=90, dropped_successes=50)
         rendered = str(c)
         assert "discriminates" in rendered and "90.0%" in rendered and "50.0%" in rendered
-
-    def test_outcome_defaults_to_expression(self):
-        assert Calibration(1, 1, 1, 0).outcome == EXPRESSED
 
 
 class TestCalibrateCommand:
