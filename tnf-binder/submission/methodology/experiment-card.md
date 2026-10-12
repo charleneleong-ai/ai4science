@@ -219,6 +219,22 @@ combination rather than composed from singles — which was necessary: `A35H+A38
   uncertainty — so a confidence filter is no substitute for re-scoring every sample, and three
   samples undersample whatever is actually varying. **Every ΔQ floor in this submission is a
   lower bound estimated from three draws, and the true worst case is likely worse.**
+- **The structural gate is a coin flip, and every count in the slot-filling funnels is a
+  statement about `model_0` rather than about the design.** Clashes and interface area were
+  scored on one diffusion sample. Re-scored on all three, **10 of the 16 candidates change
+  their clash-free verdict depending on which sample is read**, and interface area moves by a
+  factor of two to five on the same design — `helix0_R35H_E67H_E70H` reads 0 clashes over
+  658 Å² on `model_0` and 9 clashes over 1203 Å² on `model_2`. The parent chassis is clash-free
+  on its own sample, and a single histidine is enough to introduce a clash on three of the four
+  one-histidine designs, so the gate is penalising the substitution the design exists to make.
+  Numbers in `docs/clashes-per-sample.txt`.
+
+  This is the same mistake as the pKa, made a third time. A quantity was measured on one
+  arbitrary sample and treated as a property of the design, after that exact error had already
+  been found and fixed for pKa (`switch.SampledHis`) and for interface confidence (mean rather
+  than best-of-n). **It is not fixed here**: the structural verdicts in this card stand as
+  `model_0` measurements, and the honest reading of "six of eight failed on structure" is "six
+  of eight failed on the one sample that was scored".
 - **The three samples are not energetically equivalent, and the ΔQ floor is usually set by the
   worse one.** Rosetta REF15 on the raw coordinates separates them by 347–2855 REU across the
   eight slot-filling candidates — the folding model rates the same triples at pTM 0.956–0.958.

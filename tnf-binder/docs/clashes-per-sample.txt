@@ -1,0 +1,64 @@
+### F__helix0_E67H_E70H_R72H
+  model_2 4 1210.5 "clash(4)
+  model_1 1 680.3 clash(1)
+  model_0 1 232.5 "clash(1)
+### F__helix0_R21H_E70H_R72H
+  model_2 7 1263.3 clash(7)
+  model_1 3 689.6 clash(3)
+  model_0 7 859.8 clash(7)
+### F__helix0_R21H_R35H_E67H
+  model_1 0 859.0 
+  model_0 1 1230.9 "clash(1)
+  model_2 1 669.3 clash(1)
+### F__helix0_R21H_R35H_E70H
+  model_0 3 664.0 clash(3)
+  model_1 2 844.2 clash(2)
+  model_2 0 737.5 off_epitope
+### F__helix0_R21H_R35H_R72H
+  model_0 0 597.0 
+  model_2 4 1354.2 clash(4)
+  model_1 1 1260.8 clash(1)
+### F__helix0_R35H_E67H_E70H
+  model_0 0 658.2 
+  model_2 9 1203.2 "clash(9)
+  model_1 1 837.6 clash(1)
+### F__helix0_R35H_E67H_R72H
+  model_1 0 817.6 
+  model_2 4 1232.0 "clash(4)
+  model_0 0 840.8 off_epitope
+### F__helix0_R35H_E70H_R72H
+  model_1 0 569.0 
+  model_2 6 1224.1 "clash(6)
+  model_0 1 731.2 clash(1)
+### A__helix0_E38H_E67H_E70H
+  model_1 3 1231.6 "clash(3)
+  model_2 5 1283.1 "clash(5)
+  model_0 3 907.8 clash(3)
+### A__helix0_E38H_E67H_R72H
+  model_2 2 1279.9 "clash(2)
+  model_0 2 1338.2 "clash(2)
+  model_1 3 1398.2 "clash(3)
+### A__helix0_E38H_E70H_R72H
+  model_2 0 699.4 
+  model_1 1 649.8 "clash(1)
+  model_0 3 556.7 "clash(3)
+### A__helix0_R21H_E38H_E67H
+  model_0 0 629.7 
+  model_2 1 1303.2 "clash(1)
+  model_1 0 1332.7 off_epitope
+### A__helix0_R21H_E38H_E70H
+  model_2 3 1178.7 "clash(3)
+  model_1 0 782.9 off_epitope
+  model_0 1 863.4 clash(1)
+### A__helix0_R21H_E38H_R72H
+  model_1 2 1276.8 "clash(2)
+  model_2 2 1309.7 clash(2)
+  model_0 2 685.1 "clash(2)
+### A__helix0_R21H_E67H
+  model_1 0 628.2 off_epitope
+  model_2 1 548.7 clash(1)
+  model_0 1 702.9 clash(1)
+### A__helix0_R21H_R72H
+  model_1 1 677.9 clash(1)
+  model_0 1 550.8 clash(1)
+  model_2 5 678.5 clash(5)
