@@ -37,6 +37,19 @@ the feature you named is what differs, so the comparison still has to be the one
 `discriminates` is deliberately conservative. A gate separates outcomes only when the gap
 between what it keeps and what it drops survives the sampling noise in the two groups, so a
 gate that looks good on eleven designs is reported as undecided rather than as working.
+
+Provenance of every number quoted here and in the README -- the export is a snapshot, not a
+stable dataset, and a later one will give different counts:
+
+    source   proteinbase.com, full export, "Download" in the site header
+    file     proteinbase_all_data_11_10_2026.csv
+    rows     4069 designs, 4067 with an experimental expression verdict
+    sha256   15be8539eee642b27bf66298153f9878...
+    read     2026-10-12
+
+The export is not committed: it is 32 MB and it is Proteinbase's to distribute. Nothing in the
+test suite depends on it -- the tests carry the measured counts as fixtures, so they pass
+without it and still fail if the arithmetic changes.
 """
 
 from __future__ import annotations

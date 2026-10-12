@@ -123,6 +123,11 @@ designs into the kept group. Odd against even **non-zero** is 86.7% against 86.7
 nothing. A significant separation says the two groups differ, not that the feature you named is
 what differs.
 
+Every figure above is from the full Proteinbase export of **2026-10-11**
+(`proteinbase_all_data_11_10_2026.csv`, 4069 rows, sha256 `15be8539eee642b2…`), read on 2026-10-12.
+The export is a snapshot rather than a stable dataset and is not committed here — download a
+current one from the site header and expect the counts to move.
+
 `calibrate()` and `bands()` are importable for a gate of your own; `bands()` is worth looking at
 first, because a feature whose outcome rate is flat across its range has no threshold worth
 choosing.
