@@ -67,7 +67,7 @@ footer { font: 12px/1.5 var(--mono); color: var(--muted); }
 
 <div class="wrap">
   <header class="head">
-    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 12 Oct 2026</div>
+    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 13 Oct 2026</div>
     <h1>From 0.115 to 0.356, one change per submission</h1>
     <p>Rank candidate structures for 400 molecules from their tandem mass spectra, scored by MRR@25 on the InChIKey connectivity block. Every number on this page is a public leaderboard score: the first local estimate said 0.664 and the leaderboard said 0.115, so nothing local is trusted.</p>
     <div class="figures">
@@ -133,13 +133,25 @@ flowchart TD
     </table></div>
   </section>
 
+  <section aria-labelledby="learn-h">
+    <h2 id="learn-h">What changed on 13 October</h2>
+    <p>The leaderboard scores a hidden test; the visible test is train examples. Every copy-targeted change was tuned to the wrong data.</p>
+    <ul class="limits">
+      <li><b>The visible test is train examples.</b> The 0.421 notebook says so in its code and detects the hidden test by a signature of its spectrum ids. Our "1189 of 1213 test spectra copy a train row" describes the visible test only, which is why excluding the copied structure (+0.001), the similarity filter and its thresholds all measured as noise.</li>
+      <li><b>Noise measured directly.</b> An identical re-run of v19 scored 0.353 against 0.356, so run-to-run noise is about ±0.003.</li>
+      <li><b>The 0.421 notebook's edge.</b> Its base ranking searches every spectrum against all of train, propagates matches to similar structures, and ranks a train ∪ COCONUT ∪ generated pool with a public LightGBM ranker (160 features); PubChem enters only when the library match is weak. We exclude what it uses as evidence.</li>
+      <li><b>Natural-product pool.</b> For 280 general held-out molecules, COCONUT holds 27 answers and our pool already finds all 27. A probe of 265 held-out natural products is running.</li>
+      <li><b>Next.</b> Reproduce 0.421 with an unchanged fork on our account, then change one thing per submission on top of it; then v22 (second pass over the top 10,000 rows). Both wait for the weekly GPU quota.</li>
+    </ul>
+  </section>
+
   <section aria-labelledby="lim-h">
     <h2 id="lim-h">What is not established</h2>
     <ul class="limits">
       <li><b>No local estimate of the score.</b> Train-derived labels were wrong, and public notebooks cannot supply labels: their downloadable outputs predict only about 12 smoke-test molecules and write a placeholder (CCO) for the rest, because full predictions run only inside Kaggle's scoring rerun. An earlier reading of “three lineages agreeing on 12 of 400” was those placeholders. Train cannot supply a test-like held-out set: only 41 isomer pairs in 2.54 million rows share a spectrum, and 7 split across the fold-safe FPNet's training the way the test's copied spectra do.</li>
       <li><b>The private score.</b> The shortlist size, the forward-model weight and GLACIER's input and v19's similarity threshold were chosen on the public split, so 0.356 is optimistic.</li>
-      <li><b>Candidate recall on the test set.</b> On held-out train molecules the popularity shortlist holds the answer for 126 / 280, and a spectrum-driven second pass for 236 / 280 (MRR@25 0.241 → 0.405). On the test set the same pass scored 0.353 against 0.349: the production FPNet memorised the copied spectra and steered the pass toward the copied structures (median Tanimoto of changed top-1 picks 0.26 → 0.42). Skipping candidates with Tanimoto ≥ 0.5 to the copied structure scored 0.356 (v19). How much test recall the pass buys is unmeasured.</li>
-      <li><b>Why the data looks like this.</b> 1189 of 1213 test spectra are bit-identical to a train row, yet that row's structure is the answer for at most about 46 of 400 molecules.</li>
+      <li><b>Candidate recall on the test set.</b> On held-out train molecules the popularity shortlist holds the answer for 126 / 280, and a spectrum-driven second pass for 236 / 280 (MRR@25 0.241 → 0.405). On the leaderboard the pass scored 0.353 against 0.349, and with the similarity filter 0.356 (re-run 0.353). Our diagnosis that the pass drifted toward the copied structures was measured on the visible test, which is train examples, so it does not explain the hidden-test result. How much hidden-test recall the pass buys is unmeasured.</li>
+      <li><b>The hidden test.</b> Only the visible test can be inspected, and it is train examples. How many hidden-test molecules have a library match, and how runtime scales on them, is unknown.</li>
       <li><b>29 molecules</b> get no forward-model evidence.</li>
     </ul>
   </section>
