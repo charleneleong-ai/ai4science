@@ -140,7 +140,7 @@ flowchart TD
       <li><b>The visible test is train examples.</b> The 0.421 notebook says so in its code and detects the hidden test by a signature of its spectrum ids. Our "1189 of 1213 test spectra copy a train row" describes the visible test only, which is why excluding the copied structure (+0.001), the similarity filter and its thresholds all measured as noise.</li>
       <li><b>Noise measured directly.</b> An identical re-run of v19 scored 0.353 against 0.356, so run-to-run noise is about ±0.003.</li>
       <li><b>The 0.421 notebook's edge.</b> Its base ranking searches every spectrum against all of train, propagates matches to similar structures, and ranks a train ∪ COCONUT ∪ generated pool with a public LightGBM ranker (160 features); PubChem enters only when the library match is weak. We exclude what it uses as evidence.</li>
-      <li><b>Natural-product pool.</b> For 280 general held-out molecules, COCONUT holds 27 answers and our pool already finds all 27. A probe of 265 held-out natural products is running.</li>
+      <li><b>Natural-product pool.</b> For 280 general held-out molecules, COCONUT holds 27 answers and our pool already finds all 27. For 265 held-out natural products the popularity shortlist already holds 215 of 247 answers (MRR@25 0.703); COCONUT and the second pass add at most one. The pool is not the gap.</li>
       <li><b>Next.</b> Reproduce 0.421 with an unchanged fork on our account, then change one thing per submission on top of it; then v22 (second pass over the top 10,000 rows). Both wait for the weekly GPU quota.</li>
     </ul>
   </section>

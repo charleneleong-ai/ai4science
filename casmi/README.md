@@ -52,10 +52,12 @@ measure what a spectrum-driven second PubChem pass (as in the 0.421 notebook) ad
 shortlist on held-out train molecules. Scanning the whole window on the ECFP4 block and adding the 100
 best of its top 5000 lifts recall from 126 to 236 / 280 and MRR@25 from 0.241 to 0.405 (+0.164, 95% CI
 +0.124 to +0.209). Re-scoring the top 10,000 instead (probe v3, whole window kept) reaches 255 / 280, MRR@25
-+0.020 over 5000 (95% CI +0.005 to +0.038); the whole window adds 3 more answers and no MRR. On the leaderboard the same pass (v18) scored 0.353, within noise of 0.349: the production FPNet
-memorised the copied spectra and steered the pass toward the copied structures. Skipping candidates
-with Tanimoto ≥ 0.5 to the copied structure ([`SecondPass.too_similar`](notebooks/kaggle_submission.py),
-threshold chosen after v18) scored 0.356 (v19) and is the pipeline now.
++0.020 over 5000 (95% CI +0.005 to +0.038); the whole window adds 3 more answers and no MRR. On the leaderboard the same pass (v18) scored 0.353, and with candidates similar to the copied
+structure skipped ([`SecondPass.too_similar`](notebooks/kaggle_submission.py)) 0.356 (v19, the
+pipeline now; its re-run 0.353). The copies exist only in the visible test, which is train examples;
+the leaderboard scores a hidden test, so copy-targeted changes cannot move it. For 265 held-out
+natural products (probe v4) the popularity shortlist already holds 215 / 247 answers, and the
+second pass and COCONUT add at most one.
 
 ## Running
 
