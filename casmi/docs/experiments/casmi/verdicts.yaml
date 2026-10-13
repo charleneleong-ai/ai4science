@@ -35,12 +35,12 @@ submissions:
      change: "GLACIER on [M+H]+ spectra only"}
   - {version: 17, ref: 57060198, date: 2026-10-11, family: forward-model, commit: 2a0d71c, score: 0.346, verdict: DISCARD,
      change: "forward-model weights 1.5 / 1.5"}
-  - {version: 18, ref: 57077612, date: 2026-10-11, family: candidate-pool, commit: 7e77e44, score: 0.353, verdict: DISCARD,
+  - {version: 18, ref: 57077612, date: 2026-10-11, family: candidate-pool, commit: 9376a10, score: 0.353, verdict: DISCARD,
      change: "+ second PubChem pass chosen by the spectrum (100 best new of the ECFP4-block top 5000)"}
-  - {version: 19, ref: 57087161, date: 2026-10-12, family: candidate-pool, commit: d65ca26, score: 0.356, verdict: KEEP,
+  - {version: 19, ref: 57087161, date: 2026-10-12, family: candidate-pool, commit: 7ccd6c9, score: 0.356, verdict: KEEP,
      change: "second pass skips candidates with Tanimoto >= 0.5 to the copied structure (threshold post hoc); identical re-run 57101500 scored 0.353"}
-  - {version: 20, ref: 57103621, date: 2026-10-12, family: candidate-pool, commit: 30d93ad, score: 0.354, verdict: DISCARD,
+  - {version: 20, ref: 57103621, date: 2026-10-12, family: candidate-pool, commit: 2359124, score: 0.354, verdict: DISCARD,
      change: "similarity threshold 0.4 instead of 0.5 (2566 candidates dropped)"}
-  - {version: 21, ref: 57107225, date: 2026-10-12, family: forward-model, commit: abcdf00, score: 0.333, verdict: DISCARD,
+  - {version: 21, ref: 57107225, date: 2026-10-12, family: forward-model, commit: c6577b9, score: 0.333, verdict: DISCARD,
      change: "ICEBERG weight 0.5, GLACIER 1.0"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==
