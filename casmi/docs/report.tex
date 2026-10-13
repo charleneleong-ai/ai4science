@@ -112,7 +112,10 @@ not clear G1; its threshold was also chosen after seeing v18. An identical re-ru
 \begin{itemize}
   \item \textbf{A local estimate of the score.} Train-derived labels rated the 0.421 public notebook
     at 0.030; consensus labels from ten public notebooks collapsed into three lineages agreeing on
-    12 of 400 top-1 picks. Each submission is the only measurement.
+    12 of 400 top-1 picks. Nor can train supply a test-like held-out set: only 41 isomer pairs in
+    2.54 million rows share a spectrum with at least 3 peaks, and 7 of them split across the
+    fold-safe FPNet's training as test answers and copied structures do. Each submission is the only
+    measurement.
   \item \textbf{The private score.} Three choices --- the shortlist size, $\lambda$, and GLACIER's
     input --- were selected on the public split, as was v19's similarity threshold, so 0.356 is optimistic.
   \item \textbf{Candidate recall.} Whether the answer is among the candidates cannot be separated
