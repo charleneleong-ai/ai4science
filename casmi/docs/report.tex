@@ -110,9 +110,11 @@ not clear G1; its threshold was also chosen after seeing v18. An identical re-ru
 
 \section{What is not established}
 \begin{itemize}
-  \item \textbf{A local estimate of the score.} Train-derived labels rated the 0.421 public notebook
-    at 0.030; consensus labels from ten public notebooks collapsed into three lineages agreeing on
-    12 of 400 top-1 picks. Nor can train supply a test-like held-out set: only 41 isomer pairs in
+  \item \textbf{A local estimate of the score.} Train-derived labels rated our first submission at 0.664
+    against 0.115 on the leaderboard. Public notebooks cannot supply labels: their downloadable outputs
+    score only about 12 smoke-test molecules and write a placeholder (\texttt{CCO}) for the rest, since
+    full predictions run only inside Kaggle's scoring rerun; an earlier reading of ``three lineages
+    agreeing on 12 of 400'' was those placeholders, as was a local 0.030 for the 0.421 notebook. Nor can train supply a test-like held-out set: only 41 isomer pairs in
     2.54 million rows share a spectrum with at least 3 peaks, and 7 of them split across the
     fold-safe FPNet's training as test answers and copied structures do. Each submission is the only
     measurement.

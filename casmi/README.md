@@ -87,8 +87,10 @@ notebook's vendored logic against the package.
 ## What is not established
 
 - **No local estimate of the competition score exists.** Train-derived labels were wrong, and
-  consensus labels from public notebooks failed calibration (3 lineages, agreeing on 12 / 400 top-1
-  picks). Train cannot supply a test-like held-out set: 41 isomer pairs in 2.54M rows share a
+  public notebooks cannot supply labels: their downloadable outputs score only ~12 smoke-test
+  molecules and fill the rest with a placeholder (`CCO` / `CN`), because full predictions run only
+  inside Kaggle's scoring rerun (`IS_RERUN` in the 0.421 notebook). The earlier "three lineages
+  agreeing on 12 / 400" reading was those placeholders. Train cannot supply a test-like held-out set: 41 isomer pairs in 2.54M rows share a
   spectrum, 7 of them split across the fold-safe FPNet's training as the test's pairs are. Each submission is the only measurement, at about five a day.
 - **Identical runs differ by about ±0.005**, so smaller differences between versions are noise.
 - **1189 / 1213 test spectra are bit-identical to a train row**, covering every molecule, yet the

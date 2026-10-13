@@ -74,8 +74,10 @@ of identical runs — were treated as no change.
 
 - **The private score.** Every number here is public-split.
 - **Any local estimate.** Train-derived labels were wrong (a local 0.664 scored 0.115), and
-  consensus labels from 10 public notebooks failed calibration: 3 lineages agreeing on 12 / 400
-  top-1 picks. A test-like held-out set cannot be cut from train either: only 41 isomer pairs
+  public notebooks cannot supply labels: their downloadable outputs score only ~12 smoke-test
+  molecules and fill the rest with a placeholder (`CCO` / `CN`), because full predictions run only
+  inside Kaggle's scoring rerun (`IS_RERUN` in the 0.421 notebook). The earlier "three lineages
+  agreeing on 12 / 400" reading was those placeholders. A test-like held-out set cannot be cut from train either: only 41 isomer pairs
   in 2.54M train rows share a spectrum (≥ 3 peaks), and 7 have one structure held out of the fold-safe
   FPNet and the other in its training, as test answers and copied structures are. The test's 1189 / 1213
   copied spectra were built deliberately, not by library duplication.
