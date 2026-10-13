@@ -136,7 +136,7 @@ flowchart TD
   <section aria-labelledby="lim-h">
     <h2 id="lim-h">What is not established</h2>
     <ul class="limits">
-      <li><b>No local estimate of the score.</b> Train-derived labels were wrong, and consensus labels from ten public notebooks failed calibration: three lineages that agree on 12 of 400 top-1 picks.</li>
+      <li><b>No local estimate of the score.</b> Train-derived labels were wrong, and consensus labels from ten public notebooks failed calibration: three lineages that agree on 12 of 400 top-1 picks. Train cannot supply a test-like held-out set: only 41 isomer pairs in 2.54 million rows share a spectrum, and 7 split across the fold-safe FPNet's training the way the test's copied spectra do.</li>
       <li><b>The private score.</b> The shortlist size, the forward-model weight and GLACIER's input and v19's similarity threshold were chosen on the public split, so 0.356 is optimistic.</li>
       <li><b>Candidate recall on the test set.</b> On held-out train molecules the popularity shortlist holds the answer for 126 / 280, and a spectrum-driven second pass for 236 / 280 (MRR@25 0.241 → 0.405). On the test set the same pass scored 0.353 against 0.349: the production FPNet memorised the copied spectra and steered the pass toward the copied structures (median Tanimoto of changed top-1 picks 0.26 → 0.42). Skipping candidates with Tanimoto ≥ 0.5 to the copied structure scored 0.356 (v19). How much test recall the pass buys is unmeasured.</li>
       <li><b>Why the data looks like this.</b> 1189 of 1213 test spectra are bit-identical to a train row, yet that row's structure is the answer for at most about 46 of 400 molecules.</li>

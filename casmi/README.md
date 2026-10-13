@@ -88,7 +88,8 @@ notebook's vendored logic against the package.
 
 - **No local estimate of the competition score exists.** Train-derived labels were wrong, and
   consensus labels from public notebooks failed calibration (3 lineages, agreeing on 12 / 400 top-1
-  picks). Each submission is the only measurement, at about five a day.
+  picks). Train cannot supply a test-like held-out set: 41 isomer pairs in 2.54M rows share a
+  spectrum, 7 of them split across the fold-safe FPNet's training as the test's pairs are. Each submission is the only measurement, at about five a day.
 - **Identical runs differ by about ±0.005**, so smaller differences between versions are noise.
 - **1189 / 1213 test spectra are bit-identical to a train row**, covering every molecule, yet the
   train structure attached is almost never the answer. Why the data looks like this is unexplained.

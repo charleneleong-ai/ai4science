@@ -16,7 +16,8 @@ leaderboard top is 0.48.
 - **Candidate-pool and prior tuning moved the score by under 0.01**, as did removing the copied
   train structures, even though that changed 267 top-1 picks.
 - **No local estimate exists.** The first local estimate (0.664) scored 0.115; every number here is
-  a leaderboard score.
+  a leaderboard score. Train has no test-like subset to calibrate one on: 41 isomer pairs in 2.54M
+  rows share a spectrum, and 7 split across the fold-safe FPNet's training the way the test's pairs do.
 
 | date | version | what changed | public MRR@25 |
 |---|---|---|---|
