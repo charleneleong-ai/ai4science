@@ -57,6 +57,11 @@ labels recovered by joining test spectra to bit-identical train spectra. Checked
 
 A scorer that rates a known-good submission at 0.030 is not measuring the competition metric.
 
+*Correction, 2026-10-13:* the public notebook's file scored here was a placeholder. Its downloadable
+output predicts about 12 smoke-test molecules and writes `CCO` for the other 388, because full predictions
+run only inside Kaggle's scoring rerun. The 0.030 row says nothing about the scorer; the 0.664 vs 0.115 row
+still does.
+
 **The labels were mostly wrong.** Our top-1 equalled the recovered label for 215 of 400
 molecules; had those been correct we would have scored at least 0.538. A 0.115 bounds them
 correct for **at most ~46**.
