@@ -7,7 +7,7 @@ the top N1 rows of that re-scored with the full fingerprint. This probe measures
 before any notebook change or submission. v2 kept N1 = 5000; v3 keeps the whole window, so any N1 can be
 read off locally.
 
-Queries are a seeded sample of the fold-safe `hold` molecules, scored by `fpnet_fold0.pt`, which never saw
+Queries are a seeded sample of one fold-safe fold (`hold`, or the `np` natural products), scored by `fpnet_fold0.pt`, which never saw
 them. Per query it writes every popularity-shortlist row and every pass-1 top-N1 row with its full f.z,
 popularity, pass-1 rank and label, so recall and MRR@25 at any N1 / keep size are computed locally
 afterwards. Writes `probe/part-NNNN.parquet` and `probe_stats.json` to /kaggle/working.
@@ -28,7 +28,8 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-N_QUERIES = 300
+N_QUERIES = 300  # capped at the fold's size
+FOLD = "np"  # fold-safe split fold to sample: "hold" (v2, v3) or "np" (natural products, v4)
 SEED = 1
 N1: int | None = None  # pass-1 rows kept with full f.z; None = the whole window (v2 kept 5000, as the 0.421 notebook)
 ECFP_SIZE = 4096  # raw fingerprint bits below this are the ECFP4 block
@@ -49,10 +50,10 @@ def load_helpers() -> ModuleType:
     return rt
 
 
-def sample_hold(split: Path) -> list[str]:
+def sample_fold(split: Path) -> list[str]:
     rows = pq.read_table(split, columns=["inchikey14", "fold"]).to_pylist()
-    hold = sorted(r["inchikey14"] for r in rows if r["fold"] == "hold")
-    return random.Random(SEED).sample(hold, N_QUERIES)
+    keys = sorted(r["inchikey14"] for r in rows if r["fold"] == FOLD)
+    return random.Random(SEED).sample(keys, min(N_QUERIES, len(keys)))
 
 
 def partial_scores(task: tuple[int, int, np.ndarray]) -> np.ndarray:
@@ -138,7 +139,7 @@ def main() -> None:
     W.update(tier=tier, chem=fpnet.chem, bits=fpnet.bits, Chem=Chem, ecfp_cols=cols, ecfp_raw=fpnet.bits[cols],
              gen=rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=ECFP_SIZE))
     check_ecfp_block(fpnet, tier, len(tier.mass) // 2)
-    keys = sample_hold(rt.find("casmi26-fold-safe-fpnet/**/split.parquet"))
+    keys = sample_fold(rt.find("casmi26-fold-safe-fpnet/**/split.parquet"))
     mols = rt.query_spectra(nb, rt.find("train.parquet"), set(keys))
     print(f"queries: {len(keys)} chosen, {len(mols)} with spectra; ECFP4 block checked  ({time.time()-t0:.0f}s)",
           flush=True)
