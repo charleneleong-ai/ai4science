@@ -110,6 +110,31 @@ neither CSV is `helix0_R35H_E67H_R72H` (2 His, 5/20 clash-free).
 Four rows are unmeasured at this depth: `tnf2_06`/`tnf2_07` were not in the 25-design fold, and
 `tnf2_09`/`tnf2_10` are the free1 chassis, which the deep run did not cover at all.
 
+## The free1 chassis, measured last
+
+`tnf2_09` and `tnf2_10` were the only submitted rows left at three samples. Twenty
+([`pka_robustness_free1_deep.csv`](pka_robustness_free1_deep.csv),
+[`free1_deep_geometry.csv`](free1_deep_geometry.csv)) settle them, and they split cleanly from
+the helix0 designs:
+
+| | `tnf2_09` free1_T73H | `tnf2_10` free1_parent | best helix0 |
+| --- | --- | --- | --- |
+| switching His (rate ≥0.90) | **0** (His73 at 11/20) | **0** (no histidine) | 2 |
+| human binder ipTM | **0.409** | **0.404** | 0.224 |
+| mouse retention | **0.384** | **0.396** | 1.085 |
+| clash-free | 8/20 | 7/20 | 9/20 |
+| epitope focus, median | 0.599 | 0.553 | 0.707 |
+
+His73 is not a switch and never was claimed as one — it read 1 of 3 in-window at three samples
+and 11 of 20 here, with a mean pKa of 5.94 that sits below the window floor. What twenty samples
+add is the spread: 0.25 at n=3 against **1.68** at n=20, the same widening seen everywhere else.
+
+The pair is the mirror image of the helix0 set: **twice the interface confidence of any helix0
+design** and the worst cross-reactivity in the submission by a wide margin. They are also the
+only non-helix0 chassis in the entry and, at 74 aa, the only rows in the 60–80 aa band that
+expresses best (96.8% against 86.7% for the 80–100 band the helix0 designs sit in). Keeping them
+is a hedge against the helix0 chassis failing as a whole, not a claim about pH selectivity.
+
 ## What this does and does not establish
 
 - It **does** establish that R21H and R35H cannot be claimed as pH switches, and that the

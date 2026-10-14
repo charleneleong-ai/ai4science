@@ -1,0 +1,2 @@
+design,position,n_samples,pka_mean,pka_min,pka_max,spread,in_window_samples,robust
+free1_T73H,73,20,5.94,4.95,6.63,1.68,11/20,False
