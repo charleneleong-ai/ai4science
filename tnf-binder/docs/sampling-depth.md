@@ -80,6 +80,36 @@ what `submit.py` declares. It is not comparable with a focus computed against th
 the three epitope definitions the campaign has used. See
 [`scripts/score_designs_geometry.py`](../scripts/score_designs_geometry.py).
 
+## What the submitted CSVs look like under this measurement
+
+Each submitted sequence maps back to a design by diffing against the `helix0` parent, which puts
+the 20-sample verdict beside every row that was uploaded. `v3` is what went in; `v4` is `v3`
+plus two rows.
+
+| row | design | switch His (rate ≥0.90) | clash-free | in |
+| --- | --- | --- | --- | --- |
+| `tnf2_01` | `helix0_R21H_E67H_E70H` | **2** | **9/20** | v3, v4 |
+| `tnf2_03` | `helix0_E67H_R72H` | **2** | 7/20 | v3, v4 |
+| `tnf2_13` | `helix0_R35H_E67H_E70H` | **2** | 7/20 | v3, v4 |
+| `tnf2_05` | `helix0_E67H_E70H` | **2** | 3/20 | v3, v4 |
+| `tnf2_04` | `helix0_R21H_E70H` | 1 | 8/20 | v3, v4 |
+| `tnf2_02` | `helix0_R21H_E67H_R72H` | 1 | 6/20 | v3, v4 |
+| `tnf2_08` | `helix0_E67H` | 1 | 5/20 | v3, v4 |
+| `tnf2_11` | `helix0_E70H` | 1 | 4/20 | v3, v4 |
+| `tnf2_14` | `helix0_E38H_E67H_E70H` | 1 | 4/20 | **v4 only** |
+| `tnf2_12` | `helix0_R21H` | **0** | 8/20 | v3, v4 |
+| `tnf2_15` | `helix0_R35H_E70H_R72H` | **0** | 4/20 | **v4 only** |
+| `tnf2_06`, `tnf2_07` | `helix0_R35H_R72H`, `helix0_R72H` | — | — | not in the deep fold |
+| `tnf2_09`, `tnf2_10` | free1 chassis | — | — | not in the deep fold |
+
+Two things follow. The submission that already went in **contains four of the five**
+two-switch-histidine designs, including the best one on both axes. And the two rows `v4` adds
+are the weakest by this measure — one switching histidine and none. The one two-switch design in
+neither CSV is `helix0_R35H_E67H_R72H` (2 His, 5/20 clash-free).
+
+Four rows are unmeasured at this depth: `tnf2_06`/`tnf2_07` were not in the 25-design fold, and
+`tnf2_09`/`tnf2_10` are the free1 chassis, which the deep run did not cover at all.
+
 ## What this does and does not establish
 
 - It **does** establish that R21H and R35H cannot be claimed as pH switches, and that the
