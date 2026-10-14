@@ -118,7 +118,13 @@ and are driven by [`scripts/`](scripts); nothing in the package imports them.
 
 ## Honest status
 
-*Status as of 2026-10-11.* Two submissions scored, 15 designs, 14 novelty passes, one 4/4.
+*Status as of 2026-10-14.* Two submissions scored, 15 designs, 14 novelty passes, one 4/4.
+A third, [`submission/tnf_submission_v8.csv`](submission/tnf_submission_v8.csv), is in at the
+20-design cap and unscored. Twenty diffusion samples per design rather than three changed what
+it contains: His21 and His35 turned out to have no determined pKa, which cost two rows, and one
+design the flag gate had rejected on a single bad sample turned out to be sound and was added
+back. See [`docs/sampling-depth.md`](docs/sampling-depth.md); evidence in
+[`docs/submission-v8-evidence.csv`](docs/submission-v8-evidence.csv).
 No design here is a validated binder. Interface confidence is **model-dependent and
 unresolved**: Boltz-2 and BoltzGen's folding step disagree by 2–3× on identical structures, and
 AF2 disagrees with both. A generated protein is a candidate, not a result — see

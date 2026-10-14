@@ -1,0 +1,21 @@
+name,design,chassis,length,his_count,pka_measured_in_combination,ideal_window_his,interface_area_a2,cross_reactivity,binder_to_target_iptm,clashes,cysteines,fold_similarity,proteinbase_novelty,predicted_fold_similarity_ours,delta_q_floor,his_robust,mouse_iptm,mouse_retained
+tnf2_14,helix0_E38H_E67H_E70H,helix_0,91,3,6.18 6.59 6.03,2,908,0.68,0.171,3,1,moderate,pending,moderate,1.55,2/3,0.168,0.726
+tnf2_01,helix0_R21H_E67H_E70H,helix_0,91,3,7.05 7.05 6.43,3,748,0.64,0.153,0,1,moderate,3,moderate,1.38,3/3,0.158,0.824
+tnf2_13,helix0_R35H_E67H_E70H,helix_0,91,3,6.43 6.99 6.07,2,658,0.76,0.207,0,1,moderate,3,moderate,1.35,2/3,0.204,0.893
+tnf2_02,helix0_R21H_E67H_R72H,helix_0,91,3,7.10 7.12 6.65,3,777,0.8,0.162,2,1,moderate,3,moderate,1.14,2/3,0.175,0.893
+tnf2_15,helix0_R35H_E67H_R72H,helix_0,91,3,5.52 6.67 6.41,2,841,0.49,0.173,0,1,moderate,pending,moderate,1.26,2/3,0.167,1.041
+tnf2_03,helix0_E67H_R72H,helix_0,91,2,7.12 6.66,2,528,0.7,0.159,0,1,moderate,3,moderate,1.03,1/2,0.14,0.874
+tnf2_04,helix0_R21H_E70H,helix_0,91,2,7.04 6.44,2,889,0.7,0.175,3,1,moderate,3,moderate,0.99,2/2,0.155,0.856
+tnf2_05,helix0_E67H_E70H,helix_0,91,2,7.05 6.44,2,716,0.74,0.151,2,1,moderate,3,moderate,0.89,2/2,0.167,0.853
+tnf2_06,helix0_R35H_R72H,helix_0,91,2,6.07 6.66,1,694,0.89,0.216,2,1,moderate,3,moderate,0.73,1/2,0.16,0.741
+tnf2_07,helix0_R72H,helix_0,91,1,6.66,1,600,0.78,0.22,0,1,moderate,3,moderate,0.57,1/1,0.152,0.689
+tnf2_08,helix0_E67H,helix_0,91,1,7.11,1,644,0.73,0.166,2,1,moderate,3,moderate,0.47,1/1,0.182,0.951
+tnf2_09,free1_T73H,free_1,74,1,6.27,0,923,0.79,0.634,0,0,moderate,4,moderate,0.37,0/1,0.3,0.473
+tnf2_11,helix0_E70H,helix_0,91,1,6.44,1,743,0.76,0.176,1,1,moderate,3,moderate,0.25,0/1,0.144,0.824
+tnf2_12,helix0_R21H_R35H_E67H,helix_0,91,3,6.20 6.29 7.09,3,1231,0.80,0.183,1,1,moderate,pending,moderate,0.72,1/3,0.198,1.085
+tnf2_10,free1_parent,free_1,74,0,,0,802,0.77,0.497,0,0,moderate,3,moderate,0.0,n/a,0.202,0.407
+tnf2_16,helix0_R21H_E38H_R72H,helix_0,91,3,6.50 6.16 6.26,3,685,0.59,0.219,2,1,moderate,pending,moderate,0.88,1/3,0.169,0.773
+tnf2_17,helix0_E38H_E67H_R72H,helix_0,91,3,6.12 6.58 6.27,3,1338,0.83,0.204,2,1,moderate,pending,moderate,1.53,3/3,0.173,0.847
+tnf2_18,helix0_E67H_E70H_R72H,helix_0,91,3,6.29 5.99 6.37,2,941,0.76,0.182,4,1,moderate,pending,moderate,1.21,1/3,0.169,0.928
+tnf2_19,helix0_R21H_E38H_E70H,helix_0,91,3,6.05 5.94 6.07,2,863,0.87,0.198,1,1,moderate,pending,moderate,1.03,1/3,0.158,0.797
+tnf2_20,helix0_R21H_R72H,helix_0,91,2,6.88 6.32,2,551,0.79,0.176,1,1,moderate,pending,moderate,1.03,1/2,0.171,0.974
