@@ -27,6 +27,7 @@ PREDICTIONS = [
     Path("/home/ubuntu/tnf/boltz_sub2_out/boltz_results_boltz_sub2_in/predictions"),
     Path("/home/ubuntu/tnf/boltz_camp_out/boltz_results_boltz_camp_in/predictions"),
     Path("/home/ubuntu/tnf/boltz_fill_out/boltz_results_boltz_fill_in/predictions"),
+    Path("/home/ubuntu/tnf/boltz_a38_out/boltz_results_boltz_a38_in/predictions"),
 ]
 COLUMNS = ["name", "file", "source_batch", "source_design", "binder_chain", "binder_length",
            "target_chains", "model0_complex_plddt", "model0_binder_ptm",
