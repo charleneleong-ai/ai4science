@@ -17,7 +17,7 @@ from Bio.PDB import PDBIO, StructureBuilder
 
 from tnf_binder.assess import assess
 from tnf_binder.structure import Complex, chain_sequence, contains_tnf
-from tnf_binder.target import HUMAN
+from tnf_binder.target import HUMAN, MOUSE
 
 TARGET_START = 100  # 0-based slice into HUMAN, so the first target residue is mature 101
 TARGET_LENGTH = 30
@@ -62,6 +62,13 @@ class TestChainClassification:
     def test_a_short_binder_is_never_mistaken_for_the_target(self):
         assert contains_tnf(HUMAN[TARGET_START:TARGET_START + TARGET_LENGTH])
         assert not contains_tnf(BINDER)
+
+    def test_the_mouse_target_is_recognised_too(self):
+        """Mouse TNF shares no exact 25-mer with human, so a human-only test called it a binder
+        -- and the 0.8 identity fallback that was supposed to catch it cannot: mouse scores
+        0.795."""
+        assert not any(MOUSE[i:i + 25] in HUMAN for i in range(len(MOUSE) - 25))
+        assert contains_tnf(MOUSE) and contains_tnf(MOUSE[TARGET_START:TARGET_START + 40])
 
     def test_chain_sequence_round_trips(self, complex_):
         target = HUMAN[TARGET_START:TARGET_START + TARGET_LENGTH]

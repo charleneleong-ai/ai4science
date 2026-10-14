@@ -30,6 +30,10 @@ TNFR2_EPITOPE = (20, 21, 23, 31, 32, 33, 63, 67, 71, 72, 73, 75, 77, 85, 86, 87,
 POCKET = (113, 115, 143, 144, 146, 147)
 #: The original conserved lobe, carrying K90.
 LOBE = (86, 87, 88, 90, 91, 92)
+#: Generation hotspots of the first campaign: the lobe plus the second-protomer contacts.
+#: Kept because the geometry tables of that campaign report focus as a share of these, and a
+#: number cannot be compared against those tables under any other definition.
+HOTSPOTS = (33, 86, 87, 88, 90, 91, 92, 147)
 
 _ALIGNER = Align.PairwiseAligner(scoring="blastp", open_gap_score=-11, extend_gap_score=-1)
 
