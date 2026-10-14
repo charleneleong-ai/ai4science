@@ -16,6 +16,7 @@ interchangeable here. The verifiers decided everything.
 | cross-model agreement | AF2 scored its own optimised designs at **i_pTM 0.92**; an independent model scored the same structures **0.21** |
 | fold novelty (FoldSeek + TM-align) | predicted the one **real-world novelty failure** correctly — a β-sandwich matching CATH 2.60.40 at TM 0.893 |
 | PROPKA pKa prediction | the engineered histidines from first-principles reasoning were **all dead** (pKa 3.1–5.7 against a 6.0–7.4 window) |
+| [sampling depth](docs/sampling-depth.md) (20 diffusion samples, not 3) | **two of the four switch positions have no determined pKa** — His21 and His35 span 4.3 and 5.7 pH units across structures the folding model scores equally, and three samples hid it |
 
 Every one of those passed the checks that preceded it. None would have been caught by a
 generator, and none by eyeballing a confidence score.
