@@ -30,7 +30,18 @@ from typing import Annotated
 
 import typer
 
+# The two official sources disagree. FAQ 5 and the challenge page both enumerate
+# the permitted values as "protein", "nanobody", "scfv", "fab_kappa",
+# "fab_lambda"; the downloadable submission template labels its single-chain
+# example "single_chain". Three of the template's four values match the FAQ
+# exactly and only the single-chain one differs, which reads like a rename the
+# template did not pick up -- but that is an inference, so both variants are
+# written and the choice is made at upload.
 MOLECULE_CLASS = "protein"
+MOLECULE_CLASS_TEMPLATE = "single_chain"
+
+# The template is LF-terminated and unquoted; csv.writer defaults to CRLF.
+LINE_TERMINATOR = "\n"
 
 # A histidine counts as a switch if its predicted pKa sits in the 6.0-7.6 window
 # on at least this fraction of twenty samples. Declared post hoc on the full
@@ -164,14 +175,18 @@ def main(
     designs.sort(key=lambda d: d.rank_key)
 
     out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("w", newline="") as handle:
-        writer = csv.writer(handle)
-        writer.writerow(["name", "sequence", "molecule_class"])
-        for d in designs:
-            writer.writerow([d.name, d.sequence, MOLECULE_CLASS])
+    for path, molecule_class in (
+        (out, MOLECULE_CLASS),
+        (out.with_name(f"{out.stem}_{MOLECULE_CLASS_TEMPLATE}{out.suffix}"), MOLECULE_CLASS_TEMPLATE),
+    ):
+        with path.open("w", newline="") as handle:
+            writer = csv.writer(handle, lineterminator=LINE_TERMINATOR)
+            writer.writerow(["name", "sequence", "molecule_class"])
+            for d in designs:
+                writer.writerow([d.name, d.sequence, molecule_class])
 
     with out_evidence.open("w", newline="") as handle:
-        writer = csv.writer(handle)
+        writer = csv.writer(handle, lineterminator=LINE_TERMINATOR)
         writer.writerow(
             ["rank", "name", "design", "length", "switch_his", "measured_at_20_samples",
              "switch_positions", "all_his_rates_n20", "mouse_retention", "retention_samples",
