@@ -183,20 +183,72 @@ Three consequences:
 
 ## 5c. Two measured facts about the assay construct
 
-**Peptide agonists bind the detergent-solubilised receptor only weakly.** Two independent
-vendor datasheets for the same UniProt 24–432 range in DDM/CHS report dulaglutide at **1.91 µM**
-and a GLP1R agonist at **2.74 µM**, against **69 nM** for dulaglutide on the challenge's own
-construct — and the isolated ECD binds exendin-4 at **22–58 nM**. The ECD groove is therefore
-the stronger binding epitope on this material, not the bundle, which pulls affinity and
-activation in opposite directions exactly as §1 implies.
+This is the finding that most shapes the entry, and it is quantitative.
+
+**The two objectives are measured on materials that favour opposite binding modes.** Affinity is
+scored on purified receptor in DDM/CHS with no G protein. Activation is scored in live cells.
+That difference is not cosmetic:
+
+| ligand | cells / membranes | purified receptor | loss |
+| --- | --- | --- | --- |
+| GLP-1(7-37) | IC50 1.0 nM (membranes) | **KD 284 nM** (nanodisc) | ~280× |
+| exendin-4 | IC50 0.76 nM (membranes) | **KD 178 nM** (nanodisc) | ~230× |
+| GLP-1 | pIC50 8.7 (full-length) | **not measurable** (refolded detergent) | — |
+| **exendin-4** | pIC50 8.9 (full-length) | **pIC50 8.7** (soluble ECD) | **~2.5×** |
+
+The mechanism is known and it is structural, not technical: the high-affinity agonist state is
+**G-protein-dependent**. Competition curves are biphasic in wild-type cells and collapse to a
+single low-affinity site in Gα-null cells, recoverable by Gs overexpression, and the enhanced
+affinity "is correlated with the degree of closure of the extracellular side of the TMD cavity
+around the peptide N-terminus". A purified detergent receptor has no G protein, so **the state
+that an orthosteric agonist needs in order to bind tightly is absent from the material its
+affinity is measured on.**
+
+The asymmetry in that table is the whole strategic point. An **ECD-dominant, exendin-4-like**
+binding mode keeps essentially all its affinity on isolated or purified receptor (~2.5×), while a
+**GLP-1-like orthosteric** mode loses ~100–280×. So:
+
+- a design optimised to activate will tend to **fail the binding screen** and never reach the
+  activation assay, because activation is gated on confirmed binding;
+- a design that binds robustly on this material is ECD-dominant — and every ECD binder ever
+  characterised fails to activate.
+
+This does not change the architecture; it explains why the ECD anchor is load-bearing twice over.
+It is not only the affinity ranking, it is what lets a design survive the binding screen on
+G-protein-free material at all. It also argues for making the anchor **exendin-4-like in
+character** — ECD-dominant and N-terminus-tolerant — rather than GLP-1-like, since GLP-1 barely
+binds the isolated ECD (IC50 >500 nM against exendin-4's 6 nM).
+
+**An ECD binder is demonstrably detectable on exactly this material.** Fab 7F38 was co-purified
+and crystallised with full-length GLP1R in 0.01–0.05% DDM + 0.01% CHS — the same detergent system
+as the assay construct — and seen by EM on the detergent-solubilised receptor. It is also a pure
+binder with zero activation: "Fab addition has no effect on GLP-1R activity." The binding-scored
+versus activation-scored dissociation this challenge creates is already in the literature as two
+Fabs: one occupies the groove and antagonises, the other binds off-groove and does nothing.
 
 **The ECD is wild-type in every published thermostabilised construct.** Across all three
-disclosed lineages — the ten-mutation inactive-state set, and both Heptares StaRs — not one
-mutation falls in residues 24–145. Several *do* line the orthosteric pocket (T298A contacts
-GLP-1 Ser17 at 2.46 Å; M233C, E387D, Q211A, D215R), and the inactive-state set deliberately
-locks TM6 via an I317C–G361C disulfide, measured at 2.05 Å. The supplier discloses none of its
-own mutations — one boilerplate sentence, no count, no positions, no Tm data, and no native-peptide
-binding figure on the datasheet at all. Treat the composition as unknown.
+disclosed lineages — the ten-mutation set and both Heptares StaRs — not one mutation falls in
+residues 24–145. Several *do* line the orthosteric pocket (T298A contacts GLP-1 Ser17 at 2.46 Å;
+M233C, E387D, Q211A, D215R), and both sets disable the TM6 **PxxG** activation hinge: 5NX2
+mutates both anchors (P358A, G361A) plus H363V, and the other staples G361C to I317C at 2.05 Å.
+Reassuringly, alanine scanning on wild-type receptor shows the two orthosteric-contact StaR sites
+cost little (Q211A ns for GLP-1; T298A ns), while the hinge neighbourhood is expensive (H363A
+−35× GLP-1 and −145× exendin-4; E364A −62×/−120×).
+
+What thermostabilisation does to agonist affinity is known only for **class A**, and it is
+directional: an antagonist-selected β1AR kept antagonist affinity within 2.3× while losing
+norepinephrine 2,470×; an antagonist-selected A2AR kept antagonist affinity and lost agonist
+~200×; the agonist-selected variant of the same receptor went the other way. Since Sino discloses
+nothing — one boilerplate sentence shared across its product line, no count, no positions, no Tm,
+no purity figure, and no native-peptide binding datum anywhere on the datasheet — the direction
+of its bias is unknown and could in principle favour agonists. Treat the composition as unknown
+and the direction as a coin-flip, not as a known penalty.
+
+Correction worth recording: **5NX2 is an active-like structure**, not an inactive-state one — its
+own abstract reports "hallmarks of an active conformation". An earlier draft of this document
+filed it on the inactive side. There is consequently **no published measurement of agonist
+affinity on an inactive-state-stabilised GLP1R**, and no GLP1R thermostability-versus-affinity
+table exists at all.
 
 ## 5d. ECD anchor hotspots, from three independent sources
 
@@ -229,7 +281,7 @@ binding figure on the datasheet at all. Treat the composition as unknown.
 - Whether BoltzGen's pocket conditioning reaches a buried class B site at all — there is no GPCR
   or membrane precedent for it upstream, so this is a genuine experiment and gets a small pilot
   before any budget.
-- Whether the assay construct's undisclosed thermostabilising mutations sit in the orthosteric
+- Whether the assay construct's undisclosed thermostabilising mutations favour the active or the
   pocket. Circumstantially, 5NX2 — a thermostabilised GLP1R — spans UniProt 24–432 exactly, which
   is the range the supplier states, with 12 flagged mutations. Not proof.
 - Any class-B1-stratified co-folding accuracy number. The 113-complex benchmark contains 14 class
