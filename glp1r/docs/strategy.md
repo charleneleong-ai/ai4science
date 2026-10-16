@@ -24,7 +24,7 @@ GLP-1 was physically fused to the light-chain N-terminus — which is how every 
 antibody–GLP-1 agonist works, and is not de novo.
 
 And the de novo version has been run. Muratspahić et al., *Nature* 656:1044–1053 (2026) took
-**~17,000 designs → 49 expressed → 2 antagonists** against the soluble GLP1R ECD, read out in a
+**10,080 designs → 49 expressed → 2 antagonists** against the soluble GLP1R ECD, read out in a
 CRE-luciferase line — the same assay family as this challenge's CRE-SEAP. Their stated rationale
 was that ECD binding should sterically block the peptide and *produce* antagonism. No class B
 agonist appears anywhere in that paper; their only agonists were class A (MRGPRX1), and the
@@ -34,21 +34,51 @@ orthosteric states".
 **So a high ECD-groove affinity score is not progress toward the activation gate.** It is the
 single best-evidenced claim available about this target.
 
-## 2. The switch is in the bundle, and it has one usable design rule
+## 2. The switch is in the bundle, and the pharmacophore is rankable
 
 An 11-mer corresponding to GLP-1 7–17, carrying **no ECD-binding helix at all**, is a 0.5 nM
 full agonist (optimised 0.01 nM). The groove is the affinity trap; the bundle is the switch.
 
-Saturation mutagenesis of GLP-1's first five residues (~1700 variants, 27 functional agonist
-hits) gives the one concrete rule worth filtering on: the N-terminus is **highly
-sequence-tolerant but chemically constrained** — a negative charge three residues in from the
-free terminus, salt-bridging R190, with Asp there in 70% of hits and >80% negatively charged.
+Sequence identity to the natural motif is **neither necessary** — a novel 9-residue extension,
+`ELVDNAVGG`, gave a 0.85 nM full agonist at Emax 102%, and saturation mutagenesis of GLP-1's
+first five residues (~1700 variants) returned 27 functional agonists — **nor sufficient**: two
+designs retaining the complete His7–Phe12 motif were both completely inactive, and the 10¹⁰
+antibody library that grafted the GLP-1 helix into HCDR3 produced zero agonists from 13 binders.
 
-Consistent with that, sequence identity to the natural motif is **neither necessary** — a novel
-9-residue extension, `ELVDNAVGG`, gave a 0.85 nM full agonist at Emax 102% — **nor sufficient**:
-two designs retaining the complete His7–Phe12 motif were both completely inactive.
+So the gate must be geometric and chemical, never sequence identity. From the mutational and
+structural record, in priority order — this is the design brief:
 
-**Filter on geometry, never on sequence identity.**
+| rank | feature | receptor partner | cost of losing it |
+| --- | --- | --- | --- |
+| 1 | **anionic group three residues in** from the inserted end | bidentate salt bridge to **R190** (2.78/3.14 Å) + H-bond **Y152** (2.76 Å) | the one feature >80% of randomised-N-terminus agonists converged on |
+| 2 | **aromatic** ring | **Y148** T-stack, in the L141/L144/L388 slot (Phe12 site) | Ala here is >1000-fold in the 11-mer scan |
+| 3 | **glycine-sized** atom | **W306** (Gly10 slot) | Gly10→Ala abolishes activity |
+| 4 | **imidazole-like** H-bond donor | **Q234**, inside the V237/W306/I309/I313 cage (His7 site) | 10–200-fold; not absolute |
+| 5 | small hydrophobe | **E387/L388** (Ala8 methyl) | nearly free |
+| 6 | ECL3 contacts **D372/E373/R380** | closes TM6–ECL3–TM7 | separates *full* from *partial* efficacy and unbiased from biased |
+
+**A free α-amine is not required, and the inserting element need not be a terminus.** N-acetyl
+GLP-1 costs 89-fold in affinity but only 3.5-fold in cAMP potency; the 10-mer agonist in 5NX2
+has no α-amino group at all, its first residue being a histamine/gem-dimethyl-malonyl surrogate
+whose *carboxyl* forms the peptide bond. At 2.1 Å the His7 α-amine makes no direct hydrogen bond
+to the receptor — its nearest polar partner is 5.3 Å away — so the widely repeated claim that it
+salt-bridges E387 or E364 traces to models, not coordinates. And the de novo class A agonists
+that worked inserted a **loop**, not a terminus: maxadilan agonises PAC1R with its central turn
+while its helix ends hold the ECD.
+
+This widens the design space considerably. A protruding loop on a folded mini-protein is far
+easier to build than a solvated free terminus threaded down a channel.
+
+**The template to copy is NK1R.** Free RFdiffusion against the **active state** gave 20 agonists
+from 63 expressed designs (EC50 1–231 nM); the other generator, which produced no
+substance-P-like motif, gave **0 active from 20**. What separated them was independent
+convergence on the natural ligand's activating loop geometry — without its sequence. That is
+exactly the filter described in §4, and it is the only thing in the published record that
+actually discriminated agonists.
+
+**Hard constraint:** at GLP1R the ECD anchor is *not* optional. The isolated TMD shows no
+activation up to 10 µM, even with hormone tethered. Both halves are load-bearing, which is why
+the 31.6 Å span is a requirement rather than an inconvenience.
 
 ## 3. How to get the geometry without copying the ligand
 
@@ -127,6 +157,57 @@ is common to all tiers, so the arm is additive rather than traded against affini
 The split is recorded here before results exist. This makes the entry a pre-registered test of
 the organisers' own stated open question — whether a groove-filling binder switches the receptor
 on — rather than a bet dressed up as a prediction.
+
+## 5b. The first gate is selection, not the wet lab
+
+Terms §5.4 separates two numbers that are easy to conflate. The *submission* cap is 40 for
+Track 1 and 20 for Tracks 2–3. The *testing* allocation is different: Track 1 gets ~15 designs
+tested per problem per team, while **Tracks 2 and 3 share a single 384-well plate per problem,
+at the Sponsors' discretion, with no guaranteed allocation**, from a pool of roughly 375 designs
+per track. Selection is made by a Claude-based workflow whose prompt is deliberately unpublished
+"to avoid teams over-optimizing metrics", judging predicted design quality, novelty **and method
+novelty** — and it reads the submitted information. Attempting to influence it by injection is
+disqualifying.
+
+Three consequences:
+
+- **The methods narrative is load-bearing**, not documentation hygiene. A pre-registered depth
+  gradient that tests the organisers' own stated open question is method-novel in a field where
+  the public competitor repos are uniformly BindCraft on soluble targets.
+- **Diversity across the 20 matters.** A pooled selector choosing from ~375 will not take 20
+  near-identical helices.
+- **The novelty scorer is a late-stage killer.** Published thresholds: "de novo" requires
+  sequence identity ≤30% *and* less than moderate structural similarity, scored by MMseqs2
+  against SwissProt/PDB/patents/PLAbDab and Foldseek/TM-align. Participants report designs
+  rejected at 2/4. Every slot gets checked before it is spent.
+
+## 5c. Two measured facts about the assay construct
+
+**Peptide agonists bind the detergent-solubilised receptor only weakly.** Two independent
+vendor datasheets for the same UniProt 24–432 range in DDM/CHS report dulaglutide at **1.91 µM**
+and a GLP1R agonist at **2.74 µM**, against **69 nM** for dulaglutide on the challenge's own
+construct — and the isolated ECD binds exendin-4 at **22–58 nM**. The ECD groove is therefore
+the stronger binding epitope on this material, not the bundle, which pulls affinity and
+activation in opposite directions exactly as §1 implies.
+
+**The ECD is wild-type in every published thermostabilised construct.** Across all three
+disclosed lineages — the ten-mutation inactive-state set, and both Heptares StaRs — not one
+mutation falls in residues 24–145. Several *do* line the orthosteric pocket (T298A contacts
+GLP-1 Ser17 at 2.46 Å; M233C, E387D, Q211A, D215R), and the inactive-state set deliberately
+locks TM6 via an I317C–G361C disulfide, measured at 2.05 Å. The supplier discloses none of its
+own mutations — one boilerplate sentence, no count, no positions, no Tm data, and no native-peptide
+binding figure on the datasheet at all. Treat the composition as unknown.
+
+## 5d. ECD anchor hotspots, from three independent sources
+
+- **L95** — the hotspot the two published de novo ECD antagonists were designed against.
+- **W33** and the **L32–R43 helix** — Fab 3F52's epitope core. W33 is also the primate-specificity
+  residue for both oral agonists. Worth noting W33 sits at 5.20 Å from GLP-1 in 6X18, just
+  outside the 4.5 Å cutoff used in [`target.md`](target.md), so it appears as a validated hotspot
+  in the literature but not in our own contact set — a case where measurement and literature
+  must both be consulted.
+- The buried-area ranking within the groove: core hydrophobic **L32, W39, W91, Y69**; rim
+  charges **E68, R121, E128, P90, T35**.
 
 ## 6. Honest expectations
 

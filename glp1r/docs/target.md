@@ -51,12 +51,18 @@ A molecule that does both jobs has to span 31.6 Å and terminate 19.2 Å inside 
 only access is the loop vestibule. GLP-1 solves this by being a single ~30-residue helix: long
 enough to bridge the span, thin enough to thread.
 
-This makes the format choice a structural question rather than a preference. A nanobody, scFv
-or Fab recognises a surface patch with a complementarity-determining loop face; none can put a
-free terminus 19 Å down a channel while its framework stays outside. On the measured geometry
-those formats can be expected to bind the ECD groove and **not** activate — which is exactly
-the outcome the rules discard. A single-chain `protein` with a protruding, free N-terminal
-segment is the only format that can reach.
+This constrains the format, though less absolutely than the geometry alone suggests. A framework
+that presents a flat paratope cannot put anything 19 Å down a channel while staying outside, so
+an antibody recognising the groove as a surface patch will bind and not activate. But an
+*ultra-long CDR3 loop* is a real theoretical route, and it has been tried at scale: a 10¹⁰
+library carrying >150,000 GPCR-binding motifs in HCDR3, median loop length 33–44 residues, gave
+13 GLP1R binders and **zero agonists** across five rounds of selection. Affinity maturation of
+those got two designs to Emax <2% of exendin-4. So the antibody route is not geometrically
+impossible — it is empirically exhausted, which is the stronger argument.
+
+A single-chain `protein` remains the best-supported format, and the inserting element need not
+be a terminus at all (see [`strategy.md`](strategy.md) — a free α-amine is not required, and the
+de novo class A agonists that worked inserted a *loop*).
 
 This also sharpens the organisers' own stated open question — whether a binder that only fills
 the groove switches the receptor on. The groove and the signalling machinery share no residues,
