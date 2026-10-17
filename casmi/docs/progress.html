@@ -62,33 +62,69 @@ ul.limits { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 7
 .links a { font: 500 13px/1 var(--mono); text-decoration: none; padding: 9px 12px; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
 .links a:hover { border-color: var(--peak); }
 footer { font: 12px/1.5 var(--mono); color: var(--muted); }
+details { display: grid; gap: 12px; }
+summary { cursor: pointer; font: 500 13px/1.4 var(--mono); color: var(--muted); }
+details[open] summary { margin-bottom: 12px; }
 @media (prefers-reduced-motion: no-preference) { .stick { transition: opacity 0.2s; } }
 </style>
 
 <div class="wrap">
   <header class="head">
-    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 13 Oct 2026</div>
-    <h1>From 0.115 to 0.356, one change per submission</h1>
-    <p>Rank candidate structures for 400 molecules from their tandem mass spectra, scored by MRR@25 on the InChIKey connectivity block. Every number on this page is a public leaderboard score: the first local estimate said 0.664 and the leaderboard said 0.115, so nothing local is trusted.</p>
+    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 17 Oct 2026</div>
+    <h1>From 0.115 to 0.446, one change per submission</h1>
+    <p>Rank candidate structures for 400 molecules from their tandem mass spectra, scored by MRR@25 on the InChIKey connectivity block. Every number on this page is a public leaderboard score: the first local estimate said 0.664 and the leaderboard said 0.115, so nothing local is trusted. The current best is the public 0.446 E006 notebook run unchanged on our account, which reproduced its public score exactly; the earlier fork of the 0.421 notebook scored 0.415, and our own pipeline peaked at 0.356.</p>
     <div class="figures">
-      <div class="fig main"><b>0.356</b><span>best public MRR@25 · v19</span></div>
+      <div class="fig main"><b>0.446</b><span>best public MRR@25 · e006-fork</span></div>
+      <div class="fig"><b>0.415</b><span>previous best · fork-v1 of the 0.421 notebook</span></div>
+      <div class="fig"><b>0.356</b><span>our own pipeline's best · v19</span></div>
       <div class="fig"><b>0.115</b><span>first submission · v1</span></div>
-      <div class="fig"><b>0.421</b><span>public notebook the parts come from</span></div>
-      <div class="fig"><b>18 / 18</b><span>submissions scored, none omitted</span></div>
+      <div class="fig"><b>22 / 22</b><span>submissions scored, none omitted</span></div>
     </div>
   </header>
 
   <section aria-labelledby="spec-h">
     <h2 id="spec-h">Every submission, drawn as a spectrum</h2>
-    <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.48 leaderboard top.</p>
-    <div class="chart"><svg id="spectrum" viewBox="0 0 760 310" role="img" aria-label="Stick chart of 18 submission scores rising from 0.115 to 0.356"></svg>
+    <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.48 leaderboard top; the e006-fork stick reproduces its notebook's public 0.446 exactly. The dotted rule is the rebase onto public notebooks.</p>
+    <div class="chart"><svg id="spectrum" viewBox="0 0 760 326" role="img" aria-label="Stick chart of 21 submission scores rising from 0.115 to 0.446"></svg>
       <div class="legend"><span><i class="key" style="background:var(--peak)"></i>kept</span><span><i class="key" style="background:var(--dim)"></i>not kept</span><span><i class="key" style="background:var(--ref)"></i>reference scores</span></div>
     </div>
   </section>
 
   <section aria-labelledby="pipe-h">
     <h2 id="pipe-h">The pipeline as it runs</h2>
-    <p>Counts are what survives each stage across the 400 test molecules.</p>
+    <p>The current best is the E006 fork's pipeline, unchanged from its author's: two engines, a PubChem-only channel and the two spectrum simulators, fused and then adjusted by overlays. Its stage counts are not visible: the leaderboard scores a hidden test, and a commit run processes only 12 smoke molecules (ICEBERG scored 11 of 12, GLACIER 11 of 11 with [M+H]+ spectra; the engine-2 cell applied on all 400 output rows).</p>
+    <div class="mermaid-box"><pre class="mermaid">
+flowchart TD
+    T["test spectra"] --> E2["engine 2, own process: two rankers over<br/>COCONUT ∪ ChEBI/LIPID MAPS ∪ train · top 40"]
+    T --> PC["PubChem-only channel: f·z + 0.25 × popularity<br/>up to 25 structures not in the pool"]
+    T --> E1["engine 1, v4n: library search + analog propagation<br/>FPNet · ~711k pool + generated · LightGBM 160 features, 4 boosters · top 60"]
+    E1 --> SIM["ICEBERG + GLACIER ([M+H]+ only)<br/>score same-formula groups from all three lists"]
+    E2 --> SIM
+    PC --> SIM
+    SIM --> M["gated PubChem merge into engine 1 (library max &lt; 0.9)<br/>promotion to rank 1 when (S &gt; 6 and pop ≥ 5) or rel &gt; 150"]
+    M --> F["reciprocal-rank fusion with engine 2<br/>1/(3+r₁) + 0.6/(3+r₂), GLACIER re-rank"]
+    E2 --> F
+    F --> O["overlays: metric-safe tail · one vote per metric identity · ICEBERG fallback where GLACIER has no scores"]
+    O --> H["rank-2 hedge: engine 2's top structure at rank 2 when it differs"]
+    H --> OUT["submission: 25 per molecule"]
+</pre></div>
+    <details><summary>The previous fork (0.415, fork-v1 of the 0.421 notebook)</summary>
+    <div class="mermaid-box"><pre class="mermaid">
+flowchart TD
+    T["test spectra"] --> L["library search against all of train<br/>+ analog propagation"]
+    L --> P["pool: train ∪ COCONUT ∪ generated derivatives"]
+    L -->|"library max similarity &lt; 0.7"| PC["PubChem candidates joined"]
+    PC --> P
+    P --> R["LightGBM ranker, ranker_v4b.pkl<br/>160 features · 4 boosters"]
+    R -->|"no library hit"| FM["ICEBERG + GLACIER re-score"]
+    R -->|"library hit: forward models off"| OUT
+    R -->|"where forward models cannot run"| FR["fragment rescoring"]
+    FM --> OUT["submission: 25 per molecule"]
+    FR --> OUT
+</pre></div>
+    </details>
+    <details><summary>Our own pipeline (best 0.356, v19)</summary>
+    <p>Counts are what survives each stage across the 400 visible test molecules.</p>
     <div class="mermaid-box"><pre class="mermaid">
 flowchart TD
     T["400 molecules · 1213 spectra"] --> W["5 ppm neutral-mass window"]
@@ -106,6 +142,7 @@ flowchart TD
     K -->|"29 not covered"| OUT
     FM -->|"z(score) + z(ICE) + z(GL) per same-formula group"| OUT["submission: 400 × 25"]
 </pre></div>
+    </details>
   </section>
 
   <section aria-labelledby="lever-h">
@@ -113,24 +150,40 @@ flowchart TD
     <div class="table-box"><table>
       <thead><tr><th>lever</th><th>versions</th><th style="text-align:right">gain</th></tr></thead>
       <tbody>
+        <tr><td>Rebase onto the public 0.446 E006 notebook: engine-2 rank fusion, ChEBI/LIPID MAPS candidates, simulated ranker rows, PubChem promotion at rel &gt; 150</td><td class="v">fork-v1 → e006-fork</td><td class="num">+0.031</td></tr>
+        <tr><td>Rebase onto the public 0.421 notebook: library search over train, analog propagation, LightGBM ranker</td><td class="v">v19 → fork-v1</td><td class="num">+0.059</td></tr>
         <tr><td>FPNet, a learned spectrum-to-fingerprint model, in place of fragment matching</td><td class="v">v5 → v6</td><td class="num">+0.115</td></tr>
         <tr><td>Popularity shortlist in place of a nearest-mass cut</td><td class="v">v4 → v5</td><td class="num">+0.086</td></tr>
         <tr><td>Forward-model weights 1.0 instead of 0.5</td><td class="v">v14 → v15</td><td class="num">+0.029</td></tr>
         <tr><td>GLACIER beside ICEBERG</td><td class="v">v13 → v14</td><td class="num">+0.028</td></tr>
         <tr><td>ICEBERG on CPU, 269 of 371 molecules</td><td class="v">v11 → v12</td><td class="num">+0.024</td></tr>
         <tr><td>Second PubChem pass, skipping candidates similar to the copied structure (threshold post hoc)</td><td class="v">v15 → v19</td><td class="num">+0.007</td></tr>
-        <tr><td>Shortlist size, prior weight, copied-structure removal, weight 1.5, unfiltered second pass</td><td class="v">v7–v18</td><td class="num">&lt; 0.01</td></tr>
+        <tr><td>Shortlist size, prior weight, copied-structure removal, weight 1.5, unfiltered second pass, the fork's PubChem channel over 10,000 rows</td><td class="v">v7–fork-v2</td><td class="num">&lt; 0.01</td></tr>
       </tbody>
     </table></div>
   </section>
 
   <section aria-labelledby="all-h">
-    <h2 id="all-h">All eighteen submissions</h2>
-    <p>Gate G1: beat the best so far by more than the ±0.005 run-to-run noise.</p>
+    <h2 id="all-h">All twenty-two submissions</h2>
+    <p>Gate G1: beat the best so far by more than the ±0.005 run-to-run noise. The identical re-run of v19 is folded into its row.</p>
     <div class="table-box"><table>
       <thead><tr><th>v</th><th>change</th><th style="text-align:right">MRR@25</th><th>verdict</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
+  </section>
+
+  <section aria-labelledby="oct17-h">
+    <h2 id="oct17-h">What changed on 17 October</h2>
+    <p>Forking public notebooks unchanged beat everything we built: the 0.421 notebook by 0.059, then the 0.446 E006 notebook by 0.090. Every later change is one setting of the E006 fork, measured against 0.446.</p>
+    <ul class="limits">
+      <li><b>The E006 fork is the new best: 0.446.</b> The public notebook “CASMI26 | E006 + PubChem Promo rel&gt;150 | LB 0.446”, run byte-identical as our private kernel casmi-e006-fork (version 2), scored 0.446 (submission 57298936), reproducing its public score exactly: +0.031 over fork-v1 and +0.090 over v19. Its lineage is flexonafft's v80 recipe (0.436) → E006, which fuses a second engine's ranks and adds ChEBI/LIPID MAPS candidates and simulated ranker rows (0.442) → PubChem promotion at rel &gt; 150 instead of 250 (0.446).</li>
+      <li><b>One run failed before submission.</b> Kernel version 1 used the source's metadata, which names Kaggle's CPU image; the notebook's T4 preflight stopped it (nvidia-smi exit 12) and it was not submitted. Version 2 runs on the same GPU image as fork-v1. Its commit run took 1183 s: engine ready, ranker 160 features and 4 boosters, 0 base errors, ICEBERG 11 of 12 and GLACIER 11 of 11 smoke molecules scored, 400 output rows. Scoring the hidden test took about 4 hours.</li>
+      <li><b>The fork is the new best: 0.415.</b> The public notebook “CASMI26 | v4n Fusion + PubChem on public 0.421”, run unchanged as our private kernel on a T4, scored 0.415 (submission 57288940), +0.059 over v19. The commit run took 1286 s, loaded the ranker (160 features, 4 boosters) and built every base list without error.</li>
+      <li><b>Why our pipeline lost.</b> It excluded the train structure behind each copied spectrum, but the copies are a property of the visible test, which is train examples; the leaderboard scores a hidden test. The fork uses train matches as evidence.</li>
+      <li><b>A wider PubChem channel changed nothing.</b> fork-v2 re-scores the top 10,000 pass-1 rows instead of 5000; our recall probe found 255 against 236 of 280 held-out answers, and the leaderboard scored it 0.415 (submission 57290631). Discarded.</li>
+      <li><b>0.415, not 0.421, but 0.446 exactly.</b> Both our runs of the unchanged 0.421 notebook score 0.006 below its public score, while the unchanged E006 notebook reproduced 0.446 on the same account and day. The gap is therefore not a general account or scoring-day effect; its cause is not established.</li>
+      <li><b>Next.</b> One setting of the E006 fork per submission against 0.446, for example a PubChem promotion threshold below 150, or the forward-model weights. About 26 of the 30 weekly GPU hours remain until 24 October 00:00 UTC (11:00 Sydney), and Kaggle runs at most 2 GPU batch sessions at once.</li>
+    </ul>
   </section>
 
   <section aria-labelledby="learn-h">
@@ -141,7 +194,6 @@ flowchart TD
       <li><b>Noise measured directly.</b> An identical re-run of v19 scored 0.353 against 0.356, so run-to-run noise is about ±0.003.</li>
       <li><b>The 0.421 notebook's edge.</b> Its base ranking searches every spectrum against all of train, propagates matches to similar structures, and ranks a train ∪ COCONUT ∪ generated pool with a public LightGBM ranker (160 features); PubChem enters only when the library match is weak. We exclude what it uses as evidence.</li>
       <li><b>Natural-product pool.</b> For 280 general held-out molecules, COCONUT holds 27 answers and our pool already finds all 27. For 265 held-out natural products the popularity shortlist already holds 215 of 247 answers (MRR@25 0.703); COCONUT and the second pass add at most one. The pool is not the gap.</li>
-      <li><b>Next.</b> Reproduce 0.421 with an unchanged fork on our account, then change one thing per submission on top of it; then v22 (second pass over the top 10,000 rows). Both wait for the weekly GPU quota.</li>
     </ul>
   </section>
 
@@ -149,10 +201,11 @@ flowchart TD
     <h2 id="lim-h">What is not established</h2>
     <ul class="limits">
       <li><b>No local estimate of the score.</b> Train-derived labels were wrong, and public notebooks cannot supply labels: their downloadable outputs predict only about 12 smoke-test molecules and write a placeholder (CCO) for the rest, because full predictions run only inside Kaggle's scoring rerun. An earlier reading of “three lineages agreeing on 12 of 400” was those placeholders. Train cannot supply a test-like held-out set: only 41 isomer pairs in 2.54 million rows share a spectrum, and 7 split across the fold-safe FPNet's training the way the test's copied spectra do.</li>
-      <li><b>The private score.</b> The shortlist size, the forward-model weight and GLACIER's input and v19's similarity threshold were chosen on the public split, so 0.356 is optimistic.</li>
-      <li><b>Candidate recall on the test set.</b> On held-out train molecules the popularity shortlist holds the answer for 126 / 280, and a spectrum-driven second pass for 236 / 280 (MRR@25 0.241 → 0.405). On the leaderboard the pass scored 0.353 against 0.349, and with the similarity filter 0.356 (re-run 0.353). Our diagnosis that the pass drifted toward the copied structures was measured on the visible test, which is train examples, so it does not explain the hidden-test result. How much hidden-test recall the pass buys is unmeasured.</li>
-      <li><b>The hidden test.</b> Only the visible test can be inspected, and it is train examples. How many hidden-test molecules have a library match, and how runtime scales on them, is unknown.</li>
-      <li><b>29 molecules</b> get no forward-model evidence.</li>
+      <li><b>Why fork-v1 scores 0.415 on our account against 0.421 public.</b> Our two runs agree, so the 0.006 is not run-to-run noise, and the E006 fork reproduced its public 0.446 exactly on the same account and day, so it is not a general account or day effect either; a different input version of the 0.421 notebook is possible but unchecked.</li>
+      <li><b>Why E006 gains.</b> The 0.446 notebook stacks several changes over the 0.421 lineage (engine-2 fusion, ChEBI/LIPID MAPS candidates, simulated ranker rows, the metric-identity overlays, the rank-2 hedge, promotion at rel &gt; 150); we ran it unchanged, so how much of the +0.031 each contributes is not measured by us. Its author chose rel &gt; 150 on the public leaderboard.</li>
+      <li><b>The private score.</b> The forks' settings were fixed by their authors before we saw any result, but tuned on the public leaderboard (the E006 notebook reports its threshold sweep there), so 0.446 may be optimistic on the private split; our own shortlist size, forward-model weights, GLACIER's input and v19's similarity threshold were chosen on the public split, so 0.356 is optimistic.</li>
+      <li><b>A per-molecule breakdown.</b> The hidden test is not visible, so which molecules the E006 fork gains on, how many have a library match (similarity ≥ 0.7), and how many get forward-model evidence is unknown.</li>
+      <li><b>Candidate recall on the hidden test.</b> On held-out train molecules the wider PubChem channel adds answers (255 against 236 of 280), yet fork-v2 scored the same as fork-v1; how much hidden-test recall either buys is unmeasured.</li>
     </ul>
   </section>
 
@@ -172,39 +225,44 @@ flowchart TD
 
 <script>
 const SUBS = [
-  [1, "fragment explainability over train's 275,798 structures", 0.115, "PROMOTE"],
-  [4, "+ PubChem tier, 4000 nearest-mass candidates", 0.049, "DISCARD"],
-  [5, "popularity shortlist of 300, + 0.25 × popularity", 0.135, "PROMOTE"],
-  [6, "FPNet in place of fragment explainability", 0.250, "PROMOTE"],
-  [7, "FPNet ensemble: full1 + FPNet A", 0.258, "PROMOTE"],
-  [8, "popularity weight 0.15", 0.254, "DISCARD"],
-  [9, "shortlist 1000 instead of 300", 0.261, "KEEP"],
-  [11, "never propose the train structure behind a copied spectrum", 0.262, "KEEP"],
-  [12, "ICEBERG re-orders same-formula groups (CPU, 269 / 371)", 0.286, "PROMOTE"],
-  [13, "ICEBERG on a T4: all 371 coverable molecules", 0.292, "PROMOTE"],
-  [14, "+ GLACIER beside ICEBERG, weights 0.5", 0.320, "PROMOTE"],
-  [15, "forward-model weights 1.0", 0.349, "PROMOTE"],
-  [16, "GLACIER on [M+H]+ spectra only", 0.345, "DISCARD"],
-  [17, "forward-model weights 1.5", 0.346, "DISCARD"],
-  [18, "+ second PubChem pass chosen by the spectrum", 0.353, "DISCARD"],
-  [19, "second pass skips candidates similar to the copied structure", 0.356, "KEEP"],
-  [20, "similarity threshold 0.4 instead of 0.5", 0.354, "DISCARD"],
-  [21, "ICEBERG weight 0.5, GLACIER 1.0", 0.333, "DISCARD"],
+  ["v1", "fragment explainability over train's 275,798 structures", 0.115, "PROMOTE"],
+  ["v4", "+ PubChem tier, 4000 nearest-mass candidates", 0.049, "DISCARD"],
+  ["v5", "popularity shortlist of 300, + 0.25 × popularity", 0.135, "PROMOTE"],
+  ["v6", "FPNet in place of fragment explainability", 0.250, "PROMOTE"],
+  ["v7", "FPNet ensemble: full1 + FPNet A", 0.258, "PROMOTE"],
+  ["v8", "popularity weight 0.15", 0.254, "DISCARD"],
+  ["v9", "shortlist 1000 instead of 300", 0.261, "KEEP"],
+  ["v11", "never propose the train structure behind a copied spectrum", 0.262, "KEEP"],
+  ["v12", "ICEBERG re-orders same-formula groups (CPU, 269 / 371)", 0.286, "PROMOTE"],
+  ["v13", "ICEBERG on a T4: all 371 coverable molecules", 0.292, "PROMOTE"],
+  ["v14", "+ GLACIER beside ICEBERG, weights 0.5", 0.320, "PROMOTE"],
+  ["v15", "forward-model weights 1.0", 0.349, "PROMOTE"],
+  ["v16", "GLACIER on [M+H]+ spectra only", 0.345, "DISCARD"],
+  ["v17", "forward-model weights 1.5", 0.346, "DISCARD"],
+  ["v18", "+ second PubChem pass chosen by the spectrum", 0.353, "DISCARD"],
+  ["v19", "second pass skips candidates similar to the copied structure (identical re-run 0.353)", 0.356, "KEEP"],
+  ["v20", "similarity threshold 0.4 instead of 0.5", 0.354, "DISCARD"],
+  ["v21", "ICEBERG weight 0.5, GLACIER 1.0", 0.333, "DISCARD"],
+  ["fork-v1", "the public 0.421 notebook unchanged (library search over train + LightGBM ranker)", 0.415, "PROMOTE"],
+  ["fork-v2", "fork: PubChem channel re-scores the top 10,000 pass-1 rows instead of 5000", 0.415, "DISCARD"],
+  ["e006-fork", "the public 0.446 E006 notebook unchanged (engine-2 rank fusion, ChEBI/LIPID MAPS candidates, PubChem promotion at rel > 150)", 0.446, "PROMOTE"],
 ];
-const best = Math.max(...SUBS.filter(s => s[3] !== "DISCARD").map(s => s[2]));
+const bestScore = Math.max(...SUBS.filter(s => s[3] === "PROMOTE").map(s => s[2]));
+const bestIdx = SUBS.findIndex(s => s[3] === "PROMOTE" && s[2] === bestScore);
+const firstFork = SUBS.findIndex(s => s[0].includes("fork"));
 
 const tbody = document.getElementById("rows");
-for (const [v, change, score, verdict] of SUBS) {
+SUBS.forEach(([label, change, score, verdict], i) => {
   const tr = document.createElement("tr");
-  if (score === best) tr.className = "best";
-  tr.innerHTML = `<td class="v">v${v}</td><td></td><td class="num">${score.toFixed(3)}</td><td><span class="pill ${verdict}">${verdict}</span></td>`;
+  if (i === bestIdx) tr.className = "best";
+  tr.innerHTML = `<td class="v">${label}</td><td></td><td class="num">${score.toFixed(3)}</td><td><span class="pill ${verdict}">${verdict}</span></td>`;
   tr.children[1].textContent = change;
   tbody.appendChild(tr);
-}
+});
 
 const svg = document.getElementById("spectrum");
 const NS = "http://www.w3.org/2000/svg";
-const W = 760, H = 310, L = 52, R = 16, T = 30, B = 40, YMAX = 0.5;
+const W = 760, H = 326, L = 52, R = 16, T = 30, B = 56, YMAX = 0.5;
 const y = s => T + (H - T - B) * (1 - s / YMAX);
 const step = (W - L - R) / SUBS.length;
 const x = i => L + step * (i + 0.5);
@@ -221,18 +279,24 @@ for (const t of [0, 0.1, 0.2, 0.3, 0.4, 0.5]) {
 }
 for (const [ref, label] of [[0.421, "0.421 public notebook"], [0.48, "0.48 leaderboard top"]]) {
   el("line", { x1: L, x2: W - R, y1: y(ref), y2: y(ref), stroke: "var(--ref)", "stroke-width": 1.2, "stroke-dasharray": "5 4" });
-  el("text", { x: W - R - 4, y: y(ref) - 5, "text-anchor": "end", "font-size": 11, fill: "var(--ref)" }, label);
+  el("text", { x: L + 4, y: y(ref) - 5, "font-size": 11, fill: "var(--ref)" }, label);
 }
-SUBS.forEach(([v, , score, verdict], i) => {
+const sep = L + step * firstFork;
+el("line", { x1: sep, x2: sep, y1: y(0.47), y2: y(0), stroke: "var(--muted)", "stroke-width": 1, "stroke-dasharray": "2 3" });
+el("text", { x: sep - 5, y: y(0.45), "text-anchor": "end", "font-size": 11, fill: "var(--muted)" }, "our pipeline");
+el("text", { x: sep + 5, y: y(0.45), "font-size": 11, fill: "var(--muted)" }, "fork");
+SUBS.forEach(([label, , score, verdict], i) => {
   const kept = verdict !== "DISCARD";
-  const color = kept ? "var(--peak)" : "var(--dim)";
-  el("line", { class: "stick", x1: x(i), x2: x(i), y1: y(0), y2: y(score), stroke: color,
-               "stroke-width": score === best ? 5 : 3, "stroke-linecap": "butt" });
+  const isBest = i === bestIdx;
+  el("line", { class: "stick", x1: x(i), x2: x(i), y1: y(0), y2: y(score), stroke: kept ? "var(--peak)" : "var(--dim)",
+               "stroke-width": isBest ? 5 : 3, "stroke-linecap": "butt" });
   el("text", { x: x(i), y: y(score) - 6, "text-anchor": "middle", "font-size": 10,
-               fill: score === best ? "var(--peak)" : "var(--muted)", "font-weight": score === best ? 600 : 400 },
+               fill: isBest ? "var(--peak)" : "var(--muted)", "font-weight": isBest ? 600 : 400 },
      score.toFixed(3));
-  el("text", { x: x(i), y: H - B + 16, "text-anchor": "middle", "font-size": 11, fill: "var(--muted)" }, `v${v}`);
+  const [top, bottom] = label.startsWith("fork-") ? [label.slice(5), "fork"] : label.endsWith("-fork") ? [label.slice(0, -5), "fork"] : [label, undefined];
+  el("text", { x: x(i), y: H - B + 16, "text-anchor": "middle", "font-size": 11, fill: "var(--muted)" }, top);
+  if (bottom) el("text", { x: x(i), y: H - B + 29, "text-anchor": "middle", "font-size": 10, fill: "var(--muted)" }, bottom);
 });
-el("text", { x: L, y: H - 6, "font-size": 11, fill: "var(--muted)" }, "notebook version, in submission order →");
+el("text", { x: L, y: H - 6, "font-size": 11, fill: "var(--muted)" }, "submission, in order →");
 el("text", { x: L, y: 13, "font-size": 11, fill: "var(--muted)" }, "public MRR@25");
 </script>
