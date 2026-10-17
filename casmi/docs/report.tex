@@ -4,9 +4,9 @@
 \usepackage{amsmath}
 \usepackage[hidelinks]{hyperref}
 
-\title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.356}
+\title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.415}
 \author{Charlene Leong}
-\date{12 October 2026}
+\date{17 October 2026}
 
 \begin{document}
 \maketitle
@@ -20,7 +20,9 @@ leaderboard score, and each of the 18 submissions changed one thing (a nineteent
 popularity prior, a learned spectrum-to-fingerprint model, and two forward models that predict each
 candidate's spectrum take the score to 0.349; a second PubChem pass that avoids structures similar
 to the copied train rows takes it to 0.356, against 0.421 for the public notebook these
-components come from. No local estimate of the score exists.
+components come from. Running that notebook unchanged as our own kernel scored 0.415, $+0.059$
+over the best of our own pipeline, and it is now the base every later change is measured against;
+21 submissions were made and all were scored. No local estimate of the score exists.
 \end{abstract}
 
 \section{Task}
@@ -30,6 +32,16 @@ the first 14 characters of the InChIKey. The competition runs notebooks offline,
 and model is attached as a dataset. Only the public split of the leaderboard is visible.
 
 \section{Method}
+\textbf{Current best: a fork of the public notebook.} Since 17 October the submission is the public
+notebook \emph{CASMI26 \textbar{} v4n Fusion + PubChem on public 0.421}, run unchanged as the private kernel
+\texttt{charyeezy/casmi-v4n-fork} on a T4. It searches every test spectrum against all of train and
+propagates matches to analogs; ranks a pool of train $\cup$ COCONUT $\cup$ generated derivatives with a
+public LightGBM ranker (\texttt{ranker\_v4b.pkl}, 160 features, 4 boosters); joins PubChem candidates
+only when the library's maximum similarity is below 0.7; and re-scores with ICEBERG and GLACIER (off for
+library hits), falling back to fragment rescoring where they cannot run. Where our pipeline excluded the
+train structure behind each copied spectrum, the fork uses train matches as evidence.
+
+\textbf{Our own pipeline (best 0.356, v19)}, described below, is the record of what we built before it.
 \begin{enumerate}
   \item \textbf{Candidates.} Within a 5 ppm window of the molecule's neutral mass, the 1000
     best-documented PubChem connectivities (by $\log(1+\text{substances}) + \log(1+\text{PubMed})$)
@@ -61,8 +73,8 @@ molecules whose top-1 the forward models change ($\lambda=1$) & 208 \\
 \end{center}
 
 \section{Results}
-Every score is the public leaderboard's. Fourteen submissions were made; all were scored; none
-is omitted.
+Every score is the public leaderboard's. Twenty-one submissions were made, including one identical
+re-run; all were scored; none is omitted.
 
 \begin{center}
 \begin{tabular}{rlr}
@@ -84,10 +96,13 @@ v & change from the previous kept version & public MRR@25 \\
 16 & GLACIER on $[\mathrm{M{+}H}]^+$ only (not kept) & 0.345 \\
 17 & $\lambda = 1.5$ (not kept) & 0.346 \\
 18 & + spectrum-driven second PubChem pass (not kept) & 0.353 \\
-19 & the same, skipping candidates with Tanimoto $\geq 0.5$ to the copied structure & \textbf{0.356} \\
+19 & second pass skips Tanimoto $\geq 0.5$ to the copied structure & 0.356 \\
 19 & identical re-run & 0.353 \\
 20 & threshold 0.4 (not kept) & 0.354 \\
 21 & ICEBERG weight 0.5, GLACIER 1.0 (not kept) & 0.333 \\
+\midrule
+fork-v1 & the public 0.421 notebook, unchanged, as our kernel & \textbf{0.415} \\
+fork-v2 & PubChem channel over 10{,}000 rows, not 5000 (not kept) & 0.415 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -108,8 +123,18 @@ which differs only by the filter, the gain is $+0.003$, inside the noise, so v19
 not clear G1; its threshold was also chosen after seeing v18. An identical re-run of v19 scored 0.353, and the
 0.4 threshold (v20) 0.354: the filter's effect is not distinguishable from noise.
 
+The fork (fork-v1) scored 0.415, $+0.059$ over v19 and the largest single gain after FPNet. Its commit
+run took 1286\,s, loaded the ranker, built every base list without error, injected 600 PubChem rows
+in its 12 smoke molecules with no failures, and GLACIER scored 11 of the 12. Widening its PubChem
+channel to the top 10{,}000 pass-1 rows (fork-v2), chosen from our recall probe (255 against 236 of 280
+held-out answers), scored 0.415 again and was discarded.
+
 \section{What is not established}
 \begin{itemize}
+  \item \textbf{Why the fork scores 0.415, not 0.421.} Both our runs of the unchanged notebook score
+    0.006 below its public score; a different scoring day or input version are both possible.
+  \item \textbf{A per-molecule breakdown of the fork's gain.} The hidden test is not visible, so which
+    molecules it gains on, and how many have a library match, is unknown.
   \item \textbf{A local estimate of the score.} Train-derived labels rated our first submission at 0.664
     against 0.115 on the leaderboard. Public notebooks cannot supply labels: their downloadable outputs
     score only about 12 smoke-test molecules and write a placeholder (\texttt{CCO}) for the rest, since
@@ -120,17 +145,20 @@ not clear G1; its threshold was also chosen after seeing v18. An identical re-ru
     measurement.
   \item \textbf{The private score.} Three choices --- the shortlist size, $\lambda$, and GLACIER's
     input --- were selected on the public split, as was v19's similarity threshold, so 0.356 is optimistic.
+    The fork's settings were fixed by its author before we saw any result, on evidence we cannot see.
   \item \textbf{Candidate recall.} Whether the answer is among the candidates cannot be separated
-    from ranking with one MRR.
+    from ranking with one MRR; a wider PubChem channel added held-out answers but no score (fork-v2).
   \item \textbf{Why the data is shaped as it is.} The copied train structures are the answer for at
     most $\sim$46 of 400 molecules.
   \item \textbf{The environment switch alone.} The move to a pinned Python 3.12 image and RDKit
     2026.3 (v12) was not measured separately.
-  \item \textbf{29 molecules} receive no forward-model evidence.
+  \item \textbf{Forward-model coverage on the hidden test.} Our pipeline left 29 visible-test molecules
+    without forward-model evidence; the fork's coverage of the hidden test is unknown.
 \end{itemize}
 
 \section*{Sources}
-Code and history: \url{https://github.com/charleneleong-ai/ai4science/pull/80}. Every input and
+Code and history: \url{https://github.com/charleneleong-ai/ai4science/pull/80}. Forked notebook: \href{https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421}{CASMI26 \textbar{} v4n Fusion + PubChem on public 0.421}.
+Every input and
 checkpoint with its version: \texttt{casmi/docs/experiment-card.md}. Competition:
 \url{https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra}.
 

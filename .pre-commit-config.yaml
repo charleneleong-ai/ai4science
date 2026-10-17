@@ -12,8 +12,8 @@ repos:
     hooks:
       - id: ruff-check
         name: ruff (complexity + undefined names)
-        # vendored third-party notebook, kept byte-identical to its public source for a reproduction
-        exclude: ^casmi/notebooks/fork421/
+        # vendored third-party notebooks, kept byte-identical to its public source for a reproduction
+        exclude: ^casmi/notebooks/fork4(21|46)/
         args:
           - --select=C901,PLR0915,F821,F401
           - --config=lint.mccabe.max-complexity=10
