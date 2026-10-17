@@ -29,16 +29,20 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from tnf_binder.submission import MOLECULE_CLASS
 
-# The two official sources disagree. FAQ 5 and the challenge page both enumerate
-# the permitted values as "protein", "nanobody", "scfv", "fab_kappa",
-# "fab_lambda"; the downloadable submission template labels its single-chain
-# example "single_chain". Three of the template's four values match the FAQ
-# exactly and only the single-chain one differs, which reads like a rename the
-# template did not pick up -- but that is an inference, so both variants are
-# written and the choice is made at upload.
-MOLECULE_CLASS = "protein"
-MOLECULE_CLASS_TEMPLATE = "single_chain"
+# The class comes from tnf_binder.submission rather than being restated here,
+# because that value was established against the live uploader during the first
+# submission and this script is not a second opinion on it.
+#
+# The documentation disagrees with the uploader: FAQ 5 and the challenge page
+# both enumerate "protein", while the downloadable submission template, the note
+# in tnf_binder.submission and its validator all say "single_chain". The three
+# that agree are the ones derived from the portal itself, so "single_chain" is
+# what gets submitted. A "protein" variant is written for the case where the
+# uploader turns out to follow the FAQ, but it is deliberately not committed to
+# submission/, so that the repo's own pre-flight check stays meaningful.
+MOLECULE_CLASS_ALTERNATE = "protein"
 
 # The template is LF-terminated and unquoted; csv.writer defaults to CRLF.
 LINE_TERMINATOR = "\n"
@@ -134,6 +138,7 @@ def main(
     deep_pka: Annotated[list[Path], typer.Option(help="pKa robustness CSVs at n=20")],
     retention: Annotated[Path, typer.Option(help="20-sample retention table")],
     out: Annotated[Path, typer.Option(help="v9 submission CSV")],
+    alternate_dir: Annotated[Path, typer.Option(help="where to write the alternate-class variant")],
     out_evidence: Annotated[Path, typer.Option(help="v9 evidence CSV")],
 ) -> None:
     rates = load_switch_rates(deep_pka)
@@ -175,9 +180,10 @@ def main(
     designs.sort(key=lambda d: d.rank_key)
 
     out.parent.mkdir(parents=True, exist_ok=True)
+    alternate_dir.mkdir(parents=True, exist_ok=True)
     for path, molecule_class in (
         (out, MOLECULE_CLASS),
-        (out.with_name(f"{out.stem}_{MOLECULE_CLASS_TEMPLATE}{out.suffix}"), MOLECULE_CLASS_TEMPLATE),
+        (alternate_dir / f"{out.stem}_{MOLECULE_CLASS_ALTERNATE}{out.suffix}", MOLECULE_CLASS_ALTERNATE),
     ):
         with path.open("w", newline="") as handle:
             writer = csv.writer(handle, lineterminator=LINE_TERMINATOR)

@@ -2,12 +2,11 @@
 
 Anthropic × Adaptyv Challenge 02, Track 3. Twenty single-chain de novo designs, lengths 74–91 aa.
 
-A note on `molecule_class`, since the two official sources differ: FAQ 5 and the challenge page
-enumerate the permitted values as `protein`, `nanobody`, `scfv`, `fab_kappa`, `fab_lambda`, while
-the downloadable submission template labels its single-chain example `single_chain`. Three of the
-template's four values match the FAQ exactly and only the single-chain one differs. The CSV is
-supplied with `protein`; a `single_chain` variant is available if the uploader expects the
-template's vocabulary.
+`molecule_class` is `single_chain`. Worth noting that the documentation and the uploader differ
+on this: FAQ 5 and the challenge page both enumerate the permitted values as `protein`,
+`nanobody`, `scfv`, `fab_kappa`, `fab_lambda`, while the downloadable submission template labels
+its single-chain example `single_chain`. `single_chain` is what the uploader accepted for the
+first submission, so it is what is used here.
 
 Everything here is computational. **No binding of any kind has been measured** — no expression,
 no SEC, no thermal stability, no SPR or BLI. Each number below carries the sampling depth it was
