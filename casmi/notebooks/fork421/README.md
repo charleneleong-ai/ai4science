@@ -7,10 +7,12 @@ byte-identical to that notebook as of 2026-10-13 in its first commit (kernel ver
 [`kernel-metadata.json`](kernel-metadata.json) differs (our kernel id, private). Each later version changes one
 setting:
 
-| kernel version | change |
-|---|---|
-| 1 | none: reproduction of 0.421 |
-| 2 | `PC_N1=10000` (PubChem channel re-scores the top 10,000 pass-1 rows, not 5000; probe v3: 255 vs 236 / 280 held-out answers) | Its purpose is option A of the
+| kernel version | change | public MRR@25 |
+|---|---|---|
+| 1 | none: reproduction of 0.421 | 0.415 (submission 57288940) |
+| 2 | `PC_N1=10000` (PubChem channel re-scores the top 10,000 pass-1 rows, not 5000; probe v3: 255 vs 236 / 280 held-out answers) | scoring |
+
+Its purpose is option A of the
 [library search + ranker design](../../docs/specs/2026-10-13-casmi-library-ranker-design.md): reproduce 0.421 on
 our account, then change one thing per submission on top of it.
 

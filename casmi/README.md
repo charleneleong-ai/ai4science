@@ -6,8 +6,10 @@ up to 25 ranked SMILES per test molecule, scored by MRR@25 on the InChIKey conne
 It is a code competition — a notebook, internet off — so every model and database is attached as a
 Kaggle dataset.
 
-**Best kept pipeline: 0.356** (v19, 2026-10-12: a second PubChem pass that skips candidates similar to the copied train structure; an identical re-run scored 0.353, so it is indistinguishable from v15's 0.349 and v18's 0.353 within noise), against 0.421 for the public notebook its components come from and 0.48 at the top of the
-leaderboard. The first submission scored 0.115 against a local estimate of 0.664; that estimate was
+**Best: 0.415** (fork v1, 2026-10-17: the public 0.421 notebook run unchanged as our private kernel
+[`casmi-v4n-fork`](notebooks/fork421); it reproduces 0.421 to within 0.006). Our own pipeline's best is 0.356
+(v19, 2026-10-12; an identical re-run scored 0.353), so the notebook's library search over train plus its
+LightGBM ranker is worth about +0.06 over everything we built. The top of the leaderboard is 0.48. The first submission scored 0.115 against a local estimate of 0.664; that estimate was
 retracted, and since then only the leaderboard is trusted. The full history, one change per
 submission, is in [PR #80](https://github.com/charleneleong-ai/ai4science/pull/80) and the
 [spike writeup](docs/2026-10-07-casmi-spike.md).

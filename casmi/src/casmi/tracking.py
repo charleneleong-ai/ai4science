@@ -1,7 +1,7 @@
 """W&B runs and report for the Kaggle submissions, rendered from `docs/experiments/casmi/verdicts.yaml`.
 
-One run per scored submission (id `v<version>`, so a re-sync updates rather than duplicates) and a
-`trajectory` run holding the score-by-version table. Everything is written to run summaries, never
+One run per scored submission (id `label`, default `v<version>`, so a re-sync updates rather than duplicates) and a
+`trajectory` run holding the score-by-submission table. Everything is written to run summaries, never
 to history: a resumed run silently drops history steps it has already passed. The report's
 hand-written sections come from `report.md` beside the yaml; Results and Full run log are generated.
 Re-run after each score lands.
@@ -36,13 +36,14 @@ def annotate(subs: list[dict[str, Any]], noise: float) -> list[dict[str, Any]]:
         prior = best
         cleared = prior is None or s["score"] > prior + noise
         best = s["score"] if prior is None else max(prior, s["score"])
-        out.append({**s, "best_before": prior, "gate_g1": cleared, "best_so_far": best})
+        out.append({"label": f"v{s['version']}", **s, "best_before": prior, "gate_g1": cleared,
+                    "best_so_far": best})
     return out
 
 
-def top1_table(outputs: Path, version: int) -> wandb.Table | None:
+def top1_table(run_dir: Path) -> wandb.Table | None:
     """Top-1 structures for the first molecules of a kept run output, as 3D molecules."""
-    sub = outputs / f"v{version}" / "submission.csv"
+    sub = run_dir / "submission.csv"
     if not sub.exists():
         return None
     table = wandb.Table(columns=["molecule_id", "top1_smiles", "structure"])
@@ -56,16 +57,16 @@ def top1_table(outputs: Path, version: int) -> wandb.Table | None:
 
 
 def sync_run(s: dict[str, Any], pr: int, entity: str, outputs: Path) -> str:
-    notes = (f"v{s['version']}: {s['change']}. Public MRR@25 {s['score']:.3f} "
+    notes = (f"{s['label']}: {s['change']}. Public MRR@25 {s['score']:.3f} "
              f"(best before: {s['best_before']}). Verdict {s['verdict']}. {REPO}/pull/{pr}")
-    run = wandb.init(project=PROJECT, entity=entity, id=f"v{s['version']}", name=f"v{s['version']}",
+    run = wandb.init(project=PROJECT, entity=entity, id=s["label"], name=s["label"],
                      resume="allow", job_type="submission", notes=notes,
                      tags=[s["family"], f"verdict:{s['verdict']}"],
                      config={k: s[k] for k in ("version", "ref", "date", "commit", "change", "family")})
     run.summary.update({"public_mrr25": s["score"], "best_so_far": s["best_so_far"],
                         "gate_g1": s["gate_g1"], "verdict": s["verdict"],
                         "commit_url": f"{REPO}/commit/{s['commit']}"})
-    if (table := top1_table(outputs, s["version"])) is not None:
+    if (table := top1_table(outputs / s.get("outputs", s["label"]))) is not None:
         run.summary["top1_structures"] = table
     url = run.url
     run.finish()
@@ -75,10 +76,10 @@ def sync_run(s: dict[str, Any], pr: int, entity: str, outputs: Path) -> str:
 def sync_trajectory(subs: list[dict[str, Any]], entity: str) -> None:
     run = wandb.init(project=PROJECT, entity=entity, id="trajectory", name="trajectory",
                      resume="allow", job_type="summary", tags=["trajectory"],
-                     notes="Public MRR@25 and best-so-far by notebook version, one row per scored submission.")
+                     notes="Public MRR@25 and best-so-far by submission, one row per scored submission.")
     run.summary["trajectory"] = wandb.Table(
-        columns=["version", "public_mrr25", "best_so_far", "verdict"],
-        data=[[s["version"], s["score"], s["best_so_far"], s["verdict"]] for s in subs])
+        columns=["submission", "public_mrr25", "best_so_far", "verdict"],
+        data=[[s["label"], s["score"], s["best_so_far"], s["verdict"]] for s in subs])
     run.finish()
 
 
@@ -89,9 +90,9 @@ def narrative(path: Path) -> dict[str, str]:
 
 
 def results_markdown(subs: list[dict[str, Any]], pr: int, noise: float) -> str:
-    rows = [{"tag": f"v{s['version']}", "wandb_url": s.get("url"), "score": s["score"],
+    rows = [{"tag": s["label"], "wandb_url": s.get("url"), "score": s["score"],
              "verdict": s["verdict"]} for s in subs]
-    entries = [{"label": f"v{s['version']}", "baseline": "—" if s["best_before"] is None else f"{s['best_before']:.3f}",
+    entries = [{"label": s["label"], "baseline": "—" if s["best_before"] is None else f"{s['best_before']:.3f}",
                 "gate": "G1", "result": f"{s['score']:.3f}: {s['change']}", "verdict": s["verdict"], "pr": pr}
                for s in subs]
     return ("## Results\n"
@@ -103,7 +104,7 @@ def results_markdown(subs: list[dict[str, Any]], pr: int, noise: float) -> str:
 
 def run_log(subs: list[dict[str, Any]]) -> str:
     return "\n".join(
-        f"- [v{s['version']}]({s.get('url', '')}) · {s['date']} · [`{s['commit']}`]({REPO}/commit/{s['commit']}) · "
+        f"- [{s['label']}]({s.get('url', '')}) · {s['date']} · [`{s['commit']}`]({REPO}/commit/{s['commit']}) · "
         f"submission {s['ref']} · {s['score']:.3f} · {s['verdict']} — {s['change']}" for s in subs)
 
 
