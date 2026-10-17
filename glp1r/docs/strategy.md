@@ -261,6 +261,31 @@ table exists at all.
 - The buried-area ranking within the groove: core hydrophobic **L32, W39, W91, Y69**; rim
   charges **E68, R121, E128, P90, T35**.
 
+## 5e. The verification stack, applied to every entry
+
+Standing requirement from the TNF-α campaign, where it changed the submission. Every
+load-bearing claim gets all four checks before it ships, and the stack itself goes in the
+submitted methodology — a declared disagreement between methods reads as rigour, a hidden one
+reads as luck.
+
+| # | check | why it is not optional | here |
+| --- | --- | --- | --- |
+| 1 | **Depth** — n=20, and convert any "on every sample" rule to a *rate* | an all-samples criterion is a maximum, so it tightens as n grows and cannot be compared across sample counts | seed dependence is reported as substantial for every predictor on GPCR–peptide complexes |
+| 2 | **An independent second method** for the load-bearing quantity | the same tool on more structures measures structural variability, not method bias, so a systematic error stays invisible at any depth | **Chai-1** (from `chai.sif`) against Boltz-2 — never BoltzGen designs ranked by the Boltz-2 weights that made them |
+| 3 | **A mechanism check, not a value check** | ask whether the measured quantity is actually coupled to the objective, not merely in range | [`activation_geometry.py`](../scripts/activation_geometry.py) — binding is not agonism, and the pharmacophore is measured explicitly |
+| 4 | **Report each method separately, plus the consensus** | collapsing disagreement into one number hides exactly what the second method was for | per-method columns in the metrics table |
+
+On TNF-α this was not cosmetic. PROPKA and pKAI — empirical fitted coefficients versus a graph
+neural network on experimental data — disagreed on **23 of 62** design-positions, with pKAI
+reading **+0.76 higher on average**, which moved the top-ranked design from 5th to 1st. Depth
+alone could never have found that: more PROPKA samples measure how the structure varies, not how
+the method is wrong.
+
+The GLP1R analogue of check 3 is the sharper one. A design can score a confident interface and
+still be an antagonist — which is what the entire published record of this target says will
+happen. Measuring binding confidence more precisely does not address that; only an explicit
+activation-geometry gate does.
+
 ## 6. Honest expectations
 
 - **No de novo class B1 agonist exists.** Not GLP1R, PTH1R, GCGR, GIPR, PAC1R, CRF1R or CGRPR.
