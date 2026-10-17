@@ -49,4 +49,7 @@ submissions:
   - {version: 2, label: fork-v2, outputs: fork421-v2, ref: 57290631, date: 2026-10-17, family: candidate-pool, commit: 7d13aeb,
      score: 0.415, verdict: DISCARD,
      change: "fork: PubChem channel re-scores the top 10,000 pass-1 rows instead of 5000"}
+  - {version: 2, label: e006-fork, outputs: fork446-v2, ref: 57298936, date: 2026-10-17, family: rebase, commit: 45b100f,
+     score: 0.446, verdict: PROMOTE,
+     change: "the public 0.446 notebook unchanged (E006 engine-2 rank fusion, ChEBI/LipidMaps candidates, PubChem promotion at rel > 150), as kernel casmi-e006-fork"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==
