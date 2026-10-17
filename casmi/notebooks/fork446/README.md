@@ -14,7 +14,7 @@ ranks and adds ChEBI/LipidMaps candidates and simulated ranker rows (0.442) → 
 |---|---|---|
 | 1 | none, on the source's CPU image | failed at preflight (`nvidia-smi` exit 12, no GPU); not submitted |
 | 2 | none: reproduction of 0.446 on the GPU image | **0.446** (submission 57298936): reproduces exactly |
-| 3 | engine-2 weight in the rank fusion `ALPHA` 0.6 → 0.8 (cell 35; every fusion call reads it) | running |
+| 3 | engine-2 weight in the rank fusion `ALPHA` 0.6 → 0.8 (cell 35; every fusion call reads it) | 0.437 (submission 57310111): worse, discarded |
 
 The run gate is `~/casmi-data/gates/gate_fork446.py`: the engine and ranker loaded, the engine-2 cell
 applied, base inference had 0 errors, no stage logged a failure, and the output is 400 rows with the 12

@@ -19,7 +19,7 @@ four datasets are the author's own repackaging of the inputs `fork446` attaches.
 
 | kernel version | change | public MRR@25 |
 |---|---|---|
-| 1 | none: upstream version 53 | running |
+| 1 | none: upstream version 53 | 0.445 (submission 57311145): below version 52's 0.451 and our 0.446; discarded |
 
 The run gate is `~/casmi-data/gates/gate_fork451.py`: the ranker loaded, the merge self-test passed, base
 inference had 0 errors, no stage logged a failure, and the output is 400 rows with the 12 smoke molecules full.

@@ -10,7 +10,7 @@ Kaggle dataset.
 private kernel [`casmi-e006-fork`](notebooks/fork446); it reproduces its public 0.446 exactly). Before it,
 [`casmi-v4n-fork`](notebooks/fork421) scored 0.415 against its public 0.421, and our own pipeline's best is
 0.356 (v19, 2026-10-12), so the public notebooks' library search over train plus learned ranker is worth
-about +0.09 over everything we built. The top of the leaderboard is 0.48. The first submission scored 0.115 against a local estimate of 0.664; that estimate was
+about +0.09 over everything we built. The top of the leaderboard is 0.495 (2026-10-17). The first submission scored 0.115 against a local estimate of 0.664; that estimate was
 retracted, and since then only the leaderboard is trusted. The full history, one change per
 submission, is in [PR #80](https://github.com/charleneleong-ai/ai4science/pull/80) and the
 [spike writeup](docs/2026-10-07-casmi-spike.md).

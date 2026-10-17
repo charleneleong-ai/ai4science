@@ -1,7 +1,7 @@
 # Experiment card — CASMI 2026 molecule identification
 
 Pattern: [*A generated protein is not a result*](https://rewirebio.io/blog/a-generated-protein-is-not-a-result/),
-applied to a retrieve-and-rank campaign. Status as of 2026-10-17: the current best (0.446) is an
+applied to a retrieve-and-rank campaign. Status as of 2026-10-18: the current best (0.446) is an
 unchanged fork of the public E006 notebook, [`notebooks/fork446/e006_fork.ipynb`](../notebooks/fork446/e006_fork.ipynb);
 the previous best (0.415) is an unchanged fork of the 0.421 notebook,
 [`notebooks/fork421/v4n_fork.ipynb`](../notebooks/fork421/v4n_fork.ipynb); our own pipeline (best 0.356) is [`notebooks/kaggle_submission.py`](../notebooks/kaggle_submission.py). History:
@@ -33,9 +33,23 @@ the previous best (0.415) is an unchanged fork of the 0.421 notebook,
 
 The settings were fixed by the notebook's authors before we ran it; we chose none of them. Its
 author selected `rel > 150` on the public leaderboard (a sweep on two base pipelines), so 0.446 may be
-optimistic on the private split. Next: one setting per submission against 0.446 (a promotion
-threshold below 150; the forward-model weights), with about 26 of 30 weekly GPU hours left until
-2026-10-24 00:00 UTC.
+optimistic on the private split. One setting has been changed since: kernel version 3 (e006-v3)
+set the engine-2 weight in the final rank fusion, `ALPHA` in cell 35, to 0.8 instead of 0.6 (a one-byte
+change); its gate passed (ranker 160 / 4, errors 0, ICEBERG and GLACIER 11 smoke molecules each) and it
+scored 0.437 (submission 57310111), −0.009: discarded. Next is not another setting: the
+[2026-10-17 SOTA sweep](../reports/2026-10-17-casmi-sota-sweep.md) names the host-approved FRIGID de novo
+model for molecules in neither PubChem nor COCONUT (an estimated 39–52% of the test); the leaderboard
+top is 0.495.
+
+## Third fork — spectra-fork, public MRR@25 0.445 (discarded)
+
+| | |
+|---|---|
+| kernel | `charyeezy/casmi-spectra-fork` (private), submission 57311145; [`notebooks/fork451/spectra_fork.ipynb`](../notebooks/fork451/spectra_fork.ipynb) |
+| source | [CASMI 26: From Spectra to Structures](https://www.kaggle.com/code/dmitriigluzdov/casmi-26-from-spectra-to-structures) (dmitriigluzdov), forked unchanged at its current version 53 (md5 `951a34f88affa3b89d7fdefc166e60f5`). Its own table reports 0.451 at version 52 (E006 + depth-7 engine-2 rankers + standardised ChEBI/LIPID MAPS candidates); Kaggle serves only version 53, which adds ranker seeds |
+| datasets | the author's 4, as listed in [`kernel-metadata.json`](../notebooks/fork451/kernel-metadata.json): `dmitriigluzdov/casmi26-{attributed-v4g-reproduction-assets, natural-product-knowledge-table, natural-product-panel-benchmark, pubchem-popularity-prior}` |
+| runtime | image `gcr.io/kaggle-private-byod/python@sha256:37c64f7d…a461` (GPU), NVIDIA T4, internet off |
+| result | 0.445, inside the noise of 0.446 and 0.006 below the reported 0.451; discarded. Whether version 53's seeds or non-reproduction explain the gap is not established |
 
 ## Prior best — fork-v1, public MRR@25 0.415
 
@@ -79,19 +93,23 @@ below). No model here was trained or fine-tuned by this work; every weight is a 
 
 ## Budget — every attempt in the denominator
 
-- **22 submissions, 22 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
+- **24 submissions, 24 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
   to measure noise (0.353 vs 0.356); every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including those not kept
   (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise), v19 (0.356, kept), v20 (0.354) and v21 (0.333) in
   [PR #85](https://github.com/charleneleong-ai/ai4science/pull/85). Two from the 0.421 fork: fork-v1
-  (0.415, 57288940) and fork-v2 (0.415, 57290631, discarded). One from the E006 fork: e006-fork
-  (0.446, 57298936, kernel version 2).
+  (0.415, 57288940) and fork-v2 (0.415, 57290631, discarded). Two from the E006 fork: e006-fork
+  (0.446, 57298936, kernel version 2) and e006-v3 (0.437, 57310111, kernel version 3, discarded). One
+  from the 0.451 notebook: spectra-fork (0.445, 57311145, discarded).
 - **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
   molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
   it finished because an empty mass window would have crashed it).
-- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork and 2 of the E006 fork; of our own pipeline's, the 3 not submitted were setup or reproducibility runs
+- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork and 1 of the 0.451 notebook; of our own pipeline's, the 3 not submitted were setup or reproducibility runs
   (a missing RDKit wheel, a push-from-repo check). The E006 fork's version 1 ran on the CPU image
   its source's metadata names, failed the notebook's GPU preflight and was not submitted.
+- **One change not run, on a reach check:** PubChem promotion at `rel > 100` on E006. Decided before
+  any submission, from public evidence: its public sibling notebook already scored 0.444 against 0.446,
+  so its best case sits inside the noise.
 - **One run was cut short by budget, not failure:** v12's ICEBERG on CPU scored 269 / 371
   coverable molecules in its 6 h cap after the weekly GPU quota ran out.
 
@@ -109,6 +127,10 @@ below). No model here was trained or fine-tuned by this work; every weight is a 
 | the fork's settings (ranker, similarity 0.7 gate, PubChem channel, forward-model weights) | by its author, before we ran it | not ours; we cannot see what evidence they were tuned on |
 | fork `PC_N1=10000` | **before** fork-v2 was submitted | our held-out recall probe |
 | the E006 fork's settings (engine-2 fusion weights, `rank2` hedge, promotion at `rel > 150`) | by its authors, before we ran it | not ours; the threshold was swept on the public leaderboard |
+| E006 engine-2 fusion weight 0.8 (e006-v3) | **before** it was submitted | one setting per submission; scored 0.437, discarded |
+| skip `rel > 100` on E006 | **before** any submission | reach check: its public sibling scored 0.444 against 0.446 |
+| the spectra-fork's settings (depth-7 rankers, standardised candidates, version 53's seeds) | by its author, before we ran it | not ours |
+| keep the attached GLACIER checkpoint (ms-pred's public MassSpecGym-trained) | 2026-10-17, before any swap | the paper's contrastive fine-tune gives 69.95 against 69.69 MassSpecGym top-1; its NIST gain needs NIST-licensed weights |
 
 Choices marked **after** were selected on the public leaderboard, so our pipeline's 0.356 is an
 optimistic estimate of the private score; the forks' 0.415 and 0.446 involve none of ours, though the E006 threshold was tuned on the public split by its author. Differences under about ±0.005 — the run-to-run noise
@@ -120,6 +142,10 @@ of identical runs — were treated as no change.
 - **Why fork-v1 scores 0.415 on our account against 0.421 public.** Both our runs agree, so the
   0.006 is not run-to-run noise; the E006 fork reproduced its public 0.446 exactly on the same account
   and day, so it is not a general account or day effect. The cause is not established.
+- **Why the 0.451 notebook scores 0.445 for us.** Its 0.451 is for version 52; we could fork only
+  version 53, which adds ranker seeds. Seeds or non-reproduction: not established.
+- **Whether FRIGID would help.** The 39–52% of the test outside PubChem and COCONUT is the SOTA
+  sweep's estimate, not a measurement on the hidden test.
 - **What in E006 earns its +0.031 over fork-v1.** We ran it unchanged; the split between engine-2
   fusion, ChEBI/LipidMaps candidates, simulated ranker rows, the overlays and the threshold is unmeasured by us.
 - **A per-molecule breakdown of the forks' gains.** The hidden test is not visible.
