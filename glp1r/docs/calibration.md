@@ -150,3 +150,45 @@ not it would really bind that way. Mitigations, in order of how much they are wo
   behaviour on a Boltz-2 or Chai-1 model of a de novo design is unmeasured.
 - No full-length experimental structure of a GLP1R antagonist exists, so the groove-only negative
   is a construct from the native pose rather than an observed antagonist complex.
+
+## 5. The gate on *predicted* structures — the gap closed, with a bad answer
+
+Section 2 validated the activation gate on experimental coordinates. The design pipeline will
+only ever see predicted ones, so the same panel was co-folded with Boltz-2 against the 409-aa
+assay construct, 5 diffusion samples each, and scored with the identical gate.
+
+| ligand | known function | mean features | max features | deep / 5 |
+| --- | --- | --- | --- | --- |
+| exendin-P5 | full agonist | **3.8** | 4 | 5/5 |
+| **GLP-1(15-36)** | **inactive** | **3.0** | 3 | **4/5** |
+| exendin-4 | full agonist | 2.0 | 5 | 2/5 |
+| GLP-1(9-36) | weak partial | 1.8 | 3 | 3/5 |
+| GLP-1(7-36) | full agonist | 1.6 | 4 | 2/5 |
+| exendin-4(9-39) | antagonist | 1.0 | 3 | 0/5 |
+| GLP-1 H7A | inactive | **0.2** | 1 | 0/5 |
+
+**The gate works as a negative filter and fails as a positive one.** The two clear negatives sit
+at the bottom on mean features and score 0/5 deep. But an **inactive 15-mer ranks second**, above
+two genuine full agonists, and the native agonist GLP-1(7-36) ranks fifth of seven.
+
+The mechanism matters for design. GLP-1(15-36) is the ECD-binding half with the activation
+segment removed; having no N-terminal half, it has nothing anchoring it to the groove, and
+Boltz-2 slots it into the bundle instead. **Short designs are therefore at specific risk of
+spurious deep placement** — the prediction, not the gate, is what fails.
+
+This also reproduces the published warning independently: on ligands over 50 residues, 35.5% of
+Boltz-2 predictions score DockQ < 0.23, and roughly a fifth of Boltz GPCR predictions land in the
+wrong pocket with plausible confidence. Scoring `model_0` alone gave GLP-1(7-36) **0/6** against
+its experimental **6/6**; only looking across all five samples recovered any signal at all,
+which is the same single-sample error corrected on the TNF-α campaign.
+
+### Consequences for the campaign
+
+- The gate rejects, it does not select. A design scoring 0–1 features across samples can be
+  discarded; a design scoring 3–4 has **not** been shown to be an agonist.
+- Report mean across samples, never best-of-n: `max features` would have called exendin-4 the
+  best ligand in the panel on a single lucky sample.
+- Short binders need a separate sanity check, since the one false positive here was the shortest
+  ligand tested.
+- An independent predictor is required before any ranking is believed. Chai-1 is installed and
+  its score capture is working.

@@ -22,6 +22,14 @@ from target_sites import ECD, PEPTIDE_CHAIN, RECEPTOR_CHAIN
 # The assay construct (Sino Biological 13944-H18H-DD) is stated as 24-432.
 ASSAY_CONSTRUCT = range(24, 433)
 
+# ECD is the topological domain. The *folded* module is narrower: across all
+# eleven ECD-only crystal structures and the two full-length entries that
+# resolve it, nothing outside 28/29-128/131 is ever ordered, regardless of
+# whether the construct SEQRES starts at 21, 24 or 27. Residues 24-28 (RPQGA)
+# are disordered everywhere. So the design target is the ordered core, while the
+# expression construct should still be the better-attested 24-145.
+ECD_ORDERED = range(29, 129)
+
 app = typer.Typer(add_completion=False)
 
 
@@ -85,6 +93,7 @@ def main(
 
     receptor_n = write_chain(model, RECEPTOR_CHAIN, None, out_dir / "receptor.pdb")
     ecd_n = write_chain(model, RECEPTOR_CHAIN, ECD, out_dir / "ecd.pdb")
+    core_n = write_chain(model, RECEPTOR_CHAIN, ECD_ORDERED, out_dir / "ecd_design.pdb")
     peptide_n = write_chain(model, PEPTIDE_CHAIN, None, out_dir / "glp1_reference.pdb")
 
     sequence = load_uniprot_sequence(uniprot)
@@ -101,7 +110,8 @@ def main(
     (out_dir / "hotspots.json").write_text(json.dumps(sites, indent=2) + "\n")
 
     typer.echo(f"receptor.pdb          {receptor_n} residues (chain R as modelled)")
-    typer.echo(f"ecd.pdb               {ecd_n} residues ({ECD.start}-{ECD.stop - 1})")
+    typer.echo(f"ecd.pdb               {ecd_n} residues ({ECD.start}-{ECD.stop - 1}, topological domain)")
+    typer.echo(f"ecd_design.pdb        {core_n} residues ({ECD_ORDERED.start}-{ECD_ORDERED.stop - 1}, ordered core)")
     typer.echo(f"glp1_reference.pdb    {peptide_n} residues (GLP-1, for geometry reference only)")
     for name, seq in records.items():
         typer.echo(f"{name}  {len(seq)} aa")
