@@ -23,7 +23,7 @@ class TestAnnotate:
     def test_recorded_verdicts_agree_with_the_gate(self):
         data = tracking.load(VERDICTS)
         for s in tracking.annotate(data["submissions"], data["noise"]):
-            assert (s["verdict"] == "PROMOTE") == s["gate_g1"], f"v{s['version']}: verdict disagrees with G1"
+            assert (s["verdict"] == "PROMOTE") == s["gate_g1"], f"{s['label']}: verdict disagrees with G1"
 
 
 def test_narrative_keeps_sections_in_order(tmp_path):

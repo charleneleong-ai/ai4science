@@ -19,7 +19,7 @@ A fast generative/predictive model is increasingly a commodity. What converts a 
 | Project | What it is |
 | --- | --- |
 | [`touchstone/`](touchstone) | A generator-agnostic verifier for designed metal-binding proteins: geometry, bond-valence and precedent oracles vote trust / weak / defer. |
-| [`casmi/`](casmi) | Molecule identification from MS/MS for the CASMI 2026 Kaggle competition. Best kept pipeline: public MRR@25 0.356 (v19, a filtered second PubChem pass; its re-run scored 0.353, so the gain over v15's 0.349 is within noise). Its first submission scored 0.115 against a local estimate of 0.664, so it now trusts only the leaderboard. |
+| [`casmi/`](casmi) | Molecule identification from MS/MS for the CASMI 2026 Kaggle competition. Best public MRR@25: 0.456 (2026-10-20, a private fork of the public 0.456 PubChemLite notebook); our own pipeline's best is 0.356 (v19). Its first submission scored 0.115 against a local estimate of 0.664, so it now trusts only the leaderboard. |
 
 The one-line pitch that ties it all together:
 

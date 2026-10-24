@@ -43,4 +43,22 @@ submissions:
      change: "similarity threshold 0.4 instead of 0.5 (2566 candidates dropped)"}
   - {version: 21, ref: 57107225, date: 2026-10-12, family: forward-model, commit: c6577b9, score: 0.333, verdict: DISCARD,
      change: "ICEBERG weight 0.5, GLACIER 1.0"}
+  - {version: 1, label: fork-v1, outputs: fork421-v1, ref: 57288940, date: 2026-10-17, family: rebase, commit: 7d13aeb,
+     score: 0.415, verdict: PROMOTE,
+     change: "the public 0.421 notebook unchanged (library search over train + LightGBM ranker), as kernel casmi-v4n-fork"}
+  - {version: 2, label: fork-v2, outputs: fork421-v2, ref: 57290631, date: 2026-10-17, family: candidate-pool, commit: 7d13aeb,
+     score: 0.415, verdict: DISCARD,
+     change: "fork: PubChem channel re-scores the top 10,000 pass-1 rows instead of 5000"}
+  - {version: 2, label: e006-fork, outputs: fork446-v2, ref: 57298936, date: 2026-10-17, family: rebase, commit: 45b100f,
+     score: 0.446, verdict: PROMOTE,
+     change: "the public 0.446 notebook unchanged (E006 engine-2 rank fusion, ChEBI/LipidMaps candidates, PubChem promotion at rel > 150), as kernel casmi-e006-fork"}
+  - {version: 3, label: e006-v3, outputs: fork446-v3, ref: 57310111, date: 2026-10-17, family: fusion, commit: cbb02f5,
+     score: 0.437, verdict: DISCARD,
+     change: "e006 fork: engine-2 weight in the rank fusion ALPHA 0.8 instead of 0.6"}
+  - {version: 1, label: spectra-fork, outputs: fork451-v1, ref: 57311145, date: 2026-10-17, family: rebase, commit: 3222f71,
+     score: 0.445, verdict: DISCARD,
+     change: "the public 0.451 notebook (dmitriigluzdov) unchanged at its current version 53 (version 52 scored 0.451 upstream)"}
+  - {version: 1, label: pubchemlite-fork, outputs: fork456-v1, ref: 57435777, date: 2026-10-20, family: rebase, commit: 6e162de,
+     score: 0.456, verdict: PROMOTE,
+     change: "the public 0.456 notebook (Hongbin Gu v465) unchanged: the 0.451 recipe + PubChemLite in engine 2, N1A GLACIER proxies, popularity 0.15"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==

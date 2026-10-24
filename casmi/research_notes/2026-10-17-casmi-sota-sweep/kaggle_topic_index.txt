@@ -1,0 +1,102 @@
+101
+29 3 741404 2026-09-15 TOPI José Freitas | A complete statistical tour of the data (EDA notebook)
+27 11 741359 2026-09-14 HOST David Healey | Welcome to CASMI 2026!
+23 3 743974 2026-09-28 TOPI Adarsh | All you need is a good ranker
+23 0 741666 2026-09-16 TOPI Mahmoud saad Elgha | My Learning Roadmap for the Enveda CASMI 2026 Kaggle Competition
+22 11 745715 2026-10-03 TOPI Zihao Ou | Visible test.parquet molecule_ids appear to leak class-1 answers
+22 3 745029 2026-10-01 TOPI hengck23 | Understanding the actual task 
+19 0 741745 2026-09-17 TOPI haideptry |  [0.339 Top 1 Solution] 4-Channel Mass-Shifted Analog Propagation & Neural Bayes Reranking
+18 16 744470 2026-09-29 TOPI greySnow | Chasing medals with price ineligible sources
+17 3 744343 2026-09-29 TOPI hengck23 | trick: train a smiles to MS/MS predictor too!
+15 7 745070 2026-10-02 TOPI hengck23 | Claude COT gives you a clue on how to get the solution
+13 0 748270 2026-10-11 TOPI Nebou Rocket | Table: which datasets, data and models can be used (host answers)
+13 3 744893 2026-10-01 TOPI hengck23 | DreaMS : structure from spectrum retrival demo
+12 1 748068 2026-10-10 TOPI Bull | The public notebooks' 0.43+ LB has never been validated by CV
+12 4 743254 2026-09-25 TOPI Udam Liyanage |  Lessons from ~30 submissions: where the MRR actually goes
+9 1 741641 2026-09-16 TOPI starkhushi | 230 peaks, 18 that matter: a guide to reading CASMI spectra
+9 1 741471 2026-09-15 ADMI inversion | Please re-download training data
+8 2 748524 2026-10-12 TOPI Bull | Validation stragegy
+8 0 746954 2026-10-07 ADMI inversion | FYI: Rerun test dataset has been updated
+7 19 745072 2026-10-02 TOPI gennexuslabsDDM | Prize eligibility: code and weights shared in public Kaggle datasets with an "Other (non-commercial)" licence
+6 1 745468 2026-10-03 TOPI Adarsh | Problem is in Isomer identification + Off-the-shelf LLM's are really bad at this task
+6 4 741597 2026-09-16 TOPI Adarsh | Using 250 enveda-np-examples structures as CV doesn't seem very helpful (CV-LB thread)
+5 18 740671 2026-09-10 ADMI Ashley Oldacre | How to get started + Competition's Official Discord
+5 0 746878 2026-10-07 ADMI inversion | Metric Update (RemoveStereochemistry)
+5 0 741548 2026-09-15 TOPI zyvren | CASMI 2026 · Interactive Data Explorer
+4 1 748065 2026-10-10 TOPI Fasil | Prize eligibility: shared model datasets without published training code (yes/no needed)
+4 0 744011 2026-09-28 TOPI Md Kishor Morol | Test is 100% timsTOF, train is 46%: a train/test shift checklist before you build a reference library
+3 5 748029 2026-10-10 TOPI Antriksh Arya | Adding valid guesses at ranks 2–25 lowers the public score?
+3 8 746430 2026-10-07 TOPI Alpha223 | FRIGID checkpoints are CC BY-NC: OK to use, or do we need to retrain?
+3 1 743395 2026-09-25 TOPI Bryce Hedelius | Possible one-electron offset in positive-mode m/z
+3 1 742171 2026-09-20 TOPI Rishav Yadav | What architecture is working best here?
+3 7 742042 2026-09-19 TOPI Abhishek Jain | train.parquet appears to genuinely exclude molecule_id / spectrum_id - can you confirm this is intentional?
+3 6 741876 2026-09-17 TOPI Alaa Mostafa | Clarification on private external compute
+3 0 741874 2026-09-17 TOPI Samar Talwar | [Dataset + Notebook] 139K harmonized MassBank spectra + fingerprints —  ready-to-use reference library for ret
+3 1 741607 2026-09-16 TOPI Priyanshu Sinha | COCONUT Dataset
+2 16 749251 2026-10-14 TOPI Kino Lutor | Stuck in 0.440 and teammate hiring
+2 5 746302 2026-10-06 TOPI Zorojuro | What Do You Think the Maximum Achievable Score Will Be?
+2 1 745228 2026-10-02 TOPI Amin | Newer public releases of GNPS / MassBank / MoNA: allowed as external data if we keep only CC0 / CC BY records?
+2 1 745148 2026-10-02 TOPI Zihao Ou | Enveda-180 Zenodo release (21346580) — 816 structures absent from train.parquet: hidden test, or filtered out?
+2 8 742055 2026-09-19 TOPI starkhushi | Six variants, one plateau at 0.33–0.34: what am I missing? 
+2 4 741857 2026-09-17 TOPI dead_signals_lab | External structure databases for Class 2 retrieval: is a formula-filtered PubChem subset prize-eligible?
+2 1 741423 2026-09-15 TOPI starkhushi | 10 things the CASMI 2026 data told me (EDA notebook)
+1 9 749908 2026-10-16 TOPI Aryan Awasthi | Your notebook of a 0.44+ notebook scores lower? got (0.451+)  
+1 0 749778 2026-10-16 TOPI Harsh_2035 | How to begin competition in unknown field
+1 10 748882 2026-10-13 TOPI WEI ZIHE12 | Consolidated open questions before final selection: reproducibility of official checkpoints, TabPFN / FRIGID, 
+1 0 749430 2026-10-14 ADMI inversion | Rerun / Rescore Complete
+1 1 748363 2026-10-11 TOPI Zaid Wali | Licence clarification for CC-BY-NC-SA external datasets
+1 1 745615 2026-10-03 TOPI Amin | Non-commercial inputs: prize-ineligible only, or also excluded from the final leaderboard and medals?
+1 1 745758 2026-10-04 TOPI Anh-Vu Mai-Nguyen | A question about the test set's composition rather than the metric: the assumption every class-3 estimate is l
+1 1 744556 2026-09-30 TOPI Yohann Roux | Are solution SMILES stereo-stripped like train normalized_smiles?
+1 1 743774 2026-09-27 TOPI gennexuslabsDDM | CFM-ID 4 pretrained models (trained on METLIN) — eligible for prize-winning solutions?
+1 2 742991 2026-09-24 TOPI Marc Silveira | Do MassSpecGym-trained open weights satisfy the training-data licence rule?
+1 2 742193 2026-09-20 TOPI Barno Barno | Rules on Open weights?
+1 22 742186 2026-09-20 TOPI kenneth uchegbu | Looking for teammates/ Chemistry & ML Background. I am a graduate of Pure and Industrial Chemistry that has 5 
+1 2 741912 2026-09-18 TOPI Endark Wang | Clarification on External Data Usage & Licensing (COCONUT / CFM-ID) for CASMI 2026
+1 1 742087 2026-09-19 TOPI DancingLumberjack | Adduct labels: Enveda's are clean, the library's are not (numbers)
+1 7 741984 2026-09-18 TOPI RISHAV KUMAR | Why no one is using encoder-decoder models ?
+1 2 741815 2026-09-17 TOPI Tyree Jones393 | Question on test set: known vs novel molecules
+1 1 741851 2026-09-17 TOPI Burhan Çalık | Scoring implementation clarification
+0 2 749799 2026-10-16 TOPI ujihash | Can I use a private Kaggle Dataset for preprocessed data?
+0 8 749217 2026-10-14 TOPI Marco Pereira | Compliance: is the approved-dataset list exhaustive, and does "trained on NIST" reach models whose training co
+0 0 749412 2026-10-14 TOPI Antriksh Arya | A safe +0.002 on E006-based notebooks: insert engine 2’s top-1 at rank 2 (0.440 → 0.442, 0.441 → 0.443)
+0 0 749397 2026-10-14 TOPI Truthseeking | Clarification on Section 2.5.a.3: pretrained checkpoints loaded at inference
+0 2 749209 2026-10-14 TOPI Masa.Yamashita_00 | Is using PubChem (structures and metadata) allowed as external data?
+0 2 748799 2026-10-13 TOPI HIDEYO CHIBA | Is a model pretrained only on public MassIVE/GNPS data allowed if its authors monitored a NIST20 probe during 
+0 1 748357 2026-10-11 TOPI Truthseeking | Rule 2.4.b: does a model trained on MassSpecGym (MIT) count as redistribution of competition data?
+0 7 745841 2026-10-04 TOPI Farah Mohamed Ahme | Are non-commercial public datasets/weights allowed in a prize-eligible solution?
+0 0 748540 2026-10-12 TOPI Aryan Awasthi | COCONUT natural products with Morgan + MACCS fingerprints (no pickle)
+0 4 745134 2026-10-02 TOPI Zihao Ou | ICEBERG PubChem atlas (predicted spectra from a NIST'23-trained model) — usable as a spectral library?
+0 6 745832 2026-10-04 TOPI Joakim Eklund | Eligibility question about external pretrained models
+0 1 745952 2026-10-05 TOPI YahiaZakaria20 | Looking to merge: validation harness + own FPNet pipeline, 30 GPU h/week (public LB 0.413)
+0 0 746478 2026-10-07 TOPI Luck^2 | Telling agents about the competition seems to harm their effort/performance/focus.
+0 0 746155 2026-10-06 TOPI Alberto Liardo | Where do you start?
+0 4 742265 2026-09-21 TOPI Fernando Faria | Clarifications: eligibility of public model weights, live grader version, accepted GPUs
+0 1 745866 2026-10-05 TOPI Lake Tafere | Request for hidden rerun traceback (Version 12)
+0 2 745604 2026-10-03 TOPI Truthseeking | Question on open-weight models: DreaMS
+0 1 744446 2026-09-29 TOPI Benedek Brandschot | Exact duplicate MS/MS spectra with conflicting structure labels in train.parquet
+0 1 745645 2026-10-03 TOPI Naseem Akhtar | Getting started
+0 4 745056 2026-10-02 TOPI Naseem Akhtar | Gemini learning 
+0 0 745103 2026-10-02 TOPI htn | Question on leaderboard hidden data
+0 3 744338 2026-09-29 TOPI Zero | Are the publicly released GLACIER weights trained on MassSpecGym eligible for a prize-eligible solution?
+0 0 744417 2026-09-29 TOPI Truthseeking | What we've learned so far: the answer usually isn't in the library
+0 0 744172 2026-09-28 TOPI interface kotian | A sharper trap hiding inside "don't analyze the visible test file
+0 4 743569 2026-09-26 TOPI michael duong | Is Enveda's public Enveda-180 Zenodo release allowed as external data?
+0 1 743368 2026-09-25 TOPI Vedrin Jeliazkov | Are ion-mobility / CCS fields available for the evaluation spectra?
+0 3 742789 2026-09-23 TOPI Pratham | My submission is showing scoring... for last 3hrs is this normal?
+0 1 743236 2026-09-25 TOPI Asir Can Aslan | Delivering models trained on the Competition Data
+0 1 743234 2026-09-25 TOPI Asir Can Aslan | Using COCONUT as a candidate database
+0 1 742463 2026-09-22 TOPI woldy | All submissions since Sep 16 fail or score 0 - hidden test rerun issue
+0 1 742275 2026-09-21 TOPI Ghaisan K | External data rules: free pretrained checkpoints trained on NIST-derived spectra
+0 1 742274 2026-09-21 TOPI Ghaisan K | Clarification on scoring edge cases and novelty-class definitions
+0 4 742082 2026-09-19 TOPI ممدوح | GPU quota (30 H/week) is not enough
+0 1 742088 2026-09-19 TOPI Victor alexandre  | Dissecting the 0.32-0.34 plateau: what four probe submissions measured
+0 2 742011 2026-09-18 TOPI ممدوح | chemberta is allowed
+0 2 741791 2026-09-17 TOPI Xelvant | Can I use Java + Vulkan for the training, or do I explicitly have to use PyTorch and similar
+0 3 741844 2026-09-17 TOPI Azam Hussain | Pretrained Models with Commercially Restricted Data
+0 0 741659 2026-09-16 TOPI Mahou Lettuce | Possible incentive gap in MRR@25: generation can hurt before it helps
+-2 2 748552 2026-10-12 TOPI Marco Pereira | Are the four approved sources meant to extend coverage beyond PubChem?
+-2 0 743064 2026-09-24 TOPI kenneth uchegbu | I am Kenneth by name and i am a graduate of chemistry that has been into machine for over 4 months. i am looki
+-4 3 744612 2026-09-30 TOPI Naseem Akhtar | Team making 
+-4 1 742278 2026-09-21 TOPI Odim David Emeka | Test spectra appear verbatim in train.parquet (all 400 molecules).
+-5 3 741756 2026-09-17 TOPI Nipon Sriwasut | Data leak: every test spectrum appears verbatim in train.parquet
