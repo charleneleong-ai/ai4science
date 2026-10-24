@@ -1,50 +1,45 @@
 # De novo GLP1R binders
 
-20 single-chain minibinders, 43–91 aa, against the extracellular-domain groove. No binding or
-activation is measured. **We do not claim these are agonists** — the evidence says the opposite,
-and that is the most useful thing we can report.
+20 single-chain minibinders, 43–91 aa, against the extracellular-domain groove. Nothing is
+measured. **We do not claim these are agonists** — the evidence says the opposite, and that is
+the most useful thing we can report.
 
 ## The target, measured not cited
 
-Receptor residues within 4.5 Å of GLP-1 in **6X18**, assigned against the UniProt P43220
-topology: 52 contacts, splitting cleanly into **29 for the peptide's C-terminal half** (19 in the
-ECD) and **26 for its N-terminal half** (all in the TM bundle and loops). Only three residues see
-both, all at the top of the bundle. The two site centroids are **31.6 Å apart** and the peptide
-N-terminus sits **19.2 Å below** the vestibule rim.
-
-So a molecule that binds *and* activates must span 31.6 Å and terminate deep inside the bundle.
-The folded ECD is ordered only 29–128 across all 13 structures that resolve it, so that is the
-design target; 24–139 adds disordered padding.
+Receptor residues within 4.5 Å of GLP-1 in **6X18**: 52 contacts, splitting cleanly into **29
+for the peptide's C-terminal half** (19 in the ECD) and **26 for its N-terminal half** (all in the
+TM bundle and loops). Only three see both. The site centroids are **31.6 Å apart** and the peptide
+N-terminus sits **19.2 Å below** the vestibule rim, so a molecule that binds *and* activates must
+span the receptor and terminate deep inside the bundle. The folded ECD is ordered only 29–128
+across all 13 structures resolving it, so that is the design target.
 
 ## Why we expect these to be antagonists
 
-Six independent campaigns have put a protein in this groove: exendin-4(9-39), Fab 3F52, Fab 7F38,
-a phage scFv, two de novo miniproteins, and a 10¹⁰ antibody library carrying >150,000
-GPCR-binding motifs in HCDR3. **Zero full agonists.** The best ECD-restricted agonism ever
-reported is Emax <2% of exendin-4. A 10,080-design de novo campaign against this exact epitope,
-read out in a CRE-luciferase line, produced two antagonists at 39 and 61 nM.
+Six independent campaigns have put a protein in this groove, including a 10¹⁰ antibody library
+carrying >150,000 GPCR-binding motifs in HCDR3. **Zero full agonists**; the best ECD-restricted
+agonism reported is Emax <2% of exendin-4. A 10,080-design de novo campaign against this exact
+epitope, read out in a CRE-luciferase line, produced two antagonists at 39 and 61 nM.
 
 The activating pharmacophore is GLP-1 7–17 inside the bundle: an 11-mer with no ECD-binding helix
 at all is a 0.5 nM full agonist. The groove is the affinity trap, not the switch.
 
 ## Verification: three checks, declared before generating
 
-**1. The gate was calibrated on known-function ligands, and it failed.** An explicit
-activation-geometry gate (six pharmacophore features ranked by mutational cost, plus insertion
-depth) orders *experimental* structures correctly — GLP-1 6/6, exendin-P5 and exendin-4 4/6, the
-weak partial GLP-1(9-36) 1/6, a groove-only truncation 0/6. On **Boltz-2 predictions** of the same
-ligands it collapses: an **inactive 15-mer ranks second**, above two full agonists, because with
-no N-terminal half nothing anchors it to the groove and the model drops it into the bundle. The
-gate therefore **rejects but does not select**, and short designs are at specific risk. Scoring
-one sample gave native GLP-1 0/6 against its experimental 6/6; only all five recovered signal.
+**1. The activation gate was calibrated on known-function ligands, and it failed.** A gate of
+six pharmacophore features plus insertion depth orders *experimental* structures correctly —
+GLP-1 6/6, exendin-4 and exendin-P5 4/6, the weak partial GLP-1(9-36) 1/6, a groove-only
+truncation 0/6. On **Boltz-2 predictions** of the same ligands it collapses: an **inactive 15-mer
+ranks second**, above two full agonists, because with no N-terminal half nothing anchors it to
+the groove and the model drops it into the bundle. The gate **rejects but does not select**, and
+short designs are at specific risk. One sample gave native GLP-1 0/6 against its experimental
+6/6; only all five recovered signal.
 
 **2. Nothing is ranked by the model that made it.** BoltzGen generates and ranks with Boltz-2
 weights. Every survivor was re-folded with **Chai-1**, which shares no weights with it.
 
 **3. Scores were calibrated against wet-lab outcomes.** On 2,214 publicly measured designs,
 within-target AUROC for binding: interface pLDDT 0.652, ipTM 0.607 — nothing reaches 0.66, and
-every score predicts *expression* better than binding. `boltz2_pdockq` is constant at 0.0183
-across all 2,214 rows, i.e. a placeholder, not a weak signal.
+every score predicts *expression* better than binding.
 
 ## Funnel
 
@@ -57,7 +52,7 @@ across all 2,214 rows, i.e. a placeholder, not a weak signal.
 ```
 
 All four variants cleared the 0.11–0.30 interface plateau a prior campaign hit on a buried
-pocket; this groove is an easier target, as expected for an evolved peptide-binding site.
+pocket; this groove is an easier target.
 
 ## Two models agree they bind; neither supports ranking them
 
@@ -74,8 +69,20 @@ The disagreement did real work: two designs scoring 0.551 and 0.516 on BoltzGen 
 and **0.150** on Chai-1 and were dropped. Both would have made a top-20 ranked on the generator
 alone.
 
-Mutual sequence identity among the 20 is **0.011–0.317, median 0.096** — a diverse set, not a
+Mutual identity among the 20 is **0.011–0.317, median 0.096** — a diverse set, not a
 substitution series.
+
+## Novelty, checked
+
+Sequence: MMseqs2 against SwissProt + PDB seqres (1.75M sequences). Every one of the 20 clears
+the 30% identity condition on any significant measure — **the best hit for any design has
+e-value 0.27, and most exceed 10**, so these are alignment noise rather than homology.
+
+Structure: Foldseek against CATH50, scoring the **design chain only**. **19 of 20 fall in the
+"moderate" band** (TM 0.54–0.75 at >70% coverage), which a prior campaign saw pass this scorer.
+**One — the last row — is HIGH (TM 0.844 at full coverage)** and may be rejected by the de novo
+filter. It is ranked last deliberately so it is the row dropped; its best alternative scored
+worse (TM 0.869), so no swap was available.
 
 ## Not established
 
