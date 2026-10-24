@@ -19,7 +19,7 @@ datasets and GPU image.
 
 | kernel version | change | public MRR@25 |
 |---|---|---|
-| 1 | none: reproduction of 0.456 | running |
+| 1 | none: reproduction of 0.456 | **0.456** (submission 57435777): reproduces exactly |
 
 The run gate is `~/casmi-data/gates/gate_fork451.py` (the ranker loaded, the merge self-test passed, base inference had
 0 errors, no stage logged a failure, 400 rows with the 12 smoke molecules full).

@@ -58,4 +58,7 @@ submissions:
   - {version: 1, label: spectra-fork, outputs: fork451-v1, ref: 57311145, date: 2026-10-17, family: rebase, commit: 3222f71,
      score: 0.445, verdict: DISCARD,
      change: "the public 0.451 notebook (dmitriigluzdov) unchanged at its current version 53 (version 52 scored 0.451 upstream)"}
+  - {version: 1, label: pubchemlite-fork, outputs: fork456-v1, ref: 57435777, date: 2026-10-20, family: rebase, commit: 6e162de,
+     score: 0.456, verdict: PROMOTE,
+     change: "the public 0.456 notebook (Hongbin Gu v465) unchanged: the 0.451 recipe + PubChemLite in engine 2, N1A GLACIER proxies, popularity 0.15"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==
