@@ -6,9 +6,11 @@ up to 25 ranked SMILES per test molecule, scored by MRR@25 on the InChIKey conne
 It is a code competition — a notebook, internet off — so every model and database is attached as a
 Kaggle dataset.
 
-**Best: 0.456** (2026-10-20: Hongbin Gu's public notebook run unchanged as our private kernel
-[`casmi-pubchemlite-fork`](notebooks/fork456); it reproduces its public 0.456 exactly). It is the E006 lineage of
-[`fork446`](notebooks/fork446) (0.446) plus PubChemLite structures in engine 2's library. Our own pipeline's best is
+**Best: 0.465** (2026-10-24: dmitriigluzdov's public notebook, version 26, run unchanged as our private kernel
+[`casmi-data-fork`](notebooks/fork464)). It builds on the 0.456 PubChemLite notebook ([`fork456`](notebooks/fork456)):
+GLACIER proxies kept where ICEBERG scores exist, joint ICEBERG+GLACIER re-ordering, fold-safe FPNets in the PubChem
+channel and a candidate-aware rank-1 PubChem promotion. The E006 lineage before it is
+[`fork446`](notebooks/fork446) (0.446). Our own pipeline's best is
 0.356 (v19, 2026-10-12). The top of the leaderboard is 0.504 (2026-10-24). The first submission scored 0.115 against a local estimate of 0.664; that estimate was
 retracted, and since then only the leaderboard is trusted. The full history, one change per
 submission, is in [PR #80](https://github.com/charleneleong-ai/ai4science/pull/80) and the

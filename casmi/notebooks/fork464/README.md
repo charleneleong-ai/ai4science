@@ -19,6 +19,6 @@ Kaggle serves only the current version, so this reproduces version 26, not a sco
 
 | kernel version | change | public MRR@25 |
 |---|---|---|
-| 1 | none: upstream version 26 | running |
+| 1 | none: upstream version 26 | **0.465** (submission 57588653): matches the 0.465 version 26's method scored upstream; new best |
 
 Run with [`scripts/kaggle_chain.sh`](../../scripts/kaggle_chain.sh); gate `~/casmi-data/gates/gate_fork451.py`.

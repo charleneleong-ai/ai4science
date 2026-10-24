@@ -4,7 +4,7 @@
 \usepackage{amsmath}
 \usepackage[hidelinks]{hyperref}
 
-\title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.456}
+\title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.465}
 \author{Charlene Leong}
 \date{24 October 2026}
 
@@ -28,9 +28,11 @@ change was measured against: raising its engine-2 fusion weight from 0.6 to 0.8 
 third public notebook (0.451 upstream at its version 52) forked unchanged at its current version 53
 scored 0.445. A fourth public notebook of the same lineage, which adds PubChemLite structures to the
 second engine's library (public 0.456), reproduced its score exactly as our kernel: 0.456, $+0.010$
-over the E006 fork, and the current best. A de novo route was closed offline before any submission:
+over the E006 fork. A fifth, dmitriigluzdov's version 26, which adds joint ICEBERG+GLACIER re-ordering,
+fold-safe FPNets in the PubChem channel and a candidate-aware rank-1 promotion, scored 0.465 as our
+kernel, $+0.009$ over the 0.456 fork and the current best. A de novo route was closed offline before any submission:
 FRIGID, given the true formula, placed the answer in its top 10 for 0 of 50 held-out molecules against
-a pre-registered bar of 5. 25 submissions were made and all were scored. No local estimate of the
+a pre-registered bar of 5. 26 submissions were made and all were scored. No local estimate of the
 score exists.
 \end{abstract}
 
@@ -41,7 +43,15 @@ the first 14 characters of the InChIKey. The competition runs notebooks offline,
 and model is attached as a dataset. Only the public split of the leaderboard is visible.
 
 \section{Method}
-\textbf{Current best: a fork of the public 0.456 notebook (pubchemlite-fork).} The submission is
+\textbf{Current best: a fork of the public version-26 notebook (data-fork, 0.465).} The submission is
+dmitriigluzdov's public notebook \emph{CASMI 26: The Data Behind Spectra to Structures}, version 26, run
+unchanged as the private kernel \texttt{charyeezy/casmi-data-fork}, vendored at
+\texttt{casmi/notebooks/fork464/}. It is the 0.456 recipe described next with four changes: GLACIER
+proxies kept where ICEBERG scores exist, joint ICEBERG+GLACIER re-ordering of proxy-covered lists, five
+fold-safe FPNets in the PubChem channel plus a sixth PubChem slot at rank 24, and a candidate-aware rank-1
+PubChem promotion (Saner Turhaner, 0.465 upstream).
+
+\textbf{Previous best: a fork of the public 0.456 notebook (pubchemlite-fork).} The submission was
 Hongbin Gu's public notebook \emph{casmi26-v465-v15-pop015}, run byte-identical (md5
 \texttt{9d1ab164\ldots}) as the private kernel \texttt{charyeezy/casmi-pubchemlite-fork}, version 1,
 on the same GPU image as the other forks, with 15 public datasets attached. It is the E006 pipeline
@@ -50,7 +60,7 @@ standardised ChEBI/LIPID MAPS candidates), with three changes: PubChemLite struc
 engine~2's library (0.455 upstream), GLACIER proxy scores from other adducts for molecules without an
 $[\mathrm{M{+}H}]^+$ spectrum (N1A), and the PubChem popularity weight at 0.15 instead of 0.25 (0.456).
 
-\textbf{Previous best: a fork of the public E006 notebook (e006-fork, 0.446).} The submission was the public notebook
+\textbf{Before it: a fork of the public E006 notebook (e006-fork, 0.446).} The submission was the public notebook
 \emph{CASMI26 \textbar{} E006 + PubChem Promo rel$>$150 \textbar{} LB 0.446}, run byte-identical (md5
 \texttt{9829a966\ldots}) as the private kernel \texttt{charyeezy/casmi-e006-fork}, version 2, on a T4. Its
 lineage is flexonafft's v80 recipe (public 0.436), then E006 (0.442), then the PubChem promotion's
@@ -109,7 +119,7 @@ molecules whose top-1 the forward models change ($\lambda=1$) & 208 \\
 \end{center}
 
 \section{Results}
-Every score is the public leaderboard's. Twenty-five submissions were made, including one identical
+Every score is the public leaderboard's. Twenty-six submissions were made, including one identical
 re-run; all were scored; none is omitted. One further run, the E006 fork's kernel version 1, failed its
 own GPU preflight and was not submitted (below).
 
@@ -145,7 +155,8 @@ e006-fork & the public 0.446 E006 notebook, unchanged, as our kernel & 0.446 \\
 e006-v3 & engine-2 fusion weight 0.8, not 0.6 (not kept) & 0.437 \\
 spectra-fork & the public 0.451 notebook at version 53, unchanged (not kept) & 0.445 \\
 \midrule
-pubchemlite-fork & the public 0.456 notebook (+ PubChemLite in engine 2), unchanged & \textbf{0.456} \\
+pubchemlite-fork & the public 0.456 notebook (+ PubChemLite in engine 2), unchanged & 0.456 \\
+data-fork & the public 0.464 notebook (v26), unchanged & \textbf{0.465} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -197,6 +208,10 @@ boosters, 0 errors, ICEBERG and GLACIER 11 smoke molecules each, and 400 output 
 took about 1190\,s. Its upstream steps from the 0.451 base (PubChemLite $+0.004$, then N1A and
 popularity 0.15 $+0.001$) are its author's public scores; we reproduced only the endpoint.
 
+The fifth fork (data-fork) scored 0.465 (submission 57588653, 24 October), $+0.009$ over pubchemlite-fork
+and above the $\pm 0.005$ noise, so it clears G1 and is the new best. Its gate (\texttt{gate\_fork451.py})
+passed: 400 output rows, 12 smoke molecules full, ICEBERG and GLACIER 11 each.
+
 \textbf{Two offline checks, no submission.} Both ran on an Apple M5 on 18 October. FRIGID, the
 host-approved de novo model (MIST-MSG encoder, FRIGID-base decoder), was run on 50 Enveda-180
 $[\mathrm{M{+}H}]^+$ molecules that have no spectra in any public library, given the true formula.
@@ -230,10 +245,10 @@ its fingerprints reach Tanimoto 0.245 in its own 10{,}226-bit space and 0.180 ma
     $[\mathrm{M{+}H}]^+$ only (v16), popularity weight 0.15 (v8): inside the noise or below it.
 \end{itemize}
 
-\textbf{Next.} The base is now the 0.456 fork. Single settings of the E006 family look tuned
+\textbf{Next.} The base is now the 0.465 data fork. Single settings of the E006 family look tuned
 (promotion threshold swept upstream, engine-2 weight 0.8 lost 0.009, forward models already at 1.0)
-and the de novo route failed offline, while the public lineage gained $+0.035$ in a week (0.421 to
-0.456). The cheapest lever left is a daily check of new public notebooks, forking any credible
+and the de novo route failed offline, while the public lineage gained $+0.044$ in a week (0.421 to
+0.465). The cheapest lever left is a daily check of new public notebooks, forking any credible
 improvement that reproduces. The leaderboard top is 0.504 (24 October). The weekly GPU quota (30\,h)
 resets 31 October 00:00 UTC.
 
@@ -248,6 +263,9 @@ resets 31 October 00:00 UTC.
   \item \textbf{Whether a de novo route could help with a better encoder.} FRIGID found nothing with
     MIST's fingerprints; an encoder fine-tuned on Enveda's spectra is untested. The 39--52\% of the test
     outside PubChem and COCONUT is the SOTA sweep's estimate, not a measurement on the hidden test.
+  \item \textbf{What in the version-26 notebook earns its gain.} We ran it unchanged; how its $+0.009$
+    over the 0.456 fork divides between the proxy re-ordering, the fold-safe FPNets, the sixth PubChem
+    slot and the candidate-aware promotion is not measured by us.
   \item \textbf{What in the 0.456 notebook earns its gain.} We ran it unchanged; how its $+0.010$ over
     the E006 fork divides between PubChemLite, N1A and the popularity weight is its author's public
     scores, not our measurement.
@@ -268,7 +286,7 @@ resets 31 October 00:00 UTC.
     input --- were selected on the public split, as was v19's similarity threshold, so 0.356 is optimistic.
     The forks' settings were fixed by their authors before we saw any result, but tuned on the public
     leaderboard (the E006 notebook reports its threshold sweep there; the 0.456 notebook chose its
-    popularity weight there), so 0.446 and 0.456 may be optimistic too.
+    popularity weight there), so 0.446, 0.456 and 0.465 may be optimistic too.
   \item \textbf{Candidate recall.} Whether the answer is among the candidates cannot be separated
     from ranking with one MRR; a wider PubChem channel added held-out answers but no score (fork-v2).
   \item \textbf{Why the data is shaped as it is.} The copied train structures are the answer for at
