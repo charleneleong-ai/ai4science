@@ -72,7 +72,7 @@ alone.
 Mutual identity among the 20 is **0.011–0.317, median 0.096** — a diverse set, not a
 substitution series.
 
-## Novelty, checked
+## Novelty
 
 Sequence: MMseqs2 against SwissProt + PDB seqres (1.75M sequences). Every one of the 20 clears
 the 30% identity condition on any significant measure — **the best hit for any design has
