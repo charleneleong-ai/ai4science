@@ -1,7 +1,7 @@
 # Experiment card — CASMI 2026 molecule identification
 
 Pattern: [*A generated protein is not a result*](https://rewirebio.io/blog/a-generated-protein-is-not-a-result/),
-applied to a retrieve-and-rank campaign. Status as of 2026-10-24: the current best (0.465) is an
+applied to a retrieve-and-rank campaign. Status as of 2026-10-25: the current best (0.465) is an
 unchanged fork of dmitriigluzdov's public notebook at version 26, [`notebooks/fork464/data_fork.ipynb`](../notebooks/fork464/data_fork.ipynb);
 the previous best (0.456) is an unchanged fork of Hongbin Gu's public 0.456 notebook, [`notebooks/fork456/pubchemlite_fork.ipynb`](../notebooks/fork456/pubchemlite_fork.ipynb);
 before it (0.446), an unchanged fork of the public E006 notebook,
@@ -33,6 +33,19 @@ before it (0.446), an unchanged fork of the public E006 notebook,
 
 The settings were fixed by the notebook's authors before we ran it; we chose none of them. Its lineage
 was scored on the public leaderboard upstream, so 0.465 may be optimistic on the private split.
+
+## Sixth fork — neural-fork, public MRR@25 0.444 (discarded)
+
+| | |
+|---|---|
+| kernel | `charyeezy/casmi-neural-fork` (private), kernel version 1, submission 57615727 (2026-10-25); [`notebooks/fork466/neural_fork.ipynb`](../notebooks/fork466/neural_fork.ipynb), vendored in commit `2a2411c`, edited in `9ae5247` |
+| source | [PubChem + Neural025 — LB 0.466](https://www.kaggle.com/code/sanpier/pubchem-neural025-lb-0-466) (Saner Turhaner), vendored byte-identical to its current version as of 2026-10-25 (md5 `af68cfeeb06a251186cf043684ca3be2`, before our edit); [`kernel-metadata.json`](../notebooks/fork466/kernel-metadata.json) sets our id, private, and drops an empty dataset entry. Vendored with its version table in [`notebooks/fork466/README.md`](../notebooks/fork466/README.md) |
+| method | runs a frozen 0.465 baseline, then re-orders each molecule's final 25 by reciprocal-rank fusion `1/(3 + baseline_rank) + w/(3 + neural_rank)` with a separately trained spectrum model (`sanpier/casmi-spectrum-model-v1`); candidate sets never change. Upstream `w = 0.25` scored 0.466; the current version carries 0.15, not scored upstream |
+| change | one: `NEURAL_WEIGHT` 0.50 (cells 1 and 9), fixed **before** submission |
+| datasets | 7, as listed in [`kernel-metadata.json`](../notebooks/fork466/kernel-metadata.json): `sanpier/casmi-spectrum-model-v1`, `sanpier/catalogue-experiment-saner`, `dmitriigluzdov/casmi26-{fold-safe-fpnet, natural-product-knowledge-table, natural-product-panel-benchmark, pubchem-popularity-prior, attributed-v4g-reproduction-assets}` |
+| runtime | image `gcr.io/kaggle-private-byod/python@sha256:37c64f7d…a461` (the same GPU image as the other forks), NVIDIA T4, internet off |
+| run evidence | gate `~/casmi-data/gates/gate_neural.py` (outside the repo) passed on the commit run: output 400 rows; 12 smoke molecules full; ICEBERG and GLACIER scored 11 each; the neural stage at weight 0.5 re-ordered all 12 smoke molecules and changed top-1 on 2 |
+| result | 0.444: −0.022 against `w = 0.25` upstream and −0.021 against data-fork's 0.465, which stays the best; discarded. The neural re-rank adds at most +0.001 to the 0.465 base; more weight hurts |
 
 ## Previous best — pubchemlite-fork, public MRR@25 0.456
 
@@ -160,7 +173,7 @@ below). No model here was trained or fine-tuned by this work; every weight is a 
 
 ## Budget — every attempt in the denominator
 
-- **26 submissions, 26 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
+- **27 submissions, 27 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
   to measure noise (0.353 vs 0.356); every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including those not kept
   (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise), v19 (0.356, kept), v20 (0.354) and v21 (0.333) in
@@ -169,11 +182,12 @@ below). No model here was trained or fine-tuned by this work; every weight is a 
   (0.446, 57298936, kernel version 2) and e006-v3 (0.437, 57310111, kernel version 3, discarded). One
   from the 0.451 notebook: spectra-fork (0.445, 57311145, discarded). One from the 0.456 notebook:
   pubchemlite-fork (0.456, 57435777, kernel version 1, promoted). One from the version-26 notebook:
-  data-fork (0.465, 57588653, kernel version 1, promoted).
+  data-fork (0.465, 57588653, kernel version 1, promoted). One from the 0.466 neural re-rank notebook:
+  neural-fork (0.444, 57615727, kernel version 1, discarded).
 - **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
   molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
   it finished because an empty mass window would have crashed it).
-- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork, 1 of the 0.451 notebook, 1 of the 0.456 notebook and 1 of the version-26 notebook; of our own pipeline's, the 3 not submitted were setup or reproducibility runs
+- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork, 1 of the 0.451 notebook, 1 of the 0.456 notebook, 1 of the version-26 notebook and 1 of the 0.466 neural re-rank notebook; of our own pipeline's, the 3 not submitted were setup or reproducibility runs
   (a missing RDKit wheel, a push-from-repo check). The E006 fork's version 1 ran on the CPU image
   its source's metadata names, failed the notebook's GPU preflight and was not submitted.
 - **Two offline experiments, not submissions:** FRIGID de novo (50 molecules, 3819 generations of
@@ -204,6 +218,8 @@ below). No model here was trained or fine-tuned by this work; every weight is a 
 | the spectra-fork's settings (depth-7 rankers, standardised candidates, version 53's seeds) | by its author, before we ran it | not ours |
 | the 0.456 fork's settings (PubChemLite in engine 2, N1A, popularity 0.15) | by its author, before we ran it | not ours; the popularity weight was chosen on the public leaderboard |
 | the data fork's settings (proxy re-ordering, fold-safe FPNets, sixth PubChem slot, candidate-aware promotion) | by its authors, before we ran it | not ours; its lineage was scored on the public leaderboard |
+| the neural fork's settings (frozen 0.465 baseline, spectrum model, RRF constant 3) | by its author, before we ran it | not ours; its weight 0.25 was scored on the public leaderboard |
+| neural re-rank weight 0.50 (neural-fork) | **before** it was submitted | one setting per submission; scored 0.444, discarded |
 | FRIGID go bar: top-10 exact ≥ 5 / 50 with the true formula | **before** the run (2026-10-18) | pre-registered; MIST-MSG over CANOPUS also fixed before |
 | FRIGID encoder diagnostics (MassBank vs Enveda Tanimoto, oracle fingerprint) | **after** the 0 / 50 result | post hoc; explain the failure, not a statistic |
 | FPNet check gates: 4096-bit Morgan space, mean Tanimoto ≥ 0.45 | in the check's protocol, before its results | sample re-drawn after finding only 10 / 50 held out; threshold sweeps, oracle top-k, trained-vs-held-out and 50-way retrieval are post hoc |

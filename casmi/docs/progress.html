@@ -70,7 +70,7 @@ details[open] summary { margin-bottom: 12px; }
 
 <div class="wrap">
   <header class="head">
-    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 24 Oct 2026</div>
+    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 25 Oct 2026</div>
     <h1>From 0.115 to 0.465, one change per submission</h1>
     <p>Rank candidate structures for 400 molecules from their tandem mass spectra, scored by MRR@25 on the InChIKey connectivity block. Every number on this page is a public leaderboard score: the first local estimate said 0.664 and the leaderboard said 0.115, so nothing local is trusted. The current best is dmitriigluzdov's public notebook “CASMI 26: The Data Behind Spectra to Structures” (version 26) run unchanged on our account: 0.465; before it, the fork of Hongbin Gu's 0.456 notebook reproduced 0.456 exactly, the E006 fork scored 0.446, the fork of the 0.421 notebook 0.415, and our own pipeline peaked at 0.356.</p>
     <div class="figures">
@@ -79,14 +79,14 @@ details[open] summary { margin-bottom: 12px; }
       <div class="fig"><b>0.415</b><span>first fork · fork-v1 of the 0.421 notebook</span></div>
       <div class="fig"><b>0.356</b><span>our own pipeline's best · v19</span></div>
       <div class="fig"><b>0.115</b><span>first submission · v1</span></div>
-      <div class="fig"><b>26 / 26</b><span>submissions scored, none omitted</span></div>
+      <div class="fig"><b>27 / 27</b><span>submissions scored, none omitted</span></div>
     </div>
   </header>
 
   <section aria-labelledby="spec-h">
     <h2 id="spec-h">Every submission, drawn as a spectrum</h2>
-    <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.504 leaderboard top (24 October); the e006-fork and pubchemlite-fork sticks reproduce their notebooks' public 0.446 and 0.456 exactly. The dotted rule is the rebase onto public notebooks; “spec” is spectra-fork and “pcl” pubchemlite-fork; the last stick, data-fork, is the new best at 0.465.</p>
-    <div class="chart"><svg id="spectrum" viewBox="0 0 760 326" role="img" aria-label="Stick chart of 25 submission scores (26 submissions, the v19 re-run folded in) rising from 0.115 to a best of 0.465"></svg>
+    <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.504 leaderboard top (24 October); the e006-fork and pubchemlite-fork sticks reproduce their notebooks' public 0.446 and 0.456 exactly. The dotted rule is the rebase onto public notebooks; “spec” is spectra-fork, “pcl” pubchemlite-fork and “nrl” is neural-fork; data-fork remains the best at 0.465, and the last stick, neural-fork, scored 0.444.</p>
+    <div class="chart"><svg id="spectrum" viewBox="0 0 760 326" role="img" aria-label="Stick chart of 26 submission scores (27 submissions, the v19 re-run folded in) rising from 0.115 to a best of 0.465"></svg>
       <div class="legend"><span><i class="key" style="background:var(--peak)"></i>kept</span><span><i class="key" style="background:var(--dim)"></i>not kept</span><span><i class="key" style="background:var(--ref)"></i>reference scores</span></div>
     </div>
   </section>
@@ -167,12 +167,21 @@ flowchart TD
   </section>
 
   <section aria-labelledby="all-h">
-    <h2 id="all-h">All twenty-six submissions</h2>
+    <h2 id="all-h">All twenty-seven submissions</h2>
     <p>Gate G1: beat the best so far by more than the ±0.005 run-to-run noise. The identical re-run of v19 is folded into its row.</p>
     <div class="table-box"><table>
       <thead><tr><th>v</th><th>change</th><th style="text-align:right">MRR@25</th><th>verdict</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
+  </section>
+
+  <section aria-labelledby="oct25-h">
+    <h2 id="oct25-h">What changed on 25 October</h2>
+    <p>One submission, below the 0.465 best: more weight on a neural re-rank of the final 25 hurt.</p>
+    <ul class="limits">
+      <li><b>Neural re-rank at weight 0.50: 0.444, discarded.</b> Saner Turhaner's public notebook “PubChem + Neural025 — LB 0.466” runs a frozen 0.465 baseline, then re-orders each molecule's final 25 by reciprocal-rank fusion, 1/(3 + baseline rank) + w/(3 + neural rank), with a separately trained spectrum model (sanpier/casmi-spectrum-model-v1); candidate sets never change. Upstream w = 0.25 scored 0.466. Our one change, w = 0.50, run as private kernel casmi-neural-fork (vendored at casmi/notebooks/fork466/), scored 0.444 (submission 57615727, 25 October): −0.022 against w = 0.25 upstream and −0.021 against data-fork's 0.465, which stays the best. The gate (gate_neural.py) passed: 400 rows, 12 smoke molecules full, ICEBERG and GLACIER 11 each, and the neural stage at weight 0.5 re-ordered all 12 smoke molecules and changed top-1 on 2, so the drop is the setting, not a broken run.</li>
+      <li><b>A neural re-rank of the final 25: closed.</b> The re-rank adds at most +0.001 to the 0.465 base (0.466 upstream at weight 0.25); more weight hurts. Do not retry at a higher weight.</li>
+    </ul>
   </section>
 
   <section aria-labelledby="oct24-h">
@@ -280,8 +289,9 @@ const SUBS = [
   ["spectra-fork", "the public “From Spectra to Structures” notebook (0.451 at its version 52) unchanged at its current version 53", 0.445, "DISCARD"],
   ["pubchemlite-fork", "the public 0.456 notebook (Hongbin Gu v465) unchanged: the 0.451 recipe + PubChemLite in engine 2, N1A GLACIER proxies, popularity 0.15", 0.456, "PROMOTE"],
   ["data-fork", "the public 0.464 notebook (dmitriigluzdov v26) unchanged: proxies kept where ICEBERG scores exist, joint ICEBERG+GLACIER re-ordering, fold-safe FPNets, candidate-aware rank-1 promotion", 0.465, "PROMOTE"],
+  ["neural-fork", "the public 0.466 neural-rerank notebook (Saner Turhaner) with the spectrum-model rank weight 0.50 instead of 0.25", 0.444, "DISCARD"],
 ];
-const SHORT = { "spectra-fork": "spec-fork", "pubchemlite-fork": "pcl-fork" };
+const SHORT = { "spectra-fork": "spec-fork", "pubchemlite-fork": "pcl-fork", "neural-fork": "nrl-fork" };
 const bestScore = Math.max(...SUBS.filter(s => s[3] === "PROMOTE").map(s => s[2]));
 const bestIdx = SUBS.findIndex(s => s[3] === "PROMOTE" && s[2] === bestScore);
 const firstFork = SUBS.findIndex(s => s[0].includes("fork"));

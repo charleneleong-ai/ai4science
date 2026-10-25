@@ -19,7 +19,7 @@ and no sixth PubChem slot; our [`fork464`](../fork464) (v26, five folds and the 
 
 | kernel version | change | public MRR@25 |
 |---|---|---|
-| 1 | `NEURAL_WEIGHT` 0.15 → 0.50 (cells 1 and 9; the report's experiment name follows) | running |
+| 1 | `NEURAL_WEIGHT` 0.15 → 0.50 (cells 1 and 9; the report's experiment name follows) | 0.444 (submission 57615727): −0.022 against weight 0.25 upstream and −0.021 against our 0.465; discarded |
 
 Run with [`scripts/kaggle_chain.sh`](../../scripts/kaggle_chain.sh); gate `~/casmi-data/gates/gate_neural.py` (the
 0.451-lineage checks on the frozen baseline, plus the neural report at weight 0.50 and its audit showing the smoke
