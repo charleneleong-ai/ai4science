@@ -21,7 +21,7 @@ A fast generative/predictive model is increasingly a commodity. What converts a 
 | [`touchstone/`](touchstone) | A generator-agnostic verifier for designed metal-binding proteins: geometry, bond-valence and precedent oracles vote trust / weak / defer. |
 | [`casmi/`](casmi) | Molecule identification from MS/MS for the CASMI 2026 Kaggle competition. Best kept pipeline: public MRR@25 0.356 (v19, a filtered second PubChem pass; its re-run scored 0.353, so the gain over v15's 0.349 is within noise). Its first submission scored 0.115 against a local estimate of 0.664, so it now trusts only the leaderboard. |
 | [`tnf-binder/`](tnf-binder) | A pH-conditional TNF-α binder for Anthropic × Adaptyv Challenge 2 — binds at pH 7.4 but not pH 6.0, cross-reacting with mouse. Submitted as v8, 20 designs at the cap. Deepening the fold from 3 to 20 samples per design removed two of the four pH-switch positions and reversed which designs ranked best. |
-| [`glp1r/`](glp1r) | A de novo GLP1R agonist for Anthropic × Adaptyv Challenge 3 — it has to bind *and* activate. Measured off 6X18, the affinity groove and the activation site share no residues and sit 31.6 Å apart, which rules out antibody formats. Target characterised; nothing designed yet. |
+| [`glp1r/`](glp1r) | De novo GLP1R binders for Anthropic × Adaptyv Challenge 3 — it has to bind *and* activate. Measured off 6X18, the affinity groove and the activation site share no residues and sit 31.6 Å apart. 20 designs submitted (2026-10-24) as extracellular-domain binders with **agonism explicitly not claimed**: six prior campaigns on this epitope produced zero agonists, and the activation gate calibrates as rejecting but not selecting on predicted structures. |
 
 The one-line pitch that ties it all together:
 
