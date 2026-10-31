@@ -1,0 +1,21 @@
+rank,name,design,length,switch_his,measured_at_20_samples,switch_positions,all_his_rates_n20,mouse_retention,retention_samples,human_iptm
+1,tnf2_15,helix0_R35H_E67H_R72H,91,2,yes,H67 H72,H35=0.65 H67=1.00 H72=0.90,1.041,20,0.173
+2,tnf2_13,helix0_R35H_E67H_E70H,91,2,yes,H67 H70,H35=0.50 H67=1.00 H70=0.95,0.893,20,0.207
+3,tnf2_05,helix0_E67H_E70H,91,2,yes,H67 H70,H67=0.95 H70=0.90,0.860,20,0.151
+4,tnf2_03,helix0_E67H_R72H,91,2,yes,H67 H72,H67=1.00 H72=0.90,0.802,20,0.159
+5,tnf2_01,helix0_R21H_E67H_E70H,91,2,yes,H67 H70,H21=0.65 H67=0.95 H70=1.00,0.735,20,0.153
+6,tnf2_12,helix0_R21H_R35H_E67H,91,1,yes,H67,H21=0.65 H35=0.30 H67=0.95,1.085,20,0.183
+7,tnf2_08,helix0_E67H,91,1,yes,H67,H67=1.00,0.951,3,0.166
+8,tnf2_02,helix0_R21H_E67H_R72H,91,1,yes,H72,H21=0.35 H67=0.85 H72=0.95,0.893,3,0.162
+9,tnf2_19,helix0_R21H_E38H_E70H,91,1,yes,H70,H21=0.50 H38=0.30 H70=1.00,0.862,20,0.198
+10,tnf2_04,helix0_R21H_E70H,91,1,yes,H70,H21=0.80 H70=0.95,0.856,3,0.175
+11,tnf2_11,helix0_E70H,91,1,yes,H70,H70=0.90,0.824,3,0.176
+12,tnf2_20,helix0_R21H_R72H,91,1,yes,H72,H21=0.55 H72=0.95,0.816,20,0.176
+13,tnf2_16,helix0_R21H_E38H_R72H,91,1,yes,H72,H21=0.75 H38=0.35 H72=1.00,0.779,20,0.219
+14,tnf2_17,helix0_E38H_E67H_R72H,91,1,yes,H72,H38=0.80 H67=0.80 H72=0.95,0.748,20,0.204
+15,tnf2_18,helix0_E67H_E70H_R72H,91,1,yes,H67,H67=0.95 H70=0.65 H72=0.60,0.730,20,0.182
+16,tnf2_14,helix0_E38H_E67H_E70H,91,1,yes,H70,H38=0.80 H67=0.85 H70=0.90,0.726,20,0.171
+17,tnf2_06,helix0_R35H_R72H,91,1,"no, provisional on 3 samples",none,not folded at n=20,0.741,3,0.216
+18,tnf2_07,helix0_R72H,91,1,"no, provisional on 3 samples",none,not folded at n=20,0.689,3,0.220
+19,tnf2_10,free1_parent,74,0,yes,none,not folded at n=20,0.482,20,0.424
+20,tnf2_09,free1_T73H,74,0,yes,none,H73=0.55,0.466,20,0.434

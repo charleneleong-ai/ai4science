@@ -1,0 +1,21 @@
+rank,name,design,tier_a_both_methods_and_coupled,tier_b_both_methods,tier_c_one_method_only,mouse_retention,retention_samples,human_iptm
+1,tnf2_15,helix0_R35H_E67H_R72H,H72,none,H67,1.041,20,0.173
+2,tnf2_03,helix0_E67H_R72H,H72,none,H67,0.802,20,0.159
+3,tnf2_01,helix0_R21H_E67H_E70H,none,H67 H70,H21,0.735,20,0.153
+4,tnf2_08,helix0_E67H,none,H67,none,0.951,3,0.166
+5,tnf2_13,helix0_R35H_E67H_E70H,none,H70,H67,0.893,20,0.207
+6,tnf2_02,helix0_R21H_E67H_R72H,none,H72,H67,0.893,3,0.162
+7,tnf2_19,helix0_R21H_E38H_E70H,none,H70,H21,0.862,20,0.198
+8,tnf2_05,helix0_E67H_E70H,none,H70,H67,0.860,20,0.151
+9,tnf2_04,helix0_R21H_E70H,none,H70,none,0.856,3,0.175
+10,tnf2_11,helix0_E70H,none,H70,none,0.824,3,0.176
+11,tnf2_20,helix0_R21H_R72H,none,H72,none,0.816,20,0.176
+12,tnf2_16,helix0_R21H_E38H_R72H,none,H72,none,0.779,20,0.219
+13,tnf2_17,helix0_E38H_E67H_R72H,none,H72,H38,0.748,20,0.204
+14,tnf2_14,helix0_E38H_E67H_E70H,none,H70,H38,0.726,20,0.171
+15,tnf2_12,helix0_R21H_R35H_E67H,none,none,H67,1.085,20,0.183
+16,tnf2_06,helix0_R35H_R72H,none,none,none,0.741,3,0.216
+17,tnf2_18,helix0_E67H_E70H_R72H,none,none,H67 H70 H72,0.730,20,0.182
+18,tnf2_07,helix0_R72H,none,none,none,0.689,3,0.220
+19,tnf2_10,free1_parent,none,none,none,0.482,20,0.424
+20,tnf2_09,free1_T73H,none,none,none,0.466,20,0.434
