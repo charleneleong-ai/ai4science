@@ -52,6 +52,9 @@ MODEL_AGREEMENT_REL = 1e-12
 # `value <= floor` -- and the width cap applies to the widest ANGLE circuit in the family.
 MAX_ANGLE_QUBITS = 128
 MAX_HAMILTONIAN_ERROR_HA = 20e-3
+# MIN_LAMBDA floors the one-norm Lambda (308.46 on the reference), NOT lambda_eff. The
+# reference's lambda_eff of 49.30 lands 0.6% above this number by coincidence; reading it as
+# the binding constraint would invent a cliff that is 530% away.
 MIN_LAMBDA = 49.0
 MIN_E_GAP_HA = 3.914898
 

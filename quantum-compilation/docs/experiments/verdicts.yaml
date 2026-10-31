@@ -60,3 +60,24 @@ experiments:
       so comparing candidates locally requires an explicit --seed.
     verdict: PROMOTE
     pr: 102
+  - name: g0b-read-the-field
+    date: 2026-10-31
+    baseline: >-
+      the third-party summary of the standings (frontier 23.14, leader 26.76, 1,729 teams)
+      from Kaggle discussion topic 754174, the only view of the field until now
+    gate: none -- an observation, not an experiment
+    result: >-
+      Pulled the competition's own public leaderboard (1,756 teams) instead of relying on the
+      third-party summary, and snapshotted scores-only to
+      docs/experiments/leaderboard-2026-10-31.json. Three corrections. (1) **The field is
+      bimodal**: p10 23.23, p25 23.04, p50 22.66, then a cliff to p75 7.93 and p90 1.06, so
+      half the field is packed into a 0.6-wide band and only 9 teams have cleared 25. A crowd
+      that dense at one value is a crowd running one shared parameterisation, which is direct
+      evidence for the design doc's reason to prefer dfthcsos. (2) **23.14 is not the
+      frontier** -- it is rank ~374 of 1,756, the top edge of the plateau. (3) Our 1.00000 is
+      **rank 1,671-1,751**, tied with 80 other teams that submitted the reference unchanged;
+      the gap to the leader is x26.8 on score, x19,000 on the product of the three cost
+      ratios. The question worth answering is what the 9 teams above 25 found, not how to
+      reach 23.
+    verdict: KEEP
+    pr: 102

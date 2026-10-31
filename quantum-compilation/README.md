@@ -27,9 +27,25 @@ candidates without spending submissions.
 | | |
 | --- | --- |
 | Our best score | **1.00000** (reference submission `57824925`, local verifier 1.00000) |
-| Public frontier blend | **23.14** (*third-party*, 2026-10-30) |
-| Leader | **26.76** (*third-party*, 2026-10-30) |
-| Teams | 1,729 |
+| Our rank | **1,671–1,751 of 1,756** — tied with 80 other teams that submitted the reference unchanged |
+| Leader | **26.76409** |
+| Median | **22.659** — half the field sits between 22.66 and 23.23 |
+| Cleared 25 | **9 teams** |
+
+Read off the competition's own public leaderboard, snapshotted at
+[`docs/experiments/leaderboard-2026-10-31.json`](docs/experiments/leaderboard-2026-10-31.json)
+(scores only; team names omitted).
+
+**The field is bimodal, and that is the most useful thing on the board.** Half of it is packed
+into a 0.6-wide band around 22.9 — a crowd that dense at one value is a crowd running one
+shared parameterisation — then it falls off a cliff (75th percentile 7.93, 90th 1.06). Only 9
+teams have escaped past 25. The widely-quoted 23.14 "public frontier" is **rank ~374**, the top
+edge of the plateau rather than the frontier; the real question is what the 9 teams above it
+found.
+
+**Progress artifact:** <https://claude.ai/artifact/EzjSoAxvhTvi9pWgdJDEDq> (private; rebuilt by
+[`scripts/build_artifact.py`](scripts/build_artifact.py) into
+[`docs/artifact/index.html`](docs/artifact/index.html) and republished at each result update).
 
 The grounded entry sweep is [`reports/2026-10-31-vqcc-landscape.md`](reports/2026-10-31-vqcc-landscape.md);
 the plan and the one open decision are in
@@ -143,9 +159,10 @@ before the official verifier runs. Defaulting them to zero would invent rejectio
   is, no local difference has a threshold to clear (gate G1).
 - **One leaderboard reading, on an input designed to score 1.0.** That the local verifier
   and the leaderboard agree there does not prove they agree on a compressed candidate.
-- **The leaders hold ~55% more total cost reduction than the public frontier** (26.76/23.14
-  on score is ×1.55 on the product of ratios) and none of it is visible. Which task it sits
-  in is the most valuable unknown in the competition.
+- **Why 9 teams cleared 25 while half the field sits near 22.7 is unexplained.** Our own gap
+  to the leader is ×26.8 on score, which is ×19,000 on the product of the three cost ratios.
+  Which task holds the margin that separates the 9 from the plateau is the most valuable
+  unknown in the competition.
 - Which task to commit to is **open** — see the design doc. The recommendation is
   `dfthcsos`, on skill fit and on evidence that the public line is stuck in one
   parameterization. Two facts from the reference run bear on it: the ANGLE circuits are
