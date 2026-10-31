@@ -4,13 +4,13 @@ Adaptyv × Anthropic Protein Design Competition, challenge 04. Three objectives 
 bind human TfR1, cross-react with mouse TfR1, and bind at pH 7.4 while releasing at pH 6.0.
 Submissions close **Sunday 1 November 23:59 AoE** (Monday 2 November 22:59 Sydney).
 
-**Status (2026-10-31): twenty designs selected, pending confirmation on independent poses.**
-Nothing is measured in a wet lab and nothing is uploaded yet.
+**Status (2026-10-31): twenty designs selected; the independent co-fold does not confirm them.**
+Chai-1 reads binder-to-target ipTM **0.095–0.123** on the first nine (two chassis, five samples each), where the twenty submitted on GLP1R read **0.70–0.86** through the same driver. A 3DS18 wild-type control is queued behind the run to establish whether that is the designs or the carved target. Nothing is measured in a wet lab and nothing is uploaded yet.
 
 | stage | result |
 | --- | --- |
 | generated | 300 designs, 6 specs (3 epitopes × 2 length bands), 50 each |
-| triage | **226 pass** (75%); best interface confidence ipTM **0.39** (46 res, short band) against 0.34–0.39 for the same pipeline on GLP1R |
+| triage | **226 pass** (75%); interface confidence is low across the whole pool — ipTM median **0.126**, best **0.387** of 300 — against **0.50–0.62** for the twenty the same pipeline submitted on GLP1R |
 | histidines present | **0 of 300** carry three; max is two — every switch has to be engineered |
 | engineered | 8 chassis × histidine combinations = **256 variants**, each measured by two pKa methods |
 | selected | **20 of 256**, 4 chassis, switch **0.39–1.46 log units** (2.5–29× weaker at pH 6.0) |
