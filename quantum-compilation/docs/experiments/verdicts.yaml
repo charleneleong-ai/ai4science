@@ -81,3 +81,42 @@ experiments:
       reach 23.
     verdict: KEEP
     pr: 102
+  - name: v2-plateau-parts-assembly
+    date: 2026-10-31
+    baseline: >-
+      our own 1.00000 reference submission 57824925, rank 1,671-1,751 of 1,756
+    gate: G3
+    result: >-
+      Reached the plateau by assembly rather than by compression: the public parts market
+      (manwithacat/vqcc-apache-public-circuits, 142 Apache-2.0 circuits all re-verified with
+      the official verifier) carries a better circuit for each of the three tasks, so the best
+      per-task picks were fetched, SHA-256 checked against the dataset manifest, and scored
+      locally before spending a submission. All three PASS; the local blend was 23.1811976 and
+      submission 57834335 scored **23.18119** on the leaderboard -- agreement to every digit
+      either is reported to, so the local dev set predicted the leaderboard a second time, now
+      on an input it had never seen. That is rank **249-252 of 1,756** in the 2026-10-31
+      snapshot (four other teams share the exact score), up from the 81-team block at 1.00000
+      ranked 1,671-1,751, and 125 places above the 23.13587 blend quoted on 2026-10-30. We
+      wrote none of these circuits; provenance and credit for all nine authors are in
+      57834335-parts.yaml, which also records that the parts published since that quote are
+      cheaper on all three tasks -- their authors made them cheaper, we picked newer ones.
+      The finding that matters more than the score is the chemistry part's **headroom, which
+      is nearly gone**: the accuracy term sits at 99.999084% of the 20 mHa cap and E_gap
+      clears its strict floor by 1.03e-6 Ha -- two of the four rejecting constraints spent to
+      within 0.1% of their limit -- while the widest ANGLE circuit is 126 of 128 qubits (98.4%)
+      and the one-norm Lambda is the only one with real room, at 6.1x its floor. So the
+      0.6-wide band half the field sits in is a constraint, not a fashion: tuning this shape is
+      finished, and a further dfthcsos gain needs a different factorization.
+      **Which factorization is exactly what this does not establish.** The part's reported
+      shape is R=8, B=143, C=60 -- the author's own figure from the dataset manifest, not our
+      measurement -- and cost scales with R*B while the accuracy reachable at a shape is bounded
+      by R*C, so the two are not optimised at the same point. Reproducing the cost-precision
+      atlas and fitting factorizations ourselves is the next experiment; the bar is this
+      submission's R*B = 1,144 at R*C = 480.
+      Incidentally this settles the MIN_LAMBDA reading: this submission's lambda_eff is 48.293,
+      below MIN_LAMBDA=49.0, and it passes -- because the constraint floors the one-norm Lambda
+      (299.82 here, 6.1x the 49.0 floor), not lambda_eff. The hedge in cost.py's annotation,
+      which noted the reference's lambda_eff of 49.30 sat 0.6% above the floor by coincidence
+      and so could not discriminate the two readings, is retired.
+    verdict: PROMOTE
+    pr: 102

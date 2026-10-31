@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import json
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -52,9 +52,11 @@ MODEL_AGREEMENT_REL = 1e-12
 # `value <= floor` -- and the width cap applies to the widest ANGLE circuit in the family.
 MAX_ANGLE_QUBITS = 128
 MAX_HAMILTONIAN_ERROR_HA = 20e-3
-# MIN_LAMBDA floors the one-norm Lambda (308.46 on the reference), NOT lambda_eff. The
-# reference's lambda_eff of 49.30 lands 0.6% above this number by coincidence; reading it as
-# the binding constraint would invent a cliff that is 530% away.
+# MIN_LAMBDA floors the one-norm Lambda, NOT lambda_eff -- `dfthcsos_rejections` below tests
+# Lambda and nothing here ever compares lambda_eff to it. The reference's lambda_eff of 49.30
+# sits 0.6% above this number by coincidence, which made the two readings indistinguishable;
+# public submission 57834335 settles it, passing with lambda_eff 48.293 (below 49.0) and
+# Lambda 299.82. Reading it as a lambda_eff floor would invent a cliff that is 530% away.
 MIN_LAMBDA = 49.0
 MIN_E_GAP_HA = 3.914898
 
@@ -322,3 +324,53 @@ def dfthcsos_rejections(
     if e_gap_ha is not None and e_gap_ha <= MIN_E_GAP_HA:
         reasons.append(f"E_gap={e_gap_ha} Ha is not above {MIN_E_GAP_HA} Ha")
     return reasons
+
+
+def read_worst_error(detail: Mapping[str, Any]) -> float:
+    """The binding one of the two 20 mHa accuracy terms -- the cap applies to each."""
+    metrics = detail["metrics"]
+    return max(metrics["error_1"], metrics["error_2"])
+
+
+def read_angle_width(detail: Mapping[str, Any]) -> float:
+    return detail["resources"]["angles_qubits"]
+
+
+def read_e_gap(detail: Mapping[str, Any]) -> float:
+    return detail["metrics"]["E_gap"]
+
+
+def read_lcu_lambda(detail: Mapping[str, Any]) -> float:
+    return detail["metrics"]["Lambda"]
+
+
+# Every hard constraint the dfthcsos verifier rejects on, with the limit, whether the limit
+# itself is legal, and how to read the quantity off a verifier report. `dfthcsos_rejections`
+# above checks these from loose arguments for pre-flight prediction; this table reads them
+# back off a report that has already run, so a measured submission's headroom and the
+# rejection rules cannot describe different constraints.
+DFTHCSOS_CONSTRAINTS: tuple[tuple[str, float, bool, str, Callable[[Mapping[str, Any]], float]], ...] = (
+    ("hamiltonian_error_ha", MAX_HAMILTONIAN_ERROR_HA, True, "at_or_below", read_worst_error),
+    ("angle_qubits", MAX_ANGLE_QUBITS, True, "at_or_below", read_angle_width),
+    ("e_gap_ha", MIN_E_GAP_HA, False, "strictly_above", read_e_gap),
+    ("lcu_lambda", MIN_LAMBDA, False, "strictly_above", read_lcu_lambda),
+)
+
+
+def dfthcsos_constraint_margins(detail: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    """How close a measured chemistry submission sits to each constraint that would reject it.
+
+    `fraction_of_limit_used` normalises both directions to closeness-to-rejection, so 1.0
+    means sitting exactly on the limit whether that limit is a cap or a floor.
+    """
+    margins: dict[str, dict[str, Any]] = {}
+    for name, limit, limit_is_legal, sense, read in DFTHCSOS_CONSTRAINTS:
+        value = read(detail)
+        margins[name] = {
+            "value": value,
+            "limit": limit,
+            "sense": sense,
+            "limit_itself_legal": limit_is_legal,
+            "fraction_of_limit_used": value / limit if sense == "at_or_below" else limit / value,
+        }
+    return margins

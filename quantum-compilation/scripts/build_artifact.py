@@ -44,11 +44,18 @@ REFERENCE_DIR = PROJECT_ROOT / "tests" / "data"
 EXPERIMENTS_DIR = PROJECT_ROOT / "docs" / "experiments"
 VERDICTS_PATH = EXPERIMENTS_DIR / "verdicts.yaml"
 LEADERBOARD_PATH = EXPERIMENTS_DIR / "leaderboard-2026-10-31.json"
+PARTS_PATH = EXPERIMENTS_DIR / "57834335-parts.yaml"
 OUTPUT_PATH = PROJECT_ROOT / "docs" / "artifact" / "index.html"
 
 STATUS_DATE = "2026-10-31"
-SUBMISSION_ID = "57824925"
-OUR_SCORE = 1.00000
+# The leaderboard reading is the one number here that cannot be derived locally, so it is the
+# one hand-entered figure. Everything else about the submission -- its id, its parts and their
+# measured costs -- comes from the provenance record, and the local blend is recomputed from
+# those costs so the page's central claim checks itself rather than asserting a transcription.
+OUR_SCORE = 23.18119
+# A bar within this fraction of its limit counts as pinned, for the chart's colouring and for
+# the count the prose quotes. One constant so the two cannot disagree.
+PINNED_FRACTION = 0.999
 
 # Wall-clock minutes per verifier on 10 CPU cores, and the competition's daily submission
 # budget. Neither is in any result file; the footer declares them as recorded by hand.
@@ -199,7 +206,7 @@ def field_svg(scores: list[float], rank_best: int, rank_worst: int) -> str:
         width,
         height,
         f"All {teams:,} public leaderboard scores in rank order: a dense plateau near 23, a "
-        f"cliff, and our score of 1.0 among the lowest",
+        f"cliff, and our score of {OUR_SCORE:.2f} on the plateau's top edge",
         grid
         + f'<rect x="{x_best:.1f}" y="{pad_t}" width="{max(3.0, x_worst - x_best):.1f}" '
         f'height="{plot_h}" fill="var(--warn)" fill-opacity="0.18"/>'
@@ -208,14 +215,78 @@ def field_svg(scores: list[float], rank_best: int, rank_worst: int) -> str:
         + f'<circle cx="{leader_x:.1f}" cy="{leader_y:.1f}" r="7" fill="var(--accent)"/>'
         + f'<text x="{leader_x + 14:.1f}" y="{leader_y + 7:.1f}" class="cv">'
         f"leader {scores[0]:.2f}</text>"
-        + f'<text x="{x_worst - 10:.1f}" y="{our_y - 18:.1f}" text-anchor="end" class="cv">'
+        + f'<text x="{x_worst + 12:.1f}" y="{our_y - 16:.1f}" class="cv">'
         f"us {OUR_SCORE:.2f}</text>"
-        + f'<text x="{x_worst - 10:.1f}" y="{our_y + 2:.1f}" text-anchor="end" class="ct">'
-        f"ranks {rank_best:,}–{rank_worst:,}</text>"
+        + f'<text x="{x_worst + 12:.1f}" y="{our_y + 4:.1f}" class="ct">'
+        f"rank {rank_best:,} of {teams:,}</text>"
         + f'<text x="{pad_l + plot_w / 2:.0f}" y="{height - 8}" text-anchor="middle" '
         f'class="cax">rank, of {teams:,} teams</text>'
         + f'<text x="22" y="{pad_t + plot_h / 2:.0f}" class="cax" '
         f'transform="rotate(-90 22 {pad_t + plot_h / 2:.0f})" text-anchor="middle">score</text>',
+    )
+
+
+QUANTITY_LABELS = {
+    "hamiltonian_error_ha": "Hamiltonian error",
+    "e_gap_ha": "E_gap",
+    "angle_qubits": "widest ANGLE circuit",
+    "lcu_lambda": "one-norm Λ",
+}
+
+
+def is_pinned(margin: dict[str, Any]) -> bool:
+    return margin["fraction_of_limit_used"] > PINNED_FRACTION
+
+
+def constraint_label(key: str, margin: dict[str, Any]) -> str:
+    """"E_gap vs 3.914898 floor" -- the limit and its direction read off the record itself."""
+    word = "cap" if margin["sense"] == "at_or_below" else "floor"
+    limit = margin["limit"]
+    return f"{QUANTITY_LABELS[key]} vs {limit:g} {word}"
+
+
+def headroom_svg(margins: dict[str, dict[str, Any]]) -> str:
+    """How much of each hard constraint the plateau's chemistry parameterisation already spends.
+
+    Two bars sit on their limit and a third is two qubits from its cap, which is the finding:
+    there is very little left to tune inside this factorization, so a further gain has to come
+    from a different one.
+    """
+    order = sorted(margins, key=lambda key: -margins[key]["fraction_of_limit_used"])
+    width = 680
+    pad_l, pad_r, pad_t, row_h = 300, 86, 30, 46
+    height = pad_t + row_h * len(order) + 44
+    plot_w = width - pad_l - pad_r
+
+    body = [
+        f'<line x1="{pad_l + plot_w:.1f}" y1="{pad_t - 8}" x2="{pad_l + plot_w:.1f}" '
+        f'y2="{pad_t + row_h * len(order):.1f}" class="grid"/>',
+        f'<text x="{pad_l + plot_w:.1f}" y="{height - 22}" text-anchor="middle" '
+        f'class="ct">limit</text>',
+        f'<text x="{pad_l:.1f}" y="{height - 22}" text-anchor="middle" class="ct">0</text>',
+    ]
+    for index, key in enumerate(order):
+        used = margins[key]["fraction_of_limit_used"]
+        y = pad_t + index * row_h
+        colour = "var(--warn)" if is_pinned(margins[key]) else "var(--accent)"
+        body += [
+            f'<text x="{pad_l - 14:.1f}" y="{y + 20:.1f}" text-anchor="end" '
+            f'class="ct">{constraint_label(key, margins[key])}</text>',
+            f'<rect x="{pad_l:.1f}" y="{y + 6:.1f}" width="{plot_w:.1f}" height="22" '
+            f'fill="var(--grid)" fill-opacity="0.35"/>',
+            f'<rect x="{pad_l:.1f}" y="{y + 6:.1f}" width="{max(2.0, used * plot_w):.1f}" '
+            f'height="22" fill="{colour}"/>',
+            f'<text x="{pad_l + plot_w + 10:.1f}" y="{y + 22:.1f}" class="cv">'
+            f'{used * 100:.3f}%</text>',
+        ]
+    pinned = sum(1 for key in order if is_pinned(margins[key]))
+    return svg(
+        width,
+        height,
+        f"{len(order)} hard constraints on the chemistry task, each as a fraction of its "
+        f"limit; {pinned} are spent to more than "
+        f"{(1 - PINNED_FRACTION) * 100:.1f}% of their limit",
+        "".join(body),
     )
 
 
@@ -396,6 +467,13 @@ def build() -> str:
     board = json.loads(LEADERBOARD_PATH.read_text())
     scores: list[float] = board["scores"]
     teams = board["teams"]
+    parts = yaml.safe_load(PARTS_PATH.read_text())
+    plateau = parts["parts"]["dfthcsos"]
+    margins = plateau["constraint_margins"]
+    submission_id = parts["submission_ref"]
+    # What our verifier measured for the circuits we actually submitted -- distinct from the
+    # reference costs in `reports`, which come from sample_submission/.
+    part_costs = {task: parts["parts"][task]["our_measurement"]["cost"] for task in TASKS}
 
     invsqrt, dqi, dfthcsos = (reports[t] for t in TASKS)
     calibration = MetricCalibration(
@@ -413,7 +491,28 @@ def build() -> str:
     leader = scores[0]
     gap_score = leader / OUR_SCORE
     gap_cost = gap_score**3
+    # The reference's own tie block, so the strip shows the move with the same honesty as the
+    # block it came from: 81 teams submitted the reference unchanged and shared its rank range.
+    reference_above = sum(1 for s in scores if s > 1.0 + 5e-6)
+    reference_tied = sum(1 for s in scores if abs(s - 1.0) < 5e-6)
+    reference_rank, reference_rank_worst = reference_above + 1, reference_above + reference_tied
 
+    # The chemistry part's headroom, and the factorization shape it spends it on.
+    error_pct = margins["hamiltonian_error_ha"]["fraction_of_limit_used"] * 100
+    e_gap_slack_ppb = (margins["e_gap_ha"]["value"] - margins["e_gap_ha"]["limit"]) * 1e6
+    angle_width = int(margins["angle_qubits"]["value"])
+    angle_cap = int(margins["angle_qubits"]["limit"])
+    angle_pct = margins["angle_qubits"]["fraction_of_limit_used"] * 100
+    lambda_over_floor = margins["lcu_lambda"]["value"] / margins["lcu_lambda"]["limit"]
+    lambda_eff_value = plateau["lambda_eff"]
+    pinned_names = [
+        QUANTITY_LABELS[key] for key in margins if is_pinned(margins[key])
+    ]
+    plateau_r, plateau_b, plateau_c = (plateau[key] for key in ("R", "B", "C"))
+
+    # The whole headline claim is that this number predicted OUR_SCORE, so it is recomputed
+    # from the submitted parts' measured costs rather than transcribed.
+    local_blend = score(part_costs, calibration)
     blend = score(PUBLIC_COSTS, calibration)
     blend_delta_ppm = abs(blend - PUBLIC_BLEND) / PUBLIC_BLEND * 1e6
     blend_floor_ppm = blend_precision_ppm(PUBLIC_COSTS, PUBLIC_COST_HALF_ULP)
@@ -549,51 +648,95 @@ a {{ color: var(--accent); }}
 <main>
   <header>
     <p class="status">GOOGLE QUANTUM AI · VERIFIABLE QUANTUM CIRCUIT COMPILATION · {STATUS_DATE}</p>
-    <h1>The metric, measured</h1>
-    <p class="lede">The cost model is now read off the three shipped verifiers rather than the
-    Evaluation page, and every formula reproduces the verifier&rsquo;s own score exactly. The
-    unmodified reference submission scores <strong>1.00000</strong> locally and
-    <strong>1.00000</strong> on the leaderboard, confirming the two agree on a known input;
-    because the verifiers themselves ship, candidates can then be ranked locally without
-    spending submissions. No compression has been attempted, so we sit near the bottom of the
-    field.</p>
+    <h1>On the plateau</h1>
+    <p class="lede">The cost model is read off the three shipped verifiers rather than the
+    Evaluation page, and every formula reproduces the verifier&rsquo;s own score exactly. That
+    local loop has now predicted the leaderboard twice — on the reference
+    (1.00000&nbsp;→&nbsp;1.00000) and on an input it had never seen
+    ({local_blend:.5f}&nbsp;→&nbsp;<strong>{OUR_SCORE:.5f}</strong>, agreeing to every digit
+    either is reported to) — so candidates can be ranked for free against a rationed
+    {HAND_RECORDED["submissions_per_day"]} submissions a day. The score itself is assembled from
+    public Apache-2.0 parts, not from any compression of our own; what it bought is a
+    measurement of why the plateau is where it is.</p>
   </header>
 
   <section>
     <div class="strip">
       <div class="tile"><span class="k">Our score</span>
         <span class="v">{OUR_SCORE:.5f}</span>
-        <span class="n">local = leaderboard · submission {SUBMISSION_ID}</span></div>
-      <div class="tile flag"><span class="k">Rank</span>
-        <span class="v">{rank_best:,}</span>
-        <span class="n">of {teams:,} · tied with {tied - 1} others on the reference</span></div>
+        <span class="n">local said {local_blend:.5f} · submission {submission_id}</span></div>
+      <div class="tile"><span class="k">Rank</span>
+        <span class="v">{rank_best:,}–{rank_worst:,}</span>
+        <span class="n">of {teams:,} · up from the {reference_tied}-team block at 1.00000
+        ({reference_rank:,}–{reference_rank_worst:,})</span></div>
       <div class="tile flag"><span class="k">Gap to leader</span>
-        <span class="v">×{gap_score:.1f}</span>
-        <span class="n">≈{gap_cost:,.0f}× on the product of the three cost ratios</span></div>
-      <div class="tile"><span class="k">Compression attempted</span>
-        <span class="v">none</span><span class="n">everything here is apparatus</span></div>
+        <span class="v">×{gap_score:.2f}</span>
+        <span class="n">≈{gap_cost:,.1f}× on the product of the three cost ratios</span></div>
+      <div class="tile flag"><span class="k">Compression attempted</span>
+        <span class="v">none</span><span class="n">every circuit here is someone else&rsquo;s</span></div>
     </div>
-    <p class="note">1.00000 is the reference&rsquo;s score by definition, not an achievement.
-    What this milestone establishes is that the instrument reads true: the thing we will measure
-    thousands of candidates with agrees with the leaderboard on a known input.</p>
+    <p class="note">This is an assembly, not a result: the public parts market carries a better
+    circuit than the reference for all three tasks, so the best per-task pick was fetched,
+    SHA-256 checked against its manifest and scored locally before a submission was spent. It
+    establishes the floor to beat and credits nine authors in
+    <code>docs/experiments/{PARTS_PATH.name}</code>. The ×{gap_score:.2f} still owed to the
+    leader is the whole remaining problem.</p>
   </section>
 
   <section>
     <h2>Where we stand</h2>
     <p class="finding">The field is bimodal. Half of it is packed between {median:.2f} and
-    {plateau_hi:.2f} — a band 0.6 wide, almost certainly one shared published approach — and only
-    {escaped} teams have escaped past 25. We are in the {tied}-team block at exactly 1.00000 that
-    submitted the reference unchanged, ranked {rank_best:,}–{rank_worst:,} of {teams:,}.</p>
+    {plateau_hi:.2f} — a band 0.6 wide — and only {escaped} teams have escaped past 25. We now
+    sit at rank {rank_best:,}–{rank_worst:,} of {teams:,}, sharing our exact score with
+    {tied - 1} other teams, on the top edge of that band rather than below it.</p>
     <figure>
       {field_svg(scores, rank_best, rank_worst)}
       <figcaption>Every public score on {STATUS_DATE}, in rank order, from the competition&rsquo;s
       own leaderboard snapshotted in
-      <code>docs/experiments/leaderboard-{STATUS_DATE}.json</code>. The shaded band is our tie
-      block.</figcaption>
+      <code>docs/experiments/leaderboard-{STATUS_DATE}.json</code>. The shaded band marks our
+      position.</figcaption>
     </figure>
-    <p>The crowded plateau is the useful part: a field that dense at one value is a field running
-    one parameterisation, and the {escaped} teams above 25 found something it does not reach. That
-    is the gap worth understanding.</p>
+    <p>The crowded plateau is the useful part, and the section below says what it is made of: not
+    a field that merely copied one notebook, but one that has run a single factorization up
+    against every constraint the task has. The {escaped} teams above 25 found something that
+    parameterisation cannot reach.</p>
+    <p class="note">Why this assembly scores above the {PUBLIC_BLEND} blend quoted on
+    {STATUS_DATE[:-3]}-30: the parts published since are cheaper on all three tasks —
+    <code>invsqrt</code> {part_costs["invsqrt"]:,.0f} against
+    {PUBLIC_COST_QUOTED["invsqrt"]}, <code>dqi</code> {fmt(part_costs["dqi"])} against
+    {PUBLIC_COST_QUOTED["dqi"]}, <code>dfthcsos</code> {fmt(part_costs["dfthcsos"])} against
+    {PUBLIC_COST_QUOTED["dfthcsos"]}. Their authors made them cheaper; we picked newer
+    ones.</p>
+  </section>
+
+  <section>
+    <h2>Why the plateau is a wall</h2>
+    <p class="finding">The chemistry circuits everyone is standing on have <strong>almost no
+    headroom left against the constraints that reject outright</strong>: the accuracy term is
+    at {error_pct:.3f}% of the 20 mHa cap and <code>E_gap</code> clears its strict floor by
+    {e_gap_slack_ppb:.2f}&nbsp;×&nbsp;10⁻⁶ Ha — {len(pinned_names)} of the
+    {len(margins)} constraints spent to within {(1 - PINNED_FRACTION) * 100:.1f}% of their
+    limit — and the widest ANGLE circuit is {angle_width} of {angle_cap} qubits, {angle_pct:.1f}%
+    of its cap. The 0.6-wide band is what that leaves.</p>
+    <figure>
+      {headroom_svg(margins)}
+      <figcaption>Each hard constraint on the <code>dfthcsos</code> task, as a fraction of its
+      limit, measured by our own verifier over the submitted files and recorded in
+      <code>{PARTS_PATH.name}</code>. Amber is pinned, meaning within
+      {(1 - PINNED_FRACTION) * 100:.1f}% of the limit: {" and ".join(pinned_names)}. The ANGLE
+      width has two qubits of room and the one-norm Λ has a great deal, sitting
+      {lambda_over_floor:.1f}× its floor — which incidentally settles that
+      <code>MIN_LAMBDA</code> floors Λ and not λ_eff, since this submission&rsquo;s λ_eff of
+      {lambda_eff_value:.3f} is below that {margins["lcu_lambda"]["limit"]:g} and still
+      passes.</figcaption>
+    </figure>
+    <p>What the record does <em>not</em> settle is where to go instead. This parameterisation is
+    <strong>R={plateau_r}, B={plateau_b}, C={plateau_c}</strong> — the part author&rsquo;s own
+    reported shape, not something we measured — and cost scales with R·B while the accuracy
+    reachable at a given shape is bounded by R·C, so the two are not optimised by the same
+    point. Reproducing the cost–precision atlas ourselves and fitting low-R factorizations is
+    the next experiment, and the claim it has to beat is this submission&rsquo;s own
+    R·B&nbsp;=&nbsp;{plateau_r * plateau_b:,} at R·C&nbsp;=&nbsp;{plateau_r * plateau_c:,}.</p>
   </section>
 
   <section>
@@ -669,8 +812,9 @@ a {{ color: var(--accent); }}
     {MAX_ANGLE_QUBITS} cap ({angle_qubits / MAX_ANGLE_QUBITS * 100:.0f}% of it),
     <code>error_2</code> at {error_2:.5f} Ha against a {MAX_HAMILTONIAN_ERROR_HA:.3f} Ha cap
     ({error_2 / MAX_HAMILTONIAN_ERROR_HA * 100:.0f}%), and <code>E_gap</code> at {e_gap:.4f} Ha
-    against a strict {MIN_E_GAP_HA} Ha floor (+{(e_gap / MIN_E_GAP_HA - 1) * 100:.1f}%). How far a
-    candidate can move before one of them fires has not been measured.</p>
+    against a strict {MIN_E_GAP_HA} Ha floor (+{(e_gap / MIN_E_GAP_HA - 1) * 100:.1f}%). Those are
+    the <em>reference&rsquo;s</em> margins; the chart above measures the same three for the
+    plateau part, which has spent nearly all of them.</p>
   </section>
 
   <section>
@@ -732,8 +876,9 @@ a {{ color: var(--accent); }}
   <section>
     <h2>Not established</h2>
     <ul>
-      <li><strong>No compression has been attempted.</strong> Everything here is measurement
-      apparatus.</li>
+      <li><strong>We have not compressed anything ourselves.</strong> The
+      {OUR_SCORE:.5f} is an assembly of other people&rsquo;s published circuits; everything we
+      built is measurement apparatus. No claim here is a claim about a circuit we designed.</li>
       <li><strong>Run-to-run noise is unmeasured.</strong> Every verifier seeds itself from the
       candidate&rsquo;s own bytes — <code>int(circuit_sha256, 16)</code>, or
       <code>sha256(hash + salt)</code> with a salt — so a re-run of one circuit is bit-identical
@@ -742,12 +887,19 @@ a {{ color: var(--accent); }}
       <li><strong>Every third-party number here is unverified by us.</strong> The per-task
       frontier costs and the {PUBLIC_BLEND} blend are self-reported in Kaggle topic 754174, and
       the blend check above rests entirely on them — if they are wrong, that check says nothing.
-      The leaderboard scores and the {teams:,} team count are the competition&rsquo;s own.</li>
-      <li><strong>How much <code>dfthcsos</code> headroom exists is unmeasured.</strong> The
-      reference sits at 93% of the ANGLE qubit cap and 93% of the <code>error_2</code> budget, and
-      nobody has measured how far a candidate can move before one rejects.</li>
-      <li><strong>One leaderboard reading, on an input designed to score 1.0.</strong> Agreement
-      there does not prove agreement on a compressed candidate.</li>
+      The leaderboard scores and the {teams:,} team count are the competition&rsquo;s own. So are
+      the <code>R</code>/<code>B</code>/<code>C</code> and λ_eff figures in
+      <code>{PARTS_PATH.name}</code> — those are each part author&rsquo;s own report, copied from
+      the dataset manifest; only <code>our_measurement</code> and the constraint margins are
+      ours.</li>
+      <li><strong>Whether a cheaper factorization exists at all is unmeasured.</strong> The
+      plateau&rsquo;s headroom is now measured, but that only rules out tuning
+      <em>this</em> shape — it says nothing about which other shape to try, and we have not
+      reproduced the cost–precision atlas or fitted a factorization ourselves. Nothing here
+      shows a shape exists that is both under 20 mHa and cheaper.</li>
+      <li><strong>Two leaderboard readings, neither on a circuit we designed.</strong> The loop
+      agreed with the leaderboard on the reference and on this assembly of published circuits.
+      Agreement there does not prove agreement on a candidate our own search produces.</li>
       <li><strong>Which task to commit to is open.</strong> The structural facts above bear on it;
       the decision does not follow from them.</li>
       <li><strong>Why {escaped} teams cleared 25 while half the field sits near

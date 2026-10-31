@@ -6,13 +6,17 @@ from pathlib import Path
 import pytest
 from quantum_compilation.cost import (
     DEFAULT_CALIBRATION,
+    DFTHCSOS_CONSTRAINTS,
+    MAX_ANGLE_QUBITS,
     MAX_DQI_FAILURE_RATE,
+    MAX_HAMILTONIAN_ERROR_HA,
     MIN_E_GAP_HA,
     MIN_LAMBDA,
     MODEL_AGREEMENT_REL,
     TASKS,
     MetricCalibration,
     clopper_pearson_upper_bound,
+    dfthcsos_constraint_margins,
     dfthcsos_cost,
     dfthcsos_rejections,
     dqi_cost,
@@ -232,6 +236,60 @@ class TestChemistryRejections:
         # Only the widths are known before the verifier runs. A zero E_gap would fail the
         # E_gap > 3.914898 test, so defaulting instead of skipping would invent a rejection.
         assert dfthcsos_rejections(angle_circuit_qubits=[128]) == []
+
+
+class TestChemistryConstraintMargins:
+    """Closeness-to-rejection for each constraint, read off a verifier report."""
+
+    def test_the_table_covers_exactly_the_constraints_that_reject(self):
+        # The margins and the rejection rules must describe the same four constraints, or a
+        # submission could be reported as having headroom against a limit nobody checks.
+        assert {name for name, *_ in DFTHCSOS_CONSTRAINTS} == {
+            "hamiltonian_error_ha",
+            "angle_qubits",
+            "e_gap_ha",
+            "lcu_lambda",
+        }
+
+    def test_sitting_on_a_cap_and_on_a_floor_both_read_as_fully_spent(self):
+        # A cap is approached from below and a floor from above, so the fraction has to
+        # invert for floors; both directions must give 1.0 at the limit.
+        margins = dfthcsos_constraint_margins(
+            {
+                "metrics": {
+                    "error_1": 0.0,
+                    "error_2": MAX_HAMILTONIAN_ERROR_HA,
+                    "E_gap": MIN_E_GAP_HA,
+                    "Lambda": MIN_LAMBDA,
+                },
+                "resources": {"angles_qubits": MAX_ANGLE_QUBITS},
+            }
+        )
+        assert all(m["fraction_of_limit_used"] == 1.0 for m in margins.values())
+
+    def test_the_binding_accuracy_term_is_the_worse_of_the_two(self):
+        margins = dfthcsos_constraint_margins(
+            {
+                "metrics": {
+                    "error_1": 19e-3,
+                    "error_2": 3e-3,
+                    "E_gap": MIN_E_GAP_HA + 1,
+                    "Lambda": MIN_LAMBDA + 1,
+                },
+                "resources": {"angles_qubits": 64},
+            }
+        )
+        assert margins["hamiltonian_error_ha"]["value"] == 19e-3
+
+    def test_the_reference_submission_has_headroom_on_every_constraint(self):
+        detail = json.loads(
+            (Path(__file__).parent / "data" / "reference_dfthcsos.json").read_text()
+        )
+        margins = dfthcsos_constraint_margins(detail)
+        assert all(0 < m["fraction_of_limit_used"] < 1 for m in margins.values())
+        # Lambda is the one constraint nowhere near binding -- the distinction that makes
+        # MIN_LAMBDA a Lambda floor rather than a lambda_eff floor.
+        assert margins["lcu_lambda"]["fraction_of_limit_used"] < 0.2
 
 
 class TestMetricCalibration:

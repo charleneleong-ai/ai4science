@@ -1,0 +1,102 @@
+# Provenance for a submission assembled from public Apache-2.0 circuits, fetched from a Kaggle
+# parts dataset and re-scored locally with the official verifiers before submitting. Generated
+# by scripts/build_parts_record.py from that dataset's manifest.csv and our own rows.jsonl;
+# do not hand-edit.
+#
+# We wrote none of these circuits. `author` published the part and `core_author` records the
+# lineage behind it. Only `our_measurement` and `constraint_margins` are ours -- every other
+# per-part field is copied from the dataset's manifest and is the part author's own report.
+#
+# In `constraint_margins`, `fraction_of_limit_used` is closeness-to-rejection in both
+# directions, so 1.0 means sitting exactly on the limit whether it is a cap or a floor.
+dataset: manwithacat/vqcc-apache-public-circuits
+submission_ref: '57834335'
+submitted: '2026-10-31T09:27:57Z'
+parts:
+  invsqrt:
+    submitted_file_sha256: 2366b67cf072a581776fe903591e9a02330d257cd26f00fb32517825291fdbd6
+    author: Leo Tang
+    core_author: 'yoyobar: the 62-qubit design of 67482db6c538 (with Ahmed Berat Özer''s patch), on busyaprime''s 9a8627 and mrmeows'' 63-qubit design; published here by leotang09'
+    source_notebook_url: https://www.kaggle.com/code/leotang09/vqcc-t7421-submission
+    notebook_title: VQCC T7421 Submission
+    source_notebook_version: '3'
+    release_date: 2026-10-30 23:34
+    licence: Apache-2.0
+    qubits: 62
+    change_summary: 'byte variant of 67482db6c538: same width, rotations and worst error (0.99932); the -0.000024% cost difference is draw noise (shots are seeded from the file''s SHA-256), not an improvement'
+    notes: leotang09's notebook credits it to yoyobar's dataset qcc-local-sota-20261031, which does not contain this file; treat 67482db6c538 as the design's reference
+    our_measurement:
+      status: PASS
+      cost: 100692.55756592617
+      seconds: 102.6
+      verifier_candidate_sha256: 2366b67cf072a581776fe903591e9a02330d257cd26f00fb32517825291fdbd6
+  dqi:
+    submitted_file_sha256: 5faba45918538eec20534fc143bb9b2ec5d91931a39038550e4cd37e4fd713a0
+    author: manwithacat
+    core_author: 'yoyobar: the 889-qubit base circuit 73e1b187b288 (SomeJoint-derived); manwithacat: the 889 -> 888 tweak'
+    source_notebook_url: https://www.kaggle.com/code/manwithacat/vqcc-hedge-wizardry-notebook
+    notebook_title: VQCC Hedge Wizardry Notebook
+    source_notebook_version: '1'
+    release_date: 2026-10-30 22:06
+    licence: Apache-2.0
+    qubits: 888
+    change_summary: 'Hedge Wizardry HW-01: yoyobar''s 73e1b187b288 taken from 889 to 888 qubits by release-and-recompute (q852, the epoch-0 pole, released in extract and recomputed as q866 AND [N = 0]; one q878 reset; an early erase per pole handover): +460 mean Toffolis for one qubit; 48-draw mean cost -0.108%'
+    notes: 'VQCC Hedge Wizardry Notebook v1 (2026-10-30 22:06 UTC), Kaggle run: official verifier PASS, 0/0 errors on this file''s draw. 8 of 48 failing draws vs 7 for the base (the extra one fails about half the time on both circuits). Base circuit by yoyobar, Apache-2.0'
+    our_measurement:
+      status: PASS
+      cost: 401986129571.4192
+      seconds: 53.8
+      verifier_candidate_sha256: 5faba45918538eec20534fc143bb9b2ec5d91931a39038550e4cd37e4fd713a0
+  dfthcsos:
+    submitted_file_sha256: 735b7362ca3cc47cf0af8c7e94f78dade1bfb2dceab754f7e5b173d5b08cc98b
+    author: Isabe11aM00re
+    core_author: 'Isabe11aM00re: weights; factorization family and word table as 4eabe756bc36 (Ahmed Berat Özer''s weights on Atakan Aldemir''s word table 4e3c8f079137); loaders reused (byte-identical)'
+    source_notebook_url: https://www.kaggle.com/code/isabe11am00re/qcc-v47-submission
+    notebook_title: QCC v47 submission
+    source_notebook_version: '3'
+    release_date: 2026-10-31 00:08
+    licence: Apache-2.0
+    qubits: 430
+    change_summary: 'new weights (lambda_eff 48.293182) on the existing 16,266-Toffoli loaders: cost -0.005% vs 4eabe756bc36'
+    notes: Weights-only change on T00 (lambda_eff 48.295645 to 48.293182). First public in isabe11am00re/qcc-v47-submission v3 (2026-10-31 00:08 UTC); heliosli's notebook carried it an hour later
+    R: 8
+    B: 143
+    C: 60
+    brot: 8
+    KEEP_BITS: 10
+    Lambda: 299.8235492197524
+    E_gap: 3.914899028979562
+    lambda_eff: 48.293181806587604
+    T_total: 16266.0
+    T_angles: 8336.0
+    Q_total: 430
+    our_measurement:
+      status: PASS
+      cost: 337780864.9643602
+      seconds: 6.9
+      verifier_candidate_sha256: a6de440eec686d3e8304fd5ba493f7e8a9202c77c80f36528bf9a4109a116e64
+    constraint_margins:
+      hamiltonian_error_ha:
+        value: 0.01999981675420196
+        limit: 0.02
+        sense: at_or_below
+        limit_itself_legal: true
+        fraction_of_limit_used: 0.999990837710098
+      angle_qubits:
+        value: 126
+        limit: 128
+        sense: at_or_below
+        limit_itself_legal: true
+        fraction_of_limit_used: 0.984375
+      e_gap_ha:
+        value: 3.914899028979562
+        limit: 3.914898
+        sense: strictly_above
+        limit_itself_legal: false
+        fraction_of_limit_used: 0.9999997371631926
+      lcu_lambda:
+        value: 299.8235492197524
+        limit: 49.0
+        sense: strictly_above
+        limit_itself_legal: false
+        fraction_of_limit_used: 0.1634294575176481
