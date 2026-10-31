@@ -1,0 +1,22 @@
+# TfR1 binder screen: apical
+# the brief's recommended epitope, carried as the contrast
+# Patch 371 (apical): 47% conserved human/mouse,
+# 46.3 A from the transferrin site, 18.6 A from the nearest N-glycan.
+# Carboxylates in the patch (UniProt numbering): [350, 369]
+# Scan thresholds: patch_radius=12.0 min_patch_size=10
+#   surface_min_rsa=0.25 transferrin_clearance=6.0
+#   glycan_clearance=12.0  (size and clearance loosened post hoc; see docs/target.md)
+# Hotspots [208, 211, 348, 350, 371] in UniProt numbering. `binding` below is 1-BASED
+# CHAIN POSITIONS in apical.pdb, computed by prepare_target.py and verified by
+# re-reading the written file -- NOT UniProt numbers.
+entities:
+  - protein:
+      id: X
+      sequence: 60..95
+  - file:
+      path: /home/ubuntu/tfr1/targets/apical.pdb
+      include:
+        - chain: {id: R}
+      binding_types:
+        - chain: {id: R, binding: "11,14,67,69,84"}
+      structure_groups: "all"

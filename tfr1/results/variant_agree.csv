@@ -1,0 +1,113 @@
+design,position,delta_pkai,delta_propka,release_pkai,release_propka,verdicts,methods_agree,both_releasing,target_distance,nearest_carboxylate
+3ds18-L33H,33,-1.98,-2.93,0.671,0.228,pkai:release at low pH | propka:release at low pH,True,True,0.9,GLU214@6.3A
+3ds18-L33H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-L33H-N37H,33,-2.21,-2.98,0.571,0.208,pkai:release at low pH | propka:release at low pH,True,True,0.9,GLU214@6.3A
+3ds18-L33H-N37H,37,-0.3,-0.19,0.199,0.114,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-L33H-N37H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-L33H-N37H-Y87H,33,-2.37,-2.99,0.569,0.209,pkai:release at low pH | propka:release at low pH,True,True,0.9,GLU214@6.3A
+3ds18-L33H-N37H-Y87H,37,-0.32,-0.19,0.212,0.114,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-L33H-N37H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-L33H-N37H-Y87H,87,-0.31,-1.08,0.195,0.503,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-L33H-Y87H,33,-1.95,-2.94,0.67,0.229,pkai:release at low pH | propka:release at low pH,True,True,0.9,GLU214@6.3A
+3ds18-L33H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-L33H-Y87H,87,-0.31,-1.08,0.195,0.503,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-N37H,37,-0.27,-0.19,0.178,0.111,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-N37H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-N37H-Y87H,37,-0.26,-0.19,0.171,0.111,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-N37H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-N37H-Y87H,87,-0.25,-1.07,0.157,0.501,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-Q26H,26,-0.38,-0.36,0.235,0.228,pkai:inconsistent across structures | propka:release at low pH,False,False,3.1,ASP204@6.1A
+3ds18-Q26H,69,0.01,-0.02,-0.006,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-L33H,26,-0.4,-0.37,0.245,0.232,pkai:inconsistent across structures | propka:release at low pH,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-L33H,33,-2.2,-2.93,0.705,0.228,pkai:release at low pH | propka:release at low pH,True,True,0.9,GLU214@6.3A
+3ds18-Q26H-L33H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-L33H-N37H,26,-0.4,-0.37,0.245,0.232,pkai:inconsistent across structures | propka:release at low pH,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-L33H-N37H,33,-2.45,-2.98,0.6,0.208,pkai:release at low pH | propka:release at low pH,True,True,0.9,GLU214@6.3A
+3ds18-Q26H-L33H-N37H,37,-0.3,-0.19,0.199,0.114,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-Q26H-L33H-N37H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-L33H-N37H-Y87H,26,-0.4,-0.37,0.245,0.231,pkai:inconsistent across structures | propka:release at low pH,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-L33H-N37H-Y87H,33,-3.05,-2.98,0.574,0.209,pkai:release at low pH | propka:release at low pH,True,True,0.9,GLU214@6.3A
+3ds18-Q26H-L33H-N37H-Y87H,37,-0.32,-0.19,0.212,0.114,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-Q26H-L33H-N37H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-L33H-N37H-Y87H,87,-0.58,-1.07,0.373,0.499,pkai:release at low pH | propka:release at low pH,True,True,2.3,ASP204@4.9A
+3ds18-Q26H-L33H-Y87H,26,-0.4,-0.37,0.245,0.231,pkai:inconsistent across structures | propka:release at low pH,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-L33H-Y87H,33,-2.45,-2.93,0.678,0.229,pkai:release at low pH | propka:release at low pH,True,True,0.9,GLU214@6.3A
+3ds18-Q26H-L33H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-L33H-Y87H,87,-0.58,-1.07,0.373,0.499,pkai:release at low pH | propka:release at low pH,True,True,2.3,ASP204@4.9A
+3ds18-Q26H-N37H,26,-0.38,-0.36,0.235,0.228,pkai:inconsistent across structures | propka:release at low pH,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-N37H,37,-0.27,-0.19,0.178,0.111,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-Q26H-N37H,69,0.01,-0.02,-0.006,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-N37H-Y87H,26,-0.38,-0.36,0.235,0.228,pkai:inconsistent across structures | propka:release at low pH,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-N37H-Y87H,37,-0.26,-0.19,0.171,0.111,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-Q26H-N37H-Y87H,69,0.01,-0.02,-0.006,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-N37H-Y87H,87,-0.47,-1.06,0.301,0.497,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-Q26H-V30H,26,-0.46,-0.37,0.292,0.232,pkai:release at low pH | propka:inconsistent across structures,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-V30H,30,-1.26,-2.91,0.753,0.631,pkai:release at low pH | propka:release at low pH,True,True,1.9,ASP204@5.7A
+3ds18-Q26H-V30H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-V30H-L33H,26,-0.42,-0.38,0.266,0.235,pkai:release at low pH | propka:inconsistent across structures,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-V30H-L33H,30,-1.93,-2.93,0.839,0.444,pkai:release at low pH | propka:release at low pH,True,True,1.9,ASP204@5.7A
+3ds18-Q26H-V30H-L33H,33,-2.7,-3.12,0.619,0.193,pkai:release at low pH | propka:release at low pH,True,True,1.0,GLU214@6.3A
+3ds18-Q26H-V30H-L33H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-V30H-L33H-N37H,26,-0.42,-0.38,0.266,0.235,pkai:release at low pH | propka:inconsistent across structures,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-V30H-L33H-N37H,30,-1.62,-2.94,0.779,0.444,pkai:release at low pH | propka:release at low pH,True,True,1.9,ASP204@5.7A
+3ds18-Q26H-V30H-L33H-N37H,33,-3.08,-3.17,0.535,0.176,pkai:release at low pH | propka:release at low pH,True,True,1.0,GLU214@6.3A
+3ds18-Q26H-V30H-L33H-N37H,37,-0.32,-0.2,0.212,0.117,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-Q26H-V30H-L33H-N37H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-V30H-L33H-N37H-Y87H,26,-0.42,-0.38,0.266,0.233,pkai:release at low pH | propka:inconsistent across structures,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-V30H-L33H-N37H-Y87H,30,-1.99,-2.94,0.817,0.445,pkai:release at low pH | propka:release at low pH,True,True,1.9,ASP204@5.7A
+3ds18-Q26H-V30H-L33H-N37H-Y87H,33,-2.7,-3.17,0.526,0.176,pkai:release at low pH | propka:release at low pH,True,True,1.0,GLU214@6.3A
+3ds18-Q26H-V30H-L33H-N37H-Y87H,37,-0.33,-0.2,0.218,0.117,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-Q26H-V30H-L33H-N37H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-V30H-L33H-N37H-Y87H,87,-0.37,-1.08,0.236,0.502,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-Q26H-V30H-L33H-Y87H,26,-0.42,-0.38,0.266,0.233,pkai:release at low pH | propka:inconsistent across structures,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-V30H-L33H-Y87H,30,-1.84,-2.93,0.814,0.445,pkai:release at low pH | propka:release at low pH,True,True,1.9,ASP204@5.7A
+3ds18-Q26H-V30H-L33H-Y87H,33,-2.41,-3.12,0.621,0.194,pkai:release at low pH | propka:release at low pH,True,True,1.0,GLU214@6.3A
+3ds18-Q26H-V30H-L33H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-V30H-L33H-Y87H,87,-0.37,-1.08,0.236,0.502,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-Q26H-V30H-N37H,26,-0.46,-0.37,0.292,0.232,pkai:release at low pH | propka:inconsistent across structures,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-V30H-N37H,30,-1.54,-2.92,0.863,0.63,pkai:release at low pH | propka:release at low pH,True,True,1.9,ASP204@5.7A
+3ds18-Q26H-V30H-N37H,37,-0.27,-0.2,0.179,0.115,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-Q26H-V30H-N37H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-V30H-N37H-Y87H,26,-0.46,-0.37,0.292,0.23,pkai:release at low pH | propka:inconsistent across structures,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-V30H-N37H-Y87H,30,-1.39,-2.92,0.826,0.63,pkai:release at low pH | propka:release at low pH,True,True,1.9,ASP204@5.7A
+3ds18-Q26H-V30H-N37H-Y87H,37,-0.28,-0.2,0.185,0.115,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-Q26H-V30H-N37H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-V30H-N37H-Y87H,87,-0.3,-1.07,0.186,0.5,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-Q26H-V30H-Y87H,26,-0.46,-0.37,0.292,0.229,pkai:release at low pH | propka:inconsistent across structures,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-V30H-Y87H,30,-1.18,-2.91,0.71,0.631,pkai:release at low pH | propka:release at low pH,True,True,1.9,ASP204@5.7A
+3ds18-Q26H-V30H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-V30H-Y87H,87,-0.3,-1.07,0.186,0.5,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-Q26H-Y87H,26,-0.38,-0.36,0.235,0.228,pkai:inconsistent across structures | propka:release at low pH,False,False,3.1,ASP204@6.1A
+3ds18-Q26H-Y87H,69,0.01,-0.02,-0.006,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Q26H-Y87H,87,-0.47,-1.06,0.301,0.497,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-V30H,30,-1.29,-2.77,0.779,0.63,pkai:release at low pH | propka:release at low pH,True,True,1.6,GLU214@8.1A
+3ds18-V30H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-V30H-L33H,30,-3.14,-2.6,0.882,0.741,pkai:release at low pH | propka:release at low pH,True,True,1.5,ASP204@5.3A
+3ds18-V30H-L33H,33,-2.08,-3.12,0.67,0.193,pkai:release at low pH | propka:release at low pH,True,True,1.0,GLU214@6.3A
+3ds18-V30H-L33H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-V30H-L33H-N37H,30,-3.07,-2.62,0.883,0.748,pkai:release at low pH | propka:release at low pH,True,True,1.5,ASP204@5.3A
+3ds18-V30H-L33H-N37H,33,-2.92,-3.17,0.599,0.175,pkai:release at low pH | propka:release at low pH,True,True,1.0,GLU214@6.3A
+3ds18-V30H-L33H-N37H,37,-0.32,-0.2,0.212,0.117,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-V30H-L33H-N37H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-V30H-L33H-N37H-Y87H,30,-3.08,-2.62,0.895,0.744,pkai:release at low pH | propka:release at low pH,True,True,1.5,ASP204@5.3A
+3ds18-V30H-L33H-N37H-Y87H,33,-2.64,-3.17,0.586,0.176,pkai:release at low pH | propka:release at low pH,True,True,1.0,GLU214@6.3A
+3ds18-V30H-L33H-N37H-Y87H,37,-0.33,-0.2,0.218,0.117,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-V30H-L33H-N37H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-V30H-L33H-N37H-Y87H,87,-0.25,-1.1,0.158,0.506,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-V30H-L33H-Y87H,30,-3.17,-2.6,0.895,0.738,pkai:release at low pH | propka:release at low pH,True,True,1.5,ASP204@5.3A
+3ds18-V30H-L33H-Y87H,33,-2.32,-3.12,0.671,0.193,pkai:release at low pH | propka:release at low pH,True,True,1.0,GLU214@6.3A
+3ds18-V30H-L33H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-V30H-L33H-Y87H,87,-0.25,-1.1,0.158,0.506,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-V30H-N37H,30,-1.28,-2.79,0.774,0.629,pkai:release at low pH | propka:release at low pH,True,True,1.6,GLU214@8.1A
+3ds18-V30H-N37H,37,-0.27,-0.2,0.179,0.115,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-V30H-N37H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-V30H-N37H-Y87H,30,-1.28,-2.79,0.773,0.629,pkai:release at low pH | propka:release at low pH,True,True,1.6,GLU214@8.1A
+3ds18-V30H-N37H-Y87H,37,-0.28,-0.2,0.185,0.115,pkai:inconsistent across structures | propka:inconsistent across structures,True,False,2.9,GLU214@8.0A
+3ds18-V30H-N37H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-V30H-N37H-Y87H,87,-0.34,-1.08,0.217,0.502,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-V30H-Y87H,30,-1.28,-2.77,0.772,0.63,pkai:release at low pH | propka:release at low pH,True,True,1.6,GLU214@8.1A
+3ds18-V30H-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-V30H-Y87H,87,-0.34,-1.08,0.217,0.502,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-Y87H,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A
+3ds18-Y87H,87,-0.25,-1.07,0.157,0.501,pkai:inconsistent across structures | propka:release at low pH,False,False,2.3,ASP204@4.9A
+3ds18-wt,69,0.0,-0.02,0.0,0.004,pkai:uncoupled | propka:uncoupled,True,False,11.0,ASP204@16.2A

@@ -1,0 +1,257 @@
+name,parent,switch_log_units,coupled_sites,chosen,reason
+carboxylate_s_carboxylate_s_37-W46H-W36H-Q45H-N38H-L49H,carboxylate_s_carboxylate_s_37,1.46,4,True,
+carboxylate_s_carboxylate_s_37-W46H-W36H-Q45H-N38H,carboxylate_s_carboxylate_s_37,1.44,4,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W46H-W36H-Q45H-L49H,carboxylate_s_carboxylate_s_37,1.21,3,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L6H-I10H-L1H,carboxylate_s_carboxylate_s_10,1.2,3,True,
+carboxylate_s_carboxylate_s_37-W46H-W36H-Q45H,carboxylate_s_carboxylate_s_37,1.19,3,True,
+carboxylate_s_carboxylate_s_10-L6H-I10H-L1H-T13H,carboxylate_s_carboxylate_s_10,1.17,3,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W46H-W36H-N38H-L49H,carboxylate_s_carboxylate_s_37,1.15,3,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W46H-W36H-N38H,carboxylate_s_carboxylate_s_37,1.15,3,True,
+carboxylate_s_carboxylate_s_10-L6H-I10H-L1H-M7H,carboxylate_s_carboxylate_s_10,1.11,3,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L6H-I10H-L1H-M7H-T13H,carboxylate_s_carboxylate_s_10,1.08,3,True,
+carboxylate_s_carboxylate_s_37-W46H-Q45H-N38H-L49H,carboxylate_s_carboxylate_s_37,1.05,3,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W46H-Q45H-N38H,carboxylate_s_carboxylate_s_37,1.03,3,True,
+carboxylate_s_carboxylate_s_37-W36H-Q45H-N38H-L49H,carboxylate_s_carboxylate_s_37,1.01,3,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W36H-Q45H-N38H,carboxylate_s_carboxylate_s_37,0.99,3,True,
+conserved_conserved_16-R68H-R86H-A10H-S8H-A89H,conserved_conserved_16,0.97,3,False,parent carries 1 unpaired cysteine(s)
+carboxylate_s_carboxylate_s_10-L6H-I10H,carboxylate_s_carboxylate_s_10,0.95,2,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L6H-I10H-T13H,carboxylate_s_carboxylate_s_10,0.92,2,True,
+carboxylate_s_carboxylate_s_37-W46H-W36H,carboxylate_s_carboxylate_s_37,0.89,2,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W46H-W36H-L49H,carboxylate_s_carboxylate_s_37,0.89,2,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L6H-I10H-M7H,carboxylate_s_carboxylate_s_10,0.82,2,True,
+carboxylate_s_carboxylate_s_10-L6H-I10H-M7H-T13H,carboxylate_s_carboxylate_s_10,0.8,2,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W46H-Q45H-L49H,carboxylate_s_carboxylate_s_37,0.8,2,False,not in the top slots
+conserved_s_conserved_s_45-L12H-S8H-L38H,conserved_s_conserved_s_45,0.78,2,True,
+conserved_s_conserved_s_45-L12H-S8H,conserved_s_conserved_s_45,0.78,2,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W46H-Q45H,carboxylate_s_carboxylate_s_37,0.78,2,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L6H-L1H,carboxylate_s_carboxylate_s_10,0.77,2,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L6H-L1H-T13H,carboxylate_s_carboxylate_s_10,0.77,2,True,
+carboxylate_s_carboxylate_s_37-W36H-Q45H-L49H,carboxylate_s_carboxylate_s_37,0.75,2,False,not in the top slots
+conserved_conserved_16-R86H-A10H-S8H-A89H,conserved_conserved_16,0.75,2,False,parent carries 1 unpaired cysteine(s)
+carboxylate_s_carboxylate_s_37-W46H-N38H-L49H,carboxylate_s_carboxylate_s_37,0.74,2,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W46H-N38H,carboxylate_s_carboxylate_s_37,0.73,2,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W36H-Q45H,carboxylate_s_carboxylate_s_37,0.73,2,False,not in the top slots
+conserved_s_conserved_s_45-L12H-S8H-I7H,conserved_s_conserved_s_45,0.72,2,True,
+carboxylate_s_carboxylate_s_10-L6H-L1H-M7H,carboxylate_s_carboxylate_s_10,0.72,2,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L6H-L1H-M7H-T13H,carboxylate_s_carboxylate_s_10,0.72,2,False,not in the top slots
+conserved_s_conserved_s_45-L12H-S8H-I7H-L38H,conserved_s_conserved_s_45,0.71,2,False,not in the top slots
+conserved_conserved_16-R68H-R86H-A10H-A89H,conserved_conserved_16,0.69,2,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R86H-A10H-A89H,conserved_conserved_16,0.69,2,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R68H-R86H-A10H-S8H,conserved_conserved_16,0.68,2,False,parent carries 1 unpaired cysteine(s)
+carboxylate_s_carboxylate_s_10-I10H-L1H,carboxylate_s_carboxylate_s_10,0.67,2,False,not in the top slots
+conserved_conserved_16-R86H-A10H-S8H,conserved_conserved_16,0.67,2,False,parent carries 1 unpaired cysteine(s)
+carboxylate_s_carboxylate_s_37-W36H-N38H,carboxylate_s_carboxylate_s_37,0.66,2,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W36H-N38H-L49H,carboxylate_s_carboxylate_s_37,0.66,2,False,not in the top slots
+conserved_conserved_20-N46H-L45H-K24H,conserved_conserved_20,0.66,2,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_18-I4H-V3H-A87H,conserved_conserved_18,0.64,3,True,
+carboxylate_s_carboxylate_s_10-I10H-L1H-M7H,carboxylate_s_carboxylate_s_10,0.64,2,False,not in the top slots
+conserved_conserved_16-R68H-A10H-A89H,conserved_conserved_16,0.64,2,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-A10H-A89H,conserved_conserved_16,0.63,2,False,parent carries 1 unpaired cysteine(s)
+carboxylate_s_carboxylate_s_10-I10H-L1H-M7H-T13H,carboxylate_s_carboxylate_s_10,0.61,2,False,not in the top slots
+conserved_conserved_18-I4H-V3H-A87H-V2H,conserved_conserved_18,0.61,3,False,not in the top slots
+carboxylate_s_carboxylate_s_37-Q45H-N38H-L49H,carboxylate_s_carboxylate_s_37,0.6,2,False,not in the top slots
+conserved_conserved_16-R68H-A10H-S8H-A89H,conserved_conserved_16,0.6,2,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-A10H-S8H-A89H,conserved_conserved_16,0.59,2,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_45-A9H-S8H-I7H-L38H,conserved_s_conserved_s_45,0.59,2,True,
+conserved_conserved_20-N46H-L45H-L28H-K24H,conserved_conserved_20,0.59,2,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_20-N46H-A64H-L28H-K24H,conserved_conserved_20,0.59,2,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_18-V3H-A87H,conserved_conserved_18,0.58,2,False,not in the top slots
+carboxylate_s_carboxylate_s_37-Q45H-N38H,carboxylate_s_carboxylate_s_37,0.58,2,False,not in the top slots
+conserved_conserved_18-V3H-A87H-V2H,conserved_conserved_18,0.57,2,True,
+conserved_s_conserved_s_16-L33H-L1H-L29H-W49H,conserved_s_conserved_s_16,0.57,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-L1H-W49H,conserved_s_conserved_s_16,0.57,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-L29H-W49H,conserved_s_conserved_s_16,0.57,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-W49H,conserved_s_conserved_s_16,0.57,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_conserved_18-V6H-V3H-A87H,conserved_conserved_18,0.57,3,True,
+conserved_s_conserved_s_16-L33H,conserved_s_conserved_s_16,0.57,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-L1H,conserved_s_conserved_s_16,0.57,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-L1H-L29H,conserved_s_conserved_s_16,0.57,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-L29H,conserved_s_conserved_s_16,0.57,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_conserved_16-R68H-R86H-A10H,conserved_conserved_16,0.56,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R86H-A10H,conserved_conserved_16,0.56,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_16-L33H-L1H-V31H-L29H-W49H,conserved_s_conserved_s_16,0.56,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-L1H-V31H-W49H,conserved_s_conserved_s_16,0.56,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-V31H-L29H-W49H,conserved_s_conserved_s_16,0.56,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-V31H-W49H,conserved_s_conserved_s_16,0.56,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-L1H-V31H,conserved_s_conserved_s_16,0.56,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-L1H-V31H-L29H,conserved_s_conserved_s_16,0.56,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-V31H,conserved_s_conserved_s_16,0.56,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L33H-V31H-L29H,conserved_s_conserved_s_16,0.56,1,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_conserved_18-V6H-V3H-A87H-V2H,conserved_conserved_18,0.55,3,False,not in the top slots
+conserved_conserved_20-N46H-L45H-A64H-K24H,conserved_conserved_20,0.55,3,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_20-L45H-L28H,conserved_conserved_20,0.53,2,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_18-I4H-V6H-V3H-A87H-V2H,conserved_conserved_18,0.53,4,True,
+conserved_conserved_20-L45H-L28H-K24H,conserved_conserved_20,0.53,2,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_18-I4H-V6H-V3H-A87H,conserved_conserved_18,0.53,4,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L6H,carboxylate_s_carboxylate_s_10,0.52,1,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L6H-T13H,carboxylate_s_carboxylate_s_10,0.52,1,False,not in the top slots
+conserved_conserved_16-R68H-A10H-S8H,conserved_conserved_16,0.52,2,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-A10H-S8H,conserved_conserved_16,0.52,2,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_20-N46H-A64H-K24H,conserved_conserved_20,0.51,1,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_16-A10H,conserved_conserved_16,0.5,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R68H-A10H,conserved_conserved_16,0.5,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_20-N46H-K24H,conserved_conserved_20,0.49,1,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_s_conserved_s_45-A9H-S8H-I7H,conserved_s_conserved_s_45,0.49,2,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W46H,carboxylate_s_carboxylate_s_37,0.48,1,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W46H-L49H,carboxylate_s_carboxylate_s_37,0.48,1,False,not in the top slots
+conserved_conserved_20-N46H-L45H-A64H-L28H-K24H,conserved_conserved_20,0.45,3,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_20-A64H-L28H,conserved_conserved_20,0.44,2,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+carboxylate_s_carboxylate_s_10-I10H,carboxylate_s_carboxylate_s_10,0.43,1,False,not in the top slots
+carboxylate_s_carboxylate_s_10-I10H-M7H,carboxylate_s_carboxylate_s_10,0.43,1,False,not in the top slots
+conserved_s_conserved_s_45-L12H-I7H-L38H,conserved_s_conserved_s_45,0.42,1,True,
+carboxylate_s_carboxylate_s_10-I10H-L1H-T13H,carboxylate_s_carboxylate_s_10,0.42,1,False,not in the top slots
+carboxylate_s_carboxylate_s_10-I10H-T13H,carboxylate_s_carboxylate_s_10,0.42,1,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L6H-M7H,carboxylate_s_carboxylate_s_10,0.42,1,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L6H-M7H-T13H,carboxylate_s_carboxylate_s_10,0.42,1,False,not in the top slots
+conserved_conserved_20-A64H-L28H-K24H,conserved_conserved_20,0.42,2,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_s_conserved_s_45-L12H-A9H,conserved_s_conserved_s_45,0.41,2,True,
+conserved_s_conserved_s_45-L12H-A9H-I7H,conserved_s_conserved_s_45,0.41,2,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W36H,carboxylate_s_carboxylate_s_37,0.41,1,False,not in the top slots
+carboxylate_s_carboxylate_s_37-W36H-L49H,carboxylate_s_carboxylate_s_37,0.41,1,False,not in the top slots
+conserved_s_conserved_s_45-L12H,conserved_s_conserved_s_45,0.41,1,False,not in the top slots
+carboxylate_s_carboxylate_s_10-I10H-M7H-T13H,carboxylate_s_carboxylate_s_10,0.4,1,False,not in the top slots
+conserved_conserved_20-N46H-L45H,conserved_conserved_20,0.4,2,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_20-N46H-A64H,conserved_conserved_20,0.39,2,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_18-I4H-V6H-V3H,conserved_conserved_18,0.39,3,True,
+conserved_conserved_18-I4H-V3H,conserved_conserved_18,0.38,2,False,not in the top slots
+conserved_conserved_20-L45H-A64H-L28H,conserved_conserved_20,0.38,3,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_s_conserved_s_44-V50H-I42H-T4H,conserved_s_conserved_s_44,0.37,3,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_45-A9H-S8H-L38H,conserved_s_conserved_s_45,0.37,1,False,not in the top slots
+conserved_s_conserved_s_45-L12H-A9H-L38H,conserved_s_conserved_s_45,0.37,2,False,not in the top slots
+conserved_conserved_20-L45H-A64H-L28H-K24H,conserved_conserved_20,0.37,3,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_s_conserved_s_45-L12H-A9H-I7H-L38H,conserved_s_conserved_s_45,0.37,2,False,not in the top slots
+conserved_conserved_18-I4H-V3H-V2H,conserved_conserved_18,0.36,2,False,not in the top slots
+conserved_s_conserved_s_45-L12H-I7H,conserved_s_conserved_s_45,0.36,1,False,not in the top slots
+conserved_s_conserved_s_45-A9H-S8H,conserved_s_conserved_s_45,0.36,1,False,not in the top slots
+conserved_s_conserved_s_45-L12H-L38H,conserved_s_conserved_s_45,0.36,1,False,not in the top slots
+conserved_s_conserved_s_45-S8H,conserved_s_conserved_s_45,0.36,1,False,not in the top slots
+conserved_s_conserved_s_45-S8H-L38H,conserved_s_conserved_s_45,0.36,1,False,not in the top slots
+conserved_conserved_18-I4H-A87H,conserved_conserved_18,0.35,2,False,not in the top slots
+conserved_conserved_18-I4H-V6H-V3H-V2H,conserved_conserved_18,0.35,2,False,not in the top slots
+carboxylate_s_carboxylate_s_37-Q45H-L49H,carboxylate_s_carboxylate_s_37,0.34,1,False,not in the top slots
+conserved_conserved_18-I4H-A87H-V2H,conserved_conserved_18,0.34,2,False,not in the top slots
+conserved_conserved_20-N46H-L28H-K24H,conserved_conserved_20,0.34,1,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_18-V3H,conserved_conserved_18,0.33,1,False,not in the top slots
+conserved_conserved_18-V3H-V2H,conserved_conserved_18,0.33,1,False,not in the top slots
+carboxylate_s_carboxylate_s_37-Q45H,carboxylate_s_carboxylate_s_37,0.32,1,False,not in the top slots
+conserved_conserved_18-V6H-V3H,conserved_conserved_18,0.32,2,False,not in the top slots
+conserved_conserved_18-V6H-V3H-V2H,conserved_conserved_18,0.32,2,False,not in the top slots
+conserved_conserved_20-N46H-L45H-A64H,conserved_conserved_20,0.31,3,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_s_conserved_s_45-L12H-A9H-S8H-I7H-L38H,conserved_s_conserved_s_45,0.31,3,False,not in the top slots
+conserved_s_conserved_s_45-S8H-I7H,conserved_s_conserved_s_45,0.31,1,False,not in the top slots
+conserved_s_conserved_s_45-S8H-I7H-L38H,conserved_s_conserved_s_45,0.31,1,False,not in the top slots
+conserved_s_conserved_s_45-L12H-A9H-S8H-I7H,conserved_s_conserved_s_45,0.3,3,False,not in the top slots
+conserved_conserved_16-R86H-S8H-A89H,conserved_conserved_16,0.3,2,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-I42H-T4H,conserved_s_conserved_s_44,0.28,2,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_45-L12H-A9H-S8H,conserved_s_conserved_s_45,0.28,3,False,not in the top slots
+conserved_conserved_18-I4H-V6H-A87H-V2H,conserved_conserved_18,0.28,3,False,not in the top slots
+conserved_conserved_20-L28H,conserved_conserved_20,0.27,1,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_20-L28H-K24H,conserved_conserved_20,0.27,1,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_s_conserved_s_45-L12H-A9H-S8H-L38H,conserved_s_conserved_s_45,0.26,3,False,not in the top slots
+conserved_conserved_20-N46H-L45H-L28H,conserved_conserved_20,0.26,1,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_18-A87H-V2H,conserved_conserved_18,0.26,1,False,not in the top slots
+conserved_conserved_18-I4H-V6H-A87H,conserved_conserved_18,0.26,3,False,not in the top slots
+carboxylate_s_carboxylate_s_37-N38H,carboxylate_s_carboxylate_s_37,0.25,1,False,not in the top slots
+carboxylate_s_carboxylate_s_37-N38H-L49H,carboxylate_s_carboxylate_s_37,0.25,1,False,not in the top slots
+conserved_conserved_18-V6H-A87H,conserved_conserved_18,0.25,2,False,not in the top slots
+conserved_conserved_18-V6H-A87H-V2H,conserved_conserved_18,0.25,2,False,not in the top slots
+conserved_conserved_20-L45H-K24H,conserved_conserved_20,0.22,1,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_20-N46H,conserved_conserved_20,0.22,1,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+carboxylate_s_carboxylate_s_10-L1H-M7H-T13H,carboxylate_s_carboxylate_s_10,0.21,1,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L1H-M7H,carboxylate_s_carboxylate_s_10,0.21,1,False,not in the top slots
+conserved_s_conserved_s_44-K49H-I42H-T4H,conserved_s_conserved_s_44,0.21,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-K49H-I42H,conserved_s_conserved_s_44,0.2,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-V50H-T4H,conserved_s_conserved_s_44,0.2,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_18-A87H,conserved_conserved_18,0.2,1,False,not in the top slots
+conserved_s_conserved_s_44-K49H-T4H,conserved_s_conserved_s_44,0.19,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-V50H-A8H,conserved_s_conserved_s_44,0.19,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-K49H-A8H-T4H,conserved_s_conserved_s_44,0.19,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-V50H,conserved_s_conserved_s_44,0.18,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_20-N46H-A64H-L28H,conserved_conserved_20,0.17,1,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_20-N46H-L45H-A64H-L28H,conserved_conserved_20,0.17,3,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_s_conserved_s_44-K49H-V50H-I42H-T4H,conserved_s_conserved_s_44,0.15,2,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R68H-A89H,conserved_conserved_16,0.14,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-V50H-A8H-T4H,conserved_s_conserved_s_44,0.14,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-V50H-I42H,conserved_s_conserved_s_44,0.14,2,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-A89H,conserved_conserved_16,0.13,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-K49H-V50H-I42H,conserved_s_conserved_s_44,0.13,2,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_20-L45H-A64H-K24H,conserved_conserved_20,0.13,2,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_s_conserved_s_44-V50H-I42H-A8H-T4H,conserved_s_conserved_s_44,0.13,2,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R68H-R86H-A89H,conserved_conserved_16,0.12,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-V50H-I42H-A8H,conserved_s_conserved_s_44,0.12,2,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R86H-A89H,conserved_conserved_16,0.12,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-S8H-A89H,conserved_conserved_16,0.12,2,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-K49H-V50H-I42H-A8H-T4H,conserved_s_conserved_s_44,0.12,2,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R68H-S8H-A89H,conserved_conserved_16,0.11,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R68H-R86H-S8H-A89H,conserved_conserved_16,0.1,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_20-L45H-A64H,conserved_conserved_20,0.1,2,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_s_conserved_s_44-I42H,conserved_s_conserved_s_44,0.09,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_18-I4H-V6H,conserved_conserved_18,0.09,2,False,not in the top slots
+conserved_conserved_18-I4H-V6H-V2H,conserved_conserved_18,0.07,2,False,not in the top slots
+conserved_s_conserved_s_44-K49H-V50H-I42H-A8H,conserved_s_conserved_s_44,0.07,2,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-I42H-A8H-T4H,conserved_s_conserved_s_44,0.07,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_18-I4H-V2H,conserved_conserved_18,0.06,1,False,not in the top slots
+conserved_s_conserved_s_44-I42H-A8H,conserved_s_conserved_s_44,0.06,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R68H-S8H,conserved_conserved_16,0.04,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-S8H,conserved_conserved_16,0.03,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R68H-R86H-S8H,conserved_conserved_16,0.03,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R86H-S8H,conserved_conserved_16,0.03,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_45-A9H,conserved_s_conserved_s_45,0.03,1,False,not in the top slots
+conserved_s_conserved_s_45-A9H-L38H,conserved_s_conserved_s_45,0.03,1,False,not in the top slots
+conserved_s_conserved_s_45-A9H-I7H,conserved_s_conserved_s_45,0.03,1,False,not in the top slots
+conserved_s_conserved_s_45-A9H-I7H-L38H,conserved_s_conserved_s_45,0.02,1,False,not in the top slots
+conserved_s_conserved_s_44-K49H-V50H,conserved_s_conserved_s_44,0.01,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-K49H-V50H-A8H,conserved_s_conserved_s_44,0.01,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-K49H-V50H-A8H-T4H,conserved_s_conserved_s_44,0.01,1,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-K49H-V50H-T4H,conserved_s_conserved_s_44,0.01,1,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_18-V6H,conserved_conserved_18,0.0,1,False,not in the top slots
+conserved_conserved_18-V6H-V2H,conserved_conserved_18,0.0,1,False,not in the top slots
+carboxylate_s_carboxylate_s_10-L1H,carboxylate_s_carboxylate_s_10,0.0,0,False,no position where both methods agree on release
+carboxylate_s_carboxylate_s_10-L1H-T13H,carboxylate_s_carboxylate_s_10,0.0,0,False,no position where both methods agree on release
+carboxylate_s_carboxylate_s_10-M7H,carboxylate_s_carboxylate_s_10,0.0,0,False,no position where both methods agree on release
+carboxylate_s_carboxylate_s_10-M7H-T13H,carboxylate_s_carboxylate_s_10,0.0,0,False,no position where both methods agree on release
+carboxylate_s_carboxylate_s_10-T13H,carboxylate_s_carboxylate_s_10,0.0,0,False,no position where both methods agree on release
+carboxylate_s_carboxylate_s_10-wt,carboxylate_s_carboxylate_s_10,0.0,0,False,no position where both methods agree on release
+carboxylate_s_carboxylate_s_37-L49H,carboxylate_s_carboxylate_s_37,0.0,0,False,no position where both methods agree on release
+carboxylate_s_carboxylate_s_37-wt,carboxylate_s_carboxylate_s_37,0.0,0,False,no position where both methods agree on release
+conserved_conserved_16-R68H,conserved_conserved_16,0.0,0,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R68H-R86H,conserved_conserved_16,0.0,0,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-R86H,conserved_conserved_16,0.0,0,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_16-wt,conserved_conserved_16,0.0,0,False,parent carries 1 unpaired cysteine(s)
+conserved_conserved_18-I4H,conserved_conserved_18,0.0,0,False,no position where both methods agree on release
+conserved_conserved_18-V2H,conserved_conserved_18,0.0,0,False,no position where both methods agree on release
+conserved_conserved_18-wt,conserved_conserved_18,0.0,0,False,no position where both methods agree on release
+conserved_conserved_20-A64H,conserved_conserved_20,0.0,0,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_20-A64H-K24H,conserved_conserved_20,0.0,0,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_20-K24H,conserved_conserved_20,0.0,0,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_20-L45H,conserved_conserved_20,0.0,0,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_20-N46H-L28H,conserved_conserved_20,0.0,0,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_conserved_20-wt,conserved_conserved_20,0.0,0,False,novelty 2 below 3 (52% to 7a31_A; fold high (TM 0.90 over 95% to 6nmwA00))
+conserved_s_conserved_s_16-L1H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L1H-L29H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L1H-L29H-W49H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L1H-V31H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L1H-V31H-L29H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L1H-V31H-L29H-W49H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L1H-V31H-W49H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L1H-W49H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L29H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-L29H-W49H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-V31H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-V31H-L29H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-V31H-L29H-W49H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-V31H-W49H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-W49H,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_16-wt,conserved_s_conserved_s_16,0.0,0,False,novelty 2 below 3 (50% to 7a31_A; fold high (TM 0.94 over 100% to af_D3YYY8_789_849_2.30.30.40))
+conserved_s_conserved_s_44-A8H,conserved_s_conserved_s_44,0.0,0,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-A8H-T4H,conserved_s_conserved_s_44,0.0,0,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-K49H,conserved_s_conserved_s_44,0.0,0,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-K49H-A8H,conserved_s_conserved_s_44,0.0,0,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-K49H-I42H-A8H,conserved_s_conserved_s_44,0.0,0,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-K49H-I42H-A8H-T4H,conserved_s_conserved_s_44,0.0,0,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-T4H,conserved_s_conserved_s_44,0.0,0,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_44-wt,conserved_s_conserved_s_44,0.0,0,False,parent carries 1 unpaired cysteine(s)
+conserved_s_conserved_s_45-I7H,conserved_s_conserved_s_45,0.0,0,False,no position where both methods agree on release
+conserved_s_conserved_s_45-I7H-L38H,conserved_s_conserved_s_45,0.0,0,False,no position where both methods agree on release
+conserved_s_conserved_s_45-L38H,conserved_s_conserved_s_45,0.0,0,False,no position where both methods agree on release
+conserved_s_conserved_s_45-wt,conserved_s_conserved_s_45,0.0,0,False,no position where both methods agree on release

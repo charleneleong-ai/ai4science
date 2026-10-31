@@ -1,0 +1,133 @@
+{
+  "source": "11qc.cif",
+  "cut_radius": 22.0,
+  "min_run": 5,
+  "acidic_residues": [
+    "D",
+    "E"
+  ],
+  "scan_thresholds": {
+    "patch_radius": 12.0,
+    "min_patch_size": 10,
+    "surface_min_rsa": 0.25,
+    "transferrin_clearance": 6.0,
+    "glycan_clearance": 12.0
+  },
+  "epitopes": {
+    "conserved": {
+      "centre": 529,
+      "rationale": "most conserved patch clear of both the transferrin site and the glycans",
+      "domain": "protease-like",
+      "conservation": 0.9,
+      "transferrin_distance": 12.3,
+      "glycan_distance": 33.5,
+      "patch_carboxylates": [
+        525,
+        533
+      ],
+      "residues": 114,
+      "runs": [
+        "479-516",
+        "519-546",
+        "549-562",
+        "592-598",
+        "606-627",
+        "699-703"
+      ],
+      "hotspots_uniprot": [
+        523,
+        525,
+        527,
+        530,
+        533
+      ],
+      "hotspots_positions": [
+        43,
+        45,
+        47,
+        50,
+        53
+      ],
+      "binding_string": "43,45,47,50,53",
+      "file": "conserved.pdb"
+    },
+    "carboxylate": {
+      "centre": 605,
+      "rationale": "richest in carboxylates for a designed histidine to titrate against",
+      "domain": "protease-like",
+      "conservation": 0.833,
+      "transferrin_distance": 6.3,
+      "glycan_distance": 41.3,
+      "patch_carboxylates": [
+        604,
+        606,
+        664,
+        667
+      ],
+      "residues": 113,
+      "runs": [
+        "122-131",
+        "392-405",
+        "440-450",
+        "474-482",
+        "499-509",
+        "549-553",
+        "593-614",
+        "652-682"
+      ],
+      "hotspots_uniprot": [
+        604,
+        606,
+        664,
+        667,
+        668
+      ],
+      "hotspots_positions": [
+        72,
+        74,
+        95,
+        98,
+        99
+      ],
+      "binding_string": "72,74,95,98,99",
+      "file": "carboxylate.pdb"
+    },
+    "apical": {
+      "centre": 371,
+      "rationale": "the brief's recommended epitope, carried as the contrast",
+      "domain": "apical",
+      "conservation": 0.467,
+      "transferrin_distance": 46.3,
+      "glycan_distance": 18.6,
+      "patch_carboxylates": [
+        350,
+        369
+      ],
+      "residues": 90,
+      "runs": [
+        "198-216",
+        "226-236",
+        "246-257",
+        "275-282",
+        "332-354",
+        "361-377"
+      ],
+      "hotspots_uniprot": [
+        208,
+        211,
+        348,
+        350,
+        371
+      ],
+      "hotspots_positions": [
+        11,
+        14,
+        67,
+        69,
+        84
+      ],
+      "binding_string": "11,14,67,69,84",
+      "file": "apical.pdb"
+    }
+  }
+}
