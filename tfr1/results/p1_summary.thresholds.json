@@ -1,0 +1,10 @@
+{
+  "coupling_floor": 0.3,
+  "ph_bind": 7.4,
+  "ph_release": 6.0,
+  "in_window_reported_not_ranked": [
+    6.0,
+    7.6
+  ],
+  "rank_key": "total_release_consistent"
+}
