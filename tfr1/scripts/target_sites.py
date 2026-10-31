@@ -82,6 +82,24 @@ DOMAINS: dict[str, frozenset[int]] = {
 
 # A binder histidine needs a partner to titrate against; these are what it can pair with.
 ACIDIC = frozenset("DE")
+
+# The sidechain atoms that actually carry the charge. A carboxylate missing these is
+# electrostatically absent: both pKa predictors score it as uncharged, which drives the
+# bound-vs-free linkage toward zero and manufactures an "uncoupled" verdict. The GLP1R
+# target this pipeline was handed had 9 of 48 residues truncated this way, and BoltzGen
+# reproduced the truncation faithfully through 200 designs, so it is checked where
+# targets are written rather than where they are finally measured.
+CARBOXYLATE_ATOMS = {"ASP": {"CG", "OD1", "OD2"}, "GLU": {"CD", "OE1", "OE2"}}
+
+
+def truncated_carboxylates(residues: Collection[gemmi.Residue]) -> list[str]:
+    """Acidic residues whose charged atoms are missing from the model."""
+    return [
+        f"{residue.name}{residue.seqid.num}"
+        for residue in residues
+        if (wanted := CARBOXYLATE_ATOMS.get(residue.name))
+        and not wanted <= {atom.name for atom in residue}
+    ]
 TITRATABLE = frozenset("DEH")
 
 # The brief names six divergent apical residues. 210 and 211 differ only in where

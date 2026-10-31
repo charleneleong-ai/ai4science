@@ -35,7 +35,7 @@ from typing import Annotated
 
 import gemmi
 import typer
-from target_sites import ACIDIC, centroid, one_letter, read_sequence
+from target_sites import ACIDIC, centroid, one_letter, read_sequence, truncated_carboxylates
 
 CUT_RADIUS = 22.0
 MIN_RUN = 5
@@ -201,6 +201,26 @@ def check_epitope_against_scan(
     return patch
 
 
+def verify_carboxylates(path: Path) -> None:
+    """Refuse to ship a target whose acidic sidechains are incomplete.
+
+    The whole pH-switch design rests on receptor carboxylates for a designed histidine to
+    titrate against, and a carboxylate missing its charged atoms is invisible to every pKa
+    method downstream -- it does not fail loudly, it quietly reports no coupling. The GLP1R
+    target handed to the generator in the previous campaign was truncated at 9 of 48
+    residues and nothing noticed until the switch stage, three stages and a GPU-week later.
+    Checked against the written file, not the in-memory copy, for the same reason
+    `verify_positions` is.
+    """
+    if missing := truncated_carboxylates(amino_acids(load_written_chain(path))):
+        raise typer.BadParameter(
+            f"{path.name}: {len(missing)} acidic residues are missing their charged atoms "
+            f"({', '.join(missing[:6])}). A designed histidine cannot titrate against a "
+            f"carboxylate the model does not have, and the pKa stage would report this as "
+            f"absence of coupling rather than as a broken target."
+        )
+
+
 def verify_positions(path: Path, hotspots: Collection[int], sequence: str) -> dict[int, int]:
     positions = positions_in_written_file(path)
     written = amino_acids(load_written_chain(path))
@@ -231,6 +251,7 @@ def build_entry(
     path = out_dir / f"{name}.pdb"
     write_target(residues, kept, path)
     positions = verify_positions(path, epitope.hotspots, sequence)
+    verify_carboxylates(path)
 
     for number in epitope.hotspots:
         basis = "patch" if number in patch.members else "measured contact"
