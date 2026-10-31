@@ -51,7 +51,6 @@ electrostatic linkage, which is not what delta means.
 from __future__ import annotations
 
 import contextlib
-import csv
 import gzip
 import io
 import json
@@ -66,8 +65,13 @@ from typing import Annotated, Protocol, TypeVar
 
 import gemmi
 import typer
-from csvio import write_rows
-from target_sites import CARBOXYLATE_ATOMS, one_letter, truncated_carboxylates
+from csvio import read_designs, write_rows
+from target_sites import (
+    CARBOXYLATE_ATOMS,
+    one_letter,
+    placeholder_coordinates,
+    truncated_carboxylates,
+)
 
 # The window the previous campaign gated on. Kept because recording a rejected metric is what
 # makes its rejection reproducible, not because anything here ranks on it -- see
@@ -388,18 +392,17 @@ def load_complex(path: Path, design: str, sequence: str, work: Path) -> Complex:
             f"drive delta toward zero, manufacturing an uncoupled verdict."
         )
 
+    everything = [residue for chain in model for residue in chain]
+    if collapsed := placeholder_coordinates(everything):
+        raise TargetUnmeasurable(
+            f"{path.name}: {len(collapsed)} residues have their sidechain atoms parked at the "
+            f"origin rather than placed ({', '.join(collapsed[:5])}). The atoms are all present "
+            f"by name, so nothing downstream would notice; both pKa methods would score a "
+            f"sidechain collapsed onto one point and return a reading rather than fail."
+        )
+
     source = path.name.removesuffix(".gz").removesuffix(".cif")
     return Complex(design, source, binder, targets, structure)
-
-
-def read_designs(path: Path, only: set[str] | None) -> dict[str, str]:
-    with path.open(newline="") as handle:
-        rows = list(csv.DictReader(handle))
-    return {
-        row["name"]: row["sequence"].strip().upper()
-        for row in rows
-        if only is None or row["name"] in only
-    }
 
 
 def index_structures(root: Path, designs: Iterable[str]) -> dict[str, list[Path]]:

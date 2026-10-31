@@ -13,9 +13,11 @@ Three traps this guards against, all of which have already cost a campaign:
   anywhere raised. This version reads the scan's CSV, looks each chosen centre up
   in it, and refuses to cut a target that the scan did not mark usable -- so a
   threshold change that moves the candidate set breaks the build instead of
-  shipping stale geometry. The hotspots stay curated (they are a design choice,
-  weighted towards the receptor carboxylates a histidine can titrate against), but
-  each one is checked to be a member of the patch it claims.
+  shipping stale geometry. The hotspots stay curated (they are a design choice, and
+  were weighted towards the receptor carboxylates a histidine was believed to need
+  to titrate against -- a belief since measured and refuted, the lever being burial
+  on binding; `target_sites.py` records the numbers), but each one is checked to be
+  a member of the patch it claims.
 - **BoltzGen `binding` indices are 1-based positions in the written chain, not
   UniProt numbers.** The conversion is computed, and then verified by re-reading
   the file that was actually written -- asserting both the residue code and its
@@ -60,7 +62,8 @@ EPITOPES: dict[str, Epitope] = {
     "carboxylate": Epitope(
         centre=605,
         hotspots=(604, 606, 664, 667, 668),
-        rationale="richest in carboxylates for a designed histidine to titrate against",
+        rationale="richest in carboxylates; chosen on a criterion since refuted, kept as a "
+                  "second conserved epitope (83% human/mouse identity)",
     ),
     "apical": Epitope(
         centre=371,
@@ -204,20 +207,22 @@ def check_epitope_against_scan(
 def verify_carboxylates(path: Path) -> None:
     """Refuse to ship a target whose acidic sidechains are incomplete.
 
-    The whole pH-switch design rests on receptor carboxylates for a designed histidine to
-    titrate against, and a carboxylate missing its charged atoms is invisible to every pKa
-    method downstream -- it does not fail loudly, it quietly reports no coupling. The GLP1R
-    target handed to the generator in the previous campaign was truncated at 9 of 48
-    residues and nothing noticed until the switch stage, three stages and a GPU-week later.
-    Checked against the written file, not the in-memory copy, for the same reason
-    `verify_positions` is.
+    Not because a histidine needs a carboxylate to pair with -- that criterion has since been
+    measured and refuted -- but because both pKa methods solve for the electrostatic environment
+    of the whole complex, and an acidic sidechain missing its charged atoms is scored as
+    uncharged. A target truncated this way is a different molecule electrostatically, and the
+    linkage measured against it is not the linkage of the real complex. It does not fail loudly:
+    it drives every Delta toward zero and quietly reports no coupling. The GLP1R target handed to
+    the generator in the previous campaign was truncated at 9 of 48 residues and nothing noticed
+    until the switch stage, three stages and a GPU-week later. Checked against the written file,
+    not the in-memory copy, for the same reason `verify_positions` is.
     """
     if missing := truncated_carboxylates(amino_acids(load_written_chain(path))):
         raise typer.BadParameter(
             f"{path.name}: {len(missing)} acidic residues are missing their charged atoms "
-            f"({', '.join(missing[:6])}). A designed histidine cannot titrate against a "
-            f"carboxylate the model does not have, and the pKa stage would report this as "
-            f"absence of coupling rather than as a broken target."
+            f"({', '.join(missing[:6])}). Both pKa methods would score them as uncharged, so "
+            f"every linkage measured against this target would be the linkage of a different "
+            f"molecule, reported as absence of coupling rather than as a broken target."
         )
 
 

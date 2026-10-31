@@ -4,8 +4,20 @@ Adaptyv × Anthropic Protein Design Competition, challenge 04. Three objectives 
 bind human TfR1, cross-react with mouse TfR1, and bind at pH 7.4 while releasing at pH 6.0.
 Submissions close **Sunday 1 November 23:59 AoE** (Monday 2 November 22:59 Sydney).
 
-**Status (2026-10-31): target characterised, generation running.** Nothing is measured and no
-designs are submitted yet.
+**Status (2026-10-31): generation and triage complete, the switch measured on the 3DS18 chassis,
+de novo histidine engineering running.** Nothing is measured in a wet lab and no designs are
+submitted yet.
+
+| stage | result |
+| --- | --- |
+| generated | 300 designs, 6 specs (3 epitopes × 2 length bands), 50 each |
+| triage | **226 pass** (75%); best interface confidence ipTM **0.39** (46 res, short band) against 0.34–0.39 for the same pipeline on GLP1R |
+| histidines present | **0 of 300** carry three; max is two — every switch has to be engineered |
+| 3DS18 chassis | 32 histidine combinations × 3 crystal copies; best **1.44 log units** (28× weaker at pH 6.0) with 3 sites releasing under both methods |
+| 3DS18 limitation | its epitope is **44% identical in mouse** (8/18 contacts), so it cannot serve objective 2 |
+
+The best 3DS18 variant is `V30H-L33H-Y87H`, ranked on the **lower** of the two pKa methods
+(1.44 PROPKA / 1.57 pKAI) rather than the better one.
 
 ## The headline: the recommended epitope serves the lowest-ranked objective
 
@@ -53,9 +65,28 @@ best-determined positions **uncoupled on all 25 samples** — they titrate clean
 nothing to binding, because an equilibrium identical in both states cancels. All six sat
 **9–21 Å from the target, none in contact**.
 
-So the constraint moves upstream: each epitope here was chosen partly for the receptor
-carboxylates facing it, which are what a designed histidine can titrate against *at the
-interface*. The coupling verifier decides, not the pKa window alone.
+So the constraint moved upstream: each epitope here was chosen partly for the receptor
+carboxylates facing it, on the reasoning that those are what a designed histidine titrates
+against *at the interface*. **That reasoning has since been measured, and it is wrong.** Across
+114 readings on 44 TNF designs, Δ tracks how deeply binding buries the histidine — Spearman ρ
+**+0.74** (PROPKA) and **+0.51** (pKAI) against distance to the target — and not proximity to a
+carboxylate, where ρ was +0.12 and −0.27 with the two methods disagreeing on the sign. Buried
+within 4 Å the median Δ is **−0.98**; further out, **−0.04**. Within 6 Å of an acid it is −0.225
+against −0.200 further away, which is no difference. Reproduced independently on this target over
+32 histidine variants of 3DS18, each on three crystallographically independent copies: Δ runs
+−3.0 at 0.9 Å, −2.9 at 1.9 Å, −1.1 at 2.3 Å, −0.2 at 2.9 Å, and −0.02 for the native His69 at
+11 Å in all 32 variants.
+
+The mechanism is desolvation, not pairing. Burial penalises protonation in the complex but not in
+the free binder, lowering the complex pKa and giving Δ < 0. A histidine beside a receptor
+carboxylate is the opposite case — the acid stabilises the protonated form in the complex, raising
+its pKa, so Δ > 0 and the binder holds on *harder* at pH 6.0. **The lever is burial on binding**,
+and substitution positions are now chosen on buried area
+([`his_variants.py`](scripts/his_variants.py), [`denovo_his.py`](scripts/denovo_his.py)). The
+epitope named `carboxylate` keeps its name because the specs, design names and recorded results
+are all written in terms of it; it is retained on its merits as the second-most conserved epitope
+(83% human/mouse), not on its carboxylate count. The coupling verifier decides, not the pKa window
+alone.
 
 ## Pipeline
 

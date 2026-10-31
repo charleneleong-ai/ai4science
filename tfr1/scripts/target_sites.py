@@ -19,8 +19,33 @@ This script measures the trade-off instead of assuming it:
 - the titratable context of each patch. A pH switch needs a protonatable residue
   *in* the interface: the TNF-alpha campaign placed six histidines 9-21 A from the
   target, found them uncoupled from binding on every sample, and lost its central
-  claim to that. Carboxylates facing the patch are what a designed histidine can
-  pair with, so they are counted here, before any design exists.
+  claim to that. Carboxylates facing the patch are counted here, before any design
+  exists -- but see the correction below: they are not what makes a switch.
+
+**Correction, measured after this script chose its epitopes.** The acidic count was
+originally a *selection* criterion, on the reasoning that a designed histidine needs
+a receptor carboxylate to titrate against. That is wrong, and the data say so twice.
+Over 114 readings on 44 TNF designs the Spearman rho of the linkage
+Delta = pKa(complex) - pKa(free) against distance to the target was +0.74 (propka)
+and +0.51 (pKAI) -- positive against *distance*, so the closer the histidine, the
+more negative Delta, which is the direction that releases at low pH. Against distance
+to the nearest receptor carboxylate it was +0.12 and -0.27: no consistent effect, the
+two methods disagreeing even on its sign. Sites buried within 4 A sat at a median
+Delta of -0.98 against -0.04 for the rest, while sitting within 6 A of an acid gave
+-0.225 against -0.200, which is no difference at all. All 27 readings that released
+were at 4.3 A or closer. Reproduced independently on this target across 32 histidine
+variants of 3DS18, each on three crystallographically independent copies: Delta ran
+-3.0 at 0.9 A, -2.9 at 1.9 A, -1.1 at 2.3 A, -0.2 at 2.9 A, and -0.02 for the native
+His69 at 11 A in all 32.
+
+The mechanism is desolvation, not pairing. Protonation is penalised where the
+imidazole is buried, so a histidine that binding buries pays that penalty in the
+complex and not when free, lowering the complex pKa and making Delta negative. A
+histidine beside a receptor carboxylate is the opposite case -- the acid stabilises
+the protonated form in the complex, raising its pKa, Delta comes out positive, and the
+binder holds on *harder* at pH 6.0. **The lever is burial on binding.** The epitope
+named `carboxylate` keeps its name because the specs, design names and recorded
+results are all written in terms of it; the name is now historical, not a rationale.
 
 Dimer SASA is used throughout, not monomer: the receptor is supplied as a
 homodimer, so the dimer interface is not available to bind and must not be scored
@@ -80,7 +105,10 @@ DOMAINS: dict[str, frozenset[int]] = {
     "helical": frozenset(range(607, 761)),
 }
 
-# A binder histidine needs a partner to titrate against; these are what it can pair with.
+# Counted per patch to record each epitope's acidic content. This was originally the selection
+# criterion; the module docstring records why that was wrong and what replaced it. The count is
+# kept because it is a real property of the surface and the recorded epitope statistics were
+# computed from it, but it does not predict coupling and nothing should be ranked on it.
 ACIDIC = frozenset("DE")
 
 # The sidechain atoms that actually carry the charge. A carboxylate missing these is
@@ -91,6 +119,9 @@ ACIDIC = frozenset("DE")
 # targets are written rather than where they are finally measured.
 CARBOXYLATE_ATOMS = {"ASP": {"CG", "OD1", "OD2"}, "GLU": {"CD", "OE1", "OE2"}}
 
+# Excluded when testing whether a sidechain was ever placed; a glycine has nothing else.
+BACKBONE_ATOMS = frozenset({"N", "CA", "C", "O", "OXT"})
+
 
 def truncated_carboxylates(residues: Collection[gemmi.Residue]) -> list[str]:
     """Acidic residues whose charged atoms are missing from the model."""
@@ -100,6 +131,27 @@ def truncated_carboxylates(residues: Collection[gemmi.Residue]) -> list[str]:
         if (wanted := CARBOXYLATE_ATOMS.get(residue.name))
         and not wanted <= {atom.name for atom in residue}
     ]
+
+
+def placeholder_coordinates(residues: Collection[gemmi.Residue]) -> list[str]:
+    """Residues whose sidechain atoms are parked at the origin rather than placed.
+
+    The sibling failure mode to a truncated carboxylate, and the harder one to see. BoltzGen
+    writes an inverse-folded structure whose sidechains carry the designed sequence but no
+    coordinates: every atom past the backbone sits at (0, 0, 0). Each atom a pKa method looks
+    for is present *by name*, so a completeness check on atom names passes, and both methods
+    then return a number for a sidechain collapsed onto a single point. That is a reading, not
+    a crash, and it lands in the same group as the real structures.
+    """
+    collapsed = []
+    for residue in residues:
+        sidechain = [atom for atom in residue if atom.name not in BACKBONE_ATOMS]
+        if len(sidechain) > 1 and all(atom.pos.dist(gemmi.Position(0, 0, 0)) < 1e-3
+                                      for atom in sidechain):
+            collapsed.append(f"{residue.name}{residue.seqid.num}")
+    return collapsed
+
+
 TITRATABLE = frozenset("DEH")
 
 # The brief names six divergent apical residues. 210 and 211 differ only in where

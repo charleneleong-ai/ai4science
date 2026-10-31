@@ -104,10 +104,44 @@ nothing to binding, because a protonation equilibrium identical in both states c
 histidines sat **9–21 Å from the target, none in contact**, which is the most likely reason.
 
 So here the constraint goes in *before* generation rather than being audited after. Each epitope
-is selected partly for the receptor carboxylates facing it — D525/E533, the four at 605, E350/E369
-— which are what a designed histidine can titrate against at the interface itself. Stage 2 scans
-histidine substitutions at interface positions only, and the coupling verifier decides, not the
-pKa window alone.
+was selected partly for the receptor carboxylates facing it — D525/E533, the four at 605,
+E350/E369 — on the reasoning that those are what a designed histidine titrates against at the
+interface itself. Stage 2 scans histidine substitutions at interface positions only, and the
+coupling verifier decides, not the pKa window alone.
+
+### Correction: the carboxylates are not the lever, burial is
+
+The carboxylate criterion above was a prediction, and measuring it refuted it. Two independent
+datasets, both with two independent pKa methods:
+
+| | ρ(Δ, distance to target) | ρ(Δ, distance to nearest carboxylate) |
+| --- | --- | --- |
+| PROPKA, 57 readings | **+0.74** | +0.12 |
+| pKAI, 57 readings | **+0.51** | −0.27 |
+| pooled, 114 readings | **+0.61** | −0.05 |
+
+ρ is positive against *distance*, so a histidine closer to the target has a more negative Δ —
+the direction that releases at low pH. Carboxylate proximity shows no consistent effect and the
+two methods disagree even on its sign.
+
+| | buried ≤4 Å | not buried | within 6 Å of an acid | further away |
+| --- | --- | --- | --- | --- |
+| median Δ | **−0.98** | −0.04 | −0.225 | −0.200 |
+
+All 27 readings that released were at 4.3 Å or closer (median burial 3.2 Å against 5.2 Å for the
+rest; median acid distance 7.0 Å against 7.9 Å — nothing). Reproduced on this target across 32
+histidine variants of 3DS18, each measured on three crystallographically independent copies of
+6WRV: Δ = −3.0 at 0.9 Å, −2.9 at 1.9 Å, −1.1 at 2.3 Å, −0.2 at 2.9 Å, −0.4 at 3.1 Å, and −0.02
+for the native His69 at 11 Å in all 32 variants — an internal negative control that never moved.
+
+The mechanism is desolvation, not pairing. Protonation is penalised where the imidazole is
+buried, so a histidine that binding buries pays that penalty in the complex and not when free:
+the complex pKa falls and Δ < 0. A histidine beside a receptor carboxylate is the opposite case —
+the acid stabilises the protonated form *in the complex*, raising its pKa, so Δ > 0 and the
+binder holds on harder at pH 6.0, which is the wrong direction. Substitution positions are now
+chosen on area buried on binding. The epitope named `carboxylate` keeps its name, since the
+specs, design names and every recorded result are written in terms of it; it is kept on its
+merits as the second-most conserved epitope (83%), not on its carboxylate count.
 
 ## Not established
 
