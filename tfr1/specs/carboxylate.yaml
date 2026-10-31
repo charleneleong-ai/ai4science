@@ -1,0 +1,22 @@
+# TfR1 binder screen: carboxylate
+# richest in carboxylates for a designed histidine to titrate against
+# Patch 605 (protease-like): 83% conserved human/mouse,
+# 6.3 A from the transferrin site, 41.3 A from the nearest N-glycan.
+# Carboxylates in the patch (UniProt numbering): [604, 606, 664, 667]
+# Scan thresholds: patch_radius=12.0 min_patch_size=10
+#   surface_min_rsa=0.25 transferrin_clearance=6.0
+#   glycan_clearance=12.0  (size and clearance loosened post hoc; see docs/target.md)
+# Hotspots [604, 606, 664, 667, 668] in UniProt numbering. `binding` below is 1-BASED
+# CHAIN POSITIONS in carboxylate.pdb, computed by prepare_target.py and verified by
+# re-reading the written file -- NOT UniProt numbers.
+entities:
+  - protein:
+      id: X
+      sequence: 60..95
+  - file:
+      path: /home/ubuntu/tfr1/targets/carboxylate.pdb
+      include:
+        - chain: {id: R}
+      binding_types:
+        - chain: {id: R, binding: "72,74,95,98,99"}
+      structure_groups: "all"

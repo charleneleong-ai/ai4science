@@ -35,3 +35,7 @@ wandb/
 
 # pytest-cov writes this next to the package it measures
 .coverage
+
+# TfR1: large downloaded structures and generator output, regenerate instead
+tfr1/data/*.cif
+tfr1/data/targets/
