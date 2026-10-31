@@ -1,0 +1,23 @@
+# One row per experiment, added when its verdict lands. Rendered by the W&B report and any
+# companion dashboard, so this file is the single source for both.
+#
+# verdict: PROMOTE (shipped, set a new best) | KEEP (kept for later) | DISCARD (closed)
+#          | RUNNING
+
+gates:
+  G0: >-
+    The cost model is calibrated: measuring the competition's own sample_submission/
+    scores 1.0000 to four decimal places, and the measured numbers are written into a
+    calibration JSON with measured=true. Nothing downstream is trustworthy until this
+    passes, and `vqcc` says so on every run until it does.
+  G1: >-
+    A local change beats the current submitted baseline by more than measured
+    submission-to-submission noise, established from one identical re-run.
+  G2: >-
+    For dqi, the gain holds as a reduction in *expected* failures across >= 48 independent
+    draws, not on the single draw seeded by the candidate file's own hash.
+  G3: >-
+    The improvement survives an external leaderboard submission, not only the local
+    verifier at its default salt.
+
+experiments: []
