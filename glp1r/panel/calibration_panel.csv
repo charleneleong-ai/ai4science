@@ -1,0 +1,8 @@
+name,sequence,function,potency,emax_pct,activating_element,structure_source,structurally_verified,notes
+glp1_7_36,HAEGTFTSDVSSYLEGQAAKEFIAWLVKGR,full_agonist,EC50 0.9 nM,73,intact,6X18 chain P,full,"native ligand; the reference pose for every geometric measure"
+exendin4,HGEGTFTSDLSKQMEEEAVRLFIEWLKNGGPSSGAPPPS,full_agonist,EC50 0.09 nM,100,intact,7LLL chain P,residues 1-28,"10x more potent than GLP-1; different C-terminal half, same activating N-terminus"
+exendin_p5,ELVDNAVGGDLSKQMEEEAVRLFIEWLKNGGPSSGAPPPS,full_agonist,EC50 0.85 nM,102,novel 9-mer,6B3J chain P,residues 1-33,"the key positive control: a novel N-terminal extension with no His and no HAEGTF, still a full agonist"
+glp1_9_36,EGTFTSDVSSYLEGQAAKEFIAWLVKGR,weak_partial_agonist,EC50 363 nM,85,2 residues removed,9IVG chain P,residues 9-29,"binds a shallower ECD+TM1/TM2/ECL1 site; the shallow-shelf tier's precedent"
+exendin4_9_39,DLSKQMEEEAVRLFIEWLKNGGPSSGAPPPS,antagonist,IC50 13.9 nM,0,8 residues removed,3C5T (ECD complex),sequence inferred from exendin4,"clinical antagonist; binds the isolated ECD at IC50 6 nM. The decisive negative"
+glp1_15_36,GQAAKEFIAWLVKGR,inactive,inactive at 10 uM,0,8 residues removed,none,no,"N-terminal truncation by 8 inactivates GLP-1; tests whether the gate tracks reach"
+glp1_h7a,AAEGTFTSDVSSYLEGQAAKEFIAWLVKGR,inactive,no activity at 10 uM,0,point mutation,none,no,"adversarial control: same length and pose as the native agonist, no activity. A gate that cannot separate this from glp1_7_36 measures pose, not function -- which is the expected result and worth stating"
