@@ -39,3 +39,11 @@ wandb/
 # TfR1: large downloaded structures and generator output, regenerate instead
 tfr1/data/*.cif
 tfr1/data/targets/
+# ...except the measured epitope table, which the submission is selected and reported against.
+# The parent directories have to be re-included too -- git will not descend into an excluded
+# directory to find a negated file -- and `targets/*` then re-excludes the structures beside it.
+!tfr1/data/
+tfr1/data/*
+!tfr1/data/targets/
+tfr1/data/targets/*
+!tfr1/data/targets/hotspots.json

@@ -1,4 +1,4 @@
-"""The design table's reader and writer, in one place.
+"""The table readers, writers and name contract this directory shares, in one place.
 
 Three scripts in this directory had written the same five lines, already drifting on how
 fieldnames are chosen and on what happens for an empty row list. Stdlib only on purpose:
@@ -18,9 +18,74 @@ sibling-directory module that shadows an installed package is a trap worth not s
 from __future__ import annotations
 
 import csv
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
+
+T = TypeVar("T")
+K = TypeVar("K")
+
+
+def read_rows(path: Path) -> list[dict[str, str]]:
+    """Every row of a CSV as a dict. Raises if the file is absent, which is the honest answer.
+
+    `tnf_binder.tables.read_rows` returns an empty table for a missing file, on the grounds that
+    a stage which has not run yet is the normal case. That is right for a pipeline that polls
+    its own intermediate outputs and wrong here: every path this reads is a required CLI
+    argument naming a completed measurement, and an empty table would silently become an empty
+    funnel -- a selection made from no candidates, reported as a selection.
+    """
+    with path.open(newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def number(value: str | None, default: float = 0.0) -> float:
+    """A numeric cell, falling back to `default` when it is blank or malformed.
+
+    BoltzGen, PROPKA and pKAI all leave cells empty rather than writing a zero, and a funnel
+    that raises on the first empty cell reports nothing instead of reporting what it measured.
+    """
+    if not value:
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def group_by(rows: Iterable[T], key: Callable[[T], K]) -> dict[K, list[T]]:
+    """Rows bucketed by `key`, preserving the order within each bucket.
+
+    `ph_switch.group_by` is the same three lines. It is not imported from there because that
+    module pulls in gemmi, which the PyRosetta environment lacks; this is the home the rest of
+    the directory can reach. TODO: have `ph_switch` import this one at the next full re-run of
+    the pKa pass, rather than editing the module that produced the committed measurements now.
+    """
+    grouped: dict[K, list[T]] = {}
+    for row in rows:
+        grouped.setdefault(key(row), []).append(row)
+    return grouped
+
+
+def same_design(design: str, query: str) -> bool:
+    """Whether `query` names `design`, when two stages spell one design differently.
+
+    `collect_designs.py` prefixes each design with the spec directory that produced it while
+    BoltzGen's own id already carries that prefix, so a design written to disk as
+    `conserved_s_45.cif` is recorded in the pooled table as `conserved_s_conserved_s_45`. Both
+    spellings have to resolve to one design, in either direction, and padding with underscores
+    is what stops `conserved_s_4` claiming `conserved_s_45`.
+
+    This is the third spelling of that one rule -- `ph_switch.index_structures` tests the name
+    inside the stem, `denovo_his.structure_paths` tests the stem inside the name -- so it lives
+    here. TODO: the root fix is to stop doubling the prefix at `collect_designs.py:155`
+    (`if not row[identity].startswith(directory.name)`), after which `stem == design` and all
+    three callers can be deleted. It is deliberately not done now: renaming every design
+    invalidates the m8 novelty queries, the `design` keys in the agreement table and every
+    variant name, which means re-running the measurements to delete a predicate.
+    """
+    stem = Path(query).stem
+    return stem == design or f"_{stem}_" in f"_{design}_"
 
 
 def read_designs(path: Path, only: Collection[str] | None = None) -> dict[str, str]:
