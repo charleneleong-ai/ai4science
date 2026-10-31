@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false # one package failing should not hide the other's result
       matrix:
-        package: [touchstone, casmi, tnf-binder]
+        package: [touchstone, casmi, tnf-binder, quantum-compilation]
     name: test (${{ matrix.package }})
     defaults:
       run:

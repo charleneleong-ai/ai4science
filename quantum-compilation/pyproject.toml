@@ -1,0 +1,40 @@
+[project]
+name = "quantum-compilation"
+version = "0.0.1"
+description = "Verifier-in-the-loop circuit compression for the Google Quantum AI VQCC Kaggle competition"
+requires-python = ">=3.13"
+# kickmix 1.0.0 is the first real PyPI release (2026-10-27), Apache-2.0, with cp313/cp314
+# wheels for macOS arm64 and x86_64, manylinux and Windows. The competition dataset still
+# ships a kickmix.so built for the Kaggle notebook image; the hosts plan to drop it once the
+# metric moves to the PyPI copy, so pin PyPI and keep the bundled .so only as a cross-check.
+# scipy carries the exact Clopper-Pearson bound the dqi cost needs (`beta.isf`), and the
+# official dfthcsos verifier that `vqcc verify` drives needs it too, so it is not optional.
+dependencies = ["kickmix==1.0.0", "numpy>=2.1", "scipy>=1.14", "typer>=0.12", "rich>=13"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+# autoresearch carries the W&B report section-splicing and the results/verdict table
+# rendering that docs/experiments/verdicts.yaml implies, so a tracking module here stays
+# thin and domain-specific -- same pin casmi uses.
+tracking = [
+  "wandb>=0.17",
+  "wandb-workspaces>=0.1",
+  "pyyaml>=6",
+  "autoresearch @ git+ssh://git@github.com/charleneleong-ai/autoresearch.git@9eb99c7",
+]
+
+[project.scripts]
+vqcc = "quantum_compilation.cli:main"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/quantum_compilation"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

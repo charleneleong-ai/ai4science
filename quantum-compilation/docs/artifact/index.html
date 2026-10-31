@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VQCC Compression Log</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<style>
+/* Instrument readout: one measured column, data in mono, the finding above each chart. */
+:root {
+  --bg: #f7f8f7; --surface: #ffffff; --fg: #15201c; --muted: #5b6b64;
+  --line: #dfe4e1; --grid: #b4c0ba; --accent: #0f6f5c; --accent-soft: #e4f0ec;
+  --warn: #b5700f; --warn-soft: #fbeedd; --bad: #a3342a; --bad-soft: #f8e5e2;
+  --neutral-mark: #8a9890;
+  --display: "IBM Plex Serif", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1412; --surface: #151d1a; --fg: #e6ece9; --muted: #93a39c;
+    --line: #26322e; --grid: #46554f; --accent: #4fc4a6; --accent-soft: #16302a;
+    --warn: #e0a449; --warn-soft: #33270f; --bad: #e07a6e; --bad-soft: #351e1b;
+    --neutral-mark: #5d6d67;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1412; --surface: #151d1a; --fg: #e6ece9; --muted: #93a39c;
+  --line: #26322e; --grid: #46554f; --accent: #4fc4a6; --accent-soft: #16302a;
+  --warn: #e0a449; --warn-soft: #33270f; --bad: #e07a6e; --bad-soft: #351e1b;
+  --neutral-mark: #5d6d67;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body);
+  font-size: 15px; line-height: 1.6; margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 72px;
+}
+main { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px; }
+h1 { font-family: var(--display); font-size: clamp(27px, 5vw, 38px); line-height: 1.15;
+      margin: 0 0 12px; text-wrap: balance; font-weight: 600; }
+h2 { font-family: var(--display); font-size: 21px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+p { margin: 0 0 12px; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.status { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.lede { font-size: 18px; line-height: 1.5; }
+.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+         padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.tile .k { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em;
+            color: var(--muted); font-weight: 600; }
+.tile .v { font-family: var(--mono); font-size: 23px; font-weight: 600;
+            font-variant-numeric: tabular-nums; }
+.tile .n { font-size: 12.5px; color: var(--muted); }
+.tile.flag { border-color: var(--warn); background: var(--warn-soft); }
+.finding { font-size: 17px; line-height: 1.45; font-weight: 500; margin: 0;
+            border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--line);
+          border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+figure svg { width: 100%; height: auto; max-width: 100%; display: block; }
+figcaption { font-size: 12.5px; color: var(--muted); }
+.grid { stroke: var(--grid); stroke-width: 1; }
+.pole { stroke: var(--bad); stroke-width: 2; stroke-dasharray: 5 4; }
+.marker { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 4 4; }
+text { font-family: var(--body); fill: var(--fg); }
+.cl { font-size: 20px; fill: var(--fg); }
+.cl2 { font-size: 19px; fill: var(--muted); font-weight: 600; }
+.ct { font-size: 18px; fill: var(--muted); font-family: var(--mono); }
+.cax { font-size: 19px; fill: var(--muted); }
+.cv { font-size: 20px; fill: var(--fg); font-family: var(--mono); font-weight: 600; }
+.cvi { font-size: 20px; fill: var(--bg); font-family: var(--mono); font-weight: 600; }
+.tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px;
+       background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line);
+          vertical-align: top; }
+th { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--muted); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+code { font-family: var(--mono); font-size: 0.92em; }
+.pill { display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 600;
+         padding: 2px 7px; border-radius: 4px; letter-spacing: 0.04em; }
+.pill.ok { background: var(--accent-soft); color: var(--accent); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.run { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+.funnel { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.fcell { border: 1px solid var(--line); border-left: 3px solid var(--neutral-mark);
+          border-radius: 6px; padding: 12px 14px; background: var(--surface);
+          display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ftask { font-family: var(--mono); font-weight: 600; font-size: 14px; }
+.fpass { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted);
+          letter-spacing: 0.05em; }
+.fmeta { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.verdict { border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+            padding: 14px 16px; }
+.verdict header { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.verdict header code { font-size: 13.5px; font-weight: 600; }
+.verdict p { margin: 0; font-size: 14px; }
+.verdict .vmeta { font-size: 12px; color: var(--muted); font-family: var(--mono);
+                   margin: 2px 0 8px; }
+ul { margin: 0; padding-left: 20px; }
+li { margin-bottom: 8px; }
+li::marker { color: var(--neutral-mark); }
+.note { border-left: 3px solid var(--neutral-mark); padding: 2px 0 2px 14px;
+         color: var(--muted); font-size: 14px; }
+footer { border-top: 1px solid var(--line); padding-top: 16px; font-size: 12.5px;
+          color: var(--muted); }
+a { color: var(--accent); }
+</style>
+
+<main>
+  <header>
+    <p class="status">GOOGLE QUANTUM AI · VERIFIABLE QUANTUM CIRCUIT COMPILATION · 2026-10-31</p>
+    <h1>The metric, measured</h1>
+    <p class="lede">The cost model is now read off the three shipped verifiers rather than the
+    Evaluation page, and every formula reproduces the verifier&rsquo;s own score exactly. The
+    unmodified reference submission scores <strong>1.00000</strong> locally and
+    <strong>1.00000</strong> on the leaderboard, confirming the two agree on a known input;
+    because the verifiers themselves ship, candidates can then be ranked locally without
+    spending submissions. No compression has been attempted, so we sit near the bottom of the
+    field.</p>
+  </header>
+
+  <section>
+    <div class="strip">
+      <div class="tile"><span class="k">Our score</span>
+        <span class="v">1.00000</span>
+        <span class="n">local = leaderboard · submission 57824925</span></div>
+      <div class="tile flag"><span class="k">Rank</span>
+        <span class="v">1,671</span>
+        <span class="n">of 1,756 · tied with 80 others on the reference</span></div>
+      <div class="tile flag"><span class="k">Gap to leader</span>
+        <span class="v">×26.8</span>
+        <span class="n">≈19,172× on the product of the three cost ratios</span></div>
+      <div class="tile"><span class="k">Compression attempted</span>
+        <span class="v">none</span><span class="n">everything here is apparatus</span></div>
+    </div>
+    <p class="note">1.00000 is the reference&rsquo;s score by definition, not an achievement.
+    What this milestone establishes is that the instrument reads true: the thing we will measure
+    thousands of candidates with agrees with the leaderboard on a known input.</p>
+  </section>
+
+  <section>
+    <h2>Where we stand</h2>
+    <p class="finding">The field is bimodal. Half of it is packed between 22.65 and
+    23.23 — a band 0.6 wide, almost certainly one shared published approach — and only
+    9 teams have escaped past 25. We are in the 81-team block at exactly 1.00000 that
+    submitted the reference unchanged, ranked 1,671–1,751 of 1,756.</p>
+    <figure>
+      <svg viewBox="0 0 680 400" role="img" aria-label="All 1,756 public leaderboard scores in rank order: a dense plateau near 23, a cliff, and our score of 1.0 among the lowest"><line x1="74.0" y1="338.0" x2="654.0" y2="338.0" class="grid"/><text x="64.0" y="344.0" text-anchor="end" class="ct">0</text><line x1="74.0" y1="282.7" x2="654.0" y2="282.7" class="grid"/><text x="64.0" y="288.7" text-anchor="end" class="ct">5</text><line x1="74.0" y1="227.3" x2="654.0" y2="227.3" class="grid"/><text x="64.0" y="233.3" text-anchor="end" class="ct">10</text><line x1="74.0" y1="172.0" x2="654.0" y2="172.0" class="grid"/><text x="64.0" y="178.0" text-anchor="end" class="ct">15</text><line x1="74.0" y1="116.6" x2="654.0" y2="116.6" class="grid"/><text x="64.0" y="122.6" text-anchor="end" class="ct">20</text><line x1="74.0" y1="61.3" x2="654.0" y2="61.3" class="grid"/><text x="64.0" y="67.3" text-anchor="end" class="ct">25</text><rect x="625.9" y="24" width="26.4" height="314" fill="var(--warn)" fill-opacity="0.18"/><text x="74.0" y="366" text-anchor="middle" class="ct">1</text><text x="238.9" y="366" text-anchor="middle" class="ct">500</text><text x="404.2" y="366" text-anchor="middle" class="ct">1,000</text><text x="569.4" y="366" text-anchor="middle" class="ct">1,500</text><text x="654.0" y="366" text-anchor="middle" class="ct">1,756</text><path d="M74.0 41.8 L74.3 44.0 L74.7 47.3 L75.0 49.4 L75.3 50.8 L75.7 57.8 L76.0 58.3 L76.3 60.5 L76.6 61.2 L77.0 61.7 L77.3 61.8 L77.6 61.9 L78.0 62.8 L78.3 63.1 L78.6 63.6 L79.0 64.7 L79.3 66.1 L79.6 67.2 L79.9 68.7 L80.3 69.2 L80.6 69.8 L80.9 70.1 L81.3 70.2 L81.6 71.3 L81.9 71.6 L82.3 71.7 L82.6 72.1 L82.9 72.7 L83.3 72.9 L83.6 73.4 L83.9 73.4 L84.2 73.6 L84.6 73.7 L84.9 74.0 L85.2 74.1 L85.6 74.3 L85.9 74.4 L86.2 74.4 L86.6 74.5 L86.9 74.7 L87.2 75.2 L87.5 75.4 L87.9 75.4 L88.2 75.5 L88.5 75.5 L88.9 75.6 L89.2 75.8 L89.5 76.0 L89.9 76.1 L90.2 76.4 L90.5 76.5 L90.9 76.9 L91.2 77.0 L91.5 77.0 L91.8 77.0 L92.2 77.0 L92.5 77.1 L92.8 77.3 L93.2 77.5 L93.5 77.6 L93.8 77.6 L94.2 77.7 L94.5 78.2 L94.8 78.3 L95.2 78.4 L95.5 78.5 L95.8 78.6 L96.1 78.6 L96.5 78.7 L96.8 78.7 L97.1 78.8 L97.5 78.8 L97.8 78.8 L98.1 78.9 L98.5 79.0 L98.8 79.0 L99.1 79.0 L99.4 79.0 L99.8 79.0 L100.1 79.1 L100.4 79.2 L100.8 79.4 L101.1 79.4 L101.4 79.5 L101.8 79.6 L102.1 79.6 L102.4 79.6 L102.8 79.6 L103.1 79.7 L103.4 79.7 L103.7 79.7 L104.1 79.7 L104.4 79.7 L104.7 79.7 L105.1 79.7 L105.4 79.7 L105.7 79.7 L106.1 79.7 L106.4 79.7 L106.7 79.7 L107.0 79.9 L107.4 79.9 L107.7 79.9 L108.0 80.0 L108.4 80.0 L108.7 80.0 L109.0 80.1 L109.4 80.1 L109.7 80.1 L110.0 80.2 L110.4 80.2 L110.7 80.3 L111.0 80.3 L111.3 80.3 L111.7 80.3 L112.0 80.3 L112.3 80.3 L112.7 80.3 L113.0 80.4 L113.3 80.5 L113.7 80.5 L114.0 80.5 L114.3 80.6 L114.6 80.6 L115.0 80.7 L115.3 80.7 L115.6 80.8 L116.0 80.8 L116.3 80.8 L116.6 80.8 L117.0 80.8 L117.3 80.8 L117.6 80.8 L118.0 80.8 L118.3 80.9 L118.6 80.9 L118.9 80.9 L119.3 80.9 L119.6 80.9 L119.9 80.9 L120.3 80.9 L120.6 80.9 L120.9 80.9 L121.3 80.9 L121.6 80.9 L121.9 80.9 L122.3 80.9 L122.6 80.9 L122.9 80.9 L123.2 80.9 L123.6 80.9 L123.9 80.9 L124.2 80.9 L124.6 80.9 L124.9 80.9 L125.2 80.9 L125.6 80.9 L125.9 80.9 L126.2 80.9 L126.5 80.9 L126.9 80.9 L127.2 80.9 L127.5 80.9 L127.9 80.9 L128.2 80.9 L128.5 80.9 L128.9 80.9 L129.2 80.9 L129.5 80.9 L129.9 80.9 L130.2 80.9 L130.5 80.9 L130.8 80.9 L131.2 80.9 L131.5 80.9 L131.8 80.9 L132.2 80.9 L132.5 80.9 L132.8 80.9 L133.2 80.9 L133.5 80.9 L133.8 80.9 L134.1 80.9 L134.5 80.9 L134.8 80.9 L135.1 80.9 L135.5 80.9 L135.8 80.9 L136.1 80.9 L136.5 80.9 L136.8 80.9 L137.1 80.9 L137.5 80.9 L137.8 80.9 L138.1 80.9 L138.4 80.9 L138.8 80.9 L139.1 80.9 L139.4 80.9 L139.8 80.9 L140.1 80.9 L140.4 80.9 L140.8 80.9 L141.1 80.9 L141.4 80.9 L141.7 80.9 L142.1 80.9 L142.4 80.9 L142.7 80.9 L143.1 80.9 L143.4 80.9 L143.7 81.0 L144.1 81.0 L144.4 81.0 L144.7 81.1 L145.1 81.1 L145.4 81.1 L145.7 81.2 L146.0 81.2 L146.4 81.2 L146.7 81.2 L147.0 81.3 L147.4 81.3 L147.7 81.3 L148.0 81.3 L148.4 81.4 L148.7 81.4 L149.0 81.4 L149.4 81.4 L149.7 81.4 L150.0 81.4 L150.3 81.4 L150.7 81.4 L151.0 81.4 L151.3 81.4 L151.7 81.4 L152.0 81.4 L152.3 81.4 L152.7 81.4 L153.0 81.4 L153.3 81.4 L153.6 81.4 L154.0 81.4 L154.3 81.4 L154.6 81.4 L155.0 81.4 L155.3 81.4 L155.6 81.4 L156.0 81.4 L156.3 81.4 L156.6 81.4 L157.0 81.4 L157.3 81.4 L157.6 81.4 L157.9 81.4 L158.3 81.4 L158.6 81.4 L158.9 81.4 L159.3 81.4 L159.6 81.4 L159.9 81.4 L160.3 81.4 L160.6 81.4 L160.9 81.4 L161.2 81.4 L161.6 81.4 L161.9 81.4 L162.2 81.4 L162.6 81.4 L162.9 81.4 L163.2 81.4 L163.6 81.4 L163.9 81.4 L164.2 81.4 L164.6 81.4 L164.9 81.4 L165.2 81.4 L165.5 81.4 L165.9 81.5 L166.2 81.5 L166.5 81.5 L166.9 81.5 L167.2 81.5 L167.5 81.5 L167.9 81.5 L168.2 81.5 L168.5 81.5 L168.8 81.5 L169.2 81.5 L169.5 81.5 L169.8 81.5 L170.2 81.5 L170.5 81.5 L170.8 81.5 L171.2 81.5 L171.5 81.5 L171.8 81.5 L172.2 81.5 L172.5 81.5 L172.8 81.5 L173.1 81.5 L173.5 81.5 L173.8 81.5 L174.1 81.5 L174.5 81.5 L174.8 81.5 L175.1 81.5 L175.5 81.5 L175.8 81.5 L176.1 81.5 L176.5 81.5 L176.8 81.5 L177.1 81.5 L177.4 81.5 L177.8 81.5 L178.1 81.5 L178.4 81.5 L178.8 81.5 L179.1 81.5 L179.4 81.5 L179.8 81.5 L180.1 81.5 L180.4 81.5 L180.7 81.5 L181.1 81.5 L181.4 81.5 L181.7 81.5 L182.1 81.5 L182.4 81.5 L182.7 81.5 L183.1 81.5 L183.4 81.5 L183.7 81.5 L184.1 81.5 L184.4 81.5 L184.7 81.5 L185.0 81.5 L185.4 81.5 L185.7 81.5 L186.0 81.5 L186.4 81.5 L186.7 81.5 L187.0 81.6 L187.4 81.6 L187.7 81.6 L188.0 81.7 L188.3 81.7 L188.7 81.7 L189.0 81.7 L189.3 81.7 L189.7 81.7 L190.0 81.7 L190.3 81.7 L190.7 81.7 L191.0 81.7 L191.3 81.7 L191.7 81.7 L192.0 81.7 L192.3 81.8 L192.6 81.8 L193.0 81.8 L193.3 81.8 L193.6 81.8 L194.0 81.9 L194.3 81.9 L194.6 81.9 L195.0 81.9 L195.3 81.9 L195.6 81.9 L195.9 81.9 L196.3 81.9 L196.6 81.9 L196.9 81.9 L197.3 81.9 L197.6 81.9 L197.9 81.9 L198.3 81.9 L198.6 81.9 L198.9 81.9 L199.3 81.9 L199.6 81.9 L199.9 81.9 L200.2 81.9 L200.6 81.9 L200.9 81.9 L201.2 81.9 L201.6 81.9 L201.9 81.9 L202.2 81.9 L202.6 81.9 L202.9 81.9 L203.2 81.9 L203.5 81.9 L203.9 81.9 L204.2 81.9 L204.5 81.9 L204.9 81.9 L205.2 81.9 L205.5 81.9 L205.9 81.9 L206.2 81.9 L206.5 81.9 L206.9 81.9 L207.2 81.9 L207.5 81.9 L207.8 82.0 L208.2 82.1 L208.5 82.1 L208.8 82.1 L209.2 82.2 L209.5 82.2 L209.8 82.2 L210.2 82.2 L210.5 82.3 L210.8 82.3 L211.2 82.3 L211.5 82.3 L211.8 82.3 L212.1 82.4 L212.5 82.4 L212.8 82.4 L213.1 82.5 L213.5 82.5 L213.8 82.5 L214.1 82.5 L214.5 82.6 L214.8 82.6 L215.1 82.6 L215.4 82.6 L215.8 82.6 L216.1 82.6 L216.4 82.6 L216.8 82.6 L217.1 82.8 L217.4 82.8 L217.8 82.9 L218.1 82.9 L218.4 82.9 L218.8 83.0 L219.1 83.0 L219.4 83.1 L219.7 83.1 L220.1 83.1 L220.4 83.1 L220.7 83.1 L221.1 83.2 L221.4 83.3 L221.7 83.3 L222.1 83.3 L222.4 83.4 L222.7 83.4 L223.0 83.4 L223.4 83.4 L223.7 83.4 L224.0 83.4 L224.4 83.4 L224.7 83.4 L225.0 83.4 L225.4 83.4 L225.7 83.4 L226.0 83.4 L226.4 83.4 L226.7 83.4 L227.0 83.4 L227.3 83.4 L227.7 83.4 L228.0 83.4 L228.3 83.4 L228.7 83.4 L229.0 83.4 L229.3 83.4 L229.7 83.4 L230.0 83.4 L230.3 83.4 L230.6 83.4 L231.0 83.4 L231.3 83.4 L231.6 83.4 L232.0 83.4 L232.3 83.4 L232.6 83.4 L233.0 83.4 L233.3 83.4 L233.6 83.4 L234.0 83.4 L234.3 83.4 L234.6 83.4 L234.9 83.4 L235.3 83.4 L235.6 83.4 L235.9 83.5 L236.3 83.5 L236.6 83.5 L236.9 83.5 L237.3 83.5 L237.6 83.5 L237.9 83.5 L238.3 83.5 L238.6 83.5 L238.9 83.5 L239.2 83.5 L239.6 83.5 L239.9 83.5 L240.2 83.5 L240.6 83.5 L240.9 83.5 L241.2 83.5 L241.6 83.5 L241.9 83.5 L242.2 83.5 L242.5 83.5 L242.9 83.5 L243.2 83.5 L243.5 83.5 L243.9 83.5 L244.2 83.5 L244.5 83.5 L244.9 83.5 L245.2 83.5 L245.5 83.5 L245.9 83.5 L246.2 83.5 L246.5 83.5 L246.8 83.5 L247.2 83.5 L247.5 83.5 L247.8 83.5 L248.2 83.5 L248.5 83.5 L248.8 83.5 L249.2 83.5 L249.5 83.5 L249.8 83.5 L250.1 83.5 L250.5 83.5 L250.8 83.5 L251.1 83.5 L251.5 83.5 L251.8 83.5 L252.1 83.5 L252.5 83.5 L252.8 83.5 L253.1 83.5 L253.5 83.5 L253.8 83.5 L254.1 83.5 L254.4 83.5 L254.8 83.5 L255.1 83.5 L255.4 83.5 L255.8 83.5 L256.1 83.5 L256.4 83.5 L256.8 83.5 L257.1 83.5 L257.4 83.5 L257.7 83.5 L258.1 83.5 L258.4 83.5 L258.7 83.5 L259.1 83.5 L259.4 83.5 L259.7 83.5 L260.1 83.5 L260.4 83.5 L260.7 83.5 L261.1 83.5 L261.4 83.5 L261.7 83.5 L262.0 83.5 L262.4 83.5 L262.7 83.5 L263.0 83.5 L263.4 83.5 L263.7 83.5 L264.0 83.7 L264.4 83.7 L264.7 83.7 L265.0 83.7 L265.4 83.8 L265.7 83.8 L266.0 83.8 L266.3 83.8 L266.7 83.9 L267.0 83.9 L267.3 83.9 L267.7 84.0 L268.0 84.0 L268.3 84.0 L268.7 84.0 L269.0 84.0 L269.3 84.1 L269.6 84.2 L270.0 84.2 L270.3 84.2 L270.6 84.2 L271.0 84.2 L271.3 84.2 L271.6 84.3 L272.0 84.3 L272.3 84.3 L272.6 84.4 L273.0 84.4 L273.3 84.5 L273.6 84.5 L273.9 84.6 L274.3 84.6 L274.6 84.6 L274.9 84.6 L275.3 84.6 L275.6 84.6 L275.9 84.6 L276.3 84.6 L276.6 84.6 L276.9 84.7 L277.2 84.7 L277.6 84.7 L277.9 84.7 L278.2 84.7 L278.6 84.7 L278.9 84.7 L279.2 84.7 L279.6 84.7 L279.9 84.7 L280.2 84.8 L280.6 84.8 L280.9 84.8 L281.2 84.8 L281.5 84.8 L281.9 84.8 L282.2 84.8 L282.5 84.8 L282.9 84.8 L283.2 84.8 L283.5 84.8 L283.9 84.8 L284.2 84.8 L284.5 84.8 L284.8 84.8 L285.2 84.8 L285.5 84.8 L285.8 84.8 L286.2 84.8 L286.5 84.9 L286.8 84.9 L287.2 84.9 L287.5 84.9 L287.8 84.9 L288.2 84.9 L288.5 84.9 L288.8 84.9 L289.1 84.9 L289.5 84.9 L289.8 84.9 L290.1 84.9 L290.5 84.9 L290.8 84.9 L291.1 84.9 L291.5 84.9 L291.8 84.9 L292.1 84.9 L292.5 84.9 L292.8 84.9 L293.1 84.9 L293.4 84.9 L293.8 84.9 L294.1 84.9 L294.4 84.9 L294.8 84.9 L295.1 84.9 L295.4 84.9 L295.8 84.9 L296.1 84.9 L296.4 84.9 L296.7 84.9 L297.1 84.9 L297.4 84.9 L297.7 84.9 L298.1 84.9 L298.4 85.0 L298.7 85.0 L299.1 85.0 L299.4 85.0 L299.7 85.0 L300.1 85.0 L300.4 85.0 L300.7 85.0 L301.0 85.0 L301.4 85.0 L301.7 85.0 L302.0 85.0 L302.4 85.0 L302.7 85.0 L303.0 85.0 L303.4 85.0 L303.7 85.0 L304.0 85.0 L304.3 85.0 L304.7 85.1 L305.0 85.1 L305.3 85.1 L305.7 85.1 L306.0 85.1 L306.3 85.1 L306.7 85.1 L307.0 85.5 L307.3 85.5 L307.7 85.5 L308.0 85.5 L308.3 85.5 L308.6 85.5 L309.0 85.5 L309.3 85.6 L309.6 85.6 L310.0 85.6 L310.3 85.6 L310.6 85.6 L311.0 85.6 L311.3 85.6 L311.6 85.6 L311.9 85.6 L312.3 85.6 L312.6 85.6 L312.9 85.6 L313.3 85.6 L313.6 85.6 L313.9 85.6 L314.3 85.6 L314.6 85.6 L314.9 85.6 L315.3 85.6 L315.6 85.6 L315.9 85.6 L316.2 85.6 L316.6 85.6 L316.9 85.6 L317.2 85.6 L317.6 85.6 L317.9 85.6 L318.2 85.6 L318.6 85.7 L318.9 85.7 L319.2 85.7 L319.5 85.7 L319.9 85.7 L320.2 85.7 L320.5 85.7 L320.9 85.7 L321.2 85.7 L321.5 85.7 L321.9 85.7 L322.2 85.7 L322.5 85.7 L322.9 85.8 L323.2 85.8 L323.5 85.8 L323.8 85.8 L324.2 85.8 L324.5 85.8 L324.8 85.8 L325.2 85.8 L325.5 85.8 L325.8 85.8 L326.2 85.8 L326.5 85.8 L326.8 85.8 L327.2 85.8 L327.5 85.8 L327.8 85.8 L328.1 85.8 L328.5 85.8 L328.8 85.8 L329.1 85.8 L329.5 85.8 L329.8 85.9 L330.1 85.9 L330.5 85.9 L330.8 85.9 L331.1 85.9 L331.4 85.9 L331.8 85.9 L332.1 85.9 L332.4 85.9 L332.8 86.0 L333.1 86.0 L333.4 86.1 L333.8 86.1 L334.1 86.1 L334.4 86.1 L334.8 86.1 L335.1 86.2 L335.4 86.2 L335.7 86.2 L336.1 86.2 L336.4 86.2 L336.7 86.2 L337.1 86.2 L337.4 86.3 L337.7 86.3 L338.1 86.3 L338.4 86.3 L338.7 86.3 L339.0 86.4 L339.4 86.4 L339.7 86.4 L340.0 86.5 L340.4 86.5 L340.7 86.5 L341.0 86.5 L341.4 86.5 L341.7 86.5 L342.0 86.5 L342.4 86.5 L342.7 86.5 L343.0 86.5 L343.3 86.6 L343.7 86.6 L344.0 86.6 L344.3 86.6 L344.7 86.6 L345.0 86.6 L345.3 86.7 L345.7 86.7 L346.0 86.7 L346.3 86.7 L346.6 86.7 L347.0 86.8 L347.3 86.8 L347.6 86.8 L348.0 86.8 L348.3 86.8 L348.6 86.8 L349.0 86.8 L349.3 86.8 L349.6 86.8 L350.0 86.8 L350.3 86.8 L350.6 86.8 L350.9 86.8 L351.3 86.8 L351.6 86.8 L351.9 86.8 L352.3 86.8 L352.6 86.8 L352.9 86.8 L353.3 86.9 L353.6 86.9 L353.9 86.9 L354.3 86.9 L354.6 87.1 L354.9 87.1 L355.2 87.1 L355.6 87.1 L355.9 87.1 L356.2 87.1 L356.6 87.1 L356.9 87.1 L357.2 87.1 L357.6 87.1 L357.9 87.1 L358.2 87.1 L358.5 87.1 L358.9 87.1 L359.2 87.1 L359.5 87.1 L359.9 87.1 L360.2 87.1 L360.5 87.1 L360.9 87.1 L361.2 87.1 L361.5 87.1 L361.9 87.1 L362.2 87.1 L362.5 87.1 L362.8 87.1 L363.2 87.2 L363.5 87.2 L363.8 87.2 L364.2 87.3 L364.5 87.4 L364.8 87.5 L365.2 87.5 L365.5 87.5 L365.8 87.5 L366.1 87.5 L366.5 87.6 L366.8 87.6 L367.1 87.8 L367.5 88.0 L367.8 88.1 L368.1 88.1 L368.5 88.1 L368.8 88.1 L369.1 88.1 L369.5 88.1 L369.8 88.1 L370.1 88.1 L370.4 88.1 L370.8 88.1 L371.1 88.2 L371.4 88.2 L371.8 88.2 L372.1 88.2 L372.4 88.2 L372.8 88.2 L373.1 88.2 L373.4 88.2 L373.7 88.2 L374.1 88.2 L374.4 88.2 L374.7 88.2 L375.1 88.2 L375.4 88.2 L375.7 88.2 L376.1 88.2 L376.4 88.2 L376.7 88.2 L377.1 88.4 L377.4 88.5 L377.7 88.5 L378.0 88.5 L378.4 88.5 L378.7 88.5 L379.0 88.5 L379.4 88.5 L379.7 88.5 L380.0 88.8 L380.4 88.8 L380.7 88.8 L381.0 88.9 L381.4 89.1 L381.7 89.2 L382.0 89.6 L382.3 90.4 L382.7 90.4 L383.0 90.4 L383.3 90.4 L383.7 90.4 L384.0 90.4 L384.3 90.5 L384.7 90.7 L385.0 90.7 L385.3 90.7 L385.6 90.7 L386.0 90.7 L386.3 90.7 L386.6 90.7 L387.0 90.7 L387.3 90.7 L387.6 91.1 L388.0 91.2 L388.3 91.4 L388.6 91.4 L389.0 91.4 L389.3 91.4 L389.6 91.6 L389.9 91.7 L390.3 92.4 L390.6 92.8 L390.9 93.0 L391.3 93.1 L391.6 93.1 L391.9 93.1 L392.3 93.9 L392.6 93.9 L392.9 93.9 L393.2 94.0 L393.6 94.0 L393.9 94.0 L394.2 94.0 L394.6 94.1 L394.9 94.2 L395.2 94.4 L395.6 94.4 L395.9 94.4 L396.2 94.4 L396.6 94.4 L396.9 94.4 L397.2 94.4 L397.5 94.4 L397.9 94.4 L398.2 94.4 L398.5 94.5 L398.9 94.6 L399.2 94.6 L399.5 94.7 L399.9 95.0 L400.2 95.1 L400.5 95.4 L400.8 95.5 L401.2 95.6 L401.5 95.6 L401.8 95.7 L402.2 95.7 L402.5 95.8 L402.8 95.8 L403.2 95.8 L403.5 95.8 L403.8 95.8 L404.2 95.8 L404.5 95.8 L404.8 95.8 L405.1 95.8 L405.5 95.8 L405.8 95.8 L406.1 95.8 L406.5 95.8 L406.8 95.8 L407.1 95.8 L407.5 95.8 L407.8 95.8 L408.1 95.8 L408.5 95.8 L408.8 95.8 L409.1 95.8 L409.4 95.8 L409.8 95.8 L410.1 95.8 L410.4 95.9 L410.8 96.3 L411.1 97.3 L411.4 98.0 L411.8 98.2 L412.1 98.9 L412.4 98.9 L412.7 99.1 L413.1 99.3 L413.4 99.3 L413.7 99.4 L414.1 99.4 L414.4 99.6 L414.7 99.7 L415.1 99.7 L415.4 99.7 L415.7 99.7 L416.1 100.4 L416.4 100.4 L416.7 100.7 L417.0 100.8 L417.4 100.8 L417.7 100.8 L418.0 101.0 L418.4 101.2 L418.7 101.2 L419.0 101.2 L419.4 101.2 L419.7 101.3 L420.0 101.3 L420.3 101.3 L420.7 101.4 L421.0 101.4 L421.3 101.4 L421.7 101.4 L422.0 101.4 L422.3 101.4 L422.7 101.7 L423.0 102.1 L423.3 103.1 L423.7 103.2 L424.0 103.7 L424.3 103.7 L424.6 103.7 L425.0 103.7 L425.3 104.2 L425.6 104.3 L426.0 104.7 L426.3 105.3 L426.6 105.3 L427.0 105.3 L427.3 105.3 L427.6 105.3 L427.9 105.7 L428.3 105.7 L428.6 105.7 L428.9 106.8 L429.3 106.9 L429.6 106.9 L429.9 106.9 L430.3 108.3 L430.6 108.6 L430.9 108.8 L431.3 109.2 L431.6 111.0 L431.9 111.0 L432.2 111.0 L432.6 111.0 L432.9 111.0 L433.2 111.0 L433.6 111.0 L433.9 111.0 L434.2 111.5 L434.6 111.5 L434.9 112.1 L435.2 112.4 L435.5 113.3 L435.9 114.1 L436.2 115.8 L436.5 116.1 L436.9 116.2 L437.2 117.3 L437.5 119.1 L437.9 119.1 L438.2 119.3 L438.5 120.8 L438.9 120.8 L439.2 121.0 L439.5 121.3 L439.8 122.2 L440.2 122.2 L440.5 122.2 L440.8 124.3 L441.2 124.5 L441.5 125.1 L441.8 125.3 L442.2 125.4 L442.5 126.3 L442.8 132.6 L443.2 134.2 L443.5 134.2 L443.8 134.2 L444.1 134.2 L444.5 134.2 L444.8 135.1 L445.1 135.1 L445.5 135.1 L445.8 135.1 L446.1 135.1 L446.5 135.1 L446.8 135.1 L447.1 136.0 L447.4 136.7 L447.8 138.5 L448.1 144.8 L448.4 147.6 L448.8 148.3 L449.1 151.3 L449.4 153.3 L449.8 153.5 L450.1 155.6 L450.4 159.3 L450.8 159.4 L451.1 161.6 L451.4 161.6 L451.7 162.0 L452.1 162.0 L452.4 162.2 L452.7 163.0 L453.1 163.2 L453.4 163.7 L453.7 163.7 L454.1 163.7 L454.4 163.7 L454.7 163.7 L455.0 163.7 L455.4 163.7 L455.7 163.7 L456.0 163.7 L456.4 164.3 L456.7 164.4 L457.0 165.9 L457.4 166.4 L457.7 166.8 L458.0 168.2 L458.4 168.2 L458.7 168.2 L459.0 169.2 L459.3 170.0 L459.7 170.4 L460.0 170.5 L460.3 171.0 L460.7 171.0 L461.0 171.0 L461.3 171.1 L461.7 171.2 L462.0 177.5 L462.3 177.5 L462.6 177.5 L463.0 177.5 L463.3 179.2 L463.6 182.7 L464.0 183.9 L464.3 184.8 L464.6 185.5 L465.0 188.5 L465.3 188.5 L465.6 188.5 L466.0 188.5 L466.3 188.5 L466.6 188.5 L466.9 189.0 L467.3 195.5 L467.6 195.9 L467.9 198.0 L468.3 198.5 L468.6 201.5 L468.9 203.2 L469.3 203.4 L469.6 204.8 L469.9 205.6 L470.3 205.8 L470.6 206.8 L470.9 207.2 L471.2 207.2 L471.6 208.8 L471.9 210.0 L472.2 210.0 L472.6 210.3 L472.9 211.4 L473.2 211.4 L473.6 211.5 L473.9 211.7 L474.2 212.0 L474.5 212.0 L474.9 212.0 L475.2 212.0 L475.5 212.6 L475.9 212.6 L476.2 212.8 L476.5 213.0 L476.9 213.0 L477.2 213.1 L477.5 213.1 L477.9 213.1 L478.2 213.2 L478.5 213.2 L478.8 213.8 L479.2 213.8 L479.5 213.8 L479.8 214.2 L480.2 214.5 L480.5 214.8 L480.8 215.7 L481.2 215.8 L481.5 216.7 L481.8 216.8 L482.1 217.1 L482.5 217.2 L482.8 217.6 L483.1 217.6 L483.5 217.6 L483.8 217.6 L484.1 218.1 L484.5 220.5 L484.8 220.5 L485.1 221.3 L485.5 221.3 L485.8 221.5 L486.1 221.5 L486.4 221.5 L486.8 222.5 L487.1 223.0 L487.4 223.5 L487.8 223.9 L488.1 224.8 L488.4 224.9 L488.8 225.1 L489.1 226.3 L489.4 227.1 L489.7 227.3 L490.1 230.0 L490.4 231.6 L490.7 231.6 L491.1 232.0 L491.4 232.3 L491.7 232.3 L492.1 232.6 L492.4 232.6 L492.7 232.7 L493.1 232.7 L493.4 232.8 L493.7 232.9 L494.0 233.1 L494.4 233.2 L494.7 233.4 L495.0 234.1 L495.4 234.2 L495.7 234.3 L496.0 234.3 L496.4 234.3 L496.7 234.4 L497.0 234.5 L497.4 234.9 L497.7 235.0 L498.0 235.0 L498.3 235.2 L498.7 235.4 L499.0 236.2 L499.3 236.8 L499.7 237.0 L500.0 237.8 L500.3 238.9 L500.7 238.9 L501.0 239.1 L501.3 242.5 L501.6 242.6 L502.0 242.8 L502.3 243.2 L502.6 243.3 L503.0 244.4 L503.3 244.4 L503.6 244.6 L504.0 244.7 L504.3 244.9 L504.6 245.8 L505.0 247.1 L505.3 247.3 L505.6 247.6 L505.9 248.3 L506.3 249.0 L506.6 249.0 L506.9 249.1 L507.3 249.1 L507.6 249.1 L507.9 249.1 L508.3 249.3 L508.6 249.4 L508.9 250.2 L509.2 250.5 L509.6 250.5 L509.9 251.4 L510.2 252.5 L510.6 253.5 L510.9 253.7 L511.2 253.7 L511.6 254.1 L511.9 254.2 L512.2 254.2 L512.6 254.7 L512.9 256.7 L513.2 256.8 L513.5 257.4 L513.9 257.6 L514.2 257.7 L514.5 259.3 L514.9 262.7 L515.2 262.7 L515.5 262.7 L515.9 263.2 L516.2 263.3 L516.5 263.5 L516.8 263.6 L517.2 263.7 L517.5 263.7 L517.8 263.8 L518.2 263.8 L518.5 263.8 L518.8 264.0 L519.2 264.1 L519.5 264.1 L519.8 264.5 L520.2 264.5 L520.5 264.5 L520.8 264.8 L521.1 265.6 L521.5 265.6 L521.8 265.9 L522.1 266.1 L522.5 266.2 L522.8 266.5 L523.1 267.0 L523.5 267.1 L523.8 267.2 L524.1 267.4 L524.5 267.5 L524.8 267.5 L525.1 267.5 L525.4 267.7 L525.8 267.7 L526.1 267.7 L526.4 268.0 L526.8 268.5 L527.1 268.7 L527.4 269.0 L527.8 269.1 L528.1 269.3 L528.4 270.1 L528.7 270.1 L529.1 270.2 L529.4 270.6 L529.7 270.9 L530.1 272.1 L530.4 273.9 L530.7 274.0 L531.1 274.1 L531.4 274.1 L531.7 274.1 L532.1 274.2 L532.4 274.3 L532.7 274.3 L533.0 274.4 L533.4 274.5 L533.7 274.6 L534.0 274.7 L534.4 274.7 L534.7 274.7 L535.0 274.7 L535.4 275.1 L535.7 275.1 L536.0 275.1 L536.3 275.2 L536.7 275.2 L537.0 275.2 L537.3 276.2 L537.7 276.2 L538.0 276.6 L538.3 277.3 L538.7 277.3 L539.0 277.5 L539.3 278.1 L539.7 278.2 L540.0 279.7 L540.3 282.9 L540.6 283.0 L541.0 283.8 L541.3 285.3 L541.6 285.5 L542.0 285.7 L542.3 286.4 L542.6 287.0 L543.0 287.9 L543.3 288.1 L543.6 288.6 L543.9 289.3 L544.3 289.5 L544.6 289.6 L544.9 290.5 L545.3 291.0 L545.6 291.4 L545.9 292.2 L546.3 292.3 L546.6 292.3 L546.9 292.3 L547.3 293.2 L547.6 293.3 L547.9 293.3 L548.2 294.2 L548.6 294.2 L548.9 294.3 L549.2 294.7 L549.6 294.7 L549.9 294.8 L550.2 294.8 L550.6 294.8 L550.9 294.8 L551.2 294.8 L551.5 295.3 L551.9 296.0 L552.2 296.6 L552.5 296.9 L552.9 297.2 L553.2 297.3 L553.5 297.6 L553.9 297.8 L554.2 298.8 L554.5 299.0 L554.9 299.6 L555.2 301.8 L555.5 302.4 L555.8 302.4 L556.2 303.3 L556.5 303.6 L556.8 306.8 L557.2 307.0 L557.5 309.2 L557.8 310.0 L558.2 310.1 L558.5 310.2 L558.8 310.7 L559.2 310.7 L559.5 311.1 L559.8 311.1 L560.1 311.3 L560.5 311.4 L560.8 312.0 L561.1 312.1 L561.5 312.1 L561.8 312.2 L562.1 312.3 L562.5 312.7 L562.8 312.7 L563.1 312.7 L563.4 312.8 L563.8 313.0 L564.1 313.1 L564.4 313.2 L564.8 313.5 L565.1 313.9 L565.4 314.2 L565.8 314.2 L566.1 314.7 L566.4 314.9 L566.8 315.0 L567.1 315.0 L567.4 315.1 L567.7 315.1 L568.1 315.3 L568.4 315.6 L568.7 315.7 L569.1 315.8 L569.4 316.1 L569.7 316.2 L570.1 316.3 L570.4 316.5 L570.7 316.7 L571.0 317.3 L571.4 317.4 L571.7 317.4 L572.0 317.6 L572.4 317.6 L572.7 317.7 L573.0 317.7 L573.4 317.7 L573.7 317.7 L574.0 317.8 L574.4 317.8 L574.7 317.9 L575.0 317.9 L575.3 318.2 L575.7 318.7 L576.0 318.8 L576.3 319.0 L576.7 319.3 L577.0 319.3 L577.3 319.4 L577.7 319.5 L578.0 319.7 L578.3 320.1 L578.6 320.2 L579.0 320.3 L579.3 320.3 L579.6 320.3 L580.0 320.4 L580.3 320.4 L580.6 320.5 L581.0 320.5 L581.3 320.6 L581.6 320.6 L582.0 320.6 L582.3 320.6 L582.6 320.7 L582.9 320.7 L583.3 320.9 L583.6 321.0 L583.9 321.2 L584.3 321.2 L584.6 321.4 L584.9 321.6 L585.3 321.7 L585.6 321.7 L585.9 322.0 L586.3 322.5 L586.6 322.6 L586.9 322.8 L587.2 322.8 L587.6 323.1 L587.9 323.1 L588.2 323.2 L588.6 323.3 L588.9 323.4 L589.2 324.0 L589.6 324.0 L589.9 324.7 L590.2 324.7 L590.5 324.8 L590.9 325.1 L591.2 325.2 L591.5 325.2 L591.9 325.2 L592.2 325.2 L592.5 325.3 L592.9 325.5 L593.2 325.6 L593.5 325.6 L593.9 325.7 L594.2 325.7 L594.5 325.7 L594.8 325.8 L595.2 325.9 L595.5 325.9 L595.8 326.2 L596.2 326.3 L596.5 326.3 L596.8 326.4 L597.2 326.4 L597.5 326.4 L597.8 326.4 L598.1 326.4 L598.5 326.4 L598.8 326.5 L599.1 326.5 L599.5 326.5 L599.8 326.5 L600.1 326.5 L600.5 326.6 L600.8 326.6 L601.1 326.6 L601.5 326.6 L601.8 326.6 L602.1 326.6 L602.4 326.6 L602.8 326.6 L603.1 326.7 L603.4 326.7 L603.8 326.7 L604.1 326.7 L604.4 326.7 L604.8 326.7 L605.1 326.7 L605.4 326.7 L605.7 326.7 L606.1 326.7 L606.4 326.7 L606.7 326.7 L607.1 326.7 L607.4 326.7 L607.7 326.7 L608.1 326.7 L608.4 326.7 L608.7 326.7 L609.1 326.7 L609.4 326.7 L609.7 326.7 L610.0 326.7 L610.4 326.7 L610.7 326.7 L611.0 326.7 L611.4 326.7 L611.7 326.7 L612.0 326.7 L612.4 326.7 L612.7 326.7 L613.0 326.7 L613.4 326.7 L613.7 326.7 L614.0 326.7 L614.3 326.7 L614.7 326.7 L615.0 326.8 L615.3 326.8 L615.7 326.8 L616.0 326.8 L616.3 326.8 L616.7 326.8 L617.0 326.8 L617.3 326.8 L617.6 326.8 L618.0 326.8 L618.3 326.8 L618.6 326.8 L619.0 326.8 L619.3 326.8 L619.6 326.8 L620.0 326.8 L620.3 326.8 L620.6 326.8 L621.0 326.8 L621.3 326.8 L621.6 326.8 L621.9 326.8 L622.3 326.8 L622.6 326.8 L622.9 326.9 L623.3 326.9 L623.6 326.9 L623.9 326.9 L624.3 326.9 L624.6 326.9 L624.9 326.9 L625.2 326.9 L625.6 326.9 L625.9 326.9 L626.2 326.9 L626.6 326.9 L626.9 326.9 L627.2 326.9 L627.6 326.9 L627.9 326.9 L628.2 326.9 L628.6 326.9 L628.9 326.9 L629.2 326.9 L629.5 326.9 L629.9 326.9 L630.2 326.9 L630.5 326.9 L630.9 326.9 L631.2 326.9 L631.5 326.9 L631.9 326.9 L632.2 326.9 L632.5 326.9 L632.8 326.9 L633.2 326.9 L633.5 326.9 L633.8 326.9 L634.2 326.9 L634.5 326.9 L634.8 326.9 L635.2 326.9 L635.5 326.9 L635.8 326.9 L636.2 326.9 L636.5 326.9 L636.8 326.9 L637.1 326.9 L637.5 326.9 L637.8 326.9 L638.1 326.9 L638.5 326.9 L638.8 326.9 L639.1 326.9 L639.5 326.9 L639.8 326.9 L640.1 326.9 L640.5 326.9 L640.8 326.9 L641.1 326.9 L641.4 326.9 L641.8 326.9 L642.1 326.9 L642.4 326.9 L642.8 326.9 L643.1 326.9 L643.4 326.9 L643.8 326.9 L644.1 326.9 L644.4 326.9 L644.7 326.9 L645.1 326.9 L645.4 326.9 L645.7 326.9 L646.1 326.9 L646.4 326.9 L646.7 326.9 L647.1 326.9 L647.4 326.9 L647.7 326.9 L648.1 326.9 L648.4 326.9 L648.7 326.9 L649.0 326.9 L649.4 326.9 L649.7 326.9 L650.0 326.9 L650.4 326.9 L650.7 326.9 L651.0 326.9 L651.4 326.9 L651.7 326.9 L652.0 326.9 L652.3 326.9 L652.7 327.1 L653.0 327.2 L653.3 327.2 L653.7 327.2 L654.0 327.2" fill="none" stroke="var(--accent)" stroke-width="3"/><circle cx="74.0" cy="41.8" r="7" fill="var(--accent)"/><text x="88.0" y="48.8" class="cv">leader 26.76</text><text x="642.3" y="308.9" text-anchor="end" class="cv">us 1.00</text><text x="642.3" y="328.9" text-anchor="end" class="ct">ranks 1,671–1,751</text><text x="364" y="392" text-anchor="middle" class="cax">rank, of 1,756 teams</text><text x="22" y="181" class="cax" transform="rotate(-90 22 181)" text-anchor="middle">score</text></svg>
+      <figcaption>Every public score on 2026-10-31, in rank order, from the competition&rsquo;s
+      own leaderboard snapshotted in
+      <code>docs/experiments/leaderboard-2026-10-31.json</code>. The shaded band is our tie
+      block.</figcaption>
+    </figure>
+    <p>The crowded plateau is the useful part: a field that dense at one value is a field running
+    one parameterisation, and the 9 teams above 25 found something it does not reach. That
+    is the gap worth understanding.</p>
+  </section>
+
+  <section>
+    <h2>What the Evaluation page omits</h2>
+    <p class="finding">Three constants the page does not state. None changes the cost much — the
+    back-derived estimates they correct were within 0.04% — but each changes <em>how</em> cost has
+    to be computed, and together they rule out computing it from a circuit at all.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Quantity</th><th>What the verifier does</th><th>On the reference</th></tr></thead>
+      <tbody>
+        <tr><td>Rotation price</td>
+          <td><code>0.56·log₂(1/ε) + 5.3</code> T gates at one <em>circuit-wide</em> ε, picked
+          from the accuracy budget the simulated error leaves over — not a per-Clifford-level
+          cost</td>
+          <td class="num">37 rotations at
+          ε=1.53e-12<br>27.28 T gates each</td></tr>
+        <tr><td>Toffoli count</td>
+          <td>the mean executed <em>per shot</em>, not the static gate count; measurement-based
+          uncomputation makes it data-dependent</td>
+          <td class="num">dqi executes 5,725,108.4<br>of
+          5,725,461 possible</td></tr>
+        <tr><td>Failure rate ε₊</td>
+          <td>a one-sided Clopper–Pearson <em>upper bound</em> at δ=2⁻¹²⁸, not the observed
+          fraction</td>
+          <td class="num">0 of 102,400 failures<br>bounded at 8.661e-04</td></tr>
+      </tbody>
+    </table></div>
+    <p>The consequence is structural: <strong>no task&rsquo;s cost is computable from a static
+    reading of a circuit</strong>, <code>invsqrt</code> included. The earlier static pricing path
+    was removed rather than corrected — it would have ranked candidates on a number the
+    leaderboard does not use.</p>
+    <p class="note">The page uses &ldquo;T gates&rdquo; for the rotation price and
+    &ldquo;Toffolis&rdquo; for the gate count the cost formulas call T. They are different
+    quantities: <code>invsqrt</code> is scored on C = Toffolis + T&nbsp;gates/4.</p>
+  </section>
+
+  <section>
+    <h2>The 19% nobody can optimise away</h2>
+    <p class="finding">A decoder that fails zero of 102,400 shots is still bounded at
+    ε₊ = 8.66e-04, so <code>dqi</code> pays R = 1.1913 — a 19%
+    repetition overhead — before any circuit work. Only more shots lower that floor, and the shot
+    count is the verifier&rsquo;s to choose.</p>
+    <figure>
+      <svg viewBox="0 0 680 330" role="img" aria-label="The dqi repetition factor against the bounded failure rate, with the reference's 1.19 times marked and the rejection pole at one sixteenth"><line x1="66.0" y1="187.3" x2="650.0" y2="187.3" class="grid"/><text x="56.0" y="193.3" text-anchor="end" class="ct">1×</text><line x1="66.0" y1="106.7" x2="650.0" y2="106.7" class="grid"/><text x="56.0" y="112.7" text-anchor="end" class="ct">2×</text><line x1="66.0" y1="26.0" x2="650.0" y2="26.0" class="grid"/><text x="56.0" y="32.0" text-anchor="end" class="ct">3×</text><text x="66.0" y="296" text-anchor="middle" class="ct">10⁻⁵</text><text x="219.9" y="296" text-anchor="middle" class="ct">10⁻⁴</text><text x="373.7" y="296" text-anchor="middle" class="ct">10⁻³</text><text x="527.6" y="296" text-anchor="middle" class="ct">10⁻²</text><line x1="650.0" y1="26" x2="650.0" y2="268" class="pole"/><text x="640.0" y="46" text-anchor="end" class="cl2">rejected at ε = 1/16</text><path d="M66.0 185.8 L68.4 185.8 L70.9 185.8 L73.3 185.8 L75.7 185.7 L78.2 185.7 L80.6 185.7 L83.0 185.6 L85.5 185.6 L87.9 185.6 L90.3 185.5 L92.8 185.5 L95.2 185.5 L97.6 185.4 L100.1 185.4 L102.5 185.4 L104.9 185.3 L107.4 185.3 L109.8 185.3 L112.2 185.2 L114.7 185.2 L117.1 185.1 L119.5 185.1 L122.0 185.1 L124.4 185.0 L126.8 185.0 L129.3 184.9 L131.7 184.9 L134.1 184.8 L136.6 184.8 L139.0 184.7 L141.4 184.7 L143.9 184.6 L146.3 184.6 L148.7 184.5 L151.2 184.5 L153.6 184.4 L156.0 184.4 L158.5 184.3 L160.9 184.3 L163.3 184.2 L165.8 184.1 L168.2 184.1 L170.6 184.0 L173.1 184.0 L175.5 183.9 L177.9 183.8 L180.4 183.8 L182.8 183.7 L185.2 183.6 L187.7 183.6 L190.1 183.5 L192.5 183.4 L195.0 183.3 L197.4 183.3 L199.8 183.2 L202.3 183.1 L204.7 183.0 L207.1 183.0 L209.6 182.9 L212.0 182.8 L214.4 182.7 L216.9 182.6 L219.3 182.5 L221.7 182.4 L224.2 182.3 L226.6 182.2 L229.0 182.1 L231.5 182.0 L233.9 181.9 L236.3 181.8 L238.8 181.7 L241.2 181.6 L243.6 181.5 L246.1 181.4 L248.5 181.3 L250.9 181.2 L253.4 181.0 L255.8 180.9 L258.2 180.8 L260.7 180.7 L263.1 180.5 L265.5 180.4 L268.0 180.3 L270.4 180.1 L272.8 180.0 L275.3 179.9 L277.7 179.7 L280.1 179.6 L282.6 179.4 L285.0 179.3 L287.4 179.1 L289.9 178.9 L292.3 178.8 L294.7 178.6 L297.2 178.4 L299.6 178.3 L302.0 178.1 L304.5 177.9 L306.9 177.7 L309.3 177.5 L311.8 177.3 L314.2 177.1 L316.6 176.9 L319.1 176.7 L321.5 176.5 L323.9 176.3 L326.4 176.1 L328.8 175.8 L331.2 175.6 L333.7 175.4 L336.1 175.1 L338.5 174.9 L341.0 174.6 L343.4 174.4 L345.8 174.1 L348.3 173.8 L350.7 173.5 L353.1 173.3 L355.6 173.0 L358.0 172.7 L360.4 172.4 L362.9 172.1 L365.3 171.7 L367.7 171.4 L370.2 171.1 L372.6 170.8 L375.0 170.4 L377.5 170.0 L379.9 169.7 L382.3 169.3 L384.8 168.9 L387.2 168.5 L389.6 168.1 L392.1 167.7 L394.5 167.3 L396.9 166.9 L399.4 166.4 L401.8 166.0 L404.2 165.5 L406.7 165.0 L409.1 164.6 L411.5 164.1 L414.0 163.5 L416.4 163.0 L418.8 162.5 L421.3 161.9 L423.7 161.4 L426.1 160.8 L428.6 160.2 L431.0 159.6 L433.4 158.9 L435.9 158.3 L438.3 157.6 L440.7 156.9 L443.2 156.2 L445.6 155.5 L448.0 154.8 L450.5 154.0 L452.9 153.2 L455.3 152.4 L457.8 151.6 L460.2 150.7 L462.6 149.8 L465.1 148.9 L467.5 148.0 L469.9 147.0 L472.4 146.0 L474.8 145.0 L477.2 143.9 L479.7 142.8 L482.1 141.7 L484.5 140.5 L487.0 139.3 L489.4 138.1 L491.8 136.8 L494.3 135.4 L496.7 134.0 L499.1 132.6 L501.6 131.1 L504.0 129.6 L506.4 128.0 L508.9 126.3 L511.3 124.6 L513.7 122.8 L516.2 121.0 L518.6 119.0 L521.0 117.0 L523.5 114.9 L525.9 112.8 L528.3 110.5 L530.8 108.1 L533.2 105.7 L535.6 103.1 L538.1 100.4 L540.5 97.5 L542.9 94.6 L545.4 91.5 L547.8 88.2 L550.2 84.8 L552.7 81.2 L555.1 77.4 L557.5 73.4 L560.0 69.1 L562.4 64.7 L564.8 59.9 L567.3 54.9 L569.7 49.6 L572.1 43.9 L574.6 37.8 L577.0 31.4" fill="none" stroke="var(--accent)" stroke-width="3"/><line x1="66" y1="171.9" x2="364.1" y2="171.9" class="marker"/><circle cx="364.1" cy="171.9" r="8" fill="var(--warn)"/><text x="378.1" y="167.9" class="cv">R = 1.1913</text><text x="358" y="322" text-anchor="middle" class="cax">bounded failure rate ε₊ (log)</text></svg>
+      <figcaption>R(ε) = ln2 / −ln(½ + 2√ε), drawn from
+      <code>cost.dqi_repetition_factor</code>. The cost diverges at ε = 1/16, where the verifier
+      rejects outright. Our point is the Clopper–Pearson bound for 0 failures in
+      102,400 shots.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>What a chemistry submission actually controls</h2>
+    <p class="finding">The ANGLE circuits a submission ships are 85% of the Toffoli count but only
+    about half the persistent width — and they add nothing at all to the temporary workspace,
+    which is a <em>maximum</em> over families and is dominated by inner state prep. Width is
+    governed by a parameterisation, not by the circuits a submission writes.</p>
+    <figure>
+      <svg viewBox="0 0 680 218" role="img" aria-label="The ANGLE circuits are most of the chemistry task's Toffoli count but about half of its persistent qubits"><text x="180" y="50" text-anchor="end" class="cl">Toffolis</text><rect x="196" y="18" width="284" height="52" rx="5" fill="var(--neutral-mark)" fill-opacity="0.3"/><rect x="196" y="18" width="242.1" height="52" rx="5" fill="var(--accent)"/><text x="210" y="51" class="cvi">85%</text><text x="494" y="43" class="cv">79,480 / 93,237</text><text x="494" y="61" class="ct">of all Toffolis</text><text x="180" y="148" text-anchor="end" class="cl">Persistent qubits</text><rect x="196" y="116" width="284" height="52" rx="5" fill="var(--neutral-mark)" fill-opacity="0.3"/><rect x="196" y="116" width="146.6" height="52" rx="5" fill="var(--accent)"/><text x="210" y="149" class="cvi">52%</text><text x="494" y="141" class="cv">96 / 186</text><text x="494" y="159" class="ct">of persistent width</text></svg>
+      <figcaption>Both bars are additive partitions:
+      79,480 + 13,757 Toffolis, and
+      96 + 46
+      + 44 persistent qubits. The scored total
+      width of 730 is <em>not</em> a partition —
+      186 persistent +
+      544 temporary, where the temporary term is
+      max(11,
+      370,
+      544).</figcaption>
+    </figure>
+    <p class="note">The reference sits close to three cliffs, all of which reject outright rather
+    than gracefully: the widest ANGLE circuit at 119 qubits against the
+    128 cap (93% of it),
+    <code>error_2</code> at 0.01864 Ha against a 0.020 Ha cap
+    (93%), and <code>E_gap</code> at 3.9655 Ha
+    against a strict 3.914898 Ha floor (+1.3%). How far a
+    candidate can move before one of them fires has not been measured.</p>
+  </section>
+
+  <section>
+    <h2>Cost anatomy</h2>
+    <p class="finding">A qubit saved is worth twice as much on <code>dqi</code>, whose cost carries
+    Q²; the other two are linear in Q. That exponent, not the raw counts, decides which lever
+    pays — and the three tasks span 740× in Toffoli count, so they are not
+    interchangeable targets.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Task</th><th>Reference cost</th><th>Scored as</th><th>Q</th>
+      <th>Toffolis/shot</th><th>Leading factor</th><th>Shots</th></tr></thead>
+      <tbody><tr><td><code>invsqrt</code></td><td class="num">2,076,774.23</td><td><code>Q × C</code></td><td class="num">260</td><td class="num">7,735.0</td><td class="num">C = 7,987.5932</td><td class="num">200,540,928</td></tr><tr><td><code>dqi</code></td><td class="num">2.44395×10¹³</td><td><code>R(ε₊) × Q² × T</code></td><td class="num">1,893</td><td class="num">5,725,108.4</td><td class="num">R = 1.1913</td><td class="num">102,400</td></tr><tr><td><code>dfthcsos</code></td><td class="num">3,355,599,588.32</td><td><code>λ_eff × T × Q</code></td><td class="num">730</td><td class="num">93,237.0</td><td class="num">λ_eff = 49.3014</td><td class="num">254,464</td></tr></tbody>
+    </table></div>
+    <p class="note">Each row&rsquo;s cost is reconstructable from the columns beside it. For
+    <code>invsqrt</code> the leading factor C = 7,987.59
+    already contains the Toffolis, so its cost is Q × C and the Toffoli column is shown for
+    comparison only.</p>
+  </section>
+
+  <section>
+    <h2>What the local loop costs</h2>
+    <p class="finding">A full three-task verification takes about
+    9 minutes on 10 CPU cores and is free and
+    unlimited — against 5 rationed submissions a day. That
+    ratio is the whole reason the dev set is worth building.</p>
+    <div class="funnel"><div class="fcell"><div class="ftask">invsqrt</div><div class="fpass">PASS</div><div class="fmeta">200,540,928 shots</div><div class="fmeta">5.7 min · cost 2,076,774.23</div></div><div class="fcell"><div class="ftask">dqi</div><div class="fpass">PASS</div><div class="fmeta">102,400 shots</div><div class="fmeta">2.4 min · cost 2.44395×10¹³</div></div><div class="fcell"><div class="ftask">dfthcsos</div><div class="fpass">PASS</div><div class="fmeta">254,464 shots</div><div class="fmeta">1.0 min · cost 3,355,599,588.32</div></div></div>
+    <p class="note">Not a funnel yet: nothing has been eliminated, because no candidates have been
+    generated. The per-stage denominators this section will carry only exist once a generator is
+    running.</p>
+  </section>
+
+  <section>
+    <h2>Checking the blend arithmetic</h2>
+    <p class="finding">Feeding the public frontier&rsquo;s self-reported per-task costs through our
+    scoring path reproduces the blend they reported, 23.13587, to
+    3.8 parts per million. That checks the ratio-and-geometric-mean arithmetic
+    against a third party&rsquo;s independent calculation — it does <em>not</em> check the three
+    per-task cost formulas, since both sides use the same self-reported costs.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Task</th><th>Public best cost (third-party)</th>
+      <th>Ratio vs our reference</th></tr></thead>
+      <tbody><tr><td><code>invsqrt</code></td><td class="num">100,941</td><td class="num">20.574×</td></tr><tr><td><code>dqi</code></td><td class="num">4.0334×10¹¹</td><td class="num">60.593×</td></tr><tr><td><code>dfthcsos</code></td><td class="num">3.3780×10⁸</td><td class="num">9.934×</td></tr></tbody>
+    </table></div>
+    <p class="note">Computed with <code>cost.task_ratio</code> and <code>cost.score</code> against
+    the measured calibration, giving 23.13578. The agreement cannot be read as finer than the
+    inputs: the rounding in those
+    costs as quoted moves the blend by about ±6.6 ppm on its own, so
+    3.8 ppm means &ldquo;agrees to the precision available&rdquo;, not a
+    measured resolution.</p>
+  </section>
+
+  <section>
+    <h2>Verdict ledger</h2>
+    <article class="verdict"><header><code>g0-calibrate-the-cost-model</code><span class="pill ok">PROMOTE</span></header><p class="vmeta">gate G0 · 2026-10-31 · <a href="https://github.com/charleneleong-ai/ai4science/pull/102">PR #102</a></p><p>Ran all three shipped verifiers over sample_submission/ at the default salt. All PASS; reference costs are invsqrt 2,076,774.23 (Q=260, C=7,987.59, 200,540,928 shots), dqi 2.4439463583673e13 (Q=1,893, T=5,725,108.38, 102,400 shots) and dfthcsos 3,355,599,588.32 (lambda_eff=49.3014, T=93,237, Q=730, 254,464 shots). The reference blend scores 1.00000 by construction. Reading the verifiers also corrected three things the Evaluation page omits: a rotation costs 0.56*log2(1/eps)+5.3 T at a single circuit-wide eps chosen from the leftover accuracy budget (not a per-Clifford-level price); the scored Toffoli figure is the simulated per-shot mean, not the static count; and dqi's eps_plus is a Clopper-Pearson upper bound at delta=2^-128, so a decoder that fails 0 of 102,400 shots still pays R=1.1913. Every cost function now reproduces its verifier's own score to 1e-12 from the fields that verifier reports, pinned by tests over the three captured outputs. The back-derived estimates turned out 0.02%, 0.006% and 0.04% low, so the public frontier's self-reported numbers held up.</p></article><article class="verdict"><header><code>v1-reference-submission</code><span class="pill ok">PROMOTE</span></header><p class="vmeta">gate G3 · 2026-10-31 · <a href="https://github.com/charleneleong-ai/ai4science/pull/102">PR #102</a></p><p>Submitted the unmodified sample_submission/ as submission 57824925 to confirm the upload path end to end and to check that the leaderboard agrees with the local verifier on a known input. Scored <strong>1.00000</strong>, exactly the local verifier's 1.00000. So the local loop and the leaderboard agree to five decimals on a known input, and the dev set can be trusted to rank candidates without spending submissions. Two incidental findings: a submission file must be named exactly <code>submission.zip</code> (two 70 MB uploads were rejected with a 400 before the body was read, neither counting against the daily budget), and the seed is derived from the candidate's own hash, so comparing candidates locally requires an explicit --seed.</p></article><article class="verdict"><header><code>g0b-read-the-field</code><span class="pill warn">KEEP</span></header><p class="vmeta">gate none -- an observation, not an experiment · 2026-10-31 · <a href="https://github.com/charleneleong-ai/ai4science/pull/102">PR #102</a></p><p>Pulled the competition's own public leaderboard (1,756 teams) instead of relying on the third-party summary, and snapshotted scores-only to docs/experiments/leaderboard-2026-10-31.json. Three corrections. (1) <strong>The field is bimodal</strong>: p10 23.23, p25 23.04, p50 22.66, then a cliff to p75 7.93 and p90 1.06, so half the field is packed into a 0.6-wide band and only 9 teams have cleared 25. A crowd that dense at one value is a crowd running one shared parameterisation, which is direct evidence for the design doc's reason to prefer dfthcsos. (2) <strong>23.14 is not the frontier</strong> -- it is rank ~374 of 1,756, the top edge of the plateau. (3) Our 1.00000 is <strong>rank 1,671-1,751</strong>, tied with 80 other teams that submitted the reference unchanged; the gap to the leader is x26.8 on score, x19,000 on the product of the three cost ratios. The question worth answering is what the 9 teams above 25 found, not how to reach 23.</p></article>
+    <h3>Promotion gates</h3>
+    <div class="tw"><table><tbody><tr><td><code>G0</code></td><td>The cost model is calibrated: measuring the competition's own sample_submission/ scores 1.0000 to four decimal places, and the measured numbers are written into a calibration JSON with measured=true. Nothing downstream is trustworthy until this passes, and <code>vqcc</code> says so on every run until it does.</td></tr><tr><td><code>G1</code></td><td>A local change beats the current submitted baseline by more than measured submission-to-submission noise, established from one identical re-run.</td></tr><tr><td><code>G2</code></td><td>For dqi, the gain holds as a reduction in *expected* failures across &gt;= 48 independent draws, not on the single draw seeded by the candidate file's own hash.</td></tr><tr><td><code>G3</code></td><td>The improvement survives an external leaderboard submission, not only the local verifier at its default salt.</td></tr></tbody></table></div>
+  </section>
+
+  <section>
+    <h2>Not established</h2>
+    <ul>
+      <li><strong>No compression has been attempted.</strong> Everything here is measurement
+      apparatus.</li>
+      <li><strong>Run-to-run noise is unmeasured.</strong> Every verifier seeds itself from the
+      candidate&rsquo;s own bytes — <code>int(circuit_sha256, 16)</code>, or
+      <code>sha256(hash + salt)</code> with a salt — so a re-run of one circuit is bit-identical
+      and two candidates never share a draw. Comparing candidates needs an explicit
+      <code>--seed</code>; sizing the across-seed noise is gate G1 and the next thing to run.</li>
+      <li><strong>Every third-party number here is unverified by us.</strong> The per-task
+      frontier costs and the 23.13587 blend are self-reported in Kaggle topic 754174, and
+      the blend check above rests entirely on them — if they are wrong, that check says nothing.
+      The leaderboard scores and the 1,756 team count are the competition&rsquo;s own.</li>
+      <li><strong>How much <code>dfthcsos</code> headroom exists is unmeasured.</strong> The
+      reference sits at 93% of the ANGLE qubit cap and 93% of the <code>error_2</code> budget, and
+      nobody has measured how far a candidate can move before one rejects.</li>
+      <li><strong>One leaderboard reading, on an input designed to score 1.0.</strong> Agreement
+      there does not prove agreement on a compressed candidate.</li>
+      <li><strong>Which task to commit to is open.</strong> The structural facts above bear on it;
+      the decision does not follow from them.</li>
+      <li><strong>Why 9 teams cleared 25 while half the field sits near
+      22.6</strong> is unexplained, and which task holds that margin is the most valuable
+      unknown in the competition.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Built by <code>scripts/build_artifact.py</code> from the three official verifier outputs
+    committed under <code>tests/data/</code>, the verdict ledger and leaderboard snapshot in
+    <code>docs/experiments/</code>, and the formulas and constants imported from
+    <code>quantum_compilation.cost</code>. The three wall-clock run times and the
+    5-a-day submission budget are recorded by hand and live
+    in <code>HAND_RECORDED</code>; third-party figures are labelled where they appear. Status
+    2026-10-31.
+  </footer>
+</main>
+</html>
