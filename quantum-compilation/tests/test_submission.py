@@ -1,7 +1,6 @@
 import kickmix as km
 import numpy as np
 import pytest
-
 from quantum_compilation.submission import NPZ_ARRAYS, audit
 
 TINY = "CCX q0 q1 q2"

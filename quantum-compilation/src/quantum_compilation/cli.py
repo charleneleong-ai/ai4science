@@ -1,11 +1,16 @@
-"""`vqcc` -- measure circuits, gate a submission directory, and price the blend."""
+"""`vqcc` -- gate a submission, run the official verifiers, and price the blend.
+
+The division of labour is the thing to keep straight. `check` is instant and claims only
+what filenames and a circuit's width can support. `verify` runs the official verifiers and
+is the only command that produces a real cost: no task's cost is computable without them,
+invsqrt included, because the scored Toffoli count is a simulated per-shot mean and the
+price of a rotation depends on the accuracy margin the simulation leaves over.
+"""
 
 from __future__ import annotations
 
-import sys
 import time
-from collections.abc import Iterator
-from dataclasses import dataclass
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Annotated
 
@@ -15,64 +20,47 @@ from rich.console import Console
 from rich.progress import Progress
 from rich.table import Table
 
+from quantum_compilation import verify as verifier
 from quantum_compilation.cost import (
-    PROVISIONAL_CALIBRATION,
+    DEFAULT_CALIBRATION,
     TASKS,
     MetricCalibration,
-    UnpricedRotationError,
-    dfthcsos_cost,
     dfthcsos_rejections,
-    dqi_cost,
-    invsqrt_cost,
+    require_task,
     score,
     task_ratio,
-    toffoli_equivalents,
 )
 from quantum_compilation.resources import Resources
-from quantum_compilation.submission import CIRCUIT_SUFFIXES, SubmissionAudit, audit
+from quantum_compilation.submission import CIRCUIT_SUFFIXES, audit
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 console = Console()
 
 CalibrationOption = Annotated[
     Path | None,
+    typer.Option("--calibration", help="Calibration JSON; omit for the built-in one."),
+]
+VerifiersOption = Annotated[
+    Path,
     typer.Option(
-        "--calibration", help="Calibration JSON; omit for the provisional one."
+        "--verifiers",
+        envvar="VQCC_VERIFIERS",
+        help="The extracted `verifiers/` directory from the competition download.",
     ),
 ]
 
 
-@dataclass(frozen=True)
-class VerifierInputs:
-    """The quantities only the official verifier can supply.
-
-    Qubit and Toffoli counts come off the circuits, but the dqi failure rate and the
-    chemistry task's physics and whole-block-encoding totals do not: the submitted ANGLE
-    circuits are a part of what dfthcsos is scored on, not all of it.
-    """
-
-    dqi_failures: int | None = None
-    dqi_shots: int = 102_400
-    e_gap_ha: float | None = None
-    lcu_lambda: float | None = None
-    hamiltonian_error_ha: float | None = None
-    dfthcsos_toffolis: float | None = None
-    dfthcsos_qubits: int | None = None
-
-    @property
-    def dqi_failure_rate(self) -> float | None:
-        return None if self.dqi_failures is None else self.dqi_failures / self.dqi_shots
-
-
 def load_calibration(path: Path | None) -> MetricCalibration:
-    return (
-        PROVISIONAL_CALIBRATION if path is None else MetricCalibration.from_json(path)
-    )
+    return DEFAULT_CALIBRATION if path is None else MetricCalibration.from_json(path)
 
 
-def warn_if_provisional(calibration: MetricCalibration) -> None:
+def warn_if_unmeasured(calibration: MetricCalibration) -> None:
     if not calibration.measured:
         console.print(f"[yellow]Uncalibrated metric[/] -- {calibration.provenance}")
+
+
+def fmt_cost(cost: float | None) -> str:
+    return f"{cost:,.8g}" if cost is not None else "[yellow]—[/]"
 
 
 def circuit_paths(paths: list[Path]) -> list[Path]:
@@ -80,25 +68,21 @@ def circuit_paths(paths: list[Path]) -> list[Path]:
     found: list[Path] = []
     for path in paths:
         if path.is_dir():
-            found.extend(
-                sorted(p for p in path.rglob("*") if p.suffix in CIRCUIT_SUFFIXES)
-            )
+            found.extend(sorted(p for p in path.rglob("*") if p.suffix in CIRCUIT_SUFFIXES))
         else:
             found.append(path)
     if not found:
-        raise typer.BadParameter(
-            f"no {' or '.join(CIRCUIT_SUFFIXES)} files under {paths}"
-        )
+        raise typer.BadParameter(f"no {' or '.join(CIRCUIT_SUFFIXES)} files under {paths}")
     return found
 
 
-def measured(paths: list[Path], label: str) -> Iterator[tuple[Path, Resources]]:
+def measured(paths: Sequence[Path], label: str) -> Iterator[tuple[Path, Resources]]:
     """Parse each circuit in turn, reporting progress -- a 1.46 GB circuit takes a while.
 
-    A redrawing bar is unreadable in a nohup log, so only a TTY gets one; anything else
+    A redrawing bar is unreadable in a nohup log, so only a terminal gets one; anything else
     gets a timestamped line per circuit.
     """
-    if sys.stdout.isatty():
+    if console.is_terminal:
         with Progress(console=console, transient=True) as progress:
             task = progress.add_task(label, total=len(paths))
             for path in paths:
@@ -115,92 +99,99 @@ def measured(paths: list[Path], label: str) -> Iterator[tuple[Path, Resources]]:
         )
 
 
-def equivalents_cell(res: Resources, calibration: MetricCalibration) -> str:
-    try:
-        return f"{toffoli_equivalents(res, calibration):,.1f}"
-    except UnpricedRotationError:
-        return "[yellow]unpriced rotations[/]"
-
-
-def task_costs(
-    report: SubmissionAudit,
-    by_path: dict[Path, Resources],
-    calibration: MetricCalibration,
-    inputs: VerifierInputs,
-) -> tuple[dict[str, float], dict[str, str]]:
-    """Each task's cost, and for the rest why it cannot be computed here."""
-    costs: dict[str, float] = {}
-    blocked: dict[str, str] = {}
-
-    if report.invsqrt is not None:
-        res = by_path[report.invsqrt]
-        try:
-            costs["invsqrt"] = invsqrt_cost(
-                res.num_qubits, toffoli_equivalents(res, calibration)
-            )
-        except UnpricedRotationError as exc:
-            blocked["invsqrt"] = str(exc)
-    else:
-        blocked["invsqrt"] = "no invsqrt circuit"
-
-    rate = inputs.dqi_failure_rate
-    if report.dqi is None:
-        blocked["dqi"] = "no dqi circuit"
-    elif rate is None:
-        blocked["dqi"] = "needs --dqi-failures from the official verifier"
-    else:
-        res = by_path[report.dqi]
-        # T here is the Toffoli count, not Toffoli-equivalents: only invsqrt prices T gates in.
-        costs["dqi"] = dqi_cost(res.num_qubits, res.num_toffoli_like, rate)
-
-    chemistry_inputs = (
-        inputs.dfthcsos_qubits,
-        inputs.dfthcsos_toffolis,
-        inputs.e_gap_ha,
-        inputs.lcu_lambda,
-    )
-    if all(value is not None for value in chemistry_inputs):
-        qubits, toffolis, e_gap, lcu_lambda = chemistry_inputs
-        costs["dfthcsos"] = dfthcsos_cost(qubits, toffolis, e_gap, lcu_lambda)
-    else:
-        blocked["dfthcsos"] = (
-            "needs --dfthcsos-qubits, --dfthcsos-toffolis, --e-gap and --lambda; the "
-            "submitted ANGLE circuits are only part of what this task is scored on"
-        )
-    return costs, blocked
-
-
-def print_costs(
-    costs: dict[str, float], blocked: dict[str, str], calibration: MetricCalibration
-) -> None:
+def print_costs(costs: dict[str, float], calibration: MetricCalibration) -> None:
     table = Table("task", "cost", "reference", "ratio")
     for task in TASKS:
-        if task in costs:
-            table.add_row(
-                task,
-                f"{costs[task]:,.6g}",
-                f"{calibration.reference_costs[task]:,.6g}",
-                f"{task_ratio(task, costs[task], calibration):.4f}",
-            )
+        cost = costs.get(task)
+        reference = fmt_cost(calibration.reference_costs[task])
+        if cost is None:
+            table.add_row(task, "[yellow]—[/]", reference, "—")
         else:
             table.add_row(
-                task, "[yellow]—[/]", f"{calibration.reference_costs[task]:,.6g}", "—"
+                task, fmt_cost(cost), reference, f"{task_ratio(task, cost, calibration):.4f}"
             )
     console.print(table)
-    for task, reason in blocked.items():
-        console.print(f"[yellow]{task}[/] {reason}")
-    if not blocked:
+    if len(costs) == len(TASKS):
         console.print(f"\n[bold]score {score(costs, calibration):.5f}[/]")
+    else:
+        console.print(f"[yellow]no score[/] -- needs all of {TASKS}, have {sorted(costs)}")
+
+
+def agreement_cell(result: verifier.Verification) -> str:
+    """Whether `cost` reproduced the verifier's score, as three distinct states."""
+    ours = verifier.recompute_cost(result)
+    match verifier.model_agrees(result):
+        case True:
+            return f"[green]{fmt_cost(ours)} ✓[/]"
+        case False:
+            return f"[red]{fmt_cost(ours)} ✗[/]"
+        case _:
+            return "[dim]not evaluated[/]"
+
+
+def selected_tasks(tasks: list[str] | None, whole_submission: bool) -> tuple[str, ...]:
+    """The tasks to run, rejecting a bad name or a filter that cannot do the asked-for job."""
+    selected = tuple(tasks) if tasks else TASKS
+    for task in selected:
+        try:
+            require_task(task)
+        except KeyError as exc:
+            raise typer.BadParameter(str(exc)) from exc
+    if whole_submission and len(selected) != len(TASKS):
+        # Caught before the run rather than after: a calibration needs all three costs, and
+        # finding that out at the end would waste the whole simulation.
+        raise typer.BadParameter(
+            f"--write-calibration needs every task; --task selected {sorted(selected)}"
+        )
+    return selected
+
+
+def print_results_table(results: Sequence[verifier.Verification]) -> None:
+    table = Table("task", "status", "cost", "model cost")
+    for result in results:
+        table.add_row(
+            result.task,
+            "[green]PASS[/]" if result.passed else f"[red]{result.status}[/]",
+            fmt_cost(result.score),
+            agreement_cell(result),
+        )
+    console.print(table)
+
+
+def write_calibration_file(
+    results: Sequence[verifier.Verification],
+    destination: Path,
+    root: Path,
+    salt: str,
+    seed: int | None,
+) -> None:
+    """Write a measured calibration, warning if it is not the known reference submission."""
+    if differing := DEFAULT_CALIBRATION.disagreeing_hashes(verifier.candidate_hashes(results)):
+        console.print(
+            f"[yellow]not the known reference submission[/] -- {sorted(differing)} hash "
+            "differently from the circuits the built-in calibration was measured on. "
+            "Calibrating against these makes them score 1.0 by construction."
+        )
+    provenance = (
+        f"measured: official verifiers over {root} at salt {salt!r}"
+        f"{'' if seed is None else f' seed {seed}'} on {time.strftime('%Y-%m-%d')}"
+    )
+    verifier.measured_calibration(results, provenance).to_json(destination)
+    console.print(f"[green]wrote {destination}[/] -- pass it as --calibration")
 
 
 @app.command()
 def resources(
     paths: Annotated[list[Path], typer.Argument(help="Circuit files or directories.")],
-    calibration_path: CalibrationOption = None,
 ) -> None:
-    """Measured qubits, Toffoli-likes and rotations for each circuit."""
-    calibration = load_calibration(calibration_path)
-    table = Table("circuit", "qubits", "Toffoli-like", "T", "rotations >T", "C")
+    """Static gate counts per circuit -- a triage bound, not a cost.
+
+    Toffoli-like here is the largest number any shot could execute. The scored figure is the
+    simulated mean, which measurement-based uncomputation puts below it, so this bounds a
+    candidate's cost from above: useful for rejecting one without simulating it, never for
+    ranking two that both survive.
+    """
+    table = Table("circuit", "qubits", "Toffoli-like (max)", "T", "rotations >T")
     for path, res in measured(circuit_paths(paths), "measuring"):
         table.add_row(
             path.name,
@@ -208,42 +199,18 @@ def resources(
             f"{res.num_toffoli_like:,}",
             f"{res.num_t_like:,}",
             f"{res.num_fine_rotations:,}",
-            equivalents_cell(res, calibration),
         )
     console.print(table)
-    warn_if_provisional(calibration)
 
 
 @app.command()
 def check(
     root: Annotated[Path, typer.Argument(help="Submission directory to gate.")],
-    calibration_path: CalibrationOption = None,
-    dqi_failures: Annotated[
-        int | None,
-        typer.Option(help="Failing shots the official dqi verifier reported."),
-    ] = None,
-    dqi_shots: Annotated[
-        int, typer.Option(help="Shots the dqi verifier ran.")
-    ] = 102_400,
-    e_gap: Annotated[
-        float | None, typer.Option(help="E_gap in Ha, from the verifier.")
-    ] = None,
-    lcu_lambda: Annotated[
-        float | None,
-        typer.Option("--lambda", help="LCU normalization, from the verifier."),
-    ] = None,
-    hamiltonian_error: Annotated[
-        float | None, typer.Option(help="Encoded-Hamiltonian error in Ha.")
-    ] = None,
-    dfthcsos_toffolis: Annotated[
-        float | None, typer.Option(help="Whole-block-encoding Toffoli count.")
-    ] = None,
-    dfthcsos_qubits: Annotated[
-        int | None, typer.Option(help="Whole-block-encoding qubit count.")
-    ] = None,
 ) -> None:
-    """Gate a submission directory: layout, ANGLE widths, and every cost its inputs allow."""
-    calibration = load_calibration(calibration_path)
+    """Gate a submission's layout, and the one rejection knowable without simulating.
+
+    Everything here is cheap and certain. For a cost, run `vqcc verify`.
+    """
     report = audit(root)
     for problem in report.problems:
         console.print(f"[red]layout[/] {problem}")
@@ -252,33 +219,94 @@ def check(
             f"[green]layout ok[/] -- invsqrt, dqi and "
             f"{len(report.angle_circuits)} angle circuit(s) with a factorization"
         )
-
-    paths = [
-        p for p in (report.invsqrt, report.dqi, *report.angle_circuits) if p is not None
-    ]
-    if not paths:
+    if not report.circuits:
         raise typer.Exit(code=1)
-    by_path = dict(measured(paths, "measuring"))
 
-    inputs = VerifierInputs(
-        dqi_failures=dqi_failures,
-        dqi_shots=dqi_shots,
-        e_gap_ha=e_gap,
-        lcu_lambda=lcu_lambda,
-        hamiltonian_error_ha=hamiltonian_error,
-        dfthcsos_toffolis=dfthcsos_toffolis,
-        dfthcsos_qubits=dfthcsos_qubits,
-    )
-    for reason in dfthcsos_rejections(
-        angle_circuit_qubits=[by_path[p].num_qubits for p in report.angle_circuits],
-        hamiltonian_error_ha=inputs.hamiltonian_error_ha,
-        e_gap_ha=inputs.e_gap_ha,
-        lcu_lambda=inputs.lcu_lambda,
+    if report.angle_circuits:
+        # Only the width is wanted, so read it off the parsed circuit rather than paying for
+        # a full operation_statistics() pass per file.
+        angle_qubits = [km.Circuit.from_file(path).num_qubits for path in report.angle_circuits]
+        reasons = dfthcsos_rejections(angle_circuit_qubits=angle_qubits)
+        for reason in reasons:
+            console.print(f"[red]reject[/] {reason}")
+        if not reasons:
+            console.print(
+                f"[green]widths ok[/] -- widest ANGLE circuit {max(angle_qubits)} qubits"
+            )
+    raise typer.Exit(code=0 if report.ok else 1)
+
+
+@app.command()
+def verify(
+    root: Annotated[Path, typer.Argument(help="Submission directory to score.")],
+    verifiers: VerifiersOption,
+    calibration_path: CalibrationOption = None,
+    tasks: Annotated[
+        list[str] | None, typer.Option("--task", help="Limit to these tasks.")
+    ] = None,
+    salt: Annotated[
+        str, typer.Option(help="Salt merged into the candidate's hash to seed the simulator.")
+    ] = verifier.DEFAULT_SALT,
+    seed: Annotated[
+        int | None,
+        typer.Option(
+            help="Explicit simulator seed. Pass one to compare candidates: without it each "
+            "candidate draws its own seed from its own bytes."
+        ),
+    ] = None,
+    timeout: Annotated[
+        float | None, typer.Option(help="Seconds per task before giving up.")
+    ] = None,
+    write_calibration: Annotated[
+        Path | None,
+        typer.Option(help="With `sample_submission/`: write the measured calibration here."),
+    ] = None,
+    rows: Annotated[
+        Path | None,
+        typer.Option(help="Write one JSON row per verdict here, updated as each lands."),
+    ] = None,
+) -> None:
+    """Run the official verifiers and price the result -- the real score, free and unlimited.
+
+    This is the dev set: the leaderboard runs this same code and rations measurements to
+    five a day, so every candidate comes through here and only a winner costs a submission.
+    Pass `--seed` when comparing candidates; see the `verify` module for why a salt alone
+    does not hold the draw fixed.
+    """
+    calibration = load_calibration(calibration_path)
+    selected = selected_tasks(tasks, whole_submission=write_calibration is not None)
+
+    report = audit(root)
+    for problem in report.problems:
+        console.print(f"[yellow]layout[/] {problem}")
+    if seed is None:
+        console.print(
+            "[dim]no --seed: each task is seeded from its own circuit's hash, which is the "
+            "published default but not comparable across candidates[/]"
+        )
+
+    results: list[verifier.Verification] = []
+    for result in verifier.verify_submission(
+        verifiers, report, selected, salt=salt, seed=seed, timeout=timeout
     ):
-        console.print(f"[red]reject[/] {reason}")
+        results.append(result)
+        console.print(f"[dim]{result.task}: {result.status} in {result.seconds:.1f}s[/]")
+        if not result.passed:
+            console.print(f"[red]{result.task}[/] {result.error}")
+        if rows is not None:
+            # Rewritten per verdict: a full run is ~12 min of simulation and an interrupt
+            # at minute 11 must not throw away what is already measured.
+            verifier.write_rows(rows, results)
 
-    print_costs(*task_costs(report, by_path, calibration, inputs), calibration)
-    warn_if_provisional(calibration)
+    print_results_table(results)
+    if rows is not None:
+        console.print(f"wrote {rows}")
+
+    print_costs(verifier.passing_costs(results), calibration)
+    if write_calibration is None:
+        warn_if_unmeasured(calibration)
+    else:
+        write_calibration_file(results, write_calibration, root, salt, seed)
 
 
 @app.command()
@@ -290,32 +318,34 @@ def blend(
 ) -> None:
     """Per-task ratios and the geometric-mean score for three already-measured costs."""
     calibration = load_calibration(calibration_path)
-    print_costs({"invsqrt": invsqrt, "dqi": dqi, "dfthcsos": dfthcsos}, {}, calibration)
-    warn_if_provisional(calibration)
+    print_costs({"invsqrt": invsqrt, "dqi": dqi, "dfthcsos": dfthcsos}, calibration)
+    warn_if_unmeasured(calibration)
 
 
 @app.command()
 def calibration(
     write: Annotated[
-        Path | None,
-        typer.Option(help="Write the active calibration here as an editable JSON."),
+        Path | None, typer.Option(help="Write the active calibration here as JSON.")
     ] = None,
     calibration_path: CalibrationOption = None,
 ) -> None:
-    """Show the active metric calibration, or write it out to fill in with measured numbers."""
+    """Show the active metric calibration -- each task's reference cost and where it came from."""
     active = load_calibration(calibration_path)
-    table = Table("task", "reference cost")
+    table = Table("task", "reference cost", "measured on")
     for task in TASKS:
-        table.add_row(task, f"{active.reference_costs[task]:,.6g}")
+        digest = active.reference_sha256.get(task, "")
+        table.add_row(
+            task,
+            fmt_cost(active.reference_costs[task]),
+            f"{digest[:12]}..." if digest else "—",
+        )
     console.print(table)
-    console.print(
-        f"rotation T price: {active.rotation_t_cost or '[yellow]unknown[/]'}\n"
-        f"measured: {active.measured}\nprovenance: {active.provenance}"
-    )
+    console.print(f"measured: {active.measured}\nprovenance: {active.provenance}")
     if write is not None:
         active.to_json(write)
         console.print(
-            f"\nwrote {write} -- replace the costs from `sample_submission/`, which scores 1.0"
+            f"\nwrote {write} -- or let `vqcc verify sample_submission/ "
+            "--write-calibration` measure it"
         )
 
 

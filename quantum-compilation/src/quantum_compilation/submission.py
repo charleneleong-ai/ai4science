@@ -17,6 +17,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .cost import require_task
+
 CIRCUIT_SUFFIXES = (".kmb", ".kmx")
 ANGLE_PATTERN = re.compile(r"^angle_k_(\d+)$")
 CHEMISTRY_DIR = "dfthcsos"
@@ -77,6 +79,21 @@ class SubmissionAudit:
             if path is not None
         }
         return named | {path.stem: path for path in self.angle_circuits}
+
+    @property
+    def chemistry(self) -> Path | None:
+        """The `dfthcsos/` directory, which is what that task's verifier is pointed at."""
+        chemistry = self.root / CHEMISTRY_DIR
+        return chemistry if chemistry.is_dir() else None
+
+    def target(self, task: str) -> Path | None:
+        """What `task`'s verifier takes: a circuit for two of them, a directory for the third.
+
+        Layout knowledge stays in this module, so a driver never has to rebuild a path.
+        """
+        if task == "dfthcsos":
+            return self.chemistry
+        return self.circuits.get(require_task(task))
 
 
 def audit(root: Path | str) -> SubmissionAudit:

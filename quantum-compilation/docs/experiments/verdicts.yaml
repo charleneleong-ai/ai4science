@@ -20,4 +20,43 @@ gates:
     The improvement survives an external leaderboard submission, not only the local
     verifier at its default salt.
 
-experiments: []
+experiments:
+  - name: g0-calibrate-the-cost-model
+    date: 2026-10-31
+    baseline: >-
+      third-party task ratios from Kaggle discussion topic 754174 (invsqrt 20.57,
+      dqi 60.59, dfthcsos 9.93), the only numbers available before the data downloaded
+    gate: G0
+    result: >-
+      Ran all three shipped verifiers over sample_submission/ at the default salt. All
+      PASS; reference costs are invsqrt 2,076,774.23 (Q=260, C=7,987.59, 200,540,928
+      shots), dqi 2.4439463583673e13 (Q=1,893, T=5,725,108.38, 102,400 shots) and
+      dfthcsos 3,355,599,588.32 (lambda_eff=49.3014, T=93,237, Q=730, 254,464 shots).
+      The reference blend scores 1.00000 by construction. Reading the verifiers also
+      corrected three things the Evaluation page omits: a rotation costs
+      0.56*log2(1/eps)+5.3 T at a single circuit-wide eps chosen from the leftover
+      accuracy budget (not a per-Clifford-level price); the scored Toffoli figure is the
+      simulated per-shot mean, not the static count; and dqi's eps_plus is a
+      Clopper-Pearson upper bound at delta=2^-128, so a decoder that fails 0 of 102,400
+      shots still pays R=1.1913. Every cost function now reproduces its verifier's own
+      score to 1e-12 from the fields that verifier reports, pinned by tests over the
+      three captured outputs. The back-derived estimates turned out 0.02%, 0.006% and
+      0.04% low, so the public frontier's self-reported numbers held up.
+    verdict: PROMOTE
+    pr: 102
+  - name: v1-reference-submission
+    date: 2026-10-31
+    baseline: none -- first submission, establishing that the pipeline reaches the leaderboard
+    gate: G3
+    result: >-
+      Submitted the unmodified sample_submission/ as submission 57824925 to confirm the
+      upload path end to end and to check that the leaderboard agrees with the local
+      verifier on a known input. Scored **1.00000**, exactly the local verifier's 1.00000.
+      So the local loop and the leaderboard agree to five decimals on a known input, and
+      the dev set can be trusted to rank candidates without spending submissions. Two
+      incidental findings: a submission file must be named exactly `submission.zip` (two
+      70 MB uploads were rejected with a 400 before the body was read, neither counting
+      against the daily budget), and the seed is derived from the candidate's own hash,
+      so comparing candidates locally requires an explicit --seed.
+    verdict: PROMOTE
+    pr: 102

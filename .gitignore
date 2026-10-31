@@ -20,6 +20,10 @@ data/
 # ...but touchstone ships its reference tables as tracked package data
 !touchstone/src/touchstone/data/
 !touchstone/src/touchstone/data/**
+# ...and quantum-compilation commits the official verifiers' own reference outputs, which are
+# what pin its cost model to the real metric
+!quantum-compilation/tests/data/
+!quantum-compilation/tests/data/**
 
 # Local scratch / staging for GPU-box runs — duplicates tracked inputs, not an artefact of record
 materialhack/

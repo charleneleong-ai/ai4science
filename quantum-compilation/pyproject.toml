@@ -7,7 +7,9 @@ requires-python = ">=3.13"
 # wheels for macOS arm64 and x86_64, manylinux and Windows. The competition dataset still
 # ships a kickmix.so built for the Kaggle notebook image; the hosts plan to drop it once the
 # metric moves to the PyPI copy, so pin PyPI and keep the bundled .so only as a cross-check.
-dependencies = ["kickmix==1.0.0", "numpy>=2.1", "typer>=0.12", "rich>=13"]
+# scipy carries the exact Clopper-Pearson bound the dqi cost needs (`beta.isf`), and the
+# official dfthcsos verifier that `vqcc verify` drives needs it too, so it is not optional.
+dependencies = ["kickmix==1.0.0", "numpy>=2.1", "scipy>=1.14", "typer>=0.12", "rich>=13"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
