@@ -55,7 +55,7 @@ td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-spa
 td.v { font-family: var(--mono); white-space: nowrap; color: var(--muted); }
 tr.best td { background: color-mix(in srgb, var(--peak-soft) 45%, transparent); }
 .pill { display: inline-block; font: 500 11px/1 var(--mono); letter-spacing: 0.06em; padding: 4px 7px; border-radius: 999px; border: 1px solid currentColor; }
-.pill.PROMOTE { color: var(--good); } .pill.KEEP { color: var(--warn); } .pill.DISCARD { color: var(--bad); }
+.pill.PROMOTE { color: var(--good); } .pill.KEEP { color: var(--warn); } .pill.DISCARD { color: var(--bad); } .pill.RUNNING { color: var(--muted); }
 
 ul.limits { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 72ch; }
 .links { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -70,30 +70,30 @@ details[open] summary { margin-bottom: 12px; }
 
 <div class="wrap">
   <header class="head">
-    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 25 Oct 2026</div>
-    <h1>From 0.115 to 0.465, one change per submission</h1>
-    <p>Rank candidate structures for 400 molecules from their tandem mass spectra, scored by MRR@25 on the InChIKey connectivity block. Every number on this page is a public leaderboard score: the first local estimate said 0.664 and the leaderboard said 0.115, so nothing local is trusted. The current best is dmitriigluzdov's public notebook “CASMI 26: The Data Behind Spectra to Structures” (version 26) run unchanged on our account: 0.465; before it, the fork of Hongbin Gu's 0.456 notebook reproduced 0.456 exactly, the E006 fork scored 0.446, the fork of the 0.421 notebook 0.415, and our own pipeline peaked at 0.356.</p>
+    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 31 Oct 2026</div>
+    <h1>From 0.115 to 0.477, one change per submission</h1>
+    <p>Rank candidate structures for 400 molecules from their tandem mass spectra, scored by MRR@25 on the InChIKey connectivity block. Every number on this page is a public leaderboard score: the first local estimate said 0.664 and the leaderboard said 0.115, so nothing local is trusted. The current best is Busya PRIME's public notebook “LB 0.477 · Two 0.472 Fixes, Merged the Right Way” run unchanged on our account: 0.477; before it, dmitriigluzdov's “CASMI 26: The Data Behind Spectra to Structures” (version 26) scored 0.465, the fork of Hongbin Gu's 0.456 notebook reproduced 0.456 exactly, the E006 fork scored 0.446, the fork of the 0.421 notebook 0.415, and our own pipeline peaked at 0.356.</p>
     <div class="figures">
-      <div class="fig main"><b>0.465</b><span>best public MRR@25 · data-fork</span></div>
-      <div class="fig"><b>0.456</b><span>previous best · pubchemlite-fork</span></div>
+      <div class="fig main"><b>0.477</b><span>best public MRR@25 · merged-fork</span></div>
+      <div class="fig"><b>0.465</b><span>previous best · data-fork</span></div>
       <div class="fig"><b>0.415</b><span>first fork · fork-v1 of the 0.421 notebook</span></div>
       <div class="fig"><b>0.356</b><span>our own pipeline's best · v19</span></div>
       <div class="fig"><b>0.115</b><span>first submission · v1</span></div>
-      <div class="fig"><b>27 / 27</b><span>submissions scored, none omitted</span></div>
+      <div class="fig"><b>28 / 28</b><span>submissions scored, none omitted · 1 running</span></div>
     </div>
   </header>
 
   <section aria-labelledby="spec-h">
     <h2 id="spec-h">Every submission, drawn as a spectrum</h2>
-    <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.504 leaderboard top (24 October); the e006-fork and pubchemlite-fork sticks reproduce their notebooks' public 0.446 and 0.456 exactly. The dotted rule is the rebase onto public notebooks; “spec” is spectra-fork, “pcl” pubchemlite-fork and “nrl” is neural-fork; data-fork remains the best at 0.465, and the last stick, neural-fork, scored 0.444.</p>
-    <div class="chart"><svg id="spectrum" viewBox="0 0 760 326" role="img" aria-label="Stick chart of 26 submission scores (27 submissions, the v19 re-run folded in) rising from 0.115 to a best of 0.465"></svg>
+    <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.517 leaderboard top (31 October); the e006-fork and pubchemlite-fork sticks reproduce their notebooks' public 0.446 and 0.456 exactly. The dotted rule is the rebase onto public notebooks; “spec” is spectra-fork, “pcl” pubchemlite-fork, “nrl” neural-fork and “mrg” merged-fork; the last stick, merged-fork, is the new best at 0.477, +0.012 over data-fork's 0.465.</p>
+    <div class="chart"><svg id="spectrum" viewBox="0 0 760 326" role="img" aria-label="Stick chart of 27 submission scores (28 submissions, the v19 re-run folded in) rising from 0.115 to a best of 0.477"></svg>
       <div class="legend"><span><i class="key" style="background:var(--peak)"></i>kept</span><span><i class="key" style="background:var(--dim)"></i>not kept</span><span><i class="key" style="background:var(--ref)"></i>reference scores</span></div>
     </div>
   </section>
 
   <section aria-labelledby="pipe-h">
     <h2 id="pipe-h">The pipeline as it runs</h2>
-    <p>The current best (0.465, data-fork) is the 0.456 PubChemLite recipe plus four changes from dmitriigluzdov's version 26: GLACIER proxies kept where ICEBERG scores exist, joint ICEBERG+GLACIER re-ordering of proxy-covered lists, five fold-safe FPNets in the PubChem channel plus a sixth PubChem slot at rank 24, and a candidate-aware rank-1 PubChem promotion (Saner Turhaner, 0.465 upstream). The 0.456 recipe is the E006 pipeline drawn below with three changes from its public lineage: PubChemLite structures added to engine 2's library (0.451 → 0.455), GLACIER proxy scores from other adducts for molecules without an [M+H]+ spectrum (N1A), and the PubChem popularity weight at 0.15 instead of 0.25 (0.456). Its 0.451 base is the E006 recipe with promotion at rel &gt; 150, the rank-2 hedge and standardised ChEBI/LIPID MAPS candidates. Stage counts are not visible: the leaderboard scores a hidden test, and a commit run processes only 12 smoke molecules (ICEBERG and GLACIER scored 11 each; 400 output rows). The diagram is the E006 fork's (0.446).</p>
+    <p>The current best (0.477, merged-fork) runs the 0.465 data-fork pipeline once, then re-ranks each molecule's final 25 with sanpier's spectrum model (sanpier/casmi-spectrum-model-v1) by reciprocal-rank fusion at weight 0.25 for rank 1 and 0.75 for ranks 2–25, and lets Roman Tamrazov's Spectral Parallax fragment check, an untrained MetFrag-style re-scorer, replace rank 1; its leader moves are taken from the 0.50 (V2) order and merged as [P0, V0] + the rest of the custom order. The 0.465 data fork is the 0.456 PubChemLite recipe plus four changes from dmitriigluzdov's version 26: GLACIER proxies kept where ICEBERG scores exist, joint ICEBERG+GLACIER re-ordering of proxy-covered lists, five fold-safe FPNets in the PubChem channel plus a sixth PubChem slot at rank 24, and a candidate-aware rank-1 PubChem promotion (Saner Turhaner, 0.465 upstream). The 0.456 recipe is the E006 pipeline drawn below with three changes from its public lineage: PubChemLite structures added to engine 2's library (0.451 → 0.455), GLACIER proxy scores from other adducts for molecules without an [M+H]+ spectrum (N1A), and the PubChem popularity weight at 0.15 instead of 0.25 (0.456). Its 0.451 base is the E006 recipe with promotion at rel &gt; 150, the rank-2 hedge and standardised ChEBI/LIPID MAPS candidates. Stage counts are not visible: the leaderboard scores a hidden test, and a commit run processes only 12 smoke molecules (ICEBERG and GLACIER scored 11 each; 400 output rows). The diagram is the E006 fork's (0.446).</p>
     <div class="mermaid-box"><pre class="mermaid">
 flowchart TD
     T["test spectra"] --> E2["engine 2, own process: two rankers over<br/>COCONUT ∪ ChEBI/LIPID MAPS ∪ train · top 40"]
@@ -151,6 +151,7 @@ flowchart TD
     <div class="table-box"><table>
       <thead><tr><th>lever</th><th>versions</th><th style="text-align:right">gain</th></tr></thead>
       <tbody>
+        <tr><td>Rebase onto the public 0.477 notebook (Busya PRIME): leader-safe neural re-rank (weight 0.25 for rank 1, 0.75 for ranks 2–25) + Spectral Parallax fragment check on rank 1</td><td class="v">data-fork → merged-fork</td><td class="num">+0.012</td></tr>
         <tr><td>Rebase onto the public 0.464 notebook (dmitriigluzdov v26): proxies kept where ICEBERG scores exist, joint ICEBERG+GLACIER re-ordering, fold-safe FPNets, candidate-aware rank-1 promotion</td><td class="v">pubchemlite-fork → data-fork</td><td class="num">+0.009</td></tr>
         <tr><td>Rebase onto the public 0.456 notebook: PubChemLite structures in engine 2, N1A GLACIER proxies, popularity weight 0.15</td><td class="v">e006-fork → pubchemlite-fork</td><td class="num">+0.010</td></tr>
         <tr><td>Rebase onto the public 0.446 E006 notebook: engine-2 rank fusion, ChEBI/LIPID MAPS candidates, simulated ranker rows, PubChem promotion at rel &gt; 150</td><td class="v">fork-v1 → e006-fork</td><td class="num">+0.031</td></tr>
@@ -167,12 +168,23 @@ flowchart TD
   </section>
 
   <section aria-labelledby="all-h">
-    <h2 id="all-h">All twenty-seven submissions</h2>
-    <p>Gate G1: beat the best so far by more than the ±0.005 run-to-run noise. The identical re-run of v19 is folded into its row.</p>
+    <h2 id="all-h">All twenty-eight submissions</h2>
+    <p>Gate G1: beat the best so far by more than the ±0.005 run-to-run noise. The identical re-run of v19 is folded into its row; the last row is still scoring.</p>
     <div class="table-box"><table>
       <thead><tr><th>v</th><th>change</th><th style="text-align:right">MRR@25</th><th>verdict</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
+  </section>
+
+  <section aria-labelledby="oct31-h">
+    <h2 id="oct31-h">What changed on 31 October</h2>
+    <p>A new best: a neural re-rank that cannot move rank 1, plus a fragment check that can, forked unchanged from a public notebook.</p>
+    <ul class="limits">
+      <li><b>0.477: the new best.</b> Busya PRIME's public notebook “LB 0.477 · Two 0.472 Fixes, Merged the Right Way”, run byte-identical as private kernel casmi-merged-fork (version 1, vendored at casmi/notebooks/fork477/), scored 0.477 (submission 57822991, 31 October), reproducing its public score: +0.012 over data-fork's 0.465, above the ±0.005 noise, so G1 passes. It runs the pinned 0.465 pipeline once, then stacks two public changes that each showed 0.472: alex chilton's leader-safe neural re-rank (sanpier's spectrum model at weight 0.25 for rank 1 and 0.75 for ranks 2–25) and Roman Tamrazov's Spectral Parallax fragment check, which may replace rank 1, its moves taken from the 0.50 (V2) order and merged as [P0, V0] + the rest of the custom order.</li>
+      <li><b>The neural re-rank is reopened, for ranks 2–25 only.</b> At a flat 0.50 it lost 0.021 (neural-fork); kept off rank 1 it is part of the +0.012.</li>
+      <li><b>Running: fork477 v3, analogue propagation (kernel version 2, submission 57826104).</b> One cell after the merge: test molecules whose leader has a library match ≥ 0.87 are anchors; other molecules whose spectra reach cosine ≥ 0.70 with an anchor give candidates below rank 1 a bonus of 0.10 × cosine × Tanimoto to the anchor's leader. Rank 1 and the candidate sets never change. The host allowed similarity between test molecules on 26 October; at most 113 of 400 visible-test molecules have such a neighbour. It counts only if it beats 0.477 by more than ~0.010.</li>
+      <li><b>Next.</b> The leaderboard top is 0.517. Keep checking public notebooks daily and fork any credible improvement that reproduces.</li>
+    </ul>
   </section>
 
   <section aria-labelledby="oct25-h">
@@ -239,10 +251,12 @@ flowchart TD
       <li><b>Why fork-v1 scores 0.415 on our account against 0.421 public.</b> Our two runs agree, so the 0.006 is not run-to-run noise, and the E006 fork reproduced its public 0.446 exactly on the same account and day, so it is not a general account or day effect either; a different input version of the 0.421 notebook is possible but unchecked.</li>
       <li><b>Why the 0.451 notebook scores 0.445 for us.</b> Its 0.451 is reported for version 52, and Kaggle serves only version 53, which adds ranker seeds; whether those seeds or non-reproduction explain the 0.006 is not established.</li>
       <li><b>Whether a de novo route could help with a better encoder.</b> FRIGID found 0 of 50 offline with MIST's fingerprints; an encoder fine-tuned on Enveda's spectra is untested, and the 39–52% of the test outside PubChem and COCONUT is the SOTA sweep's estimate, not a measurement on the hidden test.</li>
+      <li><b>A calibrated local scorer, still.</b> sanpier's 120-molecule labelled panel ranks the 0.477 recipe below the 0.465 baseline (−0.004 ± 0.003), where the leaderboard gave +0.012, so it cannot stand in for the leaderboard, and fork477 v3 is measured only there.</li>
+      <li><b>What in the 0.477 notebook earns its +0.012.</b> We ran it unchanged; how the gain splits between the leader-safe neural re-rank and the fragment check is not measured by us (each showed 0.472 upstream on its own).</li>
       <li><b>What in the version-26 notebook earns its +0.009.</b> We ran it unchanged; how the gain splits between the proxy re-ordering, the fold-safe FPNets, the sixth PubChem slot and the candidate-aware promotion is not measured by us.</li>
       <li><b>What in the 0.456 notebook earns its +0.010.</b> We ran it unchanged; its author's steps (PubChemLite +0.004, N1A and popularity 0.15 +0.001) are public scores we did not reproduce one by one.</li>
       <li><b>Why E006 gains.</b> The 0.446 notebook stacks several changes over the 0.421 lineage (engine-2 fusion, ChEBI/LIPID MAPS candidates, simulated ranker rows, the metric-identity overlays, the rank-2 hedge, promotion at rel &gt; 150); we ran it unchanged, so how much of the +0.031 each contributes is not measured by us. Its author chose rel &gt; 150 on the public leaderboard.</li>
-      <li><b>The private score.</b> The forks' settings were fixed by their authors before we saw any result, but tuned on the public leaderboard (the E006 notebook reports its threshold sweep there), so 0.446, 0.456 and 0.465 may be optimistic on the private split (the 0.456 notebook chose popularity 0.15 there); our own shortlist size, forward-model weights, GLACIER's input and v19's similarity threshold were chosen on the public split, so 0.356 is optimistic.</li>
+      <li><b>The private score.</b> The forks' settings were fixed by their authors before we saw any result, but tuned on the public leaderboard (the E006 notebook reports its threshold sweep there), so 0.446, 0.456, 0.465 and 0.477 may be optimistic on the private split (the 0.456 notebook chose popularity 0.15 there); our own shortlist size, forward-model weights, GLACIER's input and v19's similarity threshold were chosen on the public split, so 0.356 is optimistic.</li>
       <li><b>A per-molecule breakdown.</b> The hidden test is not visible, so which molecules the forks gain on, how many have a library match (similarity ≥ 0.7), and how many get forward-model evidence is unknown.</li>
       <li><b>Candidate recall on the hidden test.</b> On held-out train molecules the wider PubChem channel adds answers (255 against 236 of 280), yet fork-v2 scored the same as fork-v1; how much hidden-test recall either buys is unmeasured.</li>
     </ul>
@@ -290,8 +304,12 @@ const SUBS = [
   ["pubchemlite-fork", "the public 0.456 notebook (Hongbin Gu v465) unchanged: the 0.451 recipe + PubChemLite in engine 2, N1A GLACIER proxies, popularity 0.15", 0.456, "PROMOTE"],
   ["data-fork", "the public 0.464 notebook (dmitriigluzdov v26) unchanged: proxies kept where ICEBERG scores exist, joint ICEBERG+GLACIER re-ordering, fold-safe FPNets, candidate-aware rank-1 promotion", 0.465, "PROMOTE"],
   ["neural-fork", "the public 0.466 neural-rerank notebook (Saner Turhaner) with the spectrum-model rank weight 0.50 instead of 0.25", 0.444, "DISCARD"],
+  ["merged-fork", "the public 0.477 notebook (Busya PRIME) unchanged: the 0.465 pipeline + leader-safe neural re-rank (0.25 rank 1, 0.75 ranks 2–25) + Spectral Parallax fragment check on rank 1", 0.477, "PROMOTE"],
 ];
-const SHORT = { "spectra-fork": "spec-fork", "pubchemlite-fork": "pcl-fork", "neural-fork": "nrl-fork" };
+const RUNNING = [
+  ["fork477-v3", "merged fork + analogue propagation across test molecules on ranks 2–25 (submission 57826104)"],
+];
+const SHORT = { "spectra-fork": "spec-fork", "pubchemlite-fork": "pcl-fork", "neural-fork": "nrl-fork", "merged-fork": "mrg-fork" };
 const bestScore = Math.max(...SUBS.filter(s => s[3] === "PROMOTE").map(s => s[2]));
 const bestIdx = SUBS.findIndex(s => s[3] === "PROMOTE" && s[2] === bestScore);
 const firstFork = SUBS.findIndex(s => s[0].includes("fork"));
@@ -301,6 +319,12 @@ SUBS.forEach(([label, change, score, verdict], i) => {
   const tr = document.createElement("tr");
   if (i === bestIdx) tr.className = "best";
   tr.innerHTML = `<td class="v">${label}</td><td></td><td class="num">${score.toFixed(3)}</td><td><span class="pill ${verdict}">${verdict}</span></td>`;
+  tr.children[1].textContent = change;
+  tbody.appendChild(tr);
+});
+RUNNING.forEach(([label, change]) => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td class="v">${label}</td><td></td><td class="num">—</td><td><span class="pill RUNNING">running</span></td>`;
   tr.children[1].textContent = change;
   tbody.appendChild(tr);
 });
@@ -322,7 +346,7 @@ for (const t of [0, 0.1, 0.2, 0.3, 0.4, 0.5]) {
   el("line", { x1: L, x2: W - R, y1: y(t), y2: y(t), stroke: "var(--rule)", "stroke-width": 1 });
   el("text", { x: L - 8, y: y(t) + 4, "text-anchor": "end", "font-size": 11, fill: "var(--muted)" }, t.toFixed(1));
 }
-for (const [ref, label] of [[0.421, "0.421 public notebook"], [0.504, "0.504 leaderboard top"]]) {
+for (const [ref, label] of [[0.421, "0.421 public notebook"], [0.517, "0.517 leaderboard top"]]) {
   el("line", { x1: L, x2: W - R, y1: y(ref), y2: y(ref), stroke: "var(--ref)", "stroke-width": 1.2, "stroke-dasharray": "5 4" });
   el("text", { x: L + 4, y: y(ref) - 5, "font-size": 11, fill: "var(--ref)" }, label);
 }

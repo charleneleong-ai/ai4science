@@ -1,9 +1,10 @@
 # Experiment card — CASMI 2026 molecule identification
 
 Pattern: [*A generated protein is not a result*](https://rewirebio.io/blog/a-generated-protein-is-not-a-result/),
-applied to a retrieve-and-rank campaign. Status as of 2026-10-25: the current best (0.465) is an
-unchanged fork of dmitriigluzdov's public notebook at version 26, [`notebooks/fork464/data_fork.ipynb`](../notebooks/fork464/data_fork.ipynb);
-the previous best (0.456) is an unchanged fork of Hongbin Gu's public 0.456 notebook, [`notebooks/fork456/pubchemlite_fork.ipynb`](../notebooks/fork456/pubchemlite_fork.ipynb);
+applied to a retrieve-and-rank campaign. Status as of 2026-10-31: the current best (0.477) is an
+unchanged fork of Busya PRIME's public 0.477 notebook, [`notebooks/fork477/merged_fork.ipynb`](../notebooks/fork477/merged_fork.ipynb);
+the previous best (0.465) is an unchanged fork of dmitriigluzdov's public notebook at version 26, [`notebooks/fork464/data_fork.ipynb`](../notebooks/fork464/data_fork.ipynb);
+before it (0.456), an unchanged fork of Hongbin Gu's public 0.456 notebook, [`notebooks/fork456/pubchemlite_fork.ipynb`](../notebooks/fork456/pubchemlite_fork.ipynb);
 before it (0.446), an unchanged fork of the public E006 notebook,
 [`notebooks/fork446/e006_fork.ipynb`](../notebooks/fork446/e006_fork.ipynb); the first fork (0.415) is of the 0.421 notebook,
 [`notebooks/fork421/v4n_fork.ipynb`](../notebooks/fork421/v4n_fork.ipynb); our own pipeline (best 0.356) is [`notebooks/kaggle_submission.py`](../notebooks/kaggle_submission.py). History:
@@ -20,7 +21,31 @@ before it (0.446), an unchanged fork of the public E006 notebook,
 | scored on | the **public** leaderboard split only; the private split is not visible until the competition closes |
 | rules | code competition: notebook only, internet off; about 5 submissions a day |
 
-## Current best — data-fork, public MRR@25 0.465
+## Current best — merged-fork, public MRR@25 0.477
+
+| | |
+|---|---|
+| kernel | `charyeezy/casmi-merged-fork` (private), kernel version 1, submission 57822991 (2026-10-31), commit `c467db3`; reproduces the source's public 0.477; +0.012 over data-fork, above the ±0.005 noise (G1: PROMOTE) |
+| source | [LB 0.477 · Two 0.472 Fixes, Merged the Right Way](https://www.kaggle.com/code/busyaprime/lb-0-477-two-0-472-fixes-merged-the-right-way) (Akmal Xodarev, Busya PRIME), byte-identical to its current version as of 2026-10-28 (md5 `74efef20daa877c43243024d830ef032`), the version its page reports at public 0.477; only [`kernel-metadata.json`](../notebooks/fork477/kernel-metadata.json) differs (our id, private). Vendored with its version table in [`notebooks/fork477/README.md`](../notebooks/fork477/README.md) |
+| method | runs the pinned 0.465 data-fork pipeline once, then stacks two public changes that each showed 0.472: (1) alex chilton's leader-safe neural re-rank, reciprocal-rank fusion of each molecule's final 25 with the spectrum model at weight 0.25 for rank 1 and 0.75 for ranks 2–25; (2) Roman Tamrazov's Spectral Parallax fragment check, which may replace rank 1, its leader moves taken from the 0.50 (V2) order and merged as `[P0, V0]` + the rest of the CUSTOM order. Candidate sets never change |
+| datasets | 7, as listed in [`kernel-metadata.json`](../notebooks/fork477/kernel-metadata.json): `sanpier/casmi-spectrum-model-v1`, `sanpier/catalogue-experiment-saner`, `dmitriigluzdov/casmi26-{fold-safe-fpnet, natural-product-knowledge-table, natural-product-panel-benchmark, pubchem-popularity-prior, attributed-v4g-reproduction-assets}` (the same seven as neural-fork) |
+| runtime | image `gcr.io/kaggle-private-byod/python@sha256:9a6bcfda6d03b2cd9aa347ee8c1bae62043328ed0f4afe9bda014e4f8bbf9435` (the source's own GPU image, newer than the one our other forks pin), NVIDIA T4, internet off |
+| run evidence | gate `~/casmi-data/gates/gate_fork477.py` (outside the repo) passed on the commit run: the 0.465 pipeline's checks from its stage logs, both layer reports written, the fragment check not skipped, 400 rows with the 12 smoke molecules full |
+
+The settings were fixed by the notebook's authors before we ran it; we chose none of them. Both stacked
+changes were scored on the public leaderboard upstream (0.472 each, 0.477 merged), so 0.477 may be
+optimistic on the private split.
+
+**Running — fork477 v3** (kernel version 2, submission 57826104, commit `cfabe09`). One cell after the
+merge adds analogue propagation across test molecules, allowed by the host on 2026-10-26 (discussion
+752297): molecules whose leader has a library match ≥ 0.87 are anchors; for every other molecule whose
+spectra reach cosine ≥ 0.70 with an anchor, candidates below rank 1 gain 0.10 × cosine × Tanimoto(candidate,
+anchor leader). Rank 1 and the candidate set never change. At most 113 / 400 visible-test molecules have
+such a neighbour. Fixed **before** submission; it counts only if it beats 0.477 by more than ~0.010. Gate
+`gate_fork477_v3.py`: the stage applied, and no leader or candidate set changed against
+`submission_pre_analogue.csv`.
+
+## Previous best — data-fork, public MRR@25 0.465
 
 | | |
 |---|---|
@@ -47,7 +72,7 @@ was scored on the public leaderboard upstream, so 0.465 may be optimistic on the
 | run evidence | gate `~/casmi-data/gates/gate_neural.py` (outside the repo) passed on the commit run: output 400 rows; 12 smoke molecules full; ICEBERG and GLACIER scored 11 each; the neural stage at weight 0.5 re-ordered all 12 smoke molecules and changed top-1 on 2 |
 | result | 0.444: −0.022 against `w = 0.25` upstream and −0.021 against data-fork's 0.465, which stays the best; discarded. The neural re-rank adds at most +0.001 to the 0.465 base; more weight hurts |
 
-## Previous best — pubchemlite-fork, public MRR@25 0.456
+## Earlier best — pubchemlite-fork, public MRR@25 0.456
 
 | | |
 |---|---|
@@ -165,15 +190,18 @@ the scored runs used; a dataset updated later would change a re-run silently.
 | FPNet (spectrum → fingerprint) | `fpnet_full1.pt` + `fpnet_0.pt` (FPNet A), logits averaged | [`casmi26-fpnet-full1`](https://www.kaggle.com/datasets/ahmedberatozer/casmi26-fpnet-full1) (2026-09-29), [`casmi26-v4b-models`](https://www.kaggle.com/datasets/ahmedberatozer/casmi26-v4b-models) (2026-09-26) |
 | ICEBERG (forward model) | ICEBERG 2.1, MassSpecGym `msg_all`: `ckpt/gen.pt`, `ckpt/inten.pt` | [`casmi26-iceberg`](https://www.kaggle.com/datasets/ahmedberatozer/casmi26-iceberg) (2026-09-26) |
 | GLACIER (forward model) | `ckpt/glacier.pt`, MassSpecGym checkpoint | [`casmi26-glacier`](https://www.kaggle.com/datasets/ahmedberatozer/casmi26-glacier) (2026-09-28) |
+| spectrum model (neural re-rank, merged-fork) | `sanpier/casmi-spectrum-model-v1`, a separately trained spectrum model; RRF weight 0.25 for rank 1, 0.75 for ranks 2–25 | [`sanpier/casmi-spectrum-model-v1`](https://www.kaggle.com/datasets/sanpier/casmi-spectrum-model-v1), attached at its latest version |
+| fragment check (merged-fork) | Spectral Parallax (Roman Tamrazov): untrained, MetFrag-style fragment re-scorer, code inside the notebook; may replace rank 1 | [`notebooks/fork477/merged_fork.ipynb`](../notebooks/fork477/merged_fork.ipynb) |
 | RDKit | 2026.3.3 in the notebook; 2025.03.6 inside the forward-model subprocesses (their requirement) | [`metric/rdkit-2026-3-3-wheel`](https://www.kaggle.com/datasets/metric/rdkit-2026-3-3-wheel); ICEBERG's wheels |
 | runtime | Python 3.12, image `gcr.io/kaggle-private-byod/python@sha256:37c64f7d…a461`, NVIDIA T4 | [`kernel-metadata.json`](../notebooks/kernel-metadata.json) |
 
 FPNet full1 was **trained on all of train**, including the train rows the test spectra copy (see
-below). No model here was trained or fine-tuned by this work; every weight is a public checkpoint.
+below). No model here was trained or fine-tuned by this work; every weight is a public checkpoint, and the
+fragment check has none.
 
 ## Budget — every attempt in the denominator
 
-- **27 submissions, 27 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
+- **28 submissions, 28 scored, 0 rejected; a 29th (fork477 v3, 57826104) is running.** 19 from our own pipeline, one an identical re-run of v19
   to measure noise (0.353 vs 0.356); every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including those not kept
   (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise), v19 (0.356, kept), v20 (0.354) and v21 (0.333) in
@@ -183,11 +211,12 @@ below). No model here was trained or fine-tuned by this work; every weight is a 
   from the 0.451 notebook: spectra-fork (0.445, 57311145, discarded). One from the 0.456 notebook:
   pubchemlite-fork (0.456, 57435777, kernel version 1, promoted). One from the version-26 notebook:
   data-fork (0.465, 57588653, kernel version 1, promoted). One from the 0.466 neural re-rank notebook:
-  neural-fork (0.444, 57615727, kernel version 1, discarded).
+  neural-fork (0.444, 57615727, kernel version 1, discarded). One from the 0.477 notebook: merged-fork
+  (0.477, 57822991, kernel version 1, promoted); its kernel version 2 (fork477 v3) is scoring.
 - **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
   molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
   it finished because an empty mass window would have crashed it).
-- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork, 1 of the 0.451 notebook, 1 of the 0.456 notebook, 1 of the version-26 notebook and 1 of the 0.466 neural re-rank notebook; of our own pipeline's, the 3 not submitted were setup or reproducibility runs
+- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork, 1 of the 0.451 notebook, 1 of the 0.456 notebook, 1 of the version-26 notebook, 1 of the 0.466 neural re-rank notebook and 2 of the 0.477 notebook (one scoring); of our own pipeline's, the 3 not submitted were setup or reproducibility runs
   (a missing RDKit wheel, a push-from-repo check). The E006 fork's version 1 ran on the CPU image
   its source's metadata names, failed the notebook's GPU preflight and was not submitted.
 - **Two offline experiments, not submissions:** FRIGID de novo (50 molecules, 3819 generations of
@@ -220,13 +249,15 @@ below). No model here was trained or fine-tuned by this work; every weight is a 
 | the data fork's settings (proxy re-ordering, fold-safe FPNets, sixth PubChem slot, candidate-aware promotion) | by its authors, before we ran it | not ours; its lineage was scored on the public leaderboard |
 | the neural fork's settings (frozen 0.465 baseline, spectrum model, RRF constant 3) | by its author, before we ran it | not ours; its weight 0.25 was scored on the public leaderboard |
 | neural re-rank weight 0.50 (neural-fork) | **before** it was submitted | one setting per submission; scored 0.444, discarded |
+| the merged fork's settings (re-rank weights 0.25 / 0.75, fragment check, `[P0, V0]` leader merge) | by its authors, before we ran it | not ours; each change was scored on the public leaderboard (0.472 each) |
+| analogue propagation (fork477 v3: anchor ≥ 0.87, cosine ≥ 0.70, bonus 0.10, rank 1 frozen) | **before** it was submitted | its reach (113 / 400) checked first; no offline panel can score it |
 | FRIGID go bar: top-10 exact ≥ 5 / 50 with the true formula | **before** the run (2026-10-18) | pre-registered; MIST-MSG over CANOPUS also fixed before |
 | FRIGID encoder diagnostics (MassBank vs Enveda Tanimoto, oracle fingerprint) | **after** the 0 / 50 result | post hoc; explain the failure, not a statistic |
 | FPNet check gates: 4096-bit Morgan space, mean Tanimoto ≥ 0.45 | in the check's protocol, before its results | sample re-drawn after finding only 10 / 50 held out; threshold sweeps, oracle top-k, trained-vs-held-out and 50-way retrieval are post hoc |
 | keep the attached GLACIER checkpoint (ms-pred's public MassSpecGym-trained) | 2026-10-17, before any swap | the paper's contrastive fine-tune gives 69.95 against 69.69 MassSpecGym top-1; its NIST gain needs NIST-licensed weights |
 
 Choices marked **after** were selected on the public leaderboard, so our pipeline's 0.356 is an
-optimistic estimate of the private score; the forks' 0.415, 0.446, 0.456 and 0.465 involve none of ours, though the E006 threshold and the 0.456 notebook's popularity weight were tuned on the public split by their authors. Differences under about ±0.005 — the run-to-run noise
+optimistic estimate of the private score; the forks' 0.415, 0.446, 0.456, 0.465 and 0.477 involve none of ours, though the E006 threshold and the 0.456 notebook's popularity weight were tuned on the public split by their authors. Differences under about ±0.005 — the run-to-run noise
 of identical runs — were treated as no change.
 
 ## What is not measured
@@ -240,6 +271,9 @@ of identical runs — were treated as no change.
 - **Whether a de novo route could help with a better encoder.** FRIGID found 0 / 50 with MIST's
   fingerprints; an encoder fine-tuned on Enveda's spectra is untested. The 39–52% of the test outside
   PubChem and COCONUT is the SOTA sweep's estimate, not a measurement on the hidden test.
+- **What in the 0.477 notebook earns its +0.012.** We ran it unchanged; the split between the leader-safe
+  re-rank and the fragment check (0.472 each upstream) is unmeasured by us.
+- **Whether analogue propagation (fork477 v3) helps.** Still scoring; at most 113 / 400 molecules can change.
 - **What in the version-26 notebook earns its +0.009.** We ran it unchanged; the split between the proxy
   re-ordering, the fold-safe FPNets, the sixth PubChem slot and the candidate-aware promotion is unmeasured by us.
 - **What in the 0.456 notebook earns its +0.010.** We ran it unchanged; the split between PubChemLite,
@@ -254,7 +288,9 @@ of identical runs — were treated as no change.
   agreeing on 12 / 400" reading was those placeholders. A test-like held-out set cannot be cut from train either: only 41 isomer pairs
   in 2.54M train rows share a spectrum (≥ 3 peaks), and 7 have one structure held out of the fold-safe
   FPNet and the other in its training, as test answers and copied structures are. The test's 1189 / 1213
-  copied spectra were built deliberately, not by library duplication.
+  copied spectra were built deliberately, not by library duplication. A public labelled panel does not
+  calibrate either: sanpier's 120-molecule panel ranks the 0.477 recipe below the 0.465 baseline
+  (−0.004 ± 0.003), where the leaderboard gave +0.012, so the leaderboard remains the only measurement.
 - **Why the data is shaped as it is.** 1189 / 1213 test spectra are bit-identical to a train row,
   covering every molecule, yet that row's structure is the answer for at most ~46 / 400.
 - **Candidate recall.** Whether the answer is among the ~1038 candidates per molecule is unknown;

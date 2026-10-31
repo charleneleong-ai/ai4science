@@ -67,4 +67,7 @@ submissions:
   - {version: 1, label: neural-fork, outputs: fork466-v1, ref: 57615727, date: 2026-10-25, family: fusion, commit: 9ae5247,
      score: 0.444, verdict: DISCARD,
      change: "the public 0.466 neural-rerank notebook (Saner Turhaner) with the spectrum-model rank weight 0.50 instead of 0.25"}
+  - {version: 1, label: merged-fork, outputs: fork477-v1, ref: 57822991, date: 2026-10-31, family: rebase, commit: c467db3,
+     score: 0.477, verdict: PROMOTE,
+     change: "the public 0.477 notebook (busyaprime) unchanged: the 0.465 pipeline + leader-safe neural re-rank (0.25 rank 1, 0.75 ranks 2-25) + Spectral Parallax fragment check on rank 1"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==

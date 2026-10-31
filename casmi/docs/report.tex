@@ -4,9 +4,9 @@
 \usepackage{amsmath}
 \usepackage[hidelinks]{hyperref}
 
-\title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.465}
+\title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.477}
 \author{Charlene Leong}
-\date{25 October 2026}
+\date{31 October 2026}
 
 \begin{document}
 \maketitle
@@ -33,8 +33,10 @@ fold-safe FPNets in the PubChem channel and a candidate-aware rank-1 promotion, 
 kernel, $+0.009$ over the 0.456 fork and the current best. A de novo route was closed offline before any submission:
 FRIGID, given the true formula, placed the answer in its top 10 for 0 of 50 held-out molecules against
 a pre-registered bar of 5. A sixth fork, a neural spectrum-model re-rank of the final 25 at twice its
-upstream weight, scored 0.444 and was discarded. 27 submissions were made and all were scored. No local estimate of the
-score exists.
+upstream weight, scored 0.444 and was discarded. A seventh, Busya PRIME's public 0.477 notebook, which keeps
+the same re-rank off rank 1 (weight 0.25 there, 0.75 for ranks 2--25) and adds a fragment check that may
+replace rank 1, scored 0.477 as our kernel, $+0.012$ over the 0.465 fork and the current best. 28 submissions
+were made and all were scored; a 29th is running. No calibrated local estimate of the score exists.
 \end{abstract}
 
 \section{Task}
@@ -44,15 +46,26 @@ the first 14 characters of the InChIKey. The competition runs notebooks offline,
 and model is attached as a dataset. Only the public split of the leaderboard is visible.
 
 \section{Method}
-\textbf{Current best: a fork of the public version-26 notebook (data-fork, 0.465).} The submission is
+\textbf{Current best: a fork of the public 0.477 notebook (merged-fork, 0.477).} The submission is
+Busya PRIME's public notebook \emph{LB 0.477 $\cdot$ Two 0.472 Fixes, Merged the Right Way}, run byte-identical
+(md5 \texttt{74efef20\ldots}) as the private kernel \nolinkurl{charyeezy/casmi-merged-fork}, version 1,
+vendored at \nolinkurl{casmi/notebooks/fork477/}. It runs the pinned 0.465 pipeline described next once,
+then stacks two public changes that each showed 0.472. The first is alex chilton's leader-safe neural
+re-rank: each molecule's final 25 are re-ordered by reciprocal-rank fusion with sanpier's spectrum model
+(\nolinkurl{sanpier/casmi-spectrum-model-v1}) at weight 0.25 for rank 1 and 0.75 for ranks 2--25. The
+second is Roman Tamrazov's Spectral Parallax, an untrained MetFrag-style fragment check that may replace
+rank 1; its leader moves are taken from the 0.50 (V2) order it was built on and merged as $[P_0, V_0]$ +
+the rest of the custom order. Candidate sets never change.
+
+\textbf{Previous best: a fork of the public version-26 notebook (data-fork, 0.465).} The submission was
 dmitriigluzdov's public notebook \emph{CASMI 26: The Data Behind Spectra to Structures}, version 26, run
-unchanged as the private kernel \texttt{charyeezy/casmi-data-fork}, vendored at
-\texttt{casmi/notebooks/fork464/}. It is the 0.456 recipe described next with four changes: GLACIER
+unchanged as the private kernel \nolinkurl{charyeezy/casmi-data-fork}, vendored at
+\nolinkurl{casmi/notebooks/fork464/}. It is the 0.456 recipe described next with four changes: GLACIER
 proxies kept where ICEBERG scores exist, joint ICEBERG+GLACIER re-ordering of proxy-covered lists, five
 fold-safe FPNets in the PubChem channel plus a sixth PubChem slot at rank 24, and a candidate-aware rank-1
 PubChem promotion (Saner Turhaner, 0.465 upstream).
 
-\textbf{Previous best: a fork of the public 0.456 notebook (pubchemlite-fork).} The submission was
+\textbf{Before it: a fork of the public 0.456 notebook (pubchemlite-fork).} The submission was
 Hongbin Gu's public notebook \emph{casmi26-v465-v15-pop015}, run byte-identical (md5
 \texttt{9d1ab164\ldots}) as the private kernel \texttt{charyeezy/casmi-pubchemlite-fork}, version 1,
 on the same GPU image as the other forks, with 15 public datasets attached. It is the E006 pipeline
@@ -61,7 +74,7 @@ standardised ChEBI/LIPID MAPS candidates), with three changes: PubChemLite struc
 engine~2's library (0.455 upstream), GLACIER proxy scores from other adducts for molecules without an
 $[\mathrm{M{+}H}]^+$ spectrum (N1A), and the PubChem popularity weight at 0.15 instead of 0.25 (0.456).
 
-\textbf{Before it: a fork of the public E006 notebook (e006-fork, 0.446).} The submission was the public notebook
+\textbf{Before that: a fork of the public E006 notebook (e006-fork, 0.446).} The submission was the public notebook
 \emph{CASMI26 \textbar{} E006 + PubChem Promo rel$>$150 \textbar{} LB 0.446}, run byte-identical (md5
 \texttt{9829a966\ldots}) as the private kernel \texttt{charyeezy/casmi-e006-fork}, version 2, on a T4. Its
 lineage is flexonafft's v80 recipe (public 0.436), then E006 (0.442), then the PubChem promotion's
@@ -120,8 +133,8 @@ molecules whose top-1 the forward models change ($\lambda=1$) & 208 \\
 \end{center}
 
 \section{Results}
-Every score is the public leaderboard's. Twenty-seven submissions were made, including one identical
-re-run; all were scored; none is omitted. One further run, the E006 fork's kernel version 1, failed its
+Every score is the public leaderboard's. Twenty-eight submissions were made, including one identical
+re-run; all were scored; none is omitted. A twenty-ninth (fork477 v3, below) is running. One further run, the E006 fork's kernel version 1, failed its
 own GPU preflight and was not submitted (below).
 
 \begin{center}
@@ -157,8 +170,10 @@ e006-v3 & engine-2 fusion weight 0.8, not 0.6 (not kept) & 0.437 \\
 spectra-fork & the public 0.451 notebook at version 53, unchanged (not kept) & 0.445 \\
 \midrule
 pubchemlite-fork & the public 0.456 notebook (+ PubChemLite in engine 2), unchanged & 0.456 \\
-data-fork & the public 0.464 notebook (v26), unchanged & \textbf{0.465} \\
+data-fork & the public 0.464 notebook (v26), unchanged & 0.465 \\
 neural-fork & the public 0.466 neural re-rank, weight 0.50 (not kept) & 0.444 \\
+merged-fork & the public 0.477 notebook, unchanged & \textbf{0.477} \\
+fork477-v3 & + analogue propagation on ranks 2--25 & running \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -223,7 +238,22 @@ Our one change, $w = 0.50$, run as the private kernel \nolinkurl{charyeezy/casmi
 $w = 0.25$ upstream and $-0.021$ against data-fork, which stays the best. Its gate
 (\texttt{gate\_neural.py}) passed: 400 output rows, 12 smoke molecules full, ICEBERG and GLACIER 11 each,
 and the neural stage at weight 0.5 re-ordered all 12 smoke molecules and changed top-1 on 2, so the drop
-is the setting, not a broken run. The re-rank adds at most $+0.001$ to the 0.465 base; more weight hurts.
+is the setting, not a broken run. At a flat weight the re-rank adds at most $+0.001$ to the 0.465 base;
+more weight hurts.
+
+The seventh fork (merged-fork) scored 0.477 (submission 57822991, 31 October), reproducing its public
+score: $+0.012$ over data-fork, above the $\pm 0.005$ noise, so it clears G1 and is the new best. It keeps
+the neural re-rank from moving rank 1 (weight 0.25 there, 0.75 below) and lets the fragment check do so
+instead. Its gate (\texttt{gate\_fork477.py}) passed: the 0.465 pipeline's checks from its stage logs, both
+layer reports written, the fragment check not skipped, and 400 output rows with the 12 smoke molecules full.
+
+\textbf{Running: fork477 v3} (kernel version 2, submission 57826104), one cell after the merge. The host
+allowed automated similarity between test molecules on 26 October. Test molecules whose leader has a
+library match $\geq 0.87$ are anchors; for every other molecule whose spectra reach cosine $\geq 0.70$ with
+an anchor, candidates below rank 1 gain $0.10 \times \cos \times$ Tanimoto(candidate, anchor leader), and
+the tail is re-sorted by $1/(3 + \text{position})$ + bonus. Rank 1 and the candidate sets never change. At
+most 113 of 400 visible-test molecules have such a neighbour; it counts only if it beats 0.477 by more
+than about $0.010$.
 
 \textbf{Two offline checks, no submission.} Both ran on an Apple M5 on 18 October. FRIGID, the
 host-approved de novo model (MIST-MSG encoder, FRIGID-base decoder), was run on 50 Enveda-180
@@ -249,9 +279,9 @@ its fingerprints reach Tanimoto 0.245 in its own 10{,}226-bit space and 0.180 ma
     against MIST's 0.268 on the same 50 held-out molecules; a 4096-bit retrain (10--15 T4 hours) not justified.
   \item Engine-2 fusion weight 0.8 (e006-v3): $-0.009$ against 0.446.
   \item The 0.451 notebook at version 53 (spectra-fork): 0.445, no gain over 0.446.
-  \item A neural spectrum-model re-rank of the final 25 at weight 0.50 (neural-fork): 0.444, $-0.022$
-    against the same notebook's 0.466 at weight 0.25. The re-rank adds at most $+0.001$ to the 0.465
-    base; more weight hurts.
+  \item A neural spectrum-model re-rank of the final 25 at a flat weight 0.50 (neural-fork): 0.444, $-0.022$
+    against the same notebook's 0.466 at weight 0.25; more weight on rank 1 hurts. Kept off rank 1, the
+    re-rank is part of merged-fork's $+0.012$.
   \item PubChem promotion at $\mathit{rel} > 100$ on E006: not run. Decided before any submission on
     a reach check from public evidence: its public sibling already scored 0.444 against 0.446.
   \item A different GLACIER checkpoint: ours is ms-pred's public MassSpecGym-trained GLACIER; the
@@ -261,12 +291,11 @@ its fingerprints reach Tanimoto 0.245 in its own 10{,}226-bit space and 0.180 ma
     $[\mathrm{M{+}H}]^+$ only (v16), popularity weight 0.15 (v8): inside the noise or below it.
 \end{itemize}
 
-\textbf{Next.} The base is now the 0.465 data fork. Single settings of the E006 family look tuned
+\textbf{Next.} The base is now the 0.477 merged fork, and fork477 v3 is running on it. Before it, single settings of the E006 family look tuned
 (promotion threshold swept upstream, engine-2 weight 0.8 lost 0.009, forward models already at 1.0, a neural re-rank at
 weight 0.50 lost 0.021) and the de novo route failed offline, while the public lineage gained $+0.044$ in a week (0.421 to
-0.465). The cheapest lever left is a daily check of new public notebooks, forking any credible
-improvement that reproduces. The leaderboard top is 0.504 (24 October). The weekly GPU quota (30\,h)
-resets 31 October 00:00 UTC.
+0.465), then $+0.012$ more to 0.477. The cheapest lever left is a daily check of new public notebooks,
+forking any credible improvement that reproduces. The leaderboard top is 0.517 (31 October).
 
 \section{What is not established}
 \begin{itemize}
@@ -279,6 +308,11 @@ resets 31 October 00:00 UTC.
   \item \textbf{Whether a de novo route could help with a better encoder.} FRIGID found nothing with
     MIST's fingerprints; an encoder fine-tuned on Enveda's spectra is untested. The 39--52\% of the test
     outside PubChem and COCONUT is the SOTA sweep's estimate, not a measurement on the hidden test.
+  \item \textbf{What in the 0.477 notebook earns its gain.} We ran it unchanged; how its $+0.012$ over
+    the 0.465 fork divides between the leader-safe re-rank and the fragment check is not measured by us
+    (each showed 0.472 upstream alone).
+  \item \textbf{Whether fork477 v3's analogue propagation helps.} It is still scoring; at most 113 of 400
+    visible-test molecules can change, and its expected effect is inside the $\pm 0.010$ noise.
   \item \textbf{What in the version-26 notebook earns its gain.} We ran it unchanged; how its $+0.009$
     over the 0.456 fork divides between the proxy re-ordering, the fold-safe FPNets, the sixth PubChem
     slot and the candidate-aware promotion is not measured by us.
@@ -296,13 +330,14 @@ resets 31 October 00:00 UTC.
     full predictions run only inside Kaggle's scoring rerun; an earlier reading of ``three lineages
     agreeing on 12 of 400'' was those placeholders, as was a local 0.030 for the 0.421 notebook. Nor can train supply a test-like held-out set: only 41 isomer pairs in
     2.54 million rows share a spectrum with at least 3 peaks, and 7 of them split across the
-    fold-safe FPNet's training as test answers and copied structures do. Each submission is the only
-    measurement.
+    fold-safe FPNet's training as test answers and copied structures do. A public labelled panel does not
+    calibrate either: sanpier's 120-molecule panel ranks the 0.477 recipe below the 0.465 baseline
+    ($-0.004 \pm 0.003$), where the leaderboard gave $+0.012$. Each submission is the only measurement.
   \item \textbf{The private score.} Three choices --- the shortlist size, $\lambda$, and GLACIER's
     input --- were selected on the public split, as was v19's similarity threshold, so 0.356 is optimistic.
     The forks' settings were fixed by their authors before we saw any result, but tuned on the public
     leaderboard (the E006 notebook reports its threshold sweep there; the 0.456 notebook chose its
-    popularity weight there), so 0.446, 0.456 and 0.465 may be optimistic too.
+    popularity weight there), so 0.446, 0.456, 0.465 and 0.477 may be optimistic too.
   \item \textbf{Candidate recall.} Whether the answer is among the candidates cannot be separated
     from ranking with one MRR; a wider PubChem channel added held-out answers but no score (fork-v2).
   \item \textbf{Why the data is shaped as it is.} The copied train structures are the answer for at
@@ -314,7 +349,8 @@ resets 31 October 00:00 UTC.
 \end{itemize}
 
 \section*{Sources}
-Code and history: \url{https://github.com/charleneleong-ai/ai4science/pull/80}. Forked notebooks: \href{https://www.kaggle.com/code/guhongbin/casmi26-v465-v15-pop015}{casmi26-v465-v15-pop015} (current best), \href{https://www.kaggle.com/code/seyitkaangunes/casmi26-e006-pubchem-promo-rel-150-lb-0-446}{CASMI26 \textbar{} E006 + PubChem Promo rel$>$150 \textbar{} LB 0.446}, \href{https://www.kaggle.com/code/dmitriigluzdov/casmi-26-from-spectra-to-structures}{CASMI 26: From Spectra to Structures} and \href{https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421}{CASMI26 \textbar{} v4n Fusion + PubChem on public 0.421}.
+\sloppy
+Code and history: \url{https://github.com/charleneleong-ai/ai4science/pull/80}. Forked notebooks: \href{https://www.kaggle.com/code/busyaprime/lb-0-477-two-0-472-fixes-merged-the-right-way}{LB 0.477 $\cdot$ Two 0.472 Fixes, Merged the Right Way} (current best), \href{https://www.kaggle.com/code/guhongbin/casmi26-v465-v15-pop015}{casmi26-v465-v15-pop015}, \href{https://www.kaggle.com/code/seyitkaangunes/casmi26-e006-pubchem-promo-rel-150-lb-0-446}{CASMI26 \textbar{} E006 + PubChem Promo rel$>$150 \textbar{} LB 0.446}, \href{https://www.kaggle.com/code/dmitriigluzdov/casmi-26-from-spectra-to-structures}{CASMI 26: From Spectra to Structures} and \href{https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421}{CASMI26 \textbar{} v4n Fusion + PubChem on public 0.421}.
 Every input and
 checkpoint with its version: \texttt{casmi/docs/experiment-card.md}. Competition:
 \url{https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra}.

@@ -16,8 +16,8 @@ It runs the pinned 0.465 pipeline once, then stacks two public changes that each
 
 | kernel version | change | public MRR@25 |
 |---|---|---|
-| 1 | none: upstream as of 2026-10-28 | scoring (ref 57822991) |
-| 2 (our v3) | one new cell after the merge: analogue propagation across test molecules | running |
+| 1 | none: upstream as of 2026-10-28 | **0.477** (ref 57822991, 2026-10-31; reproduces upstream) |
+| 2 (our v3) | one new cell after the merge: analogue propagation across test molecules | scoring (ref 57826104) |
 
 **v3, analogue propagation.** The host allowed automated similarity between test molecules on 2026-10-26
 (discussion 752297). Test molecules whose leader has a library match ≥ 0.87 are anchors. For every other molecule
