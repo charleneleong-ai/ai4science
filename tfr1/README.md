@@ -4,20 +4,21 @@ Adaptyv × Anthropic Protein Design Competition, challenge 04. Three objectives 
 bind human TfR1, cross-react with mouse TfR1, and bind at pH 7.4 while releasing at pH 6.0.
 Submissions close **Sunday 1 November 23:59 AoE** (Monday 2 November 22:59 Sydney).
 
-**Status (2026-10-31): generation and triage complete, the switch measured on the 3DS18 chassis,
-de novo histidine engineering running.** Nothing is measured in a wet lab and no designs are
-submitted yet.
+**Status (2026-10-31): twenty designs selected, pending confirmation on independent poses.**
+Nothing is measured in a wet lab and nothing is uploaded yet.
 
 | stage | result |
 | --- | --- |
 | generated | 300 designs, 6 specs (3 epitopes × 2 length bands), 50 each |
 | triage | **226 pass** (75%); best interface confidence ipTM **0.39** (46 res, short band) against 0.34–0.39 for the same pipeline on GLP1R |
 | histidines present | **0 of 300** carry three; max is two — every switch has to be engineered |
-| 3DS18 chassis | 32 histidine combinations × 3 crystal copies; best **1.44 log units** (28× weaker at pH 6.0) with 3 sites releasing under both methods |
-| 3DS18 limitation | its epitope is **44% identical in mouse** (8/18 contacts), so it cannot serve objective 2 |
+| engineered | 8 chassis × histidine combinations = **256 variants**, each measured by two pKa methods |
+| selected | **20 of 256**, 4 chassis, switch **0.39–1.46 log units** (2.5–29× weaker at pH 6.0) |
+| 3DS18 chassis | strongest switch in the campaign (**1.44 / 1.57** log units) and **ineligible** — 100.0% identity to its own crystal `6wrv_C`, novelty 1 of 4 |
 
-The best 3DS18 variant is `V30H-L33H-Y87H`, ranked on the **lower** of the two pKa methods
-(1.44 PROPKA / 1.57 pKAI) rather than the better one.
+The 3DS18 work is kept as the **positive control that establishes the mechanism**, not as a
+submission: `L33H` at 0.9 Å burial reads Δ −2.93/−3.17 while the native `His69` at 11.0 Å reads
+−0.02 across all 32 variants.
 
 ## The headline: the recommended epitope serves the lowest-ranked objective
 
@@ -98,6 +99,26 @@ alone.
 | switch | histidine scan at interface positions, then two pKa methods and the coupling check |
 | confirm | Chai-1, which shares no weights with the generator |
 | novelty | MMseqs2 and Foldseek on the design chain only |
+| select | [`select_submission.py`](scripts/select_submission.py) applies the novelty and liability gates, then fills slots round-robin by chassis |
+| report | [`plot_results.py`](scripts/plot_results.py) renders the burial finding, the chosen designs and the funnel from the measured tables |
+
+## The twenty
+
+![the chosen twenty](experiments/progress/tfr1/chosen-designs.png)
+
+Four chassis, five designs each, no two closer than two substitutions. Slots are filled
+round-robin by chassis rather than greedily by switch, because a chassis the novelty gate rejects
+scores nothing whatever its switch is. Two chassis carrying an unpaired cysteine are dropped by
+default, which costs nothing on the first-ranked objective — median switch **0.78 log units**
+either way — and
+[`submission_candidates_with_cys.csv`](results/submission_candidates_with_cys.csv) holds the
+alternative that keeps them.
+
+![the funnel](experiments/progress/tfr1/funnel.png)
+
+Novelty is a gate, not an objective, and it eliminated more than the switch did:
+`conserved_s_16` (fold TM 0.94 over 100% coverage) and `conserved_20` (0.90 over 95%) both score
+a predicted 2 and are excluded; `conserved_s_44` is the only predicted *de novo* 4.
 
 ## What is not established
 
@@ -107,3 +128,10 @@ that it is conserved, exposed, and clear of both glycans and the transferrin sit
 expose faces that are interior in the intact ectodomain. Binding is measured on the homodimer, so
 avidity may flatter a weak monovalent design. Mouse cross-reactivity is predicted from a sequence
 alignment, not a mouse structure.
+
+The switch on the de novo designs is measured on **one pose per design**, so the replication axis
+is the two pKa methods rather than independent structures — a position counts only when PROPKA
+and pKAI agree, and contributes the smaller of the two estimates, but neither method is a
+measurement of Kd. The novelty scores are a **conservative local proxy** for Proteinbase's own
+scorer, not its output: the fold half measures more similarity than theirs does, so a `high`
+verdict reliably predicts rejection while a `moderate` one may still pass.
