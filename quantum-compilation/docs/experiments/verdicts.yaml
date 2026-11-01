@@ -16,8 +16,10 @@ gates:
     calibration JSON with measured=true. Nothing downstream is trustworthy until this
     passes, and `vqcc` says so on every run until it does.
   G1: >-
-    A local change beats the current submitted baseline by more than measured
-    submission-to-submission noise, established from one identical re-run.
+    A local change beats the current submitted baseline by more than that task's measured
+    across-seed noise, established from five independent verifier seeds. The threshold is
+    per-task, not global: `dfthcsos` and `invsqrt` are deterministic to ~1 ppm, so any
+    consistent gain clears it, while `dqi` moves in a 4,589 ppm step and needs G2 instead.
   G2: >-
     For dqi, the gain holds as a reduction in *expected* failures across >= 48 independent
     draws, not on the single draw seeded by the candidate file's own hash.
@@ -159,5 +161,42 @@ experiments:
       that is both cheaper than R*B = 1,144 and still under the cap -- that needs the
       cost-precision atlas reproduced and factorizations fitted, which is the next experiment,
       not this one.
+    verdict: KEEP
+    pr: 102
+  - name: g1-size-the-across-seed-noise
+    date: 2026-11-01
+    baseline: >-
+      the submitted plateau assembly (submission 57834335, leaderboard 23.18119), re-verified
+      unchanged under `--seed 1..5`
+    gate: >-
+      none -- this experiment *is* gate G1's measurement, and it rewrote G1's own definition
+    result: >-
+      Re-verifying one unchanged submission under five verifier seeds splits the three tasks
+      into two regimes, which is the result: **`dfthcsos` is bit-identical across all five
+      seeds (337,780,864.96, spread exactly 0) and `invsqrt` varies by 0.84 ppm, while `dqi`
+      varies by 4,589 ppm** and carries the entire 1,527 ppm (0.0354 absolute) spread of the
+      blended score, 23.145825 to 23.181206.
+      The mechanism is not Gaussian noise but **a single discrete step**. Seeds 1, 2, 3 and 5
+      recorded `empirical_error_rate = 0.0` and therefore identical numbers to every digit:
+      one-sided bound `effective_error_rate = 8.6606e-4` and `repetition_factor = 1.19126`.
+      Seed 4 recorded `empirical_error_rate = 9.765625e-06`, which is exactly **1 / 102,400 --
+      one failed shot** -- lifting the Clopper-Pearson bound to 9.1042e-4 and the repetition
+      factor to 1.19673, a +0.459% cost penalty. Everything else held still: the simulated
+      per-shot `toffoli_count` moved only in its seventh digit (427,935.3 +/- 0.1, 0.45 ppm)
+      and `num_qubits = 888` was constant. So `dqi`'s variance is carried entirely by whether
+      the decoder drops a shot, and the answer is 0 or 1, not a continuum.
+      Five seeds size that step precisely and its frequency badly. One failure in 5 x 102,400
+      = 512,000 shots puts the per-shot failure probability near 1.95e-6, so a 102,400-shot
+      run should see at least one failure about 18% of the time -- but the 95% interval on
+      that frequency, from 1 of 5 runs, is [0.5%, 71.6%]. **The step is measured; its
+      probability is not.**
+      Two consequences, both of which change what we do next. First, a chemistry change can
+      be judged on a single seed: `dfthcsos` is deterministic, so there is no noise allowance
+      to clear at all, and the atlas experiment needs no replication budget. Second, the
+      leaderboard draws its own seed, so **our 23.18119 was a zero-failure draw and
+      resubmitting the identical file could legitimately return ~23.1458**. A `dqi` gain
+      smaller than 0.035 blend points therefore cannot be confirmed by one submission, which
+      is exactly what G2 already demanded -- it now has a measured number behind it instead of
+      a precaution. Cost: 5 runs x ~7 min.
     verdict: KEEP
     pr: 102

@@ -167,10 +167,28 @@ a submission — on the two readings taken so far, with the agreement reported i
 *candidate's own bytes* — `int(circuit_sha256, 16)`, or `sha256(circuit_sha256 + salt)` when
 a salt is given — so two different circuits draw two different seeds whatever the salt is
 set to, and a re-run of one circuit is bit-identical. Left alone that puts an unmatched draw
-inside every comparison and makes its noise simultaneously present and unmeasurable. All
-three verifiers accept `--seed`, which overrides the hash; the salt only reproduces the
-published default derivation. Reference run times on 10 CPU cores: invsqrt 5.7 min
-(200,540,928 shots), dqi 2.4 min, dfthcsos 1 min.
+inside every comparison. All three verifiers accept `--seed`, which overrides the hash; the
+salt only reproduces the published default derivation. Reference run times on 10 CPU cores:
+invsqrt 5.7 min (200,540,928 shots), dqi 2.4 min, dfthcsos 1 min.
+
+**How much that draw is worth is measured** — five seeds on one unchanged submission
+([`57834335-seeds.yaml`](docs/experiments/57834335-seeds.yaml)), and the tasks split into
+two regimes:
+
+| | across 5 seeds | reading |
+| --- | --- | --- |
+| `dfthcsos` | **0 ppm** | identical every seed — deterministic |
+| `invsqrt` | 0.84 ppm | effectively deterministic |
+| `dqi` | **4,589 ppm** | one discrete step: 0 or 1 failed shots |
+| blend | 1,527 ppm (0.0354) | carried entirely by `dqi` |
+
+The mechanism is a step, not a distribution: four seeds dropped no shots and returned
+identical numbers to every digit, while one dropped exactly one shot in 102,400, lifting the
+Clopper–Pearson bound from 8.6606e-4 to 9.1042e-4 and the repetition factor from 1.19126 to
+1.19673 — a 0.459% cost penalty. **So a chemistry change can be judged on a single seed with
+no noise allowance at all, and a `dqi` gain below 0.035 blend points cannot be confirmed by
+one submission** (gate G2). Our 23.18119 was a zero-failure draw; the identical file could
+legitimately return 23.1458.
 
 `check` is the cheap pre-filter: it audits the layout the Evaluation page specifies —
 `invsqrt`, `dqi`, and a `dfthcsos/` folder of `angle_k_0 … angle_k_<n-1>` with no gaps plus
@@ -212,9 +230,10 @@ against the same constraint table once a report exists.
 - **We have not compressed anything ourselves.** The 23.18119 is an assembly of other
   people's published circuits; everything we built is apparatus. No claim here is a claim
   about a circuit we designed.
-- **Run-to-run noise is unmeasured.** A re-run at the same seed is bit-identical, so the
-  only noise that exists is across seeds, and nothing has yet measured its size. Until it
-  is, no local difference has a threshold to clear (gate G1).
+- **How often `dqi` drops a shot is unmeasured.** Its size is measured — one failed shot,
+  worth 0.0354 blend points — but 1 failure across 5 seeds leaves the *frequency* anywhere in
+  [0.5%, 71.6%], so the expected penalty on any one submission is not known. Pinning it needs
+  the ≥ 48 draws gate G2 asks for.
 - **Two leaderboard readings, neither on a circuit we designed.** The loop agreed with the
   leaderboard on the reference and on this assembly. That does not prove it agrees on a
   candidate our own search produces.

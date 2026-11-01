@@ -2,8 +2,10 @@ import json
 import math
 from itertools import pairwise
 from pathlib import Path
+from typing import Any
 
 import pytest
+import yaml
 from quantum_compilation.cost import (
     BASELINE_FACTORIZATION,
     DEFAULT_CALIBRATION,
@@ -31,6 +33,20 @@ from quantum_compilation.cost import (
 )
 
 AT_REFERENCE = dict(DEFAULT_CALIBRATION.reference_costs)
+
+
+EXPERIMENTS_DIR = Path(__file__).parents[1] / "docs" / "experiments"
+
+
+@pytest.fixture(scope="module")
+def g1() -> dict[str, Any]:
+    """Gate G1's committed seed record."""
+    return yaml.safe_load((EXPERIMENTS_DIR / "57834335-seeds.yaml").read_text())
+
+
+def failed_shots(seed: dict[str, Any], shots: int) -> int:
+    """Shots the dqi decoder dropped on one seed, from the rate it reported."""
+    return round(seed["dqi_detail"]["empirical_error_rate"] * shots)
 
 
 @pytest.fixture(scope="module")
@@ -334,3 +350,42 @@ class TestMetricCalibration:
         path = tmp_path / "calibration.json"
         DEFAULT_CALIBRATION.to_json(path)
         assert MetricCalibration.from_json(path) == DEFAULT_CALIBRATION
+
+class TestSeedNoiseRecord:
+    """Gate G1's record, re-derived from the cost model that quotes it."""
+
+    def test_the_dqi_bound_and_repetition_factor_follow_from_the_failure_count(self, g1):
+        shots = g1["shots_per_run"]
+        for seed in g1["seeds"]:
+            dqi = seed["dqi_detail"]
+            assert clopper_pearson_upper_bound(
+                failed_shots(seed, shots), shots
+            ) == pytest.approx(dqi["effective_error_rate"], rel=MODEL_AGREEMENT_REL)
+            assert dqi_repetition_factor(dqi["effective_error_rate"]) == pytest.approx(
+                dqi["repetition_factor"], rel=MODEL_AGREEMENT_REL
+            )
+
+    def test_the_whole_blend_spread_comes_from_dqi(self, g1):
+        """The claim the README and the artifact both make: chemistry carries no noise."""
+        spread = {
+            task: max(s["costs"][task] for s in g1["seeds"])
+            - min(s["costs"][task] for s in g1["seeds"])
+            for task in TASKS
+        }
+        assert spread["dfthcsos"] == 0.0
+        assert spread["invsqrt"] / g1["seeds"][0]["costs"]["invsqrt"] < 1e-6
+        assert spread["dqi"] / g1["seeds"][0]["costs"]["dqi"] > 1e-3
+        counts = {failed_shots(s, g1["shots_per_run"]) for s in g1["seeds"]}
+        assert counts == {0, 1}, "the measured step is 0-or-1 failures; a wider set is a new fact"
+
+    def test_the_blend_moves_only_with_the_failure_count(self, g1):
+        """Seeds that dropped no shot must share a blend; the one that dropped one must not."""
+        blends: dict[int, set[float]] = {}
+        for seed in g1["seeds"]:
+            count = failed_shots(seed, g1["shots_per_run"])
+            blends.setdefault(count, set()).add(
+                round(score(seed["costs"], DEFAULT_CALIBRATION), 4)
+            )
+        assert set(blends) == {0, 1}, "both a clean and a failed seed are needed to compare"
+        assert len(blends[0]) == 1, "zero-failure seeds disagree on the blend"
+        assert blends[0] != blends[1], "the failed seed scored the same as the clean ones"

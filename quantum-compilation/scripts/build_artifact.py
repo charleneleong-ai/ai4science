@@ -31,6 +31,7 @@ import yaml
 from autoresearch.render import render
 
 from quantum_compilation.cost import (
+    clopper_pearson_upper_bound,
     BASELINE_FACTORIZATION,
     DEFAULT_CALIBRATION,
     MAX_DQI_FAILURE_RATE,
@@ -49,6 +50,7 @@ EXPERIMENTS_DIR = PROJECT_ROOT / "docs" / "experiments"
 VERDICTS_PATH = EXPERIMENTS_DIR / "verdicts.yaml"
 LEADERBOARD_PATH = EXPERIMENTS_DIR / "leaderboard-2026-10-31.json"
 PARTS_PATH = EXPERIMENTS_DIR / "57834335-parts.yaml"
+SEED_RECORD_PATH = EXPERIMENTS_DIR / "57834335-seeds.yaml"
 OUTPUT_PATH = PROJECT_ROOT / "docs" / "artifact" / "index.html"
 PROGRESS_PATH = PROJECT_ROOT / "experiments" / "progress" / "vqcc" / "progress.png"
 
@@ -589,6 +591,7 @@ class Artifact:
     verdicts: dict[str, Any]
     board: dict[str, Any]
     parts: dict[str, Any]
+    seed_runs: dict[str, Any]
 
     @classmethod
     def load(cls) -> Artifact:
@@ -605,6 +608,7 @@ class Artifact:
             verdicts=yaml.safe_load(VERDICTS_PATH.read_text()),
             board=board,
             parts=yaml.safe_load(PARTS_PATH.read_text()),
+            seed_runs=yaml.safe_load(SEED_RECORD_PATH.read_text()),
         )
 
     # Only figures two or more sections share are properties; anything one section uses is a
@@ -653,6 +657,48 @@ class Artifact:
         return {task: self.parts["parts"][task]["our_measurement"]["cost"] for task in TASKS}
 
     @cached_property
+    def seed_spread(self) -> dict[str, dict[str, float]]:
+        """How far each task's cost moved across the seeds, recomputed from the record.
+
+        The record stores only what the verifiers reported, so these are derived here rather
+        than read: a stored spread could disagree with the rows it came from.
+        """
+        seeds = self.seed_runs["seeds"]
+        series = {task: [s["costs"][task] for s in seeds] for task in TASKS}
+        series["blend"] = [score(s["costs"], DEFAULT_CALIBRATION) for s in seeds]
+        series["toffolis"] = [s["dqi_detail"]["toffoli_count"] for s in seeds]
+        return {
+            label: {
+                "min": min(values),
+                "max": max(values),
+                "range": max(values) - min(values),
+                "ppm": (max(values) - min(values)) / (sum(values) / len(values)) * 1e6,
+            }
+            for label, values in series.items()
+        }
+
+    @cached_property
+    def failed_shots(self) -> list[int]:
+        """Shots the dqi decoder dropped, per seed -- the whole of that task's variance."""
+        shots = self.seed_runs["shots_per_run"]
+        return [round(s["dqi_detail"]["empirical_error_rate"] * shots) for s in self.seed_runs["seeds"]]
+
+    @cached_property
+    def failure_interval(self) -> tuple[float, float]:
+        """95% Clopper-Pearson interval on how often a run drops at least one shot.
+
+        The same distribution the dqi verifier scores on, so it comes from the same helper:
+        a two-sided interval is its one-sided bound read from both ends.
+        """
+        runs = len(self.failed_shots)
+        hits = sum(1 for f in self.failed_shots if f)
+        tail = math.log2(0.025)
+        return (
+            1.0 - clopper_pearson_upper_bound(runs - hits, runs, log2_delta=tail),
+            clopper_pearson_upper_bound(hits, runs, log2_delta=tail),
+        )
+
+    @cached_property
     def local_blend(self) -> float:
         """The whole headline claim is that this predicted the leaderboard, so it is
         recomputed from the submitted parts' measured costs rather than transcribed."""
@@ -685,6 +731,32 @@ class Artifact:
             f"</td></tr>"
             for task in TASKS
         )
+
+    def seed_rows(self) -> str:
+        """Costs render through `fmt`; the blend is a score, so it keeps the decimals its
+        whole spread lives in."""
+        spread = self.seed_spread
+        rows = []
+        for label, reading in (
+            ("dfthcsos", "identical every seed &mdash; deterministic"),
+            ("invsqrt", "below 1 ppm &mdash; effectively deterministic"),
+            ("dqi", "one discrete step: 0 or 1 failed shots"),
+            ("blend", "carried entirely by <code>dqi</code>"),
+        ):
+            ppm = spread[label]["ppm"]
+            lo, hi = spread[label]["min"], spread[label]["max"]
+            shown = (f"{lo:,.5f}", f"{hi:,.5f}") if label == "blend" else (fmt(lo), fmt(hi))
+            cell = (
+                f'<span class="pill warn">{ppm:,.0f} ppm</span>'
+                if ppm > 100
+                else f"{ppm:,.2f} ppm"
+            )
+            rows.append(
+                f"<tr><td><code>{label}</code></td>"
+                f'<td class="num">{shown[0]}</td><td class="num">{shown[1]}</td>'
+                f'<td class="num">{cell}</td><td>{reading}</td></tr>'
+            )
+        return "".join(rows)
 
     def run_log_rows(self) -> str:
         return "".join(
@@ -989,6 +1061,49 @@ class Artifact:
     running.</p>
 """
 
+    def seed_noise(self) -> str:
+        spread, seeds = self.seed_spread, self.seed_runs["seeds"]
+        shots = self.seed_runs["shots_per_run"]
+        clean = next(s for s, f in zip(seeds, self.failed_shots) if not f)
+        failed = next(s for s, f in zip(seeds, self.failed_shots) if f)
+        hits = sum(1 for f in self.failed_shots if f)
+        lo, hi = self.failure_interval
+        rate = sum(self.failed_shots) / (len(seeds) * shots)
+        return f"""
+    <h2>How much of a difference is the seed?</h2>
+    <p class="finding">Re-verifying one unchanged submission under {len(seeds)} verifier seeds
+    splits the three tasks into two regimes. <strong>Chemistry is deterministic and
+    <code>dqi</code> is not</strong>: <code>dfthcsos</code> returned the identical cost every
+    seed and <code>invsqrt</code> moved by {spread["invsqrt"]["ppm"]:.2f} ppm, while
+    <code>dqi</code> moved by {spread["dqi"]["ppm"]:,.0f} ppm and carries the blend&rsquo;s
+    whole {spread["blend"]["range"]:.4f}-point spread.</p>
+    <div class="tw"><table>
+      <thead><tr><th></th><th class="num">min</th><th class="num">max</th>
+      <th class="num">spread</th><th>reading</th></tr></thead>
+      <tbody>{self.seed_rows()}</tbody>
+    </table></div>
+    <p>The mechanism is one discrete step, not a distribution.
+    {len(seeds) - hits} of {len(seeds)} seeds recorded
+    <code>empirical_error_rate = 0</code> and returned identical numbers to every digit &mdash;
+    a one-sided bound of {clean["dqi_detail"]["effective_error_rate"]:.4e} and a repetition
+    factor of {clean["dqi_detail"]["repetition_factor"]:.5f}. Seed {failed["seed"]} recorded
+    <code>{failed["dqi_detail"]["empirical_error_rate"]:.6e}</code>, exactly
+    1&nbsp;/&nbsp;{shots:,} &mdash; <strong>one failed shot</strong> &mdash; lifting the bound
+    to {failed["dqi_detail"]["effective_error_rate"]:.4e} and the factor to
+    {failed["dqi_detail"]["repetition_factor"]:.5f}, a
+    {(failed["dqi_detail"]["repetition_factor"] / clean["dqi_detail"]["repetition_factor"] - 1) * 100:.3f}%
+    cost penalty. Nothing else moved with it: the simulated per-shot Toffoli mean varied by
+    {spread["toffolis"]["ppm"]:.2f} ppm and <code>num_qubits</code> held at
+    {clean["dqi_detail"]["num_qubits"]:,}.</p>
+    <p class="note">So {len(seeds)} seeds size that step precisely and its frequency badly.
+    {sum(self.failed_shots)} failure in {len(seeds) * shots:,} shots puts the per-shot rate near
+    {rate:.2e}, which would fail a {shots:,}-shot run about
+    {1 - math.exp(-rate * shots):.0%} of the time &mdash; but the 95% interval on that
+    frequency, from {hits} of {len(seeds)} runs, is [{lo:.1%}, {hi:.1%}]. The leaderboard draws
+    its own seed, so our {self.our_score:.5f} was a zero-failure draw and the identical file
+    could legitimately return {spread["blend"]["min"]:.4f}.</p>
+"""
+
     def blend_check(self) -> str:
         public = score(PUBLIC_COSTS, DEFAULT_CALIBRATION)
         delta_ppm = abs(public - PUBLIC_BLEND) / PUBLIC_BLEND * 1e6
@@ -1027,11 +1142,14 @@ class Artifact:
       <li><strong>We have not compressed anything ourselves.</strong> The
       {self.our_score:.5f} is an assembly of other people&rsquo;s published circuits; everything we
       built is measurement apparatus. No claim here is a claim about a circuit we designed.</li>
-      <li><strong>Run-to-run noise is unmeasured.</strong> Every verifier seeds itself from the
-      candidate&rsquo;s own bytes — <code>int(circuit_sha256, 16)</code>, or
-      <code>sha256(hash + salt)</code> with a salt — so a re-run of one circuit is bit-identical
-      and two candidates never share a draw. Comparing candidates needs an explicit
-      <code>--seed</code>; sizing the across-seed noise is gate G1 and the next thing to run.</li>
+      <li><strong>How often <code>dqi</code> drops a shot is unmeasured.</strong> Its
+      size is now measured — one failed shot, worth
+      {self.seed_spread["blend"]["range"]:.4f} blend points — but
+      {sum(self.failed_shots)} failure across {len(self.failed_shots)} seeds leaves the
+      <em>frequency</em> anywhere in
+      [{self.failure_interval[0]:.1%}, {self.failure_interval[1]:.1%}], so the expected penalty
+      on any one submission is not known. Pinning it needs the &ge;&nbsp;48 draws gate G2
+      asks for.</li>
       <li><strong>Every third-party number here is unverified by us.</strong> The per-task
       frontier costs and the {PUBLIC_BLEND} blend are self-reported in Kaggle topic 754174, and
       the blend check above rests entirely on them — if they are wrong, that check says nothing.
@@ -1071,13 +1189,14 @@ class Artifact:
 
     def html(self) -> str:
         # Everything between the header and the footer is a <section>, so the tag is written
-        # once here rather than at both ends of all eleven.
+        # once here rather than at both ends of all twelve.
         body = "".join(
             f"\n  <section>{section()}  </section>\n"
             for section in (
                 self.strip, self.where_we_stand, self.why_the_plateau_is_a_wall,
                 self.what_the_page_omits, self.repetition_floor, self.what_chemistry_controls,
-                self.cost_anatomy, self.local_loop_cost, self.blend_check, self.verdict_ledger,
+                self.cost_anatomy, self.local_loop_cost, self.seed_noise, self.blend_check,
+                self.verdict_ledger,
                 self.not_established,
             )
         )
