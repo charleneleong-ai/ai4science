@@ -13,9 +13,11 @@ dependencies = ["kickmix==1.0.0", "numpy>=2.1", "scipy>=1.14", "typer>=0.12", "r
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
-# autoresearch carries the W&B report section-splicing and the results/verdict table
-# rendering that docs/experiments/verdicts.yaml implies, so a tracking module here stays
-# thin and domain-specific -- same pin casmi uses.
+# What the two scripts under `scripts/` need, over and above the package itself: pyyaml for
+# the verdict ledger and the provenance record, and autoresearch for the progress chart
+# (`autoresearch.render`) that build_artifact.py renders from that ledger -- plus the W&B
+# report section-splicing (`autoresearch.wandb_report`) the ledger is shaped for, which is
+# not wired up yet. Same autoresearch pin casmi uses.
 tracking = [
   "wandb>=0.17",
   "wandb-workspaces>=0.1",

@@ -111,9 +111,15 @@ Two consequences worth holding onto:
 
 ```bash
 uv sync --extra dev
-uv run pytest            # 111 tests
+uv run pytest            # 112 tests
 uv run vqcc --help
 ```
+
+[`mise.toml`](mise.toml) carries every command below as a named task, so `mise tasks` lists
+them and `mise run verify path/to/submission --seed 1` is the `uv run vqcc verify` line. It
+needs `mise trust` once, derives `VQCC_VERIFIERS` from `VQCC_DATA` (default
+`~/quantum-compilation-data`), and `mise run check-all` is the whole gate CI runs — the ruff
+complexity check and the test suite.
 
 `verify` is the one that matters — it is the dev set:
 
@@ -127,13 +133,22 @@ uv run vqcc calibration                      # the reference costs in force, and
 uv run vqcc diagram circuit.kmb --flame      # kickmix's own SVG flame chart
 ```
 
-Regenerating the two committed artefacts, after a submission and after any result update:
+Regenerating the committed artefacts, after a submission and after any result update:
 
 ```bash
-uv run python scripts/build_parts_record.py <parts-dir> <rows.jsonl> <submission-root> \
+uv run --extra tracking python scripts/build_parts_record.py \
+    <parts-dir> <rows.jsonl> <submission-root> \
     --submission-ref 57834335 --submitted-at 2026-10-31T09:27:57Z
-uv run python scripts/build_artifact.py     # docs/artifact/index.html, then republish it
+uv run --extra tracking python scripts/build_artifact.py   # page + progress plot
 ```
+
+That second command writes both [`docs/artifact/index.html`](docs/artifact/index.html) (then
+republish it) and
+[`experiments/progress/vqcc/progress.png`](experiments/progress/vqcc/progress.png), the PR's
+visual aid, rendered by `autoresearch.render` from the same ledger. Record a new leaderboard
+score as `score:`/`submission:` on that experiment's entry in
+[`verdicts.yaml`](docs/experiments/verdicts.yaml) and both pick it up — it is the only figure
+in either that cannot be derived locally.
 
 **There is no train/dev split in this competition**, so the dev set is the *official verifier
 run locally*. The leaderboard runs this same code and rations measurements to five a day;
@@ -167,7 +182,7 @@ costs. An earlier draft priced invsqrt statically and would have ranked candidat
 number the leaderboard does not use.
 
 **Every formula is checked against the verifier that owns it.**
-[`recompute_cost`](src/quantum_compilation/verify.py) re-derives each verifier's own score
+[`Verification.model_cost`](src/quantum_compilation/verify.py) re-derives each verifier's own score
 from the fields that verifier reported, and `vqcc verify` prints the comparison per task —
 agreeing, disagreeing and *not evaluated* as three distinct states, so a model that never ran
 cannot read as one that agreed. The three real reference outputs are committed as
@@ -176,9 +191,13 @@ cannot read as one that agreed. The three real reference outputs are committed a
 Toffoli mean, `rotation_eps`, `eps_plus` — are obtainable only by simulating, so it cannot
 price a candidate that has not been run.
 
-**A gate checks what it was given, not what it assumed.** `dfthcsos_rejections` takes the two
-accuracy errors, `E_gap` and `Λ` as optional, because only the ANGLE widths are knowable
-before the official verifier runs. Defaulting them to zero would invent rejections.
+**A gate checks what it was given, not what it assumed.**
+[`dfthcsos_rejections`](src/quantum_compilation/cost.py) takes only the ANGLE circuit widths,
+because they are the one hard constraint knowable before the official verifier runs — the
+accuracy terms, `E_gap` and `Λ` all come out of a verifier run. Accepting them as optional and
+defaulting them to zero would have let the gate invent rejections, so it does not accept them
+at all; [`dfthcsos_constraint_margins`](src/quantum_compilation/cost.py) checks all four
+against the same constraint table once a report exists.
 
 ## What is not established
 

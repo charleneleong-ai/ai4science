@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import csv
 import hashlib
-import json
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -27,6 +26,7 @@ import typer
 import yaml
 
 from quantum_compilation.cost import TASKS, dfthcsos_constraint_margins
+from quantum_compilation.verify import VerificationRun
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENTS_DIR = PROJECT_ROOT / "docs" / "experiments"
@@ -64,11 +64,9 @@ CHEM_EXTRA = (
     "Lambda", "E_gap", "lambda_eff", "T_total", "T_angles", "Q_total",
 )
 # Manifest fields that are numbers rather than prose, so the record stores them typed and its
-# readers need no casts.
-NUMERIC = {
-    "qubits", "R", "B", "C", "J", "brot", "KEEP_BITS",
-    "Lambda", "E_gap", "lambda_eff", "T_total", "T_angles", "Q_total",
-}
+# readers need no casts. Every chemistry field is one, which is why this derives from the list
+# above rather than restating it.
+NUMERIC = {"qubits", *CHEM_EXTRA}
 
 
 # Which submitted file identifies each part, and the manifest column its hash appears in.
@@ -135,14 +133,8 @@ def main(
     ] = None,
 ) -> None:
     manifest_rows = list(csv.DictReader((manifest_dir / "manifest.csv").open()))
-    measured = {}
-    for line in rows.read_text().splitlines():
-        if line.strip():
-            verdict = json.loads(line)
-            measured[verdict["task"]] = verdict
-
-    missing = sorted(set(TASKS) - set(measured))
-    if missing:
+    measured = VerificationRun.read_rows(rows)
+    if missing := sorted(set(TASKS) - set(measured)):
         raise ValueError(f"{rows} has no verdict for {missing}")
 
     parts = {}

@@ -24,10 +24,10 @@ from __future__ import annotations
 
 import json
 import math
-from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from collections.abc import Mapping, Sequence
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from scipy.stats import beta
 
@@ -52,8 +52,9 @@ MODEL_AGREEMENT_REL = 1e-12
 # `value <= floor` -- and the width cap applies to the widest ANGLE circuit in the family.
 MAX_ANGLE_QUBITS = 128
 MAX_HAMILTONIAN_ERROR_HA = 20e-3
-# MIN_LAMBDA floors the one-norm Lambda, NOT lambda_eff -- `dfthcsos_rejections` below tests
-# Lambda and nothing here ever compares lambda_eff to it. The reference's lambda_eff of 49.30
+# MIN_LAMBDA floors the one-norm Lambda, NOT lambda_eff -- the `lcu_lambda` row of
+# DFTHCSOS_CONSTRAINTS below reads `("metrics", "Lambda")`, and nothing here ever compares
+# lambda_eff to it. The reference's lambda_eff of 49.30
 # sits 0.6% above this number by coincidence, which made the two readings indistinguishable;
 # public submission 57834335 settles it, passing with lambda_eff 48.293 (below 49.0) and
 # Lambda 299.82. Reading it as a lambda_eff floor would invent a cliff that is 530% away.
@@ -111,22 +112,10 @@ class MetricCalibration:
 
     @classmethod
     def from_json(cls, path: Path | str) -> MetricCalibration:
-        raw = json.loads(Path(path).read_text())
-        return cls(
-            reference_costs=raw["reference_costs"],
-            provenance=raw["provenance"],
-            measured=raw["measured"],
-            reference_sha256=raw.get("reference_sha256", {}),
-        )
+        return cls(**json.loads(Path(path).read_text()))
 
     def to_json(self, path: Path | str) -> None:
-        payload = {
-            "reference_costs": self.reference_costs,
-            "provenance": self.provenance,
-            "measured": self.measured,
-            "reference_sha256": self.reference_sha256,
-        }
-        Path(path).write_text(json.dumps(payload, indent=2) + "\n")
+        Path(path).write_text(json.dumps(asdict(self), indent=2) + "\n")
 
 
 # Measured by running the three shipped verifiers over `sample_submission/` at the default
@@ -250,7 +239,7 @@ def cost_from_report(task: str, report: Mapping[str, Any]) -> float:
 
     The formulas and the names of their inputs belong together: this is what the model says
     the cost is, given a verifier's own output. Comparing it against that output's `score`
-    is how the transcription stays honest -- see `verify.recompute_cost`.
+    is how the transcription stays honest -- see `verify.Verification.model_cost`.
     """
     match require_task(task):
         case "invsqrt":
@@ -294,83 +283,83 @@ def score(costs: Mapping[str, float], calibration: MetricCalibration) -> float:
     return math.prod(task_ratio(t, costs[t], calibration) for t in TASKS) ** (1 / len(TASKS))
 
 
-def dfthcsos_rejections(
-    angle_circuit_qubits: Sequence[int],
-    errors_ha: Sequence[float] | None = None,
-    e_gap_ha: float | None = None,
-    lcu_lambda: float | None = None,
-) -> list[str]:
-    """Every reason the chemistry submission would be rejected, as the verifier checks them.
-
-    A pre-flight predictor, not the authority -- its value is catching a doomed candidate
-    from the circuit widths alone, before an hour of simulation. Each constraint but the
-    width is checked only when its quantity is supplied, since the two accuracy errors,
-    E_gap and Lambda are knowable only once the verifier has run; defaulting them to zero
-    would invent rejections. `errors_ha` is the verifier's two 20 mHa terms, in order.
-    """
-    reasons: list[str] = []
-    if too_wide := [q for q in angle_circuit_qubits if q > MAX_ANGLE_QUBITS]:
-        reasons.append(
-            f"{len(too_wide)} ANGLE circuit(s) wider than {MAX_ANGLE_QUBITS} qubits: {too_wide}"
-        )
-    for index, error in enumerate(errors_ha or (), start=1):
-        if error > MAX_HAMILTONIAN_ERROR_HA:
-            reasons.append(
-                f"error_{index} is {error * 1e3:.3f} mHa, over the "
-                f"{MAX_HAMILTONIAN_ERROR_HA * 1e3:.0f} mHa budget"
-            )
-    if lcu_lambda is not None and lcu_lambda <= MIN_LAMBDA:
-        reasons.append(f"LCU normalization Lambda={lcu_lambda} is not above {MIN_LAMBDA}")
-    if e_gap_ha is not None and e_gap_ha <= MIN_E_GAP_HA:
-        reasons.append(f"E_gap={e_gap_ha} Ha is not above {MIN_E_GAP_HA} Ha")
-    return reasons
+# Every hard constraint the dfthcsos verifier rejects on, in one table. `sense` is the whole
+# difference between a cap and a floor: the verifier rejects an error or a width *above* its
+# cap but rejects E_gap or Lambda at or below its floor, so a cap admits a value sitting
+# exactly on it and the two floors do not. `paths` locate the quantity in a verifier report;
+# two of them mean the binding one, since the 20 mHa cap applies to each accuracy term
+# separately. One `violated` predicate now settles which side of a limit is legal, for both
+# the pre-flight width gate and a measured submission's headroom -- the two previously drifted
+# on which accuracy term binds, and on whether a value sitting exactly on a limit is legal.
+AT_OR_BELOW = "at_or_below"
+STRICTLY_ABOVE = "strictly_above"
 
 
-def read_worst_error(detail: Mapping[str, Any]) -> float:
-    """The binding one of the two 20 mHa accuracy terms -- the cap applies to each."""
-    metrics = detail["metrics"]
-    return max(metrics["error_1"], metrics["error_2"])
+@dataclass(frozen=True)
+class Constraint:
+    """One hard limit, and how to read the quantity it bounds off a verifier report."""
+
+    name: str
+    limit: float
+    sense: Literal["at_or_below", "strictly_above"]
+    paths: tuple[tuple[str, str], ...]
+
+    @property
+    def legal_at_limit(self) -> bool:
+        return self.sense == AT_OR_BELOW
+
+    def value(self, report: Mapping[str, Any]) -> float:
+        # No float() cast: the width is an int in the verifier's report and is serialised as
+        # one, and `max` over a single path returns that value unchanged.
+        return max(report[section][key] for section, key in self.paths)
+
+    def violated(self, value: float) -> bool:
+        return value > self.limit if self.legal_at_limit else value <= self.limit
+
+    def fraction_of_limit_used(self, value: float) -> float:
+        """Closeness to rejection, normalised over both directions: 1.0 sits on the limit."""
+        return value / self.limit if self.legal_at_limit else self.limit / value
+
+    def margin(self, report: Mapping[str, Any]) -> dict[str, Any]:
+        value = self.value(report)
+        return {
+            "value": value,
+            "limit": self.limit,
+            "sense": self.sense,
+            "fraction_of_limit_used": self.fraction_of_limit_used(value),
+        }
 
 
-def read_angle_width(detail: Mapping[str, Any]) -> float:
-    return detail["resources"]["angles_qubits"]
-
-
-def read_e_gap(detail: Mapping[str, Any]) -> float:
-    return detail["metrics"]["E_gap"]
-
-
-def read_lcu_lambda(detail: Mapping[str, Any]) -> float:
-    return detail["metrics"]["Lambda"]
-
-
-# Every hard constraint the dfthcsos verifier rejects on, with the limit, whether the limit
-# itself is legal, and how to read the quantity off a verifier report. `dfthcsos_rejections`
-# above checks these from loose arguments for pre-flight prediction; this table reads them
-# back off a report that has already run, so a measured submission's headroom and the
-# rejection rules cannot describe different constraints.
-DFTHCSOS_CONSTRAINTS: tuple[tuple[str, float, bool, str, Callable[[Mapping[str, Any]], float]], ...] = (
-    ("hamiltonian_error_ha", MAX_HAMILTONIAN_ERROR_HA, True, "at_or_below", read_worst_error),
-    ("angle_qubits", MAX_ANGLE_QUBITS, True, "at_or_below", read_angle_width),
-    ("e_gap_ha", MIN_E_GAP_HA, False, "strictly_above", read_e_gap),
-    ("lcu_lambda", MIN_LAMBDA, False, "strictly_above", read_lcu_lambda),
+ANGLE_WIDTH = Constraint(
+    "angle_qubits", MAX_ANGLE_QUBITS, AT_OR_BELOW, (("resources", "angles_qubits"),)
+)
+DFTHCSOS_CONSTRAINTS = (
+    Constraint(
+        "hamiltonian_error_ha",
+        MAX_HAMILTONIAN_ERROR_HA,
+        AT_OR_BELOW,
+        (("metrics", "error_1"), ("metrics", "error_2")),
+    ),
+    ANGLE_WIDTH,
+    Constraint("e_gap_ha", MIN_E_GAP_HA, STRICTLY_ABOVE, (("metrics", "E_gap"),)),
+    Constraint("lcu_lambda", MIN_LAMBDA, STRICTLY_ABOVE, (("metrics", "Lambda"),)),
 )
 
 
-def dfthcsos_constraint_margins(detail: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
-    """How close a measured chemistry submission sits to each constraint that would reject it.
+def dfthcsos_rejections(angle_circuit_qubits: Sequence[int]) -> list[str]:
+    """Why the chemistry submission would be rejected, from the ANGLE circuit widths alone.
 
-    `fraction_of_limit_used` normalises both directions to closeness-to-rejection, so 1.0
-    means sitting exactly on the limit whether that limit is a cap or a floor.
+    The width is the only one of the four constraints knowable before simulating: the two
+    accuracy terms, E_gap and Lambda all come out of a verifier run, and
+    `dfthcsos_constraint_margins` checks those against the same table once a report exists.
+    The value here is catching a doomed candidate from the widths, before an hour of it.
     """
-    margins: dict[str, dict[str, Any]] = {}
-    for name, limit, limit_is_legal, sense, read in DFTHCSOS_CONSTRAINTS:
-        value = read(detail)
-        margins[name] = {
-            "value": value,
-            "limit": limit,
-            "sense": sense,
-            "limit_itself_legal": limit_is_legal,
-            "fraction_of_limit_used": value / limit if sense == "at_or_below" else limit / value,
-        }
-    return margins
+    too_wide = [q for q in angle_circuit_qubits if ANGLE_WIDTH.violated(q)]
+    if not too_wide:
+        return []
+    return [f"{len(too_wide)} ANGLE circuit(s) wider than {MAX_ANGLE_QUBITS} qubits: {too_wide}"]
+
+
+def dfthcsos_constraint_margins(report: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    """How close a measured chemistry submission sits to each constraint that would reject it."""
+    return {c.name: c.margin(report) for c in DFTHCSOS_CONSTRAINTS}

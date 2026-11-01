@@ -70,7 +70,8 @@ Its only validation so far is that it reproduces the published public blend (23.
 a reported 23.13587) from three third-party ratios — which is enough to confirm the shape of
 the metric and nothing more.
 
-**Resources are measured, never estimated.** [`resources.py`](../../src/quantum_compilation/resources.py)
+**Resources are measured, never estimated.**
+[`Resources`](../../src/quantum_compilation/submission.py)
 reads qubits, Toffoli-likes and rotation counts straight off the circuit via kickmix, taking
 kickmix's own accessors so kickmix owns the Clifford-hierarchy semantics. It holds no metric
 coefficients at all — not even the `/4` — so there is exactly one place a cost constant can

@@ -30,8 +30,7 @@ from quantum_compilation.cost import (
     score,
     task_ratio,
 )
-from quantum_compilation.resources import Resources
-from quantum_compilation.submission import CIRCUIT_SUFFIXES, audit
+from quantum_compilation.submission import CIRCUIT_SUFFIXES, Resources, SubmissionAudit
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 console = Console()
@@ -103,13 +102,12 @@ def print_costs(costs: dict[str, float], calibration: MetricCalibration) -> None
     table = Table("task", "cost", "reference", "ratio")
     for task in TASKS:
         cost = costs.get(task)
-        reference = fmt_cost(calibration.reference_costs[task])
-        if cost is None:
-            table.add_row(task, "[yellow]—[/]", reference, "—")
-        else:
-            table.add_row(
-                task, fmt_cost(cost), reference, f"{task_ratio(task, cost, calibration):.4f}"
-            )
+        table.add_row(
+            task,
+            "[yellow]—[/]" if cost is None else fmt_cost(cost),
+            fmt_cost(calibration.reference_costs[task]),
+            "—" if cost is None else f"{task_ratio(task, cost, calibration):.4f}",
+        )
     console.print(table)
     if len(costs) == len(TASKS):
         console.print(f"\n[bold]score {score(costs, calibration):.5f}[/]")
@@ -119,12 +117,11 @@ def print_costs(costs: dict[str, float], calibration: MetricCalibration) -> None
 
 def agreement_cell(result: verifier.Verification) -> str:
     """Whether `cost` reproduced the verifier's score, as three distinct states."""
-    ours = verifier.recompute_cost(result)
-    match verifier.model_agrees(result):
+    match result.model_agrees:
         case True:
-            return f"[green]{fmt_cost(ours)} ✓[/]"
+            return f"[green]{fmt_cost(result.model_cost)} ✓[/]"
         case False:
-            return f"[red]{fmt_cost(ours)} ✗[/]"
+            return f"[red]{fmt_cost(result.model_cost)} ✗[/]"
         case _:
             return "[dim]not evaluated[/]"
 
@@ -159,14 +156,14 @@ def print_results_table(results: Sequence[verifier.Verification]) -> None:
 
 
 def write_calibration_file(
-    results: Sequence[verifier.Verification],
+    run: verifier.VerificationRun,
     destination: Path,
     root: Path,
     salt: str,
     seed: int | None,
 ) -> None:
     """Write a measured calibration, warning if it is not the known reference submission."""
-    if differing := DEFAULT_CALIBRATION.disagreeing_hashes(verifier.candidate_hashes(results)):
+    if differing := DEFAULT_CALIBRATION.disagreeing_hashes(run.hashes):
         console.print(
             f"[yellow]not the known reference submission[/] -- {sorted(differing)} hash "
             "differently from the circuits the built-in calibration was measured on. "
@@ -176,7 +173,7 @@ def write_calibration_file(
         f"measured: official verifiers over {root} at salt {salt!r}"
         f"{'' if seed is None else f' seed {seed}'} on {time.strftime('%Y-%m-%d')}"
     )
-    verifier.measured_calibration(results, provenance).to_json(destination)
+    run.calibration(provenance).to_json(destination)
     console.print(f"[green]wrote {destination}[/] -- pass it as --calibration")
 
 
@@ -211,7 +208,7 @@ def check(
 
     Everything here is cheap and certain. For a cost, run `vqcc verify`.
     """
-    report = audit(root)
+    report = SubmissionAudit.from_root(root)
     for problem in report.problems:
         console.print(f"[red]layout[/] {problem}")
     if report.ok:
@@ -276,7 +273,7 @@ def verify(
     calibration = load_calibration(calibration_path)
     selected = selected_tasks(tasks, whole_submission=write_calibration is not None)
 
-    report = audit(root)
+    report = SubmissionAudit.from_root(root)
     for problem in report.problems:
         console.print(f"[yellow]layout[/] {problem}")
     if seed is None:
@@ -285,28 +282,23 @@ def verify(
             "published default but not comparable across candidates[/]"
         )
 
-    results: list[verifier.Verification] = []
-    for result in verifier.verify_submission(
-        verifiers, report, selected, salt=salt, seed=seed, timeout=timeout
-    ):
-        results.append(result)
+    # The run rewrites `rows` as each verdict lands, so an interrupt late in a ~12-minute
+    # simulation keeps everything already measured.
+    run = verifier.VerificationRun(rows_path=rows)
+    for result in run.measure(verifiers, report, selected, salt=salt, seed=seed, timeout=timeout):
         console.print(f"[dim]{result.task}: {result.status} in {result.seconds:.1f}s[/]")
         if not result.passed:
             console.print(f"[red]{result.task}[/] {result.error}")
-        if rows is not None:
-            # Rewritten per verdict: a full run is ~12 min of simulation and an interrupt
-            # at minute 11 must not throw away what is already measured.
-            verifier.write_rows(rows, results)
 
-    print_results_table(results)
+    print_results_table(run.results)
     if rows is not None:
         console.print(f"wrote {rows}")
 
-    print_costs(verifier.passing_costs(results), calibration)
+    print_costs(run.costs, calibration)
     if write_calibration is None:
         warn_if_unmeasured(calibration)
     else:
-        write_calibration_file(results, write_calibration, root, salt, seed)
+        write_calibration_file(run, write_calibration, root, salt, seed)
 
 
 @app.command()

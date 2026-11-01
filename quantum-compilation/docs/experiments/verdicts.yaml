@@ -1,8 +1,13 @@
-# One row per experiment, added when its verdict lands. Rendered by the W&B report and any
-# companion dashboard, so this file is the single source for both.
+# One row per experiment, added when its verdict lands. Rendered by the artifact page, the
+# progress plot, the W&B report and any companion dashboard, so this file is the single source
+# for all of them.
 #
 # verdict: PROMOTE (shipped, set a new best) | KEEP (kept for later) | DISCARD (closed)
 #          | RUNNING
+#
+# score/submission: present only on an entry that reached the leaderboard, and the only
+# numbers here that cannot be derived locally. Oldest first; the last one is the current
+# standing, which is what the artifact page quotes and what the progress plot plots.
 
 gates:
   G0: >-
@@ -46,6 +51,8 @@ experiments:
     pr: 102
   - name: v1-reference-submission
     date: 2026-10-31
+    score: 1.00000
+    submission: 57824925
     baseline: none -- first submission, establishing that the pipeline reaches the leaderboard
     gate: G3
     result: >-
@@ -83,6 +90,8 @@ experiments:
     pr: 102
   - name: v2-plateau-parts-assembly
     date: 2026-10-31
+    score: 23.18119
+    submission: 57834335
     baseline: >-
       our own 1.00000 reference submission 57824925, rank 1,671-1,751 of 1,756
     gate: G3

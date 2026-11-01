@@ -29,12 +29,6 @@ from quantum_compilation.cost import (
 )
 
 AT_REFERENCE = dict(DEFAULT_CALIBRATION.reference_costs)
-CLEAN_CHEMISTRY = dict(
-    angle_circuit_qubits=[128, 100],
-    errors_ha=[3e-3, 19e-3],
-    e_gap_ha=MIN_E_GAP_HA + 0.1,
-    lcu_lambda=MIN_LAMBDA + 1,
-)
 
 
 @pytest.fixture(scope="module")
@@ -200,56 +194,53 @@ class TestRequireTask:
 
 
 class TestChemistryRejections:
-    """The dfthcsos constraints that reject a submission outright."""
+    """The one dfthcsos constraint knowable before the verifier runs: the circuit widths."""
 
     def test_a_compliant_submission_has_no_rejections(self):
-        assert dfthcsos_rejections(**CLEAN_CHEMISTRY) == []
+        # The width limit is a cap, so sitting exactly on 128 is legal.
+        assert dfthcsos_rejections([MAX_ANGLE_QUBITS, 100]) == []
 
-    @pytest.mark.parametrize(
-        ("override", "expected"),
-        [
-            ({"angle_circuit_qubits": [128, 129]}, "wider than 128 qubits"),
-            ({"errors_ha": [21e-3, 1e-3]}, "error_1"),
-            ({"errors_ha": [1e-3, 21e-3]}, "error_2"),
-            ({"lcu_lambda": MIN_LAMBDA}, "Lambda"),
-            ({"e_gap_ha": MIN_E_GAP_HA}, "E_gap"),
-        ],
-    )
-    def test_each_constraint_is_reported(self, override, expected):
-        reasons = dfthcsos_rejections(**(CLEAN_CHEMISTRY | override))
-        assert len(reasons) == 1
-        assert expected in reasons[0]
-
-    def test_every_violation_is_listed_not_just_the_first(self):
-        reasons = dfthcsos_rejections(
-            [200], errors_ha=[50e-3, 50e-3], e_gap_ha=1.0, lcu_lambda=1.0
-        )
-        assert len(reasons) == 5
-
-    def test_the_floors_are_strict_so_equality_is_a_rejection(self):
-        assert dfthcsos_rejections([], e_gap_ha=MIN_E_GAP_HA, lcu_lambda=MIN_LAMBDA)
-        assert not dfthcsos_rejections(
-            [], e_gap_ha=math.nextafter(MIN_E_GAP_HA, 1e9), lcu_lambda=MIN_LAMBDA + 1e-9
-        )
-
-    def test_an_unsupplied_quantity_is_not_checked_rather_than_assumed_zero(self):
-        # Only the widths are known before the verifier runs. A zero E_gap would fail the
-        # E_gap > 3.914898 test, so defaulting instead of skipping would invent a rejection.
-        assert dfthcsos_rejections(angle_circuit_qubits=[128]) == []
+    def test_every_circuit_over_the_cap_is_counted_in_one_reason(self):
+        reasons = dfthcsos_rejections([200, 300, 64])
+        assert reasons == [
+            f"2 ANGLE circuit(s) wider than {MAX_ANGLE_QUBITS} qubits: [200, 300]"
+        ]
 
 
-class TestChemistryConstraintMargins:
-    """Closeness-to-rejection for each constraint, read off a verifier report."""
+class TestConstraintTable:
+    """The four hard limits, and the cap/floor distinction that decides a value on the line."""
 
     def test_the_table_covers_exactly_the_constraints_that_reject(self):
-        # The margins and the rejection rules must describe the same four constraints, or a
-        # submission could be reported as having headroom against a limit nobody checks.
-        assert {name for name, *_ in DFTHCSOS_CONSTRAINTS} == {
+        # The rejection rule and the margins read the same table, so a submission cannot be
+        # reported as having headroom against a limit nobody checks.
+        assert {c.name for c in DFTHCSOS_CONSTRAINTS} == {
             "hamiltonian_error_ha",
             "angle_qubits",
             "e_gap_ha",
             "lcu_lambda",
         }
+
+    @pytest.mark.parametrize(
+        ("name", "legal_at_limit"),
+        [
+            ("hamiltonian_error_ha", True),
+            ("angle_qubits", True),
+            ("e_gap_ha", False),
+            ("lcu_lambda", False),
+        ],
+    )
+    def test_caps_admit_their_limit_and_the_floors_reject_it(self, name, legal_at_limit):
+        # The verifier rejects an error or width *above* its cap but rejects E_gap or Lambda
+        # at or below its floor: the whole difference a cap and a floor make.
+        constraint = next(c for c in DFTHCSOS_CONSTRAINTS if c.name == name)
+        assert constraint.legal_at_limit is legal_at_limit
+        assert constraint.violated(constraint.limit) is not legal_at_limit
+        inside = math.nextafter(constraint.limit, 0.0 if legal_at_limit else 1e9)
+        assert not constraint.violated(inside)
+
+
+class TestChemistryConstraintMargins:
+    """Closeness-to-rejection for each constraint, read off a verifier report."""
 
     def test_sitting_on_a_cap_and_on_a_floor_both_read_as_fully_spent(self):
         # A cap is approached from below and a floor from above, so the fraction has to

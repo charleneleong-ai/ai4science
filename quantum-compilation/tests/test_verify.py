@@ -7,23 +7,24 @@ from pathlib import Path
 
 import pytest
 from quantum_compilation.cost import DEFAULT_CALIBRATION, MODEL_AGREEMENT_REL, TASKS, score
-from quantum_compilation.submission import audit
+from quantum_compilation.submission import SubmissionAudit
 from quantum_compilation.verify import (
     VERIFIER_SCRIPTS,
     Verification,
-    candidate_hashes,
-    measured_calibration,
-    model_agrees,
+    VerificationRun,
     parse_verifier_output,
-    passing_costs,
-    recompute_cost,
     run_verifier,
     verifier_script,
-    verify_submission,
-    write_rows,
 )
 
 REFERENCE_DIR = Path(__file__).parent / "data"
+
+# A verifier body that passes and reports back the argv it was handed, for the two tests that
+# check what the driver puts on the command line.
+ECHO_ARGV = (
+    "import json, sys; print(json.dumps({'status': 'PASS', 'score': 1.0, "
+    "'argv': sys.argv[1:]}))"
+)
 
 
 @pytest.fixture(scope="module")
@@ -35,6 +36,12 @@ def reference() -> dict[str, Verification]:
         )
         for task in TASKS
     }
+
+
+@pytest.fixture(scope="module")
+def reference_run(reference) -> VerificationRun:
+    """Those three verdicts as one finished run."""
+    return VerificationRun(results=list(reference.values()))
 
 
 def fake_verifiers(root: Path, task: str, body: str) -> Path:
@@ -58,21 +65,17 @@ class TestModelAgainstTheOfficialVerifiers:
     def test_recomputes_the_verifier_score(self, task, reference):
         verdict = reference[task]
         assert verdict.passed
-        assert recompute_cost(verdict) == pytest.approx(
-            verdict.score, rel=MODEL_AGREEMENT_REL
-        )
-        assert model_agrees(verdict) is True
+        assert verdict.model_cost == pytest.approx(verdict.score, rel=MODEL_AGREEMENT_REL)
+        assert verdict.model_agrees is True
 
-    def test_the_reference_submission_scores_exactly_one(self, reference):
+    def test_the_reference_submission_scores_exactly_one(self, reference_run):
         # True by definition -- which makes it a check on the calibration, not the metric.
-        costs = passing_costs(list(reference.values()))
+        costs = reference_run.costs
         assert costs == pytest.approx(DEFAULT_CALIBRATION.reference_costs)
         assert score(costs, DEFAULT_CALIBRATION) == pytest.approx(1.0)
 
-    def test_the_builtin_calibration_names_the_circuits_it_measured(self, reference):
-        assert DEFAULT_CALIBRATION.reference_sha256 == candidate_hashes(
-            list(reference.values())
-        )
+    def test_the_builtin_calibration_names_the_circuits_it_measured(self, reference_run):
+        assert DEFAULT_CALIBRATION.reference_sha256 == reference_run.hashes
 
     @pytest.mark.parametrize(
         ("task", "strictly_below"), [("invsqrt", False), ("dqi", True)]
@@ -129,8 +132,8 @@ class TestOutputParsing:
         verdict = parse_verifier_output(
             "dqi", json.dumps({"status": "PASS", "score": 5.0}), 1.0
         )
-        assert recompute_cost(verdict) is None
-        assert model_agrees(verdict) is None
+        assert verdict.model_cost is None
+        assert verdict.model_agrees is None
 
 
 class TestDriver:
@@ -148,8 +151,10 @@ class TestDriver:
             verifier_script(tmp_path, "nope")
 
     def test_a_target_the_audit_did_not_find_is_reported_as_missing(self, tmp_path):
-        verdicts = list(verify_submission(tmp_path, audit(tmp_path)))
+        run = VerificationRun()
+        verdicts = list(run.measure(tmp_path, SubmissionAudit.from_root(tmp_path)))
         assert [v.status for v in verdicts] == ["MISSING"] * len(TASKS)
+        assert run.results == verdicts
 
     @pytest.mark.parametrize(
         ("body", "status"),
@@ -176,12 +181,7 @@ class TestDriver:
     def test_the_salt_and_seed_reach_the_verifier_and_are_recorded(self, tmp_path):
         # The seed is the comparability mechanism: all three verifiers derive their own from
         # the candidate's hash unless one is passed, so a sweep must be able to pin it.
-        root = fake_verifiers(
-            tmp_path / "verifiers",
-            "invsqrt",
-            "import json, sys; print(json.dumps({'status': 'PASS', 'score': 1.0, "
-            "'argv': sys.argv[1:]}))",
-        )
+        root = fake_verifiers(tmp_path / "verifiers", "invsqrt", ECHO_ARGV)
         verdict = run_verifier(
             root, "invsqrt", tmp_path / "c.kmb", salt="dev-7", seed=1234
         )
@@ -189,12 +189,7 @@ class TestDriver:
         assert (verdict.salt, verdict.seed) == ("dev-7", 1234)
 
     def test_no_seed_flag_is_passed_when_none_is_asked_for(self, tmp_path):
-        root = fake_verifiers(
-            tmp_path / "verifiers",
-            "invsqrt",
-            "import json, sys; print(json.dumps({'status': 'PASS', 'score': 1.0, "
-            "'argv': sys.argv[1:]}))",
-        )
+        root = fake_verifiers(tmp_path / "verifiers", "invsqrt", ECHO_ARGV)
         verdict = run_verifier(root, "invsqrt", tmp_path / "c.kmb")
         assert "--seed" not in verdict.detail["argv"]
 
@@ -213,27 +208,33 @@ class TestResultRows:
         self, tmp_path, reference
     ):
         path = tmp_path / "rows.jsonl"
-        landed = [reference["invsqrt"]]
-        write_rows(path, landed)
+        run = VerificationRun(rows_path=path)
+        run.record(reference["invsqrt"])
         assert len(path.read_text().strip().splitlines()) == 1
-        write_rows(path, landed + [reference["dqi"]])
+        run.record(reference["dqi"])
         assert len(path.read_text().strip().splitlines()) == 2
+
+    def test_the_rows_read_back_keyed_by_task(self, tmp_path, reference):
+        # The provenance record reads this file; writer and reader must agree on its shape.
+        path = tmp_path / "rows.jsonl"
+        run = VerificationRun(rows_path=path)
+        run.record(reference["dqi"])
+        read = VerificationRun.read_rows(path)
+        assert set(read) == {"dqi"}
+        assert read["dqi"]["score"] == pytest.approx(reference["dqi"].score)
 
 
 class TestMeasuredCalibration:
     """Turning three passing reference verdicts into the calibration -- gate G0's output."""
 
-    def test_passing_verdicts_become_a_measured_calibration(self, reference):
-        calibration = measured_calibration(list(reference.values()), "test")
+    def test_passing_verdicts_become_a_measured_calibration(self, reference_run):
+        calibration = reference_run.calibration("test")
         assert calibration.measured is True
         assert calibration.reference_costs == pytest.approx(
             DEFAULT_CALIBRATION.reference_costs
         )
-
-    def test_the_calibration_records_which_circuits_produced_it(self, reference):
-        # Without this, calibrating against a compressed candidate would silently make that
-        # candidate score 1.0 and every later ratio relative to it.
-        calibration = measured_calibration(list(reference.values()), "test")
+        # Without the hashes, calibrating against a compressed candidate would silently make
+        # that candidate score 1.0 and every later ratio relative to it.
         assert calibration.reference_sha256 == DEFAULT_CALIBRATION.reference_sha256
         assert calibration.disagreeing_hashes({"dqi": "something-else"}) == {
             "dqi": (DEFAULT_CALIBRATION.reference_sha256["dqi"], "something-else")
@@ -243,4 +244,4 @@ class TestMeasuredCalibration:
         failed = Verification("dqi", "FAIL", None, 1.0, detail={"error": "rejected"})
         partial = [reference["invsqrt"], failed, reference["dfthcsos"]]
         with pytest.raises(ValueError, match="must pass to calibrate"):
-            measured_calibration(partial, "test")
+            VerificationRun(results=partial).calibration("test")

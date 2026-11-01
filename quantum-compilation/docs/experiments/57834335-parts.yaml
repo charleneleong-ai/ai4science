@@ -80,23 +80,19 @@ parts:
         value: 0.01999981675420196
         limit: 0.02
         sense: at_or_below
-        limit_itself_legal: true
         fraction_of_limit_used: 0.999990837710098
       angle_qubits:
         value: 126
         limit: 128
         sense: at_or_below
-        limit_itself_legal: true
         fraction_of_limit_used: 0.984375
       e_gap_ha:
         value: 3.914899028979562
         limit: 3.914898
         sense: strictly_above
-        limit_itself_legal: false
         fraction_of_limit_used: 0.9999997371631926
       lcu_lambda:
         value: 299.8235492197524
         limit: 49.0
         sense: strictly_above
-        limit_itself_legal: false
         fraction_of_limit_used: 0.1634294575176481

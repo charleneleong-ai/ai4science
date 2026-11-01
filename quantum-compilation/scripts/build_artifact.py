@@ -1,17 +1,19 @@
-"""Render the VQCC progress artifact from the verifiers' own outputs.
+"""Render the VQCC progress views from the verifiers' own outputs.
 
-Numbers come from three committed files -- the official verifier runs over
+Numbers come from four committed files -- the official verifier runs over
 `sample_submission/` in `tests/data/reference_<task>.json`, the verdict ledger in
-`docs/experiments/verdicts.yaml`, and the dated public-leaderboard snapshot in
-`docs/experiments/leaderboard-<date>.json` -- plus the formulas and constants imported from
-`quantum_compilation.cost`, so the page cannot drift from the module the project scores
-with. `HAND_RECORDED` holds the handful of figures that exist in no file (wall-clock run
-times, the competition's submission budget); the footer says so.
+`docs/experiments/verdicts.yaml`, the dated public-leaderboard snapshot in
+`docs/experiments/leaderboard-<date>.json`, and the submitted parts' provenance record --
+plus the formulas and `DEFAULT_CALIBRATION` imported from `quantum_compilation.cost`, so the
+page cannot drift from the module the project scores with. `HAND_RECORDED` holds the handful
+of figures that exist in no file (wall-clock run times, the competition's submission budget);
+the footer says so.
 
     uv run --extra tracking python scripts/build_artifact.py
 
 Writes `docs/artifact/index.html`, committed on every rebuild and republished as a Claude
-Artifact at each significant result update.
+Artifact at each significant result update, and `experiments/progress/vqcc/progress.png`,
+the PR's visual aid, rendered by `autoresearch.render` from the same ledger.
 """
 
 from __future__ import annotations
@@ -21,18 +23,18 @@ import json
 import math
 import re
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import yaml
+from autoresearch.render import render
 
 from quantum_compilation.cost import (
-    MAX_ANGLE_QUBITS,
+    DEFAULT_CALIBRATION,
     MAX_DQI_FAILURE_RATE,
-    MAX_HAMILTONIAN_ERROR_HA,
-    MIN_E_GAP_HA,
     TASKS,
-    MetricCalibration,
+    dfthcsos_constraint_margins,
     dqi_repetition_factor,
     rotation_t_count,
     score,
@@ -46,16 +48,14 @@ VERDICTS_PATH = EXPERIMENTS_DIR / "verdicts.yaml"
 LEADERBOARD_PATH = EXPERIMENTS_DIR / "leaderboard-2026-10-31.json"
 PARTS_PATH = EXPERIMENTS_DIR / "57834335-parts.yaml"
 OUTPUT_PATH = PROJECT_ROOT / "docs" / "artifact" / "index.html"
+PROGRESS_PATH = PROJECT_ROOT / "experiments" / "progress" / "vqcc" / "progress.png"
 
 STATUS_DATE = "2026-10-31"
-# The leaderboard reading is the one number here that cannot be derived locally, so it is the
-# one hand-entered figure. Everything else about the submission -- its id, its parts and their
-# measured costs -- comes from the provenance record, and the local blend is recomputed from
-# those costs so the page's central claim checks itself rather than asserting a transcription.
-OUR_SCORE = 23.18119
 # A bar within this fraction of its limit counts as pinned, for the chart's colouring and for
 # the count the prose quotes. One constant so the two cannot disagree.
 PINNED_FRACTION = 0.999
+# The score that marks the far side of the cliff, for the count of teams that cleared it.
+ESCAPE_SCORE = 25.0
 
 # Wall-clock minutes per verifier on 10 CPU cores, and the competition's daily submission
 # budget. Neither is in any result file; the footer declares them as recorded by hand.
@@ -74,12 +74,19 @@ PUBLIC_COST_HALF_ULP = {"invsqrt": 0.5, "dqi": 5e6, "dfthcsos": 5e3}
 # report (a plain thousands format turns 3.3780e8 into a 9-figure 337,800,000).
 PUBLIC_COST_QUOTED = {"invsqrt": "100,941", "dqi": "4.0334×10¹¹", "dfthcsos": "3.3780×10⁸"}
 
-# How each task's cost is assembled, and which reported field carries its leading factor.
-# `cost = factor * T^t_power * Q^q_power`, verified against cost.py's three cost functions.
+# How each task's cost is assembled, read against cost.py's three cost functions: the written
+# form, the reported field carrying its leading factor, and that factor's symbol.
 SCORED_AS = {
-    "invsqrt": ("Q × C", "toffoli_equivalent", "C", 0, 1),
-    "dqi": ("R(ε₊) × Q² × T", "repetition_factor", "R", 1, 2),
-    "dfthcsos": ("λ_eff × T × Q", "lambda_eff", "λ_eff", 1, 1),
+    "invsqrt": ("Q × C", "toffoli_equivalent", "C"),
+    "dqi": ("R(ε₊) × Q² × T", "repetition_factor", "R"),
+    "dfthcsos": ("λ_eff × T × Q", "lambda_eff", "λ_eff"),
+}
+
+QUANTITY_LABELS = {
+    "hamiltonian_error_ha": "Hamiltonian error",
+    "e_gap_ha": "E_gap",
+    "angle_qubits": "widest ANGLE circuit",
+    "lcu_lambda": "one-norm Λ",
 }
 
 SUPERSCRIPT = str.maketrans("0123456789-", "⁰¹²³⁴⁵⁶⁷⁸⁹⁻")
@@ -99,10 +106,6 @@ class TaskReport:
         return float(self.detail["score"])
 
     @property
-    def qubits(self) -> int:
-        return int(self.detail["num_qubits"])
-
-    @property
     def toffolis(self) -> float:
         return float(self.detail["toffoli_count"])
 
@@ -118,11 +121,81 @@ class TaskReport:
     def repetition_factor(self) -> float:
         return float(self.detail["repetition_factor"])
 
+
+@dataclass(frozen=True)
+class Standing:
+    """Where one score sits in a leaderboard snapshot, its tie block included.
+
+    Written once and used twice -- for our score and for the 1.00000 block the reference
+    submission shares -- so the page reports the move with the same honesty at both ends.
+    """
+
+    # Leaderboard scores are published rounded, so an exact float comparison would split a
+    # tie block; this is half of the last published digit.
+    TOLERANCE: ClassVar[float] = 5e-6
+
+    scores: list[float]
+    score: float
+
     @property
-    def leading_factor(self) -> tuple[str, str, float]:
-        """The cost's written form, its leading factor's name, and that factor's value."""
-        formula, field_name, symbol, _, _ = SCORED_AS[self.task]
-        return formula, symbol, float(self.detail[field_name])
+    def teams(self) -> int:
+        return len(self.scores)
+
+    @property
+    def above(self) -> int:
+        return sum(1 for s in self.scores if s > self.score + self.TOLERANCE)
+
+    @property
+    def tied(self) -> int:
+        return sum(1 for s in self.scores if abs(s - self.score) < self.TOLERANCE)
+
+    @property
+    def best(self) -> int:
+        return self.above + 1
+
+    @property
+    def worst(self) -> int:
+        return self.above + self.tied
+
+    @property
+    def leader(self) -> float:
+        return self.scores[0]
+
+
+def scored_submissions(verdicts: dict[str, Any]) -> list[dict[str, Any]]:
+    """The ledger entries carrying a leaderboard score, oldest first.
+
+    `verdicts.yaml` is the single source for the page's headline, the progress plot and the
+    W&B report, so each score is recorded once beside the experiment that earned it.
+    """
+    return [e for e in verdicts.get("experiments", []) if e.get("score") is not None]
+
+
+def write_progress_png(verdicts: dict[str, Any]) -> Path:
+    """The PR's visual aid: each submission's leaderboard score, with the running best.
+
+    `autoresearch.render` owns the chart, so all this does is map the ledger onto the rows it
+    reads. `status` is what it draws the running-best step line from, and every submission so
+    far was promoted, so the first is the BASELINE and the rest are KEEP.
+    """
+    rows = [
+        {
+            "experiment": index,
+            "score": float(entry["score"]),
+            "status": "BASELINE" if index == 0 else "KEEP",
+            "name": entry["name"],
+        }
+        for index, entry in enumerate(scored_submissions(verdicts))
+    ]
+    return render(
+        rows=rows,
+        out=PROGRESS_PATH,
+        title="VQCC leaderboard score per submission",
+        score_label="Leaderboard score (higher is better)",
+        score_fmt="{:.5f}",
+        label_field="name",
+        y_margin=0.12,
+    )
 
 
 def load_reports() -> dict[str, TaskReport]:
@@ -160,6 +233,17 @@ def blend_precision_ppm(costs: dict[str, float], half_ulp: dict[str, float]) -> 
     return math.sqrt(sum((r / len(costs)) ** 2 for r in relative)) * 1e6
 
 
+def is_pinned(margin: dict[str, Any]) -> bool:
+    return margin["fraction_of_limit_used"] > PINNED_FRACTION
+
+
+def constraint_label(key: str, margin: dict[str, Any]) -> str:
+    """"E_gap vs 3.914898 floor" -- the limit and its direction read off the record itself."""
+    word = "cap" if margin["sense"] == "at_or_below" else "floor"
+    limit = margin["limit"]
+    return f"{QUANTITY_LABELS[key]} vs {limit:g} {word}"
+
+
 def svg(width: int, height: int, aria: str, body: str) -> str:
     return f'<svg viewBox="0 0 {width} {height}" role="img" aria-label="{aria}">{body}</svg>'
 
@@ -171,12 +255,13 @@ def hgrid(x0: float, x1: float, y: float, label: str) -> str:
     )
 
 
-def field_svg(scores: list[float], rank_best: int, rank_worst: int) -> str:
+def field_svg(standing: Standing) -> str:
     """The whole field, sorted: the plateau, the cliff, and which block we are in."""
+    scores = standing.scores
     width, height = 680, 400
     pad_l, pad_r, pad_t, pad_b = 74, 26, 24, 62
     plot_w, plot_h = width - pad_l - pad_r, height - pad_t - pad_b
-    teams = len(scores)
+    teams = standing.teams
     y_hi = max(scores) * 1.06
 
     def place(rank: int, value: float) -> tuple[float, float]:
@@ -199,14 +284,14 @@ def field_svg(scores: list[float], rank_best: int, rank_worst: int) -> str:
         f'class="ct">{rank:,}</text>'
         for rank in (1, 500, 1000, 1500, teams)
     )
-    x_best, x_worst = place(rank_best, 0)[0], place(rank_worst, 0)[0]
-    our_y = place(rank_best, OUR_SCORE)[1]
-    leader_x, leader_y = place(1, scores[0])
+    x_best, x_worst = place(standing.best, 0)[0], place(standing.worst, 0)[0]
+    our_y = place(standing.best, standing.score)[1]
+    leader_x, leader_y = place(1, standing.leader)
     return svg(
         width,
         height,
         f"All {teams:,} public leaderboard scores in rank order: a dense plateau near 23, a "
-        f"cliff, and our score of {OUR_SCORE:.2f} on the plateau's top edge",
+        f"cliff, and our score of {standing.score:.2f} on the plateau's top edge",
         grid
         + f'<rect x="{x_best:.1f}" y="{pad_t}" width="{max(3.0, x_worst - x_best):.1f}" '
         f'height="{plot_h}" fill="var(--warn)" fill-opacity="0.18"/>'
@@ -214,35 +299,16 @@ def field_svg(scores: list[float], rank_best: int, rank_worst: int) -> str:
         + f'<path d="{" ".join(path)}" fill="none" stroke="var(--accent)" stroke-width="3"/>'
         + f'<circle cx="{leader_x:.1f}" cy="{leader_y:.1f}" r="7" fill="var(--accent)"/>'
         + f'<text x="{leader_x + 14:.1f}" y="{leader_y + 7:.1f}" class="cv">'
-        f"leader {scores[0]:.2f}</text>"
+        f"leader {standing.leader:.2f}</text>"
         + f'<text x="{x_worst + 12:.1f}" y="{our_y - 16:.1f}" class="cv">'
-        f"us {OUR_SCORE:.2f}</text>"
+        f"us {standing.score:.2f}</text>"
         + f'<text x="{x_worst + 12:.1f}" y="{our_y + 4:.1f}" class="ct">'
-        f"rank {rank_best:,} of {teams:,}</text>"
+        f"rank {standing.best:,} of {teams:,}</text>"
         + f'<text x="{pad_l + plot_w / 2:.0f}" y="{height - 8}" text-anchor="middle" '
         f'class="cax">rank, of {teams:,} teams</text>'
         + f'<text x="22" y="{pad_t + plot_h / 2:.0f}" class="cax" '
         f'transform="rotate(-90 22 {pad_t + plot_h / 2:.0f})" text-anchor="middle">score</text>',
     )
-
-
-QUANTITY_LABELS = {
-    "hamiltonian_error_ha": "Hamiltonian error",
-    "e_gap_ha": "E_gap",
-    "angle_qubits": "widest ANGLE circuit",
-    "lcu_lambda": "one-norm Λ",
-}
-
-
-def is_pinned(margin: dict[str, Any]) -> bool:
-    return margin["fraction_of_limit_used"] > PINNED_FRACTION
-
-
-def constraint_label(key: str, margin: dict[str, Any]) -> str:
-    """"E_gap vs 3.914898 floor" -- the limit and its direction read off the record itself."""
-    word = "cap" if margin["sense"] == "at_or_below" else "floor"
-    limit = margin["limit"]
-    return f"{QUANTITY_LABELS[key]} vs {limit:g} {word}"
 
 
 def headroom_svg(margins: dict[str, dict[str, Any]]) -> str:
@@ -395,148 +461,10 @@ def angle_share_svg(report: TaskReport) -> str:
     )
 
 
-def reference_rows(reports: dict[str, TaskReport]) -> str:
-    rows = []
-    for task in TASKS:
-        report = reports[task]
-        formula, symbol, value = report.leading_factor
-        rows.append(
-            f"<tr><td><code>{task}</code></td>"
-            f'<td class="num">{fmt(report.cost)}</td>'
-            f"<td><code>{formula}</code></td>"
-            f'<td class="num">{report.qubits:,}</td>'
-            f'<td class="num">{report.toffolis:,.1f}</td>'
-            f'<td class="num">{symbol} = {value:,.4f}</td>'
-            f'<td class="num">{report.shots:,}</td></tr>'
-        )
-    return "".join(rows)
-
-
-def ratio_rows(reports: dict[str, TaskReport], calibration: MetricCalibration) -> str:
-    return "".join(
-        f"<tr><td><code>{task}</code></td>"
-        f'<td class="num">{PUBLIC_COST_QUOTED[task]}</td>'
-        f'<td class="num">{task_ratio(task, PUBLIC_COSTS[task], calibration):,.3f}×</td></tr>'
-        for task in TASKS
-    )
-
-
-def run_log_rows(reports: dict[str, TaskReport]) -> str:
-    return "".join(
-        f'<div class="fcell"><div class="ftask">{task}</div>'
-        f'<div class="fpass">PASS</div>'
-        f'<div class="fmeta">{reports[task].shots:,} shots</div>'
-        f'<div class="fmeta">{HAND_RECORDED["minutes"][task]} min · '
-        f"cost {fmt(reports[task].cost)}</div></div>"
-        for task in TASKS
-    )
-
-
-def verdict_blocks(verdicts: dict[str, Any]) -> str:
-    tone = {"PROMOTE": "ok", "KEEP": "warn", "DISCARD": "bad", "RUNNING": "run"}
-    blocks = []
-    for item in verdicts.get("experiments", []):
-        verdict = str(item.get("verdict", "RUNNING"))
-        pr = item.get("pr")
-        link = (
-            f' · <a href="https://github.com/charleneleong-ai/ai4science/pull/{pr}">PR #{pr}</a>'
-            if pr
-            else ""
-        )
-        blocks.append(
-            f'<article class="verdict"><header>'
-            f"<code>{html.escape(str(item['name']), quote=False)}</code>"
-            f'<span class="pill {tone.get(verdict, "run")}">{html.escape(verdict)}</span>'
-            f'</header><p class="vmeta">gate {html.escape(str(item.get("gate", "—")))}'
-            f" · {html.escape(str(item.get('date', '')))}{link}</p>"
-            f"<p>{inline_markup(str(item.get('result', '')))}</p></article>"
-        )
-    return "".join(blocks)
-
-
-def gate_rows(verdicts: dict[str, Any]) -> str:
-    return "".join(
-        f"<tr><td><code>{html.escape(name)}</code></td><td>{inline_markup(text)}</td></tr>"
-        for name, text in verdicts.get("gates", {}).items()
-    )
-
-
-def build() -> str:
-    reports = load_reports()
-    verdicts = yaml.safe_load(VERDICTS_PATH.read_text())
-    board = json.loads(LEADERBOARD_PATH.read_text())
-    scores: list[float] = board["scores"]
-    teams = board["teams"]
-    parts = yaml.safe_load(PARTS_PATH.read_text())
-    plateau = parts["parts"]["dfthcsos"]
-    margins = plateau["constraint_margins"]
-    submission_id = parts["submission_ref"]
-    # What our verifier measured for the circuits we actually submitted -- distinct from the
-    # reference costs in `reports`, which come from sample_submission/.
-    part_costs = {task: parts["parts"][task]["our_measurement"]["cost"] for task in TASKS}
-
-    invsqrt, dqi, dfthcsos = (reports[t] for t in TASKS)
-    calibration = MetricCalibration(
-        reference_costs={t: reports[t].cost for t in TASKS},
-        provenance=f"measured by the shipped verifiers over sample_submission/, {STATUS_DATE}",
-        measured=True,
-    )
-
-    above = sum(1 for s in scores if s > OUR_SCORE + 5e-6)
-    tied = sum(1 for s in scores if abs(s - OUR_SCORE) < 5e-6)
-    rank_best, rank_worst = above + 1, above + tied
-    median = scores[teams // 2]
-    plateau_hi = scores[int(teams * 0.10)]
-    escaped = sum(1 for s in scores if s >= 25.0)
-    leader = scores[0]
-    gap_score = leader / OUR_SCORE
-    gap_cost = gap_score**3
-    # The reference's own tie block, so the strip shows the move with the same honesty as the
-    # block it came from: 81 teams submitted the reference unchanged and shared its rank range.
-    reference_above = sum(1 for s in scores if s > 1.0 + 5e-6)
-    reference_tied = sum(1 for s in scores if abs(s - 1.0) < 5e-6)
-    reference_rank, reference_rank_worst = reference_above + 1, reference_above + reference_tied
-
-    # The chemistry part's headroom, and the factorization shape it spends it on.
-    error_pct = margins["hamiltonian_error_ha"]["fraction_of_limit_used"] * 100
-    e_gap_slack_ppb = (margins["e_gap_ha"]["value"] - margins["e_gap_ha"]["limit"]) * 1e6
-    angle_width = int(margins["angle_qubits"]["value"])
-    angle_cap = int(margins["angle_qubits"]["limit"])
-    angle_pct = margins["angle_qubits"]["fraction_of_limit_used"] * 100
-    lambda_over_floor = margins["lcu_lambda"]["value"] / margins["lcu_lambda"]["limit"]
-    lambda_eff_value = plateau["lambda_eff"]
-    pinned_names = [
-        QUANTITY_LABELS[key] for key in margins if is_pinned(margins[key])
-    ]
-    plateau_r, plateau_b, plateau_c = (plateau[key] for key in ("R", "B", "C"))
-
-    # The whole headline claim is that this number predicted OUR_SCORE, so it is recomputed
-    # from the submitted parts' measured costs rather than transcribed.
-    local_blend = score(part_costs, calibration)
-    blend = score(PUBLIC_COSTS, calibration)
-    blend_delta_ppm = abs(blend - PUBLIC_BLEND) / PUBLIC_BLEND * 1e6
-    blend_floor_ppm = blend_precision_ppm(PUBLIC_COSTS, PUBLIC_COST_HALF_ULP)
-
-    rotation_count = int(invsqrt.detail["rotation_count"])
-    rotation_eps = float(invsqrt.detail["rotation_eps"])
-    t_per_rotation = rotation_t_count(rotation_eps)
-    resources = dfthcsos.detail["resources"]
-    metrics = dfthcsos.detail["metrics"]
-    angle_qubits = int(resources["angles_qubits"])
-    error_2 = float(metrics["error_2"])
-    e_gap = float(metrics["E_gap"])
-    toffoli_span = dqi.toffolis / invsqrt.toffolis
-
-    return f"""<!doctype html>
-<html lang="en">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VQCC Compression Log</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
-<style>
+# Not an f-string, so the braces are the CSS's own and need no doubling.
+STYLE = """\
 /* Instrument readout: one measured column, data in mono, the finding above each chart. */
-:root {{
+:root {
   --bg: #f7f8f7; --surface: #ffffff; --fg: #15201c; --muted: #5b6b64;
   --line: #dfe4e1; --grid: #b4c0ba; --accent: #0f6f5c; --accent-soft: #e4f0ec;
   --warn: #b5700f; --warn-soft: #fbeedd; --bad: #a3342a; --bad-soft: #f8e5e2;
@@ -544,108 +472,260 @@ def build() -> str:
   --display: "IBM Plex Serif", Georgia, serif;
   --body: "IBM Plex Sans", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, monospace;
-}}
-@media (prefers-color-scheme: dark) {{
-  :root:not([data-theme="light"]) {{
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
     --bg: #0e1412; --surface: #151d1a; --fg: #e6ece9; --muted: #93a39c;
     --line: #26322e; --grid: #46554f; --accent: #4fc4a6; --accent-soft: #16302a;
     --warn: #e0a449; --warn-soft: #33270f; --bad: #e07a6e; --bad-soft: #351e1b;
     --neutral-mark: #5d6d67;
     color-scheme: dark;
-  }}
-}}
-:root[data-theme="dark"] {{
+  }
+}
+:root[data-theme="dark"] {
   --bg: #0e1412; --surface: #151d1a; --fg: #e6ece9; --muted: #93a39c;
   --line: #26322e; --grid: #46554f; --accent: #4fc4a6; --accent-soft: #16302a;
   --warn: #e0a449; --warn-soft: #33270f; --bad: #e07a6e; --bad-soft: #351e1b;
   --neutral-mark: #5d6d67;
   color-scheme: dark;
-}}
-* {{ box-sizing: border-box; }}
-body {{
+}
+* { box-sizing: border-box; }
+body {
   background: var(--bg); color: var(--fg); font-family: var(--body);
   font-size: 15px; line-height: 1.6; margin: 0;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 40px 72px;
-}}
-main {{ max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px; }}
-h1 {{ font-family: var(--display); font-size: clamp(27px, 5vw, 38px); line-height: 1.15;
-      margin: 0 0 12px; text-wrap: balance; font-weight: 600; }}
-h2 {{ font-family: var(--display); font-size: 21px; margin: 0 0 4px; font-weight: 600; }}
-h3 {{ font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em;
-      color: var(--muted); margin: 0 0 10px; font-weight: 600; }}
-p {{ margin: 0 0 12px; }}
-section {{ display: flex; flex-direction: column; gap: 14px; }}
-.status {{ font-family: var(--mono); font-size: 12.5px; color: var(--muted); }}
-.lede {{ font-size: 18px; line-height: 1.5; }}
-.strip {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }}
-.tile {{ background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
-         padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }}
-.tile .k {{ font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em;
-            color: var(--muted); font-weight: 600; }}
-.tile .v {{ font-family: var(--mono); font-size: 23px; font-weight: 600;
-            font-variant-numeric: tabular-nums; }}
-.tile .n {{ font-size: 12.5px; color: var(--muted); }}
-.tile.flag {{ border-color: var(--warn); background: var(--warn-soft); }}
-.finding {{ font-size: 17px; line-height: 1.45; font-weight: 500; margin: 0;
-            border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; }}
-figure {{ margin: 0; background: var(--surface); border: 1px solid var(--line);
-          border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }}
-figure svg {{ width: 100%; height: auto; max-width: 100%; display: block; }}
-figcaption {{ font-size: 12.5px; color: var(--muted); }}
-.grid {{ stroke: var(--grid); stroke-width: 1; }}
-.pole {{ stroke: var(--bad); stroke-width: 2; stroke-dasharray: 5 4; }}
-.marker {{ stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 4 4; }}
-text {{ font-family: var(--body); fill: var(--fg); }}
-.cl {{ font-size: 20px; fill: var(--fg); }}
-.cl2 {{ font-size: 19px; fill: var(--muted); font-weight: 600; }}
-.ct {{ font-size: 18px; fill: var(--muted); font-family: var(--mono); }}
-.cax {{ font-size: 19px; fill: var(--muted); }}
-.cv {{ font-size: 20px; fill: var(--fg); font-family: var(--mono); font-weight: 600; }}
-.cvi {{ font-size: 20px; fill: var(--bg); font-family: var(--mono); font-weight: 600; }}
-.tw {{ overflow-x: auto; border: 1px solid var(--line); border-radius: 8px;
-       background: var(--surface); }}
-table {{ border-collapse: collapse; width: 100%; font-size: 13.5px; }}
-th, td {{ text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line);
-          vertical-align: top; }}
-th {{ font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em;
-      color: var(--muted); font-weight: 600; white-space: nowrap; }}
-tr:last-child td {{ border-bottom: none; }}
-td.num {{ font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }}
-code {{ font-family: var(--mono); font-size: 0.92em; }}
-.pill {{ display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 600;
-         padding: 2px 7px; border-radius: 4px; letter-spacing: 0.04em; }}
-.pill.ok {{ background: var(--accent-soft); color: var(--accent); }}
-.pill.warn {{ background: var(--warn-soft); color: var(--warn); }}
-.pill.bad {{ background: var(--bad-soft); color: var(--bad); }}
-.pill.run {{ background: var(--surface); color: var(--muted); border: 1px solid var(--line); }}
-.funnel {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }}
-.fcell {{ border: 1px solid var(--line); border-left: 3px solid var(--neutral-mark);
+}
+main { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px; }
+h1 { font-family: var(--display); font-size: clamp(27px, 5vw, 38px); line-height: 1.15;
+      margin: 0 0 12px; text-wrap: balance; font-weight: 600; }
+h2 { font-family: var(--display); font-size: 21px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+p { margin: 0 0 12px; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.status { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.lede { font-size: 18px; line-height: 1.5; }
+.strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+         padding: 14px 16px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.tile .k { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em;
+            color: var(--muted); font-weight: 600; }
+.tile .v { font-family: var(--mono); font-size: 23px; font-weight: 600;
+            font-variant-numeric: tabular-nums; }
+.tile .n { font-size: 12.5px; color: var(--muted); }
+.tile.flag { border-color: var(--warn); background: var(--warn-soft); }
+.finding { font-size: 17px; line-height: 1.45; font-weight: 500; margin: 0;
+            border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--line);
+          border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+figure svg { width: 100%; height: auto; max-width: 100%; display: block; }
+figcaption { font-size: 12.5px; color: var(--muted); }
+.grid { stroke: var(--grid); stroke-width: 1; }
+.pole { stroke: var(--bad); stroke-width: 2; stroke-dasharray: 5 4; }
+.marker { stroke: var(--warn); stroke-width: 1.5; stroke-dasharray: 4 4; }
+text { font-family: var(--body); fill: var(--fg); }
+.cl { font-size: 20px; fill: var(--fg); }
+.cl2 { font-size: 19px; fill: var(--muted); font-weight: 600; }
+.ct { font-size: 18px; fill: var(--muted); font-family: var(--mono); }
+.cax { font-size: 19px; fill: var(--muted); }
+.cv { font-size: 20px; fill: var(--fg); font-family: var(--mono); font-weight: 600; }
+.cvi { font-size: 20px; fill: var(--bg); font-family: var(--mono); font-weight: 600; }
+.tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px;
+       background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line);
+          vertical-align: top; }
+th { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--muted); font-weight: 600; white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+code { font-family: var(--mono); font-size: 0.92em; }
+.pill { display: inline-block; font-family: var(--mono); font-size: 11px; font-weight: 600;
+         padding: 2px 7px; border-radius: 4px; letter-spacing: 0.04em; }
+.pill.ok { background: var(--accent-soft); color: var(--accent); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.run { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+.funnel { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.fcell { border: 1px solid var(--line); border-left: 3px solid var(--neutral-mark);
           border-radius: 6px; padding: 12px 14px; background: var(--surface);
-          display: flex; flex-direction: column; gap: 2px; min-width: 0; }}
-.ftask {{ font-family: var(--mono); font-weight: 600; font-size: 14px; }}
-.fpass {{ font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted);
-          letter-spacing: 0.05em; }}
-.fmeta {{ font-size: 12px; color: var(--muted); font-family: var(--mono); }}
-.verdict {{ border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
-            padding: 14px 16px; }}
-.verdict header {{ display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }}
-.verdict header code {{ font-size: 13.5px; font-weight: 600; }}
-.verdict p {{ margin: 0; font-size: 14px; }}
-.verdict .vmeta {{ font-size: 12px; color: var(--muted); font-family: var(--mono);
-                   margin: 2px 0 8px; }}
-ul {{ margin: 0; padding-left: 20px; }}
-li {{ margin-bottom: 8px; }}
-li::marker {{ color: var(--neutral-mark); }}
-.note {{ border-left: 3px solid var(--neutral-mark); padding: 2px 0 2px 14px;
-         color: var(--muted); font-size: 14px; }}
-footer {{ border-top: 1px solid var(--line); padding-top: 16px; font-size: 12.5px;
-          color: var(--muted); }}
-a {{ color: var(--accent); }}
-</style>
+          display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ftask { font-family: var(--mono); font-weight: 600; font-size: 14px; }
+.fpass { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted);
+          letter-spacing: 0.05em; }
+.fmeta { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.verdict { border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+            padding: 14px 16px; }
+.verdict header { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.verdict header code { font-size: 13.5px; font-weight: 600; }
+.verdict p { margin: 0; font-size: 14px; }
+.verdict .vmeta { font-size: 12px; color: var(--muted); font-family: var(--mono);
+                   margin: 2px 0 8px; }
+ul { margin: 0; padding-left: 20px; }
+li { margin-bottom: 8px; }
+li::marker { color: var(--neutral-mark); }
+.note { border-left: 3px solid var(--neutral-mark); padding: 2px 0 2px 14px;
+         color: var(--muted); font-size: 14px; }
+footer { border-top: 1px solid var(--line); padding-top: 16px; font-size: 12.5px;
+          color: var(--muted); }
+a { color: var(--accent); }
+"""
 
-<main>
+
+@dataclass(frozen=True)
+class Artifact:
+    """The page, and every figure on it, derived from the committed result files.
+
+    One object so each section reads the figures it needs off `self` instead of thirty
+    locals being threaded through a single template, and so a figure used by two sections --
+    the rank, the local blend, the chemistry margins -- is computed once in one place.
+    """
+
+    reports: dict[str, TaskReport]
+    verdicts: dict[str, Any]
+    board: dict[str, Any]
+    parts: dict[str, Any]
+
+    @classmethod
+    def load(cls) -> Artifact:
+        board = json.loads(LEADERBOARD_PATH.read_text())
+        # The page calls the team count the competition's own, and reads it as the number of
+        # scores in the snapshot, so the snapshot's own figure has to agree with that.
+        if board["teams"] != len(board["scores"]):
+            raise ValueError(
+                f"{LEADERBOARD_PATH.name} reports {board['teams']} teams but carries "
+                f"{len(board['scores'])} scores"
+            )
+        return cls(
+            reports=load_reports(),
+            verdicts=yaml.safe_load(VERDICTS_PATH.read_text()),
+            board=board,
+            parts=yaml.safe_load(PARTS_PATH.read_text()),
+        )
+
+    # Only figures two or more sections share are properties; anything one section uses is a
+    # local in that section, where it reads next to the prose quoting it. Every score on the
+    # page goes through `cost.DEFAULT_CALIBRATION`, the module's own measurement of the same
+    # three verifier outputs loaded here, so the page cannot score against a calibration the
+    # project does not use -- `tests/test_verify.py` pins the two to each other.
+
+    @property
+    def scores(self) -> list[float]:
+        return self.board["scores"]
+
+    @property
+    def our_score(self) -> float:
+        """The latest leaderboard reading -- the one figure on the page not derived locally.
+
+        Recorded once in `verdicts.yaml` beside the submission that earned it, rather than as
+        a constant here; the local blend it is compared against is recomputed, so the page's
+        central claim checks itself instead of asserting a transcription.
+        """
+        return float(scored_submissions(self.verdicts)[-1]["score"])
+
+    @cached_property
+    def standing(self) -> Standing:
+        return Standing(self.scores, self.our_score)
+
+    @property
+    def median(self) -> float:
+        return self.scores[self.standing.teams // 2]
+
+    @property
+    def plateau_hi(self) -> float:
+        """The 10th-percentile score: the top of the band half the field is packed into."""
+        return self.scores[int(self.standing.teams * 0.10)]
+
+    @property
+    def escaped(self) -> int:
+        return sum(1 for s in self.scores if s >= ESCAPE_SCORE)
+
+    @property
+    def part_costs(self) -> dict[str, float]:
+        """What our verifier measured for the circuits we actually submitted.
+
+        Distinct from `reports`, whose costs come from `sample_submission/`.
+        """
+        return {task: self.parts["parts"][task]["our_measurement"]["cost"] for task in TASKS}
+
+    @cached_property
+    def local_blend(self) -> float:
+        """The whole headline claim is that this predicted the leaderboard, so it is
+        recomputed from the submitted parts' measured costs rather than transcribed."""
+        return score(self.part_costs, DEFAULT_CALIBRATION)
+
+    # -- rows and blocks the tables are made of --
+
+    def reference_rows(self) -> str:
+        rows = []
+        for task in TASKS:
+            report = self.reports[task]
+            formula, field_name, symbol = SCORED_AS[task]
+            value = float(report.detail[field_name])
+            rows.append(
+                f"<tr><td><code>{task}</code></td>"
+                f'<td class="num">{fmt(report.cost)}</td>'
+                f"<td><code>{formula}</code></td>"
+                f'<td class="num">{int(report.detail["num_qubits"]):,}</td>'
+                f'<td class="num">{report.toffolis:,.1f}</td>'
+                f'<td class="num">{symbol} = {value:,.4f}</td>'
+                f'<td class="num">{report.shots:,}</td></tr>'
+            )
+        return "".join(rows)
+
+    def ratio_rows(self) -> str:
+        return "".join(
+            f"<tr><td><code>{task}</code></td>"
+            f'<td class="num">{PUBLIC_COST_QUOTED[task]}</td>'
+            f'<td class="num">{task_ratio(task, PUBLIC_COSTS[task], DEFAULT_CALIBRATION):,.3f}×'
+            f"</td></tr>"
+            for task in TASKS
+        )
+
+    def run_log_rows(self) -> str:
+        return "".join(
+            f'<div class="fcell"><div class="ftask">{task}</div>'
+            f'<div class="fpass">PASS</div>'
+            f'<div class="fmeta">{self.reports[task].shots:,} shots</div>'
+            f'<div class="fmeta">{HAND_RECORDED["minutes"][task]} min · '
+            f"cost {fmt(self.reports[task].cost)}</div></div>"
+            for task in TASKS
+        )
+
+    def verdict_blocks(self) -> str:
+        tone = {"PROMOTE": "ok", "KEEP": "warn", "DISCARD": "bad", "RUNNING": "run"}
+        blocks = []
+        for item in self.verdicts.get("experiments", []):
+            verdict = str(item.get("verdict", "RUNNING"))
+            pr = item.get("pr")
+            link = (
+                f' · <a href="https://github.com/charleneleong-ai/ai4science/pull/{pr}">'
+                f"PR #{pr}</a>"
+                if pr
+                else ""
+            )
+            blocks.append(
+                f'<article class="verdict"><header>'
+                f"<code>{html.escape(str(item['name']), quote=False)}</code>"
+                f'<span class="pill {tone.get(verdict, "run")}">{html.escape(verdict)}</span>'
+                f'</header><p class="vmeta">gate {html.escape(str(item.get("gate", "—")))}'
+                f" · {html.escape(str(item.get('date', '')))}{link}</p>"
+                f"<p>{inline_markup(str(item.get('result', '')))}</p></article>"
+            )
+        return "".join(blocks)
+
+    def gate_rows(self) -> str:
+        return "".join(
+            f"<tr><td><code>{html.escape(name)}</code></td><td>{inline_markup(text)}</td></tr>"
+            for name, text in self.verdicts.get("gates", {}).items()
+        )
+
+    # -- the sections, in the order they are read --
+
+    def header(self) -> str:
+        return f"""
   <header>
     <p class="status">GOOGLE QUANTUM AI · VERIFIABLE QUANTUM CIRCUIT COMPILATION · {STATUS_DATE}</p>
     <h1>On the plateau</h1>
@@ -653,25 +733,32 @@ a {{ color: var(--accent); }}
     Evaluation page, and every formula reproduces the verifier&rsquo;s own score exactly. That
     local loop has now predicted the leaderboard twice — on the reference
     (1.00000&nbsp;→&nbsp;1.00000) and on an input it had never seen
-    ({local_blend:.5f}&nbsp;→&nbsp;<strong>{OUR_SCORE:.5f}</strong>, agreeing to every digit
+    ({self.local_blend:.5f}&nbsp;→&nbsp;<strong>{self.our_score:.5f}</strong>, agreeing to every digit
     either is reported to) — so candidates can be ranked for free against a rationed
     {HAND_RECORDED["submissions_per_day"]} submissions a day. The score itself is assembled from
     public Apache-2.0 parts, not from any compression of our own; what it bought is a
     measurement of why the plateau is where it is.</p>
   </header>
+"""
 
-  <section>
+    def strip(self) -> str:
+        standing = self.standing
+        # The 1.00000 block, which 81 teams shared by submitting the reference unchanged.
+        reference = Standing(self.scores, 1.0)
+        gap_score = standing.leader / self.our_score
+        return f"""
     <div class="strip">
       <div class="tile"><span class="k">Our score</span>
-        <span class="v">{OUR_SCORE:.5f}</span>
-        <span class="n">local said {local_blend:.5f} · submission {submission_id}</span></div>
+        <span class="v">{self.our_score:.5f}</span>
+        <span class="n">local said {self.local_blend:.5f} · submission
+        {self.parts["submission_ref"]}</span></div>
       <div class="tile"><span class="k">Rank</span>
-        <span class="v">{rank_best:,}–{rank_worst:,}</span>
-        <span class="n">of {teams:,} · up from the {reference_tied}-team block at 1.00000
-        ({reference_rank:,}–{reference_rank_worst:,})</span></div>
+        <span class="v">{standing.best:,}–{standing.worst:,}</span>
+        <span class="n">of {standing.teams:,} · up from the {reference.tied}-team block at
+        1.00000 ({reference.best:,}–{reference.worst:,})</span></div>
       <div class="tile flag"><span class="k">Gap to leader</span>
         <span class="v">×{gap_score:.2f}</span>
-        <span class="n">≈{gap_cost:,.1f}× on the product of the three cost ratios</span></div>
+        <span class="n">≈{gap_score**3:,.1f}× on the product of the three cost ratios</span></div>
       <div class="tile flag"><span class="k">Compression attempted</span>
         <span class="v">none</span><span class="n">every circuit here is someone else&rsquo;s</span></div>
     </div>
@@ -681,16 +768,20 @@ a {{ color: var(--accent); }}
     establishes the floor to beat and credits nine authors in
     <code>docs/experiments/{PARTS_PATH.name}</code>. The ×{gap_score:.2f} still owed to the
     leader is the whole remaining problem.</p>
-  </section>
+"""
 
-  <section>
+    def where_we_stand(self) -> str:
+        standing = self.standing
+        return f"""
     <h2>Where we stand</h2>
-    <p class="finding">The field is bimodal. Half of it is packed between {median:.2f} and
-    {plateau_hi:.2f} — a band 0.6 wide — and only {escaped} teams have escaped past 25. We now
-    sit at rank {rank_best:,}–{rank_worst:,} of {teams:,}, sharing our exact score with
-    {tied - 1} other teams, on the top edge of that band rather than below it.</p>
+    <p class="finding">The field is bimodal. Half of it is packed between {self.median:.2f} and
+    {self.plateau_hi:.2f} — a band {self.plateau_hi - self.median:.1f} wide — and only
+    {self.escaped} teams have escaped past {ESCAPE_SCORE:g}.
+    We now sit at rank {standing.best:,}–{standing.worst:,} of {standing.teams:,}, sharing our
+    exact score with {standing.tied - 1} other teams, on the top edge of that band rather than
+    below it.</p>
     <figure>
-      {field_svg(scores, rank_best, rank_worst)}
+      {field_svg(standing)}
       <figcaption>Every public score on {STATUS_DATE}, in rank order, from the competition&rsquo;s
       own leaderboard snapshotted in
       <code>docs/experiments/leaderboard-{STATUS_DATE}.json</code>. The shaded band marks our
@@ -698,48 +789,62 @@ a {{ color: var(--accent); }}
     </figure>
     <p>The crowded plateau is the useful part, and the section below says what it is made of: not
     a field that merely copied one notebook, but one that has run a single factorization up
-    against every constraint the task has. The {escaped} teams above 25 found something that
-    parameterisation cannot reach.</p>
+    against every constraint the task has. The {self.escaped} teams above {ESCAPE_SCORE:g} found
+    something that parameterisation cannot reach.</p>
     <p class="note">Why this assembly scores above the {PUBLIC_BLEND} blend quoted on
     {STATUS_DATE[:-3]}-30: the parts published since are cheaper on all three tasks —
-    <code>invsqrt</code> {part_costs["invsqrt"]:,.0f} against
-    {PUBLIC_COST_QUOTED["invsqrt"]}, <code>dqi</code> {fmt(part_costs["dqi"])} against
-    {PUBLIC_COST_QUOTED["dqi"]}, <code>dfthcsos</code> {fmt(part_costs["dfthcsos"])} against
+    <code>invsqrt</code> {self.part_costs["invsqrt"]:,.0f} against
+    {PUBLIC_COST_QUOTED["invsqrt"]}, <code>dqi</code> {fmt(self.part_costs["dqi"])} against
+    {PUBLIC_COST_QUOTED["dqi"]}, <code>dfthcsos</code> {fmt(self.part_costs["dfthcsos"])} against
     {PUBLIC_COST_QUOTED["dfthcsos"]}. Their authors made them cheaper; we picked newer
     ones.</p>
-  </section>
+"""
 
-  <section>
+    def why_the_plateau_is_a_wall(self) -> str:
+        plateau = self.parts["parts"]["dfthcsos"]
+        margins = plateau["constraint_margins"]
+        error, e_gap = margins["hamiltonian_error_ha"], margins["e_gap_ha"]
+        angle, lcu = margins["angle_qubits"], margins["lcu_lambda"]
+        e_gap_slack = (e_gap["value"] - e_gap["limit"]) * 1e6
+        pinned = [QUANTITY_LABELS[key] for key in margins if is_pinned(margins[key])]
+        r, b, c = (plateau[key] for key in ("R", "B", "C"))
+        return f"""
     <h2>Why the plateau is a wall</h2>
     <p class="finding">The chemistry circuits everyone is standing on have <strong>almost no
     headroom left against the constraints that reject outright</strong>: the accuracy term is
-    at {error_pct:.3f}% of the 20 mHa cap and <code>E_gap</code> clears its strict floor by
-    {e_gap_slack_ppb:.2f}&nbsp;×&nbsp;10⁻⁶ Ha — {len(pinned_names)} of the
+    at {error["fraction_of_limit_used"] * 100:.3f}% of the {error["limit"] * 1e3:.0f} mHa cap
+    and <code>E_gap</code> clears its strict floor by
+    {e_gap_slack:.2f}&nbsp;×&nbsp;10⁻⁶ Ha — {len(pinned)} of the
     {len(margins)} constraints spent to within {(1 - PINNED_FRACTION) * 100:.1f}% of their
-    limit — and the widest ANGLE circuit is {angle_width} of {angle_cap} qubits, {angle_pct:.1f}%
-    of its cap. The 0.6-wide band is what that leaves.</p>
+    limit — and the widest ANGLE circuit is {int(angle["value"])} of {int(angle["limit"])}
+    qubits, {angle["fraction_of_limit_used"] * 100:.1f}% of its cap. The
+    {self.plateau_hi - self.median:.1f}-wide band is what that leaves.</p>
     <figure>
       {headroom_svg(margins)}
       <figcaption>Each hard constraint on the <code>dfthcsos</code> task, as a fraction of its
       limit, measured by our own verifier over the submitted files and recorded in
       <code>{PARTS_PATH.name}</code>. Amber is pinned, meaning within
-      {(1 - PINNED_FRACTION) * 100:.1f}% of the limit: {" and ".join(pinned_names)}. The ANGLE
-      width has two qubits of room and the one-norm Λ has a great deal, sitting
-      {lambda_over_floor:.1f}× its floor — which incidentally settles that
+      {(1 - PINNED_FRACTION) * 100:.1f}% of the limit: {" and ".join(pinned)}. The
+      ANGLE width has {int(angle["limit"]) - int(angle["value"])} qubits of room and the
+      one-norm Λ has a great deal, sitting {lcu["value"] / lcu["limit"]:.1f}× its floor — which
+      incidentally settles that
       <code>MIN_LAMBDA</code> floors Λ and not λ_eff, since this submission&rsquo;s λ_eff of
-      {lambda_eff_value:.3f} is below that {margins["lcu_lambda"]["limit"]:g} and still
+      {plateau["lambda_eff"]:.3f} is below that {lcu["limit"]:g} and still
       passes.</figcaption>
     </figure>
     <p>What the record does <em>not</em> settle is where to go instead. This parameterisation is
-    <strong>R={plateau_r}, B={plateau_b}, C={plateau_c}</strong> — the part author&rsquo;s own
+    <strong>R={r}, B={b}, C={c}</strong> — the part author&rsquo;s own
     reported shape, not something we measured — and cost scales with R·B while the accuracy
     reachable at a given shape is bounded by R·C, so the two are not optimised by the same
     point. Reproducing the cost–precision atlas ourselves and fitting low-R factorizations is
     the next experiment, and the claim it has to beat is this submission&rsquo;s own
-    R·B&nbsp;=&nbsp;{plateau_r * plateau_b:,} at R·C&nbsp;=&nbsp;{plateau_r * plateau_c:,}.</p>
-  </section>
+    R·B&nbsp;=&nbsp;{r * b:,} at R·C&nbsp;=&nbsp;{r * c:,}.</p>
+"""
 
-  <section>
+    def what_the_page_omits(self) -> str:
+        invsqrt, dqi = self.reports["invsqrt"], self.reports["dqi"]
+        rotation_eps = float(invsqrt.detail["rotation_eps"])
+        return f"""
     <h2>What the Evaluation page omits</h2>
     <p class="finding">Three constants the page does not state. None changes the cost much — the
     back-derived estimates they correct were within 0.04% — but each changes <em>how</em> cost has
@@ -751,8 +856,8 @@ a {{ color: var(--accent); }}
           <td><code>0.56·log₂(1/ε) + 5.3</code> T gates at one <em>circuit-wide</em> ε, picked
           from the accuracy budget the simulated error leaves over — not a per-Clifford-level
           cost</td>
-          <td class="num">{rotation_count} rotations at
-          ε={rotation_eps:.2e}<br>{t_per_rotation:,.2f} T gates each</td></tr>
+          <td class="num">{int(invsqrt.detail["rotation_count"])} rotations at
+          ε={rotation_eps:.2e}<br>{rotation_t_count(rotation_eps):,.2f} T gates each</td></tr>
         <tr><td>Toffoli count</td>
           <td>the mean executed <em>per shot</em>, not the static gate count; measurement-based
           uncomputation makes it data-dependent</td>
@@ -771,13 +876,16 @@ a {{ color: var(--accent); }}
     <p class="note">The page uses &ldquo;T gates&rdquo; for the rotation price and
     &ldquo;Toffolis&rdquo; for the gate count the cost formulas call T. They are different
     quantities: <code>invsqrt</code> is scored on C = Toffolis + T&nbsp;gates/4.</p>
-  </section>
+"""
 
-  <section>
-    <h2>The 19% nobody can optimise away</h2>
+    def repetition_floor(self) -> str:
+        dqi = self.reports["dqi"]
+        overhead = (dqi.repetition_factor - 1) * 100
+        return f"""
+    <h2>The {overhead:.0f}% nobody can optimise away</h2>
     <p class="finding">A decoder that fails zero of {dqi.shots:,} shots is still bounded at
-    ε₊ = {dqi.eps_plus:.2e}, so <code>dqi</code> pays R = {dqi.repetition_factor:.4f} — a 19%
-    repetition overhead — before any circuit work. Only more shots lower that floor, and the shot
+    ε₊ = {dqi.eps_plus:.2e}, so <code>dqi</code> pays R = {dqi.repetition_factor:.4f} — a
+    {overhead:.0f}% repetition overhead — before any circuit work. Only more shots lower that floor, and the shot
     count is the verifier&rsquo;s to choose.</p>
     <figure>
       {repetition_svg(dqi)}
@@ -786,11 +894,22 @@ a {{ color: var(--accent); }}
       rejects outright. Our point is the Clopper–Pearson bound for 0 failures in
       {dqi.shots:,} shots.</figcaption>
     </figure>
-  </section>
+"""
 
-  <section>
+    def what_chemistry_controls(self) -> str:
+        dfthcsos = self.reports["dfthcsos"]
+        resources = dfthcsos.detail["resources"]
+        # The reference's own headroom, off the same constraint table as the plateau part's.
+        reference = dfthcsos_constraint_margins(dfthcsos.detail)
+        angle, error, e_gap = (
+            reference["angle_qubits"],
+            reference["hamiltonian_error_ha"],
+            reference["e_gap_ha"],
+        )
+        return f"""
     <h2>What a chemistry submission actually controls</h2>
-    <p class="finding">The ANGLE circuits a submission ships are 85% of the Toffoli count but only
+    <p class="finding">The ANGLE circuits a submission ships are
+    {resources["angles_toffoli"] / resources["toffoli"] * 100:.0f}% of the Toffoli count but only
     about half the persistent width — and they add nothing at all to the temporary workspace,
     which is a <em>maximum</em> over families and is dominated by inner state prep. Width is
     governed by a parameterisation, not by the circuits a submission writes.</p>
@@ -808,16 +927,20 @@ a {{ color: var(--accent); }}
       {resources["inner_state_prep_temporary_qubits"]}).</figcaption>
     </figure>
     <p class="note">The reference sits close to three cliffs, all of which reject outright rather
-    than gracefully: the widest ANGLE circuit at {angle_qubits} qubits against the
-    {MAX_ANGLE_QUBITS} cap ({angle_qubits / MAX_ANGLE_QUBITS * 100:.0f}% of it),
-    <code>error_2</code> at {error_2:.5f} Ha against a {MAX_HAMILTONIAN_ERROR_HA:.3f} Ha cap
-    ({error_2 / MAX_HAMILTONIAN_ERROR_HA * 100:.0f}%), and <code>E_gap</code> at {e_gap:.4f} Ha
-    against a strict {MIN_E_GAP_HA} Ha floor (+{(e_gap / MIN_E_GAP_HA - 1) * 100:.1f}%). Those are
-    the <em>reference&rsquo;s</em> margins; the chart above measures the same three for the
-    plateau part, which has spent nearly all of them.</p>
-  </section>
+    than gracefully: the widest ANGLE circuit at {int(angle["value"])} qubits against the
+    {int(angle["limit"])} cap ({angle["fraction_of_limit_used"] * 100:.0f}% of it), the binding
+    accuracy term at {error["value"]:.5f} Ha against a {error["limit"]:.3f} Ha cap
+    ({error["fraction_of_limit_used"] * 100:.0f}%), and <code>E_gap</code> at
+    {e_gap["value"]:.4f} Ha against a strict {e_gap["limit"]} Ha floor
+    (+{(e_gap["value"] / e_gap["limit"] - 1) * 100:.1f}%). Those are the
+    <em>reference&rsquo;s</em> margins, read off the same constraint table; the chart above
+    measures the same three for the plateau part, which has spent nearly all of them.</p>
+"""
 
-  <section>
+    def cost_anatomy(self) -> str:
+        invsqrt, dqi = self.reports["invsqrt"], self.reports["dqi"]
+        toffoli_span = dqi.toffolis / invsqrt.toffolis
+        return f"""
     <h2>Cost anatomy</h2>
     <p class="finding">A qubit saved is worth twice as much on <code>dqi</code>, whose cost carries
     Q²; the other two are linear in Q. That exponent, not the raw counts, decides which lever
@@ -826,58 +949,65 @@ a {{ color: var(--accent); }}
     <div class="tw"><table>
       <thead><tr><th>Task</th><th>Reference cost</th><th>Scored as</th><th>Q</th>
       <th>Toffolis/shot</th><th>Leading factor</th><th>Shots</th></tr></thead>
-      <tbody>{reference_rows(reports)}</tbody>
+      <tbody>{self.reference_rows()}</tbody>
     </table></div>
     <p class="note">Each row&rsquo;s cost is reconstructable from the columns beside it. For
-    <code>invsqrt</code> the leading factor C = {float(invsqrt.detail["toffoli_equivalent"]):,.2f}
+    <code>invsqrt</code> the leading factor
+    C = {float(invsqrt.detail["toffoli_equivalent"]):,.2f}
     already contains the Toffolis, so its cost is Q × C and the Toffoli column is shown for
     comparison only.</p>
-  </section>
+"""
 
-  <section>
+    def local_loop_cost(self) -> str:
+        return f"""
     <h2>What the local loop costs</h2>
     <p class="finding">A full three-task verification takes about
     {sum(HAND_RECORDED["minutes"].values()):.0f} minutes on 10 CPU cores and is free and
     unlimited — against {HAND_RECORDED["submissions_per_day"]} rationed submissions a day. That
     ratio is the whole reason the dev set is worth building.</p>
-    <div class="funnel">{run_log_rows(reports)}</div>
+    <div class="funnel">{self.run_log_rows()}</div>
     <p class="note">Not a funnel yet: nothing has been eliminated, because no candidates have been
     generated. The per-stage denominators this section will carry only exist once a generator is
     running.</p>
-  </section>
+"""
 
-  <section>
+    def blend_check(self) -> str:
+        public = score(PUBLIC_COSTS, DEFAULT_CALIBRATION)
+        delta_ppm = abs(public - PUBLIC_BLEND) / PUBLIC_BLEND * 1e6
+        floor_ppm = blend_precision_ppm(PUBLIC_COSTS, PUBLIC_COST_HALF_ULP)
+        return f"""
     <h2>Checking the blend arithmetic</h2>
     <p class="finding">Feeding the public frontier&rsquo;s self-reported per-task costs through our
     scoring path reproduces the blend they reported, {PUBLIC_BLEND}, to
-    {blend_delta_ppm:.1f} parts per million. That checks the ratio-and-geometric-mean arithmetic
-    against a third party&rsquo;s independent calculation — it does <em>not</em> check the three
-    per-task cost formulas, since both sides use the same self-reported costs.</p>
+    {delta_ppm:.1f} parts per million. That checks the ratio-and-geometric-mean
+    arithmetic against a third party&rsquo;s independent calculation — it does <em>not</em> check
+    the three per-task cost formulas, since both sides use the same self-reported costs.</p>
     <div class="tw"><table>
       <thead><tr><th>Task</th><th>Public best cost (third-party)</th>
       <th>Ratio vs our reference</th></tr></thead>
-      <tbody>{ratio_rows(reports, calibration)}</tbody>
+      <tbody>{self.ratio_rows()}</tbody>
     </table></div>
     <p class="note">Computed with <code>cost.task_ratio</code> and <code>cost.score</code> against
-    the measured calibration, giving {blend:.5f}. The agreement cannot be read as finer than the
-    inputs: the rounding in those
-    costs as quoted moves the blend by about ±{blend_floor_ppm:.1f} ppm on its own, so
-    {blend_delta_ppm:.1f} ppm means &ldquo;agrees to the precision available&rdquo;, not a
-    measured resolution.</p>
-  </section>
+    the measured calibration, giving {public:.5f}. The agreement cannot be read as
+    finer than the inputs: the rounding in those costs as quoted moves the blend by about
+    ±{floor_ppm:.1f} ppm on its own, so {delta_ppm:.1f} ppm means &ldquo;agrees to the
+    precision available&rdquo;, not a measured resolution.</p>
+"""
 
-  <section>
+    def verdict_ledger(self) -> str:
+        return f"""
     <h2>Verdict ledger</h2>
-    {verdict_blocks(verdicts)}
+    {self.verdict_blocks()}
     <h3>Promotion gates</h3>
-    <div class="tw"><table><tbody>{gate_rows(verdicts)}</tbody></table></div>
-  </section>
+    <div class="tw"><table><tbody>{self.gate_rows()}</tbody></table></div>
+"""
 
-  <section>
+    def not_established(self) -> str:
+        return f"""
     <h2>Not established</h2>
     <ul>
       <li><strong>We have not compressed anything ourselves.</strong> The
-      {OUR_SCORE:.5f} is an assembly of other people&rsquo;s published circuits; everything we
+      {self.our_score:.5f} is an assembly of other people&rsquo;s published circuits; everything we
       built is measurement apparatus. No claim here is a claim about a circuit we designed.</li>
       <li><strong>Run-to-run noise is unmeasured.</strong> Every verifier seeds itself from the
       candidate&rsquo;s own bytes — <code>int(circuit_sha256, 16)</code>, or
@@ -887,8 +1017,8 @@ a {{ color: var(--accent); }}
       <li><strong>Every third-party number here is unverified by us.</strong> The per-task
       frontier costs and the {PUBLIC_BLEND} blend are self-reported in Kaggle topic 754174, and
       the blend check above rests entirely on them — if they are wrong, that check says nothing.
-      The leaderboard scores and the {teams:,} team count are the competition&rsquo;s own. So are
-      the <code>R</code>/<code>B</code>/<code>C</code> and λ_eff figures in
+      The leaderboard scores and the {self.standing.teams:,} team count are the competition&rsquo;s
+      own. So are the <code>R</code>/<code>B</code>/<code>C</code> and λ_eff figures in
       <code>{PARTS_PATH.name}</code> — those are each part author&rsquo;s own report, copied from
       the dataset manifest; only <code>our_measurement</code> and the constraint margins are
       ours.</li>
@@ -902,12 +1032,14 @@ a {{ color: var(--accent); }}
       Agreement there does not prove agreement on a candidate our own search produces.</li>
       <li><strong>Which task to commit to is open.</strong> The structural facts above bear on it;
       the decision does not follow from them.</li>
-      <li><strong>Why {escaped} teams cleared 25 while half the field sits near
-      {median:.1f}</strong> is unexplained, and which task holds that margin is the most valuable
-      unknown in the competition.</li>
+      <li><strong>Why {self.escaped} teams cleared {ESCAPE_SCORE:g} while half the field sits near
+      {self.median:.1f}</strong> is unexplained, and which task holds that margin is the most
+      valuable unknown in the competition.</li>
     </ul>
-  </section>
+"""
 
+    def footer(self) -> str:
+        return f"""
   <footer>
     Built by <code>scripts/build_artifact.py</code> from the three official verifier outputs
     committed under <code>tests/data/</code>, the verdict ledger and leaderboard snapshot in
@@ -917,15 +1049,42 @@ a {{ color: var(--accent); }}
     in <code>HAND_RECORDED</code>; third-party figures are labelled where they appear. Status
     {STATUS_DATE}.
   </footer>
-</main>
+"""
+
+    def html(self) -> str:
+        # Everything between the header and the footer is a <section>, so the tag is written
+        # once here rather than at both ends of all eleven.
+        body = "".join(
+            f"\n  <section>{section()}  </section>\n"
+            for section in (
+                self.strip, self.where_we_stand, self.why_the_plateau_is_a_wall,
+                self.what_the_page_omits, self.repetition_floor, self.what_chemistry_controls,
+                self.cost_anatomy, self.local_loop_cost, self.blend_check, self.verdict_ledger,
+                self.not_established,
+            )
+        )
+        sections = f"{self.header()}{body}{self.footer()}"
+        return f"""<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VQCC Compression Log</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<style>
+{STYLE}</style>
+
+<main>{sections}</main>
 </html>
 """
 
 
 def main() -> None:
+    artifact = Artifact.load()
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(build())
+    OUTPUT_PATH.write_text(artifact.html())
     print(f"wrote {OUTPUT_PATH} ({OUTPUT_PATH.stat().st_size:,} bytes)")
+    print(f"wrote {write_progress_png(artifact.verdicts)}")
 
 
 if __name__ == "__main__":
