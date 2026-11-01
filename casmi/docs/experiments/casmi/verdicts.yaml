@@ -70,4 +70,7 @@ submissions:
   - {version: 1, label: merged-fork, outputs: fork477-v1, ref: 57822991, date: 2026-10-31, family: rebase, commit: c467db3,
      score: 0.477, verdict: PROMOTE,
      change: "the public 0.477 notebook (busyaprime) unchanged: the 0.465 pipeline + leader-safe neural re-rank (0.25 rank 1, 0.75 ranks 2-25) + Spectral Parallax fragment check on rank 1"}
+  - {version: 2, label: analogue-fork, outputs: fork477-v3, ref: 57826104, date: 2026-10-31, family: fusion, commit: cfabe09,
+     score: 0.477, verdict: DISCARD,
+     change: "merged fork + analogue propagation across test molecules on ranks 2-25 (anchors library >= 0.87, cosine >= 0.70, lambda 0.10)"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==

@@ -36,14 +36,15 @@ The settings were fixed by the notebook's authors before we ran it; we chose non
 changes were scored on the public leaderboard upstream (0.472 each, 0.477 merged), so 0.477 may be
 optimistic on the private split.
 
-**Running — fork477 v3** (kernel version 2, submission 57826104, commit `cfabe09`). One cell after the
+**Discarded — analogue-fork, public MRR@25 0.477** (fork477 v3, kernel version 2, submission 57826104, commit `cfabe09`). One cell after the
 merge adds analogue propagation across test molecules, allowed by the host on 2026-10-26 (discussion
 752297): molecules whose leader has a library match ≥ 0.87 are anchors; for every other molecule whose
 spectra reach cosine ≥ 0.70 with an anchor, candidates below rank 1 gain 0.10 × cosine × Tanimoto(candidate,
 anchor leader). Rank 1 and the candidate set never change. At most 113 / 400 visible-test molecules have
-such a neighbour. Fixed **before** submission; it counts only if it beats 0.477 by more than ~0.010. Gate
-`gate_fork477_v3.py`: the stage applied, and no leader or candidate set changed against
-`submission_pre_analogue.csv`.
+such a neighbour. Fixed **before** submission. Gate `gate_fork477_v3.py` passed: the stage applied, and no
+leader or candidate set changed against `submission_pre_analogue.csv`. It scored 0.477 (2026-10-31),
+identical to the base: no measurable effect at λ 0.10, discarded. The hidden rerun's logs are not visible,
+so whether few lists moved or the moves did not matter is not established.
 
 ## Previous best — data-fork, public MRR@25 0.465
 
@@ -201,7 +202,7 @@ fragment check has none.
 
 ## Budget — every attempt in the denominator
 
-- **28 submissions, 28 scored, 0 rejected; a 29th (fork477 v3, 57826104) is running.** 19 from our own pipeline, one an identical re-run of v19
+- **29 submissions, 29 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
   to measure noise (0.353 vs 0.356); every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including those not kept
   (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise), v19 (0.356, kept), v20 (0.354) and v21 (0.333) in
@@ -212,11 +213,11 @@ fragment check has none.
   pubchemlite-fork (0.456, 57435777, kernel version 1, promoted). One from the version-26 notebook:
   data-fork (0.465, 57588653, kernel version 1, promoted). One from the 0.466 neural re-rank notebook:
   neural-fork (0.444, 57615727, kernel version 1, discarded). One from the 0.477 notebook: merged-fork
-  (0.477, 57822991, kernel version 1, promoted); its kernel version 2 (fork477 v3) is scoring.
+  (0.477, 57822991, kernel version 1, promoted); its kernel version 2, analogue-fork (0.477, 57826104, discarded).
 - **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
   molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
   it finished because an empty mass window would have crashed it).
-- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork, 1 of the 0.451 notebook, 1 of the 0.456 notebook, 1 of the version-26 notebook, 1 of the 0.466 neural re-rank notebook and 2 of the 0.477 notebook (one scoring); of our own pipeline's, the 3 not submitted were setup or reproducibility runs
+- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork, 1 of the 0.451 notebook, 1 of the 0.456 notebook, 1 of the version-26 notebook, 1 of the 0.466 neural re-rank notebook and 2 of the 0.477 notebook; of our own pipeline's, the 3 not submitted were setup or reproducibility runs
   (a missing RDKit wheel, a push-from-repo check). The E006 fork's version 1 ran on the CPU image
   its source's metadata names, failed the notebook's GPU preflight and was not submitted.
 - **Two offline experiments, not submissions:** FRIGID de novo (50 molecules, 3819 generations of
@@ -250,7 +251,7 @@ fragment check has none.
 | the neural fork's settings (frozen 0.465 baseline, spectrum model, RRF constant 3) | by its author, before we ran it | not ours; its weight 0.25 was scored on the public leaderboard |
 | neural re-rank weight 0.50 (neural-fork) | **before** it was submitted | one setting per submission; scored 0.444, discarded |
 | the merged fork's settings (re-rank weights 0.25 / 0.75, fragment check, `[P0, V0]` leader merge) | by its authors, before we ran it | not ours; each change was scored on the public leaderboard (0.472 each) |
-| analogue propagation (fork477 v3: anchor ≥ 0.87, cosine ≥ 0.70, bonus 0.10, rank 1 frozen) | **before** it was submitted | its reach (113 / 400) checked first; no offline panel can score it |
+| analogue propagation (fork477 v3: anchor ≥ 0.87, cosine ≥ 0.70, λ 0.10, rank 1 frozen) | **before** it was submitted | its reach (113 / 400) checked first; no offline panel can score it; scored 0.477, no change, discarded |
 | FRIGID go bar: top-10 exact ≥ 5 / 50 with the true formula | **before** the run (2026-10-18) | pre-registered; MIST-MSG over CANOPUS also fixed before |
 | FRIGID encoder diagnostics (MassBank vs Enveda Tanimoto, oracle fingerprint) | **after** the 0 / 50 result | post hoc; explain the failure, not a statistic |
 | FPNet check gates: 4096-bit Morgan space, mean Tanimoto ≥ 0.45 | in the check's protocol, before its results | sample re-drawn after finding only 10 / 50 held out; threshold sweeps, oracle top-k, trained-vs-held-out and 50-way retrieval are post hoc |
@@ -273,7 +274,7 @@ of identical runs — were treated as no change.
   PubChem and COCONUT is the SOTA sweep's estimate, not a measurement on the hidden test.
 - **What in the 0.477 notebook earns its +0.012.** We ran it unchanged; the split between the leader-safe
   re-rank and the fragment check (0.472 each upstream) is unmeasured by us.
-- **Whether analogue propagation (fork477 v3) helps.** Still scoring; at most 113 / 400 molecules can change.
+- **Whether a larger λ would help analogue propagation.** At λ 0.10 it gave no change (0.477 against 0.477; at most 113 / 400 molecules reachable); a larger λ is untested, and why it changed nothing (few lists moved, or the moves did not matter) is not established.
 - **What in the version-26 notebook earns its +0.009.** We ran it unchanged; the split between the proxy
   re-ordering, the fold-safe FPNets, the sixth PubChem slot and the candidate-aware promotion is unmeasured by us.
 - **What in the 0.456 notebook earns its +0.010.** We ran it unchanged; the split between PubChemLite,

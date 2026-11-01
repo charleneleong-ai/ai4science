@@ -35,8 +35,9 @@ FRIGID, given the true formula, placed the answer in its top 10 for 0 of 50 held
 a pre-registered bar of 5. A sixth fork, a neural spectrum-model re-rank of the final 25 at twice its
 upstream weight, scored 0.444 and was discarded. A seventh, Busya PRIME's public 0.477 notebook, which keeps
 the same re-rank off rank 1 (weight 0.25 there, 0.75 for ranks 2--25) and adds a fragment check that may
-replace rank 1, scored 0.477 as our kernel, $+0.012$ over the 0.465 fork and the current best. 28 submissions
-were made and all were scored; a 29th is running. No calibrated local estimate of the score exists.
+replace rank 1, scored 0.477 as our kernel, $+0.012$ over the 0.465 fork and the current best. Analogue propagation across
+test molecules on top of it scored the same 0.477 and was discarded. 29 submissions were made and all were
+scored. No calibrated local estimate of the score exists.
 \end{abstract}
 
 \section{Task}
@@ -133,8 +134,8 @@ molecules whose top-1 the forward models change ($\lambda=1$) & 208 \\
 \end{center}
 
 \section{Results}
-Every score is the public leaderboard's. Twenty-eight submissions were made, including one identical
-re-run; all were scored; none is omitted. A twenty-ninth (fork477 v3, below) is running. One further run, the E006 fork's kernel version 1, failed its
+Every score is the public leaderboard's. Twenty-nine submissions were made, including one identical
+re-run; all were scored; none is omitted. One further run, the E006 fork's kernel version 1, failed its
 own GPU preflight and was not submitted (below).
 
 \begin{center}
@@ -173,7 +174,7 @@ pubchemlite-fork & the public 0.456 notebook (+ PubChemLite in engine 2), unchan
 data-fork & the public 0.464 notebook (v26), unchanged & 0.465 \\
 neural-fork & the public 0.466 neural re-rank, weight 0.50 (not kept) & 0.444 \\
 merged-fork & the public 0.477 notebook, unchanged & \textbf{0.477} \\
-fork477-v3 & + analogue propagation on ranks 2--25 & running \\
+analogue-fork & + analogue propagation on ranks 2--25 (not kept) & 0.477 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -247,13 +248,15 @@ the neural re-rank from moving rank 1 (weight 0.25 there, 0.75 below) and lets t
 instead. Its gate (\texttt{gate\_fork477.py}) passed: the 0.465 pipeline's checks from its stage logs, both
 layer reports written, the fragment check not skipped, and 400 output rows with the 12 smoke molecules full.
 
-\textbf{Running: fork477 v3} (kernel version 2, submission 57826104), one cell after the merge. The host
+The eighth fork (analogue-fork, fork477 v3, kernel version 2, submission 57826104) was not
+kept. It adds one cell after the merge. The host
 allowed automated similarity between test molecules on 26 October. Test molecules whose leader has a
 library match $\geq 0.87$ are anchors; for every other molecule whose spectra reach cosine $\geq 0.70$ with
 an anchor, candidates below rank 1 gain $0.10 \times \cos \times$ Tanimoto(candidate, anchor leader), and
 the tail is re-sorted by $1/(3 + \text{position})$ + bonus. Rank 1 and the candidate sets never change. At
-most 113 of 400 visible-test molecules have such a neighbour; it counts only if it beats 0.477 by more
-than about $0.010$.
+most 113 of 400 visible-test molecules have such a neighbour; on labelled natural products such neighbours
+share structure 46\% of the time. It scored 0.477 (31 October), identical to the base: not enough to move
+the leaderboard at $\lambda = 0.10$, and discarded.
 
 \textbf{Two offline checks, no submission.} Both ran on an Apple M5 on 18 October. FRIGID, the
 host-approved de novo model (MIST-MSG encoder, FRIGID-base decoder), was run on 50 Enveda-180
@@ -287,11 +290,13 @@ its fingerprints reach Tanimoto 0.245 in its own 10{,}226-bit space and 0.180 ma
   \item A different GLACIER checkpoint: ours is ms-pred's public MassSpecGym-trained GLACIER; the
     paper's contrastive fine-tune gives 69.95 against 69.69 MassSpecGym top-1, and its NIST gain needs
     NIST-licensed weights, so there is nothing to swap.
+  \item Analogue propagation across test molecules on ranks 2--25 (analogue-fork): 0.477, no change from
+    the 0.477 base at $\lambda = 0.10$ (at most 113 of 400 molecules reachable).
   \item PubChem channel over 10{,}000 rows (fork-v2), forward-model weight 1.5 (v17), GLACIER on
     $[\mathrm{M{+}H}]^+$ only (v16), popularity weight 0.15 (v8): inside the noise or below it.
 \end{itemize}
 
-\textbf{Next.} The base is now the 0.477 merged fork, and fork477 v3 is running on it. Before it, single settings of the E006 family look tuned
+\textbf{Next.} The base is now the 0.477 merged fork; analogue propagation on it scored 0.477 (no change). Before it, single settings of the E006 family look tuned
 (promotion threshold swept upstream, engine-2 weight 0.8 lost 0.009, forward models already at 1.0, a neural re-rank at
 weight 0.50 lost 0.021) and the de novo route failed offline, while the public lineage gained $+0.044$ in a week (0.421 to
 0.465), then $+0.012$ more to 0.477. The cheapest lever left is a daily check of new public notebooks,
@@ -311,8 +316,9 @@ forking any credible improvement that reproduces. The leaderboard top is 0.517 (
   \item \textbf{What in the 0.477 notebook earns its gain.} We ran it unchanged; how its $+0.012$ over
     the 0.465 fork divides between the leader-safe re-rank and the fragment check is not measured by us
     (each showed 0.472 upstream alone).
-  \item \textbf{Whether fork477 v3's analogue propagation helps.} It is still scoring; at most 113 of 400
-    visible-test molecules can change, and its expected effect is inside the $\pm 0.010$ noise.
+  \item \textbf{Why analogue propagation changed nothing.} The hidden rerun's logs are not visible, so whether
+    few lists moved or the moves did not matter is not established; whether a larger $\lambda$ than 0.10
+    would help is untested.
   \item \textbf{What in the version-26 notebook earns its gain.} We ran it unchanged; how its $+0.009$
     over the 0.456 fork divides between the proxy re-ordering, the fold-safe FPNets, the sixth PubChem
     slot and the candidate-aware promotion is not measured by us.
