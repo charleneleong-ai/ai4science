@@ -4,8 +4,14 @@ Adaptyv × Anthropic Protein Design Competition, challenge 04. Three objectives 
 bind human TfR1, cross-react with mouse TfR1, and bind at pH 7.4 while releasing at pH 6.0.
 Submissions close **Sunday 1 November 23:59 AoE** (Monday 2 November 22:59 Sydney).
 
-**Status (2026-10-31): twenty designs selected; the independent co-fold does not confirm them.**
-Chai-1 reads binder-to-target ipTM **0.095–0.123** on the first nine (two chassis, five samples each), where the twenty submitted on GLP1R read **0.70–0.86** through the same driver. A 3DS18 wild-type control is queued behind the run to establish whether that is the designs or the carved target. Nothing is measured in a wet lab and nothing is uploaded yet.
+**Status (2026-11-01): twenty designs selected and the upload files are built; nothing is
+measured in a wet lab and nothing is uploaded yet.** The selection changed late. Re-reading every
+design's own complex showed that **75% of the 256 variants touch none of the five hotspots they
+were generated against**, and that engagement is a property of the scaffold backbone, not of the
+variant: both `carboxylate` scaffolds are in contact with their patch (1.2–3.4 Å), all six
+`conserved` scaffolds sit 5.7–18.8 Å off theirs on every one of their 192 variants. Ten of the
+twenty first selected came from those `conserved` scaffolds and were replaced, which cost the
+entry its hedge across two epitopes — see [the twenty](#the-twenty) below.
 
 | stage | result |
 | --- | --- |
@@ -13,7 +19,9 @@ Chai-1 reads binder-to-target ipTM **0.095–0.123** on the first nine (two chas
 | triage | **226 pass** (75%); interface confidence is low across the whole pool — ipTM median **0.126**, best **0.387** of 300 — against **0.50–0.62** for the twenty the same pipeline submitted on GLP1R |
 | histidines present | **0 of 300** carry three; max is two — every switch has to be engineered |
 | engineered | 8 chassis × histidine combinations = **256 variants**, each measured by two pKa methods |
-| selected | **20 of 256**, 4 chassis, switch **0.39–1.46 log units** (2.5–29× weaker at pH 6.0) |
+| engagement | **192 of 256 variants touch 0 of 5** nominated hotspots; the split is exactly by scaffold |
+| selected | **20 of 256**, 2 chassis, switch **0.42–1.46 log units** (2.6–29× weaker at pH 6.0) |
+| co-fold | Chai-1 ipTM **0.103–0.123** on the submitted designs, against **0.190 / 0.296** for the real 3DS18 binder on the carved patch and the full ectodomain — so the bar on this target is 0.19–0.30, not 0.8 |
 | 3DS18 chassis | strongest switch in the campaign (**1.44 / 1.57** log units) and **ineligible** — 100.0% identity to its own crystal `6wrv_C`, novelty 1 of 4 |
 
 The 3DS18 work is kept as the **positive control that establishes the mechanism**, not as a
@@ -99,20 +107,38 @@ alone.
 | switch | histidine scan at interface positions, then two pKa methods and the coupling check |
 | confirm | Chai-1, which shares no weights with the generator |
 | novelty | MMseqs2 and Foldseek on the design chain only |
-| select | [`select_submission.py`](scripts/select_submission.py) applies the novelty and liability gates, then fills slots round-robin by chassis |
+| engage | [`pose_interface.py`](scripts/pose_interface.py) reads each pose's interface and reports how many nominated hotspots it touches and how far it sits from the nearest |
+| select | [`select_submission.py`](scripts/select_submission.py) applies the novelty, liability and engagement gates, then fills slots round-robin by chassis |
+| build | [`build_submission.py`](scripts/build_submission.py) writes the upload CSV and its evidence table, and refuses a file that breaks any format rule |
 | report | [`plot_results.py`](scripts/plot_results.py) renders the burial finding, the chosen designs and the funnel from the measured tables |
 
 ## The twenty
 
 ![the chosen twenty](experiments/progress/tfr1/chosen-designs.png)
 
-Four chassis, five designs each, no two closer than two substitutions. Slots are filled
-round-robin by chassis rather than greedily by switch, because a chassis the novelty gate rejects
-scores nothing whatever its switch is. Two chassis carrying an unpaired cysteine are dropped by
-default, which costs nothing on the first-ranked objective — median switch **0.78 log units**
-either way — and
-[`submission_candidates_with_cys.csv`](results/submission_candidates_with_cys.csv) holds the
-alternative that keeps them.
+Two chassis, ten designs each, no two closer than two substitutions, all on the 605 patch.
+Slots are filled round-robin by chassis rather than greedily by switch, because a chassis the
+novelty gate rejects scores nothing whatever its switch is; filling greedily instead was measured
+and gives the same median switch (0.81) with a 12/8 split, because the two-substitution rule is
+what limits how deep either fill reaches.
+
+Three selections are recorded, and
+[`submission/`](submission) holds the upload CSV and evidence table for the first two:
+
+| file | what it is |
+| --- | --- |
+| [`tfr1_submission.csv`](submission/tfr1_submission.csv) | **the entry** — the 20 that pass the post-hoc engagement gate, all on 605 (83% mouse identity) |
+| [`tfr1_submission_preregistered.csv`](submission/tfr1_submission_preregistered.csv) | the pre-registered 20 — 4 chassis, hedged across 605 and the more conserved 529 (90%), but 10 of them touch none of their nominated hotspots |
+| [`submission_candidates_with_cys.csv`](results/submission_candidates_with_cys.csv) | the variant that keeps the two chassis carrying an unpaired cysteine |
+
+The independent co-fold does not rank these the same way. Its three best scores in the whole
+campaign — ipTM 0.388, 0.315, 0.285, against 0.190 for a real TfR1 binder on an equivalent carved
+patch — all belong to `conserved_18`, a scaffold the engagement gate removed, and Chai reproduces
+those poses far more consistently than any other (interface overlap 0.51–0.67 across its 5
+samples, against 0.12–0.24 elsewhere). It places them **8.5–14.9 Å from the nominated epitope**:
+a confident, reproducible interface on the wrong face, which is why the score is reported rather
+than acted on. Full reasoning in
+[`submission/methodology.md`](submission/methodology.md).
 
 ![the funnel](experiments/progress/tfr1/funnel.png)
 
@@ -128,6 +154,12 @@ that it is conserved, exposed, and clear of both glycans and the transferrin sit
 expose faces that are interior in the intact ectodomain. Binding is measured on the homodimer, so
 avidity may flatter a weak monovalent design. Mouse cross-reactivity is predicted from a sequence
 alignment, not a mouse structure.
+
+Epitope engagement is itself model-dependent. It separates the scaffolds cleanly on the
+generator's own poses (1.2–3.4 Å against 5.7–18.8 Å) and only *orders* them on the independent
+co-fold, where the submitted designs still sit 3.1–10.8 Å off the nominated patch and touch
+0.2–1.4 of 5. Only 10 of the 20 submitted carry a co-fold read at all, because that run predates
+the gate. Touching a nominated hotspot is not binding it.
 
 The switch on the de novo designs is measured on **one pose per design**, so the replication axis
 is the two pKa methods rather than independent structures — a position counts only when PROPKA

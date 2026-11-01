@@ -312,6 +312,19 @@ def sasa_by_residue(path: Path, keep_chains: set[str]) -> dict[int, float]:
     return {r.id[1]: float(r.sasa) for r in first if r.id[0] == " "}
 
 
+def chain_sequence(chain: gemmi.Chain) -> str:
+    """The chain's one-letter sequence under the convention the rest of this package uses.
+
+    `one_letter` uppercases and drops anything that is not an amino acid, where
+    `gemmi.one_letter_code` lowercases non-standard residues. The recorded sequences this is
+    compared against are uppercased, so the conventions have to match or a perfectly good
+    structure fails as "wrong chain". `ph_switch.chain_sequence` is the same two lines and
+    should delegate here at the next full re-run of the pKa pass, rather than editing the
+    module that produced the committed measurements now.
+    """
+    return "".join(one_letter(residue) for residue in chain)
+
+
 def load_chain(path: Path, name: str) -> gemmi.Chain:
     structure = gemmi.read_structure(str(path))
     structure.setup_entities()

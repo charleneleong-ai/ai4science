@@ -21,14 +21,14 @@ the binder is written first.
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Annotated
 
 import gemmi
 import typer
-from csvio import read_rows, write_rows
-from target_sites import one_letter
+from csvio import pool_rows, write_rows
+from target_sites import chain_sequence
 
 BINDER_CHAIN, TARGET_CHAIN = "X", "R"
 
@@ -39,29 +39,19 @@ def chain_sequences(path: Path, *chain_ids: str) -> dict[str, str]:
     """One parse of a structure file, however many of its chains are wanted."""
     structure = gemmi.read_structure(str(path))
     structure.setup_entities()
-    found = {chain.name: "".join(one_letter(residue) for residue in chain)
-             for chain in structure[0]}
+    found = {chain.name: chain_sequence(chain) for chain in structure[0]}
     if missing := [name for name in chain_ids if name not in found]:
         raise typer.BadParameter(f"{path} has no chain(s) {missing}: {sorted(found)}")
     return {name: found[name] for name in chain_ids}
 
 
-def chain_sequence(path: Path, chain_id: str) -> str:
+def read_chain(path: Path, chain_id: str) -> str:
     return chain_sequences(path, chain_id)[chain_id]
 
 
 def write_fasta(path: Path, binder: str, target: str) -> None:
     path.write_text(f">protein|name={BINDER_CHAIN}\n{binder}\n"
                     f">protein|name={TARGET_CHAIN}\n{target}\n")
-
-
-def designs(tables: Sequence[Path]) -> dict[str, dict[str, str]]:
-    """The union of several selections, keyed by design name, first table winning ties."""
-    union: dict[str, dict[str, str]] = {}
-    for table in tables:
-        for row in read_rows(table):
-            union.setdefault(row["name"], row)
-    return union
 
 
 @app.command()
@@ -72,8 +62,8 @@ def inputs(
     out_dir: Annotated[Path, typer.Option(help="where the per-design FASTAs are written")],
     manifest: Annotated[Path, typer.Option(help="what was written, for the measuring step")],
 ) -> None:
-    chosen = designs(candidates)
-    sequences = {epitope: chain_sequence(targets / f"{epitope}.pdb", TARGET_CHAIN)
+    chosen = pool_rows(candidates)
+    sequences = {epitope: read_chain(targets / f"{epitope}.pdb", TARGET_CHAIN)
                  for epitope in sorted({row["epitope"] for row in chosen.values()})}
     for name, sequence in sequences.items():
         typer.echo(f"target {name:14s} chain {TARGET_CHAIN}  {len(sequence)} residues")
@@ -143,7 +133,7 @@ def control(
     out_dir.mkdir(parents=True, exist_ok=True)
     chains = chain_sequences(crystal, binder_chain, native_chain)
     binder, native = chains[binder_chain], chains[native_chain]
-    cut = chain_sequence(cut_target, TARGET_CHAIN)
+    cut = read_chain(cut_target, TARGET_CHAIN)
 
     for name, target in (("3ds18-native", native), ("3ds18-cut", cut)):
         write_fasta(out_dir / f"{name}.fasta", binder, target)

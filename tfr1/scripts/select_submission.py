@@ -49,7 +49,8 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from csvio import group_by, number, read_rows, same_design, write_rows
+from csvio import (group_by, interface_reads, number, read_rows, same_design,
+                   write_rows)
 
 # The two pKa methods `ph_switch` writes a delta_/release_ column pair for. Named rather than
 # discovered by key prefix, so that an added or renamed column cannot silently change the score
@@ -74,9 +75,20 @@ MIN_SITE_DIFFERENCE = 2
 OUT_COLUMNS = [
     "rank", "name", "sequence", "length", "parent", "epitope", "substitutions",
     "switch_log_units", "fold_weaker_at_ph6", "coupled_sites", "epitope_conservation",
-    "parent_iptm", "parent_pae", "unpaired_cys", "novelty_score", "novelty_note",
+    "parent_iptm", "parent_pae", "unpaired_cys", "hotspots_touched", "novelty_score",
+    "novelty_note",
 ]
-REJECTED_COLUMNS = ["name", "parent", "switch_log_units", "coupled_sites", "chosen", "reason"]
+REJECTED_COLUMNS = ["name", "parent", "switch_log_units", "coupled_sites", "chosen", "gate",
+                    "reason"]
+
+# Every gate `admissible` applies, in the order it applies them, plus the slot cap that follows.
+# Each rejection is recorded under one of these as well as in prose, so the funnel in
+# `plot_results` can count stages without parsing sentences: a gate renamed here is a missing
+# bar there rather than a stage that quietly stays full. Two reasons share the `novelty` slug
+# and two share `engagement` -- a missing measurement and a failed threshold are the same gate
+# from the funnel's side, and the prose says which one it was.
+GATE_ORDER = ("novelty", "triage", "cysteine", "coupling", "engagement")
+SLOTS = "slots"
 
 app = typer.Typer(add_completion=False)
 
@@ -273,20 +285,35 @@ def candidates(switch: Sequence[dict[str, str]], variants: Sequence[dict[str, st
 
 def admissible(candidate: Candidate, novelty: Mapping[str, Novelty],
                passes: Mapping[str, bool], floor: int, allow_unpaired_cys: bool,
-               unpaired: Mapping[str, float]) -> str:
-    """Why this candidate cannot take a slot, or an empty string if it can."""
+               unpaired: Mapping[str, float], engagement: Mapping[str, float],
+               min_hotspots: float) -> tuple[str, str]:
+    """The gate this candidate fails and why, or two empty strings if it can take a slot.
+
+    `min_hotspots` is a POST-HOC gate, added after the first selection was made and after the
+    interface read showed that epitope engagement is a property of the chassis backbone: the two
+    `carboxylate` chassis contact 3.5 and 2.0 of their 5 nominated hotspots on every variant,
+    while all six `conserved` chassis contact 0 of 5 on all 192 of theirs. It is off by default
+    so the pre-registered selection stays reproducible, and any run that sets it is declaring a
+    filter chosen after seeing the designs.
+    """
     parent = candidate.parent
     if parent not in novelty:
-        return "no novelty measurement for its parent"
+        return "novelty", "no novelty measurement for its parent"
     if novelty[parent].score < floor:
-        return f"novelty {novelty[parent].score} below {floor} ({novelty[parent].note})"
+        return "novelty", f"novelty {novelty[parent].score} below {floor} ({novelty[parent].note})"
     if not passes.get(parent, False):
-        return "parent fails composition triage"
+        return "triage", "parent fails composition triage"
     if not allow_unpaired_cys and unpaired.get(parent, 0.0) > 0:
-        return f"parent carries {unpaired[parent]:.0f} unpaired cysteine(s)"
+        return "cysteine", f"parent carries {unpaired[parent]:.0f} unpaired cysteine(s)"
     if candidate.coupled < 1:
-        return "no position where both methods agree on release"
-    return ""
+        return "coupling", "no position where both methods agree on release"
+    touched = engagement.get(candidate.name) if min_hotspots > 0 else 0.0
+    if touched is None:
+        return "engagement", "no interface measurement, so epitope engagement is unknown"
+    if touched < min_hotspots:
+        return "engagement", (f"contacts {touched:.1f} of its nominated hotspots, "
+                              f"below {min_hotspots:g}")
+    return "", ""
 
 
 def choose(ranked: Sequence[Candidate], slots: int) -> list[Candidate]:
@@ -298,6 +325,12 @@ def choose(ranked: Sequence[Candidate], slots: int) -> list[Candidate]:
     has to be on the plate even though its switch is the weakest measured here. Taking one round
     at a time gives every admissible parent a slot before any parent gets a second, and the
     rounds after that still go in switch order.
+
+    Measured once the epitope-engagement gate had narrowed the pool to two chassis of one
+    novelty band, where the hedge no longer buys anything: filling greedily by switch instead
+    gives the same median switch (0.81) and a 12/8 chassis split against 10/10, because the
+    two-substitution rule below is what actually limits how deep either fill reaches. The rule
+    is kept because it is the pre-registered one and it costs nothing.
     """
     chosen: list[Candidate] = []
     remaining = group_by(ranked, lambda candidate: candidate.parent)
@@ -349,6 +382,12 @@ def main(
     # `tnf_binder.submission.MAX_ROWS`; this cannot import it, so it must not drift from it.
     slots: Annotated[int, typer.Option(help="submission cap for the track")] = 20,
     novelty_floor: Annotated[int, typer.Option(help="lowest Proteinbase band to submit")] = 3,
+    interfaces: Annotated[Path | None, typer.Option(
+        help="pose_interface output, for how many nominated hotspots each design contacts")]
+    = None,
+    min_hotspots: Annotated[float, typer.Option(
+        help="drop designs contacting fewer nominated hotspots; 0 disables this post-hoc gate")]
+    = 0.0,
     allow_unpaired_cys: Annotated[bool, typer.Option(
         help="admit chassis carrying an unpaired cysteine")] = False,
     thresholds: Annotated[Path | None, typer.Option(
@@ -372,6 +411,14 @@ def main(
     conserved = {name: float(patch["conservation"])
                  for name, patch in json.loads(conservation.read_text())["epitopes"].items()}
 
+    # The generator's own poses, which is what the gate was measured on; the independent
+    # co-fold covers only the designs the earlier selection sent to Chai.
+    engagement = {design: number(read["hotspots_touched"])
+                  for design, read in interface_reads(interfaces, "generator").items()}
+
+    if min_hotspots > 0 and interfaces is None:
+        raise typer.BadParameter("--min-hotspots needs --interfaces to read engagement from")
+
     pool = candidates(read_rows(switch), read_rows(variants), coupling)
     parents = sorted({candidate.parent for candidate in pool})
     novelty = {parent: novelty_of(parent, sequence_m8, fold_m8) for parent in parents}
@@ -380,9 +427,10 @@ def main(
                f"coupling floor {coupling}\n")
     report_parents(parents, novelty, passes, unpaired)
 
-    reasons = {c.name: admissible(c, novelty, passes, novelty_floor, allow_unpaired_cys, unpaired)
-               for c in pool}
-    eligible = [c for c in pool if not reasons[c.name]]
+    gated = {c.name: admissible(c, novelty, passes, novelty_floor, allow_unpaired_cys,
+                                unpaired, engagement, min_hotspots)
+             for c in pool}
+    eligible = [c for c in pool if not gated[c.name][0]]
     ranked = sorted(eligible, key=lambda c: (
         -c.switch,
         -conserved.get(metrics.get(c.parent, {}).get("epitope", ""), 0.0),
@@ -390,7 +438,8 @@ def main(
     ))
     chosen = choose(ranked, slots)
 
-    rows = [c.row(metrics.get(c.parent, {}), novelty[c.parent], conserved) | {"rank": position}
+    rows = [c.row(metrics.get(c.parent, {}), novelty[c.parent], conserved)
+            | {"rank": position, "hotspots_touched": engagement.get(c.name, "")}
             for position, c in enumerate(chosen, 1)]
     write_rows(out, rows, OUT_COLUMNS)
 
@@ -398,7 +447,8 @@ def main(
     write_rows(rejected, [
         {"name": c.name, "parent": c.parent, "switch_log_units": round(c.switch, 2),
          "coupled_sites": c.coupled, "chosen": c.name in taken,
-         "reason": reasons[c.name] or ("" if c.name in taken else "not in the top slots")}
+         "gate": gated[c.name][0] or ("" if c.name in taken else SLOTS),
+         "reason": gated[c.name][1] or ("" if c.name in taken else "not in the top slots")}
         for c in sorted(pool, key=lambda c: (-c.switch, c.name))
     ], REJECTED_COLUMNS)
 

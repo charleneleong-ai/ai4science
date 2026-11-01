@@ -98,6 +98,36 @@ def read_designs(path: Path, only: Collection[str] | None = None) -> dict[str, s
         }
 
 
+def interface_reads(path: Path | None, source: str) -> dict[str, dict[str, str]]:
+    """One source's rows from a `pose_interface.py` table, keyed by design.
+
+    That table carries two reads of every design -- the generator's own complex and the
+    independent co-fold -- under `design`, `name` and `source`. Its two consumers had keyed it
+    on different columns and only one of them filtered on `source`, which left the surviving
+    row decided by order in the file rather than by the column that exists to decide it. Taking
+    the source as an argument makes each caller say which read it is carrying.
+    """
+    if path is None:
+        return {}
+    return {row["design"]: row for row in read_rows(path) if row["source"] == source}
+
+
+def pool_rows(tables: Iterable[Path]) -> dict[str, dict[str, str]]:
+    """The union of several tables keyed by design name, the first table winning ties.
+
+    First-wins rather than last-wins because the tables are passed in precedence order: the
+    selection a run actually submitted comes before the wider pool it was drawn from, and the
+    two carry different values for the same design (the pool's row predates the gates). Written
+    both ways in this directory before it lived here, which made a joined column depend on
+    argument order.
+    """
+    union: dict[str, dict[str, str]] = {}
+    for table in tables:
+        for row in read_rows(table):
+            union.setdefault(row["name"], row)
+    return union
+
+
 def write_rows(path: Path, rows: Sequence[Mapping[str, Any]],
                columns: Sequence[str] | None = None) -> None:
     """Write `rows` to a CSV, keyed on `columns` if given, else on the first row's keys.
