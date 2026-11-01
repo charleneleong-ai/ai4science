@@ -1,0 +1,67 @@
+# Task shortcuts for this project. `mise tasks` lists them; `mise run <task> -- <args>` passes
+# extra arguments through to the underlying command, so `mise run verify ~/sub --seed 1` is
+# `uv run vqcc verify ~/sub --seed 1`.
+#
+# Nothing is pinned in a [tools] block: `uv` owns Python via requires-python and uv.lock, and
+# every task below reaches its tool through `uv run` or `uvx`, which pin it themselves. A
+# second source of truth would only let the two disagree.
+
+[env]
+# The extracted competition `verifiers/` tree, which ships outside the repo because it is large
+# and not ours to redistribute. Override VQCC_DATA if yours lives elsewhere. Spelled with
+# env.HOME rather than `~`, which mise passes through literally and Python would not expand.
+VQCC_DATA = "{{env.VQCC_DATA | default(value=env.HOME ~ '/quantum-compilation-data')}}"
+VQCC_VERIFIERS = "{{env.VQCC_DATA}}/data/verifiers"
+
+[tasks.test]
+description = "Run the test suite, exactly as CI runs it"
+run = "uv run --locked --extra dev pytest -q"
+
+[tasks.lint]
+description = "The complexity + undefined-name gate, exactly as CI runs it"
+dir = "{{config_root}}/.."
+run = "uvx pre-commit run --all-files"
+
+[tasks.check-all]
+description = "Everything CI checks: lint then tests"
+depends = ["lint", "test"]
+
+[tasks.verify]
+description = "Score a submission with the official verifiers -- the dev set, free and unlimited"
+run = "uv run vqcc verify"
+
+[tasks.check]
+description = "Gate a submission's layout and the one rejection knowable without simulating"
+run = "uv run vqcc check"
+
+[tasks.resources]
+description = "Static gate counts per circuit -- a triage bound, not a cost"
+run = "uv run vqcc resources"
+
+[tasks.blend]
+description = "Per-task ratios and the blended score for three already-measured costs"
+run = "uv run vqcc blend"
+
+[tasks.calibration]
+description = "The active reference costs and where they came from"
+run = "uv run vqcc calibration"
+
+[tasks.diagram]
+description = "kickmix's own HTML diagram or SVG flame chart for a circuit"
+run = "uv run vqcc diagram"
+
+[tasks.artifact]
+description = "Rebuild the artifact page and the PR's progress plot from the result files"
+run = "uv run --extra tracking python scripts/build_artifact.py"
+
+[tasks.parts-record]
+description = "Regenerate a submission's provenance record (manifest-dir rows.jsonl submission-root)"
+run = "uv run --extra tracking python scripts/build_parts_record.py"
+
+[tasks.seed-record]
+description = "Regenerate a submission's across-seed noise record (rows-dir --submission-ref N)"
+run = "uv run --extra tracking python scripts/build_seed_record.py"
+
+[tasks.submissions]
+description = "Our Kaggle submissions and their scores (needs KAGGLE_API_TOKEN in the environment)"
+run = "uv run kaggle competitions submissions google-verifiable-quantum-circuit-compilation"

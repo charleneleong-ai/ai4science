@@ -1,0 +1,202 @@
+# One row per experiment, added when its verdict lands. Rendered by the artifact page, the
+# progress plot, the W&B report and any companion dashboard, so this file is the single source
+# for all of them.
+#
+# verdict: PROMOTE (shipped, set a new best) | KEEP (kept for later) | DISCARD (closed)
+#          | RUNNING
+#
+# score/submission: present only on an entry that reached the leaderboard, and the only
+# numbers here that cannot be derived locally. Oldest first; the last one is the current
+# standing, which is what the artifact page quotes and what the progress plot plots.
+
+gates:
+  G0: >-
+    The cost model is calibrated: measuring the competition's own sample_submission/
+    scores 1.0000 to four decimal places, and the measured numbers are written into a
+    calibration JSON with measured=true. Nothing downstream is trustworthy until this
+    passes, and `vqcc` says so on every run until it does.
+  G1: >-
+    A local change beats the current submitted baseline by more than that task's measured
+    across-seed noise, established from five independent verifier seeds. The threshold is
+    per-task, not global: `dfthcsos` and `invsqrt` are deterministic to ~1 ppm, so any
+    consistent gain clears it, while `dqi` moves in a 4,589 ppm step and needs G2 instead.
+  G2: >-
+    For dqi, the gain holds as a reduction in *expected* failures across >= 48 independent
+    draws, not on the single draw seeded by the candidate file's own hash.
+  G3: >-
+    The improvement survives an external leaderboard submission, not only the local
+    verifier at its default salt.
+
+experiments:
+  - name: g0-calibrate-the-cost-model
+    date: 2026-10-31
+    baseline: >-
+      third-party task ratios from Kaggle discussion topic 754174 (invsqrt 20.57,
+      dqi 60.59, dfthcsos 9.93), the only numbers available before the data downloaded
+    gate: G0
+    result: >-
+      Ran all three shipped verifiers over sample_submission/ at the default salt. All
+      PASS; reference costs are invsqrt 2,076,774.23 (Q=260, C=7,987.59, 200,540,928
+      shots), dqi 2.4439463583673e13 (Q=1,893, T=5,725,108.38, 102,400 shots) and
+      dfthcsos 3,355,599,588.32 (lambda_eff=49.3014, T=93,237, Q=730, 254,464 shots).
+      The reference blend scores 1.00000 by construction. Reading the verifiers also
+      corrected three things the Evaluation page omits: a rotation costs
+      0.56*log2(1/eps)+5.3 T at a single circuit-wide eps chosen from the leftover
+      accuracy budget (not a per-Clifford-level price); the scored Toffoli figure is the
+      simulated per-shot mean, not the static count; and dqi's eps_plus is a
+      Clopper-Pearson upper bound at delta=2^-128, so a decoder that fails 0 of 102,400
+      shots still pays R=1.1913. Every cost function now reproduces its verifier's own
+      score to 1e-12 from the fields that verifier reports, pinned by tests over the
+      three captured outputs. The back-derived estimates turned out 0.02%, 0.006% and
+      0.04% low, so the public frontier's self-reported numbers held up.
+    verdict: PROMOTE
+    pr: 102
+  - name: v1-reference-submission
+    date: 2026-10-31
+    score: 1.00000
+    submission: 57824925
+    baseline: none -- first submission, establishing that the pipeline reaches the leaderboard
+    gate: G3
+    result: >-
+      Submitted the unmodified sample_submission/ as submission 57824925 to confirm the
+      upload path end to end and to check that the leaderboard agrees with the local
+      verifier on a known input. Scored **1.00000**, exactly the local verifier's 1.00000.
+      So the local loop and the leaderboard agree to five decimals on a known input, and
+      the dev set can be trusted to rank candidates without spending submissions. Two
+      incidental findings: a submission file must be named exactly `submission.zip` (two
+      70 MB uploads were rejected with a 400 before the body was read, neither counting
+      against the daily budget), and the seed is derived from the candidate's own hash,
+      so comparing candidates locally requires an explicit --seed.
+    verdict: PROMOTE
+    pr: 102
+  - name: g0b-read-the-field
+    date: 2026-10-31
+    baseline: >-
+      the third-party summary of the standings (frontier 23.14, leader 26.76, 1,729 teams)
+      from Kaggle discussion topic 754174, the only view of the field until now
+    gate: none -- an observation, not an experiment
+    result: >-
+      Pulled the competition's own public leaderboard (1,756 teams) instead of relying on the
+      third-party summary, and snapshotted scores-only to
+      docs/experiments/leaderboard-2026-10-31.json. Three corrections. (1) **The field is
+      bimodal**: p10 23.23, p25 23.04, p50 22.66, then a cliff to p75 7.93 and p90 1.06, so
+      half the field is packed into a 0.6-wide band and only 9 teams have cleared 25. A crowd
+      that dense at one value is a crowd running one shared parameterisation, which is direct
+      evidence for the design doc's reason to prefer dfthcsos. (2) **23.14 is not the
+      frontier** -- it is rank ~374 of 1,756, the top edge of the plateau. (3) Our 1.00000 is
+      **rank 1,671-1,751**, tied with 80 other teams that submitted the reference unchanged;
+      the gap to the leader is x26.8 on score, x19,000 on the product of the three cost
+      ratios. The question worth answering is what the 9 teams above 25 found, not how to
+      reach 23.
+    verdict: KEEP
+    pr: 102
+  - name: v2-plateau-parts-assembly
+    date: 2026-10-31
+    score: 23.18119
+    submission: 57834335
+    baseline: >-
+      our own 1.00000 reference submission 57824925, rank 1,671-1,751 of 1,756
+    gate: G3
+    result: >-
+      Reached the plateau by assembly rather than by compression: the public parts market
+      (manwithacat/vqcc-apache-public-circuits, 142 Apache-2.0 circuits all re-verified with
+      the official verifier) carries a better circuit for each of the three tasks, so the best
+      per-task picks were fetched, SHA-256 checked against the dataset manifest, and scored
+      locally before spending a submission. All three PASS; the local blend was 23.1811976 and
+      submission 57834335 scored **23.18119** on the leaderboard -- agreement to every digit
+      either is reported to, so the local dev set predicted the leaderboard a second time, now
+      on an input it had never seen. That is rank **249-252 of 1,756** in the 2026-10-31
+      snapshot (four other teams share the exact score), up from the 81-team block at 1.00000
+      ranked 1,671-1,751, and 125 places above the 23.13587 blend quoted on 2026-10-30. We
+      wrote none of these circuits; provenance and credit for all nine authors are in
+      57834335-parts.yaml, which also records that the parts published since that quote are
+      cheaper on all three tasks -- their authors made them cheaper, we picked newer ones.
+      The finding that matters more than the score is the chemistry part's **headroom, which
+      is nearly gone**: the accuracy term sits at 99.999084% of the 20 mHa cap and E_gap
+      clears its strict floor by 1.03e-6 Ha -- two of the four rejecting constraints spent to
+      within 0.1% of their limit -- while the widest ANGLE circuit is 126 of 128 qubits (98.4%)
+      and the one-norm Lambda is the only one with real room, at 6.1x its floor. So the
+      0.6-wide band half the field sits in is a constraint, not a fashion: tuning this shape is
+      finished, and a further dfthcsos gain needs a different factorization.
+      **Which factorization is exactly what this does not establish.** The part's reported
+      shape is R=8, B=143, C=60 -- the author's own figure from the dataset manifest, not our
+      measurement -- and cost scales with R*B while the accuracy reachable at a shape is bounded
+      by R*C, so the two are not optimised at the same point. Reproducing the cost-precision
+      atlas and fitting factorizations ourselves is the next experiment; the bar is this
+      submission's R*B = 1,144 at R*C = 480.
+      Incidentally this settles the MIN_LAMBDA reading: this submission's lambda_eff is 48.293,
+      below MIN_LAMBDA=49.0, and it passes -- because the constraint floors the one-norm Lambda
+      (299.82 here, 6.1x the 49.0 floor), not lambda_eff. The hedge in cost.py's annotation,
+      which noted the reference's lambda_eff of 49.30 sat 0.6% above the floor by coincidence
+      and so could not discriminate the two readings, is retired.
+    verdict: PROMOTE
+    pr: 102
+  - name: g0c-re-derive-the-reference-factorization
+    date: 2026-11-01
+    baseline: >-
+      no measurement at all -- a claimed reference shape of (65, 60, 60) was cut from PR 102's
+      own review as sourced nowhere, leaving the cost-versus-capacity comparison unmakeable
+    gate: none -- a derivation from the shipped verifier, not an experiment
+    result: >-
+      The shape is in the verifier, not in its JSON report, which is why reading the report
+      alone could not find it. `scoreinfra/reference.py` declares
+      `BASELINE_SHAPE = (65, 60, 60)  # (R, B, C) of the provided baseline factorization`, and
+      the same file documents the submitted arrays as `U` (R, B, N) and `W` (R, B, C). The
+      sample submission's npz agrees exactly -- `U` is (65, 60, 76) and `W` is (65, 60, 60) --
+      so **the reference factorization is R=65, B=60, C=60**, and the cut claim was right
+      about the numbers while wrong about having a source. Two independent checks confirm the
+      axis reading rather than inferring it from one file. First, the plateau part's npz is
+      `U` (8, 143, 76) and `W` (8, 143, 60), matching the R=8/B=143/C=60 its author declared
+      in the dataset manifest, so the manifest's vocabulary and the verifier's are the same
+      one. Second, `verify.py` computes the LCU vector count as `num_orbitals + R*B`, which
+      reproduces both files' `angle_words` row counts exactly: 76 + 65x60 = 3,976 for the
+      reference and 76 + 8x143 = 1,220 for the plateau part.
+      So the comparison the design doc wanted can now be made. The plateau part reaches its
+      cost by **cutting the rank from 65 to 8 while widening the basis from 60 to 143**: 3.26x
+      fewer LCU vectors (3,976 to 1,220), Toffolis 93,237 to 16,266 and width 730 to 430. What
+      it pays is ensemble capacity, R*C, which falls 8.1x from 3,900 to 480 -- and that is
+      visible as the accuracy it has spent: its Hamiltonian error sits at 99.999% of the
+      20 mHa cap where the reference sits at 93.2%. **Low rank is what the plateau found, and
+      the accuracy cap is what stops it going lower.** Not established: whether a shape exists
+      that is both cheaper than R*B = 1,144 and still under the cap -- that needs the
+      cost-precision atlas reproduced and factorizations fitted, which is the next experiment,
+      not this one.
+    verdict: KEEP
+    pr: 102
+  - name: g1-size-the-across-seed-noise
+    date: 2026-11-01
+    baseline: >-
+      the submitted plateau assembly (submission 57834335, leaderboard 23.18119), re-verified
+      unchanged under `--seed 1..5`
+    gate: >-
+      none -- this experiment *is* gate G1's measurement, and it rewrote G1's own definition
+    result: >-
+      Re-verifying one unchanged submission under five verifier seeds splits the three tasks
+      into two regimes, which is the result: **`dfthcsos` is bit-identical across all five
+      seeds (337,780,864.96, spread exactly 0) and `invsqrt` varies by 0.84 ppm, while `dqi`
+      varies by 4,589 ppm** and carries the entire 1,527 ppm (0.0354 absolute) spread of the
+      blended score, 23.145825 to 23.181206.
+      The mechanism is not Gaussian noise but **a single discrete step**. Seeds 1, 2, 3 and 5
+      recorded `empirical_error_rate = 0.0` and therefore identical numbers to every digit:
+      one-sided bound `effective_error_rate = 8.6606e-4` and `repetition_factor = 1.19126`.
+      Seed 4 recorded `empirical_error_rate = 9.765625e-06`, which is exactly **1 / 102,400 --
+      one failed shot** -- lifting the Clopper-Pearson bound to 9.1042e-4 and the repetition
+      factor to 1.19673, a +0.459% cost penalty. Everything else held still: the simulated
+      per-shot `toffoli_count` moved only in its seventh digit (427,935.3 +/- 0.1, 0.45 ppm)
+      and `num_qubits = 888` was constant. So `dqi`'s variance is carried entirely by whether
+      the decoder drops a shot, and the answer is 0 or 1, not a continuum.
+      Five seeds size that step precisely and its frequency badly. One failure in 5 x 102,400
+      = 512,000 shots puts the per-shot failure probability near 1.95e-6, so a 102,400-shot
+      run should see at least one failure about 18% of the time -- but the 95% interval on
+      that frequency, from 1 of 5 runs, is [0.5%, 71.6%]. **The step is measured; its
+      probability is not.**
+      Two consequences, both of which change what we do next. First, a chemistry change can
+      be judged on a single seed: `dfthcsos` is deterministic, so there is no noise allowance
+      to clear at all, and the atlas experiment needs no replication budget. Second, the
+      leaderboard draws its own seed, so **our 23.18119 was a zero-failure draw and
+      resubmitting the identical file could legitimately return ~23.1458**. A `dqi` gain
+      smaller than 0.035 blend points therefore cannot be confirmed by one submission, which
+      is exactly what G2 already demanded -- it now has a measured number behind it instead of
+      a precaution. Cost: 5 runs x ~7 min.
+    verdict: KEEP
+    pr: 102

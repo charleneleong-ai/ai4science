@@ -1,0 +1,13 @@
+# Circuit files are competition data or regenerable search output, and large: the
+# competition's own .kmb set is ~905 MB and one public dqi decoder is 1.46 GB on its own.
+*.kmb
+*.kmx
+
+# kickmix.so ships with the competition dataset; we depend on the PyPI wheel instead.
+*.so
+
+# Rendered circuit views -- regenerate with `vqcc diagram`.
+*.flame.svg
+
+.pytest_cache/
+.ruff_cache/
