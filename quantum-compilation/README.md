@@ -58,12 +58,20 @@ is the only one with real room, at 6.1× its floor. So the 0.6-wide band half th
 is a constraint, not a fashion: tuning this shape is finished, and a further `dfthcsos` gain
 needs a different factorization.
 
-**Which factorization is exactly what this does not establish.** The part's reported shape is
-**R=8, B=143, C=60** — its author's figure from the dataset manifest, not our measurement — and
-cost scales with R·B while the accuracy reachable at a given shape is bounded by R·C, so the two
-are not optimised at the same point. Reproducing the cost–precision atlas and fitting
-factorizations ourselves is the next experiment; the bar is this submission's R·B = 1,144 at
-R·C = 480.
+**What the plateau did, in the shape's own terms.** The part is **R=8, B=143, C=60** — its
+author's manifest figure, and the shape of the arrays in the `submission.npz` we submitted —
+against the baseline's **R=65, B=60, C=60**, which the shipped verifier declares as
+`BASELINE_SHAPE` in `scoreinfra/reference.py`. So the plateau **cut the rank from 65 to 8 and
+widened the basis from 60 to 143**: 3,976 → 1,220 LCU vectors for the ANGLE circuits to carry
+(the verifier builds [`N + R·B`](src/quantum_compilation/cost.py) of them, which is each npz's
+`angle_words` row count), Toffolis 93,237 → 16,266, width 730 → 430. What it spent is ensemble
+capacity R·C, down 8.1× from 3,900 to 480 — and that shows as accuracy: the 20 mHa cap the
+reference clears at 93.2% is the one this part sits on, at 99.999%. Low rank is what the
+plateau found; the accuracy cap is what stops it going lower.
+
+**Which shape to try instead is still open.** Nothing here shows a factorization exists that is
+both cheaper than this submission's R·B = 1,144 and still under the cap. Reproducing the
+cost–precision atlas and fitting factorizations ourselves is the next experiment.
 
 **Progress artifact:** <https://claude.ai/artifact/EzjSoAxvhTvi9pWgdJDEDq> (private; rebuilt by
 [`scripts/build_artifact.py`](scripts/build_artifact.py) into

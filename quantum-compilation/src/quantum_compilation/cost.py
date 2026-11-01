@@ -61,6 +61,15 @@ MAX_HAMILTONIAN_ERROR_HA = 20e-3
 MIN_LAMBDA = 49.0
 MIN_E_GAP_HA = 3.914898
 
+# The orbital count of the FeMoCo instance every dfthcsos submission factorizes, and the
+# baseline factorization's shape (R, B, C) -- the rank, the basis count and the ensemble rank.
+# Both come from the shipped verifier rather than from its JSON report, which is why reading
+# the report alone cannot recover them: `scoreinfra/reference.py` declares
+# `BASELINE_SHAPE = (65, 60, 60)` and documents the submitted arrays as `U` (R, B, N) and
+# `W` (R, B, C). The sample submission's npz agrees, carrying `U` of (65, 60, 76).
+NUM_ORBITALS = 76
+BASELINE_FACTORIZATION = (65, 60, 60)
+
 # R(eps) is positive only for eps < 1/16: at eps = 1/16 the denominator -ln(1/2 + 2 sqrt(eps))
 # hits zero, so a decoder failing more than 6.25% of shots has unbounded cost. The dqi
 # verifier rejects eps_plus >= 1/16 outright.
@@ -358,6 +367,16 @@ def dfthcsos_rejections(angle_circuit_qubits: Sequence[int]) -> list[str]:
     if not too_wide:
         return []
     return [f"{len(too_wide)} ANGLE circuit(s) wider than {MAX_ANGLE_QUBITS} qubits: {too_wide}"]
+
+
+def lcu_vectors(rank: int, bases: int) -> int:
+    """How many LCU vectors a factorization of this shape makes the ANGLE circuits encode.
+
+    `verify.py` builds `num_orbitals + R*B` of them, which is the quantity the angle circuits
+    carry and the one a cheaper shape has to reduce. It is checkable against a submission
+    without simulating: it is the row count of the npz's `angle_words`.
+    """
+    return NUM_ORBITALS + rank * bases
 
 
 def dfthcsos_constraint_margins(report: Mapping[str, Any]) -> dict[str, dict[str, Any]]:

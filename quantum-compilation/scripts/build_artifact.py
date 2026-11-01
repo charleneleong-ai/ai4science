@@ -31,11 +31,13 @@ import yaml
 from autoresearch.render import render
 
 from quantum_compilation.cost import (
+    BASELINE_FACTORIZATION,
     DEFAULT_CALIBRATION,
     MAX_DQI_FAILURE_RATE,
     TASKS,
     dfthcsos_constraint_margins,
     dqi_repetition_factor,
+    lcu_vectors,
     rotation_t_count,
     score,
     task_ratio,
@@ -806,8 +808,16 @@ class Artifact:
         error, e_gap = margins["hamiltonian_error_ha"], margins["e_gap_ha"]
         angle, lcu = margins["angle_qubits"], margins["lcu_lambda"]
         e_gap_slack = (e_gap["value"] - e_gap["limit"]) * 1e6
-        pinned = [QUANTITY_LABELS[key] for key in margins if is_pinned(margins[key])]
         r, b, c = (plateau[key] for key in ("R", "B", "C"))
+        br, bb, bc = BASELINE_FACTORIZATION
+        vectors, ref_vectors = lcu_vectors(r, b), lcu_vectors(br, bb)
+        capacity, ref_capacity = r * c, br * bc
+        # The baseline's own margins, off the same table, for the accuracy it has not spent.
+        reference = self.reports["dfthcsos"]
+        ref_error = dfthcsos_constraint_margins(reference.detail)["hamiltonian_error_ha"][
+            "fraction_of_limit_used"
+        ]
+        pinned = [QUANTITY_LABELS[key] for key in margins if is_pinned(margins[key])]
         return f"""
     <h2>Why the plateau is a wall</h2>
     <p class="finding">The chemistry circuits everyone is standing on have <strong>almost no
@@ -832,13 +842,21 @@ class Artifact:
       {plateau["lambda_eff"]:.3f} is below that {lcu["limit"]:g} and still
       passes.</figcaption>
     </figure>
-    <p>What the record does <em>not</em> settle is where to go instead. This parameterisation is
-    <strong>R={r}, B={b}, C={c}</strong> — the part author&rsquo;s own
-    reported shape, not something we measured — and cost scales with R·B while the accuracy
-    reachable at a given shape is bounded by R·C, so the two are not optimised by the same
-    point. Reproducing the cost–precision atlas ourselves and fitting low-R factorizations is
-    the next experiment, and the claim it has to beat is this submission&rsquo;s own
-    R·B&nbsp;=&nbsp;{r * b:,} at R·C&nbsp;=&nbsp;{r * c:,}.</p>
+    <p>The move this part made is now legible. Its shape is <strong>R={r}, B={b}, C={c}</strong>
+    — its author&rsquo;s report, and the shape of the arrays in the <code>submission.npz</code>
+    we submitted — against the baseline&rsquo;s <strong>R={br}, B={bb}, C={bc}</strong>, which
+    the verifier declares itself. So the plateau <strong>cut the rank from {br} to {r} and
+    widened the basis from {bb} to {b}</strong>: {ref_vectors:,}&nbsp;→&nbsp;{vectors:,} LCU
+    vectors for the ANGLE circuits to carry (the verifier builds <code>N + R·B</code> of them),
+    Toffolis {reference.toffolis:,.0f}&nbsp;→&nbsp;{plateau["T_total"]:,.0f}, width
+    {int(reference.detail["num_qubits"])}&nbsp;→&nbsp;{plateau["Q_total"]}. What it spent is
+    ensemble capacity, R·C, down {ref_capacity / capacity:.1f}× from {ref_capacity:,} to
+    {capacity:,} — and the chart above is where that shows: the accuracy cap the reference
+    clears at {ref_error * 100:.0f}% is the one this part is sitting on.
+    <strong>Low rank is what the plateau found, and the accuracy cap is what stops it going
+    lower.</strong> Whether a shape exists that is cheaper than R·B&nbsp;=&nbsp;{r * b:,} and
+    still under the cap is unmeasured; reproducing the cost–precision atlas to find out is the
+    next experiment.</p>
 """
 
     def what_the_page_omits(self) -> str:

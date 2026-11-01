@@ -129,3 +129,35 @@ experiments:
       and so could not discriminate the two readings, is retired.
     verdict: PROMOTE
     pr: 102
+  - name: g0c-re-derive-the-reference-factorization
+    date: 2026-11-01
+    baseline: >-
+      no measurement at all -- a claimed reference shape of (65, 60, 60) was cut from PR 102's
+      own review as sourced nowhere, leaving the cost-versus-capacity comparison unmakeable
+    gate: none -- a derivation from the shipped verifier, not an experiment
+    result: >-
+      The shape is in the verifier, not in its JSON report, which is why reading the report
+      alone could not find it. `scoreinfra/reference.py` declares
+      `BASELINE_SHAPE = (65, 60, 60)  # (R, B, C) of the provided baseline factorization`, and
+      the same file documents the submitted arrays as `U` (R, B, N) and `W` (R, B, C). The
+      sample submission's npz agrees exactly -- `U` is (65, 60, 76) and `W` is (65, 60, 60) --
+      so **the reference factorization is R=65, B=60, C=60**, and the cut claim was right
+      about the numbers while wrong about having a source. Two independent checks confirm the
+      axis reading rather than inferring it from one file. First, the plateau part's npz is
+      `U` (8, 143, 76) and `W` (8, 143, 60), matching the R=8/B=143/C=60 its author declared
+      in the dataset manifest, so the manifest's vocabulary and the verifier's are the same
+      one. Second, `verify.py` computes the LCU vector count as `num_orbitals + R*B`, which
+      reproduces both files' `angle_words` row counts exactly: 76 + 65x60 = 3,976 for the
+      reference and 76 + 8x143 = 1,220 for the plateau part.
+      So the comparison the design doc wanted can now be made. The plateau part reaches its
+      cost by **cutting the rank from 65 to 8 while widening the basis from 60 to 143**: 3.26x
+      fewer LCU vectors (3,976 to 1,220), Toffolis 93,237 to 16,266 and width 730 to 430. What
+      it pays is ensemble capacity, R*C, which falls 8.1x from 3,900 to 480 -- and that is
+      visible as the accuracy it has spent: its Hamiltonian error sits at 99.999% of the
+      20 mHa cap where the reference sits at 93.2%. **Low rank is what the plateau found, and
+      the accuracy cap is what stops it going lower.** Not established: whether a shape exists
+      that is both cheaper than R*B = 1,144 and still under the cap -- that needs the
+      cost-precision atlas reproduced and factorizations fitted, which is the next experiment,
+      not this one.
+    verdict: KEEP
+    pr: 102

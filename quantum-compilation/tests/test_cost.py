@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from quantum_compilation.cost import (
+    BASELINE_FACTORIZATION,
     DEFAULT_CALIBRATION,
     DFTHCSOS_CONSTRAINTS,
     MAX_ANGLE_QUBITS,
@@ -22,6 +23,7 @@ from quantum_compilation.cost import (
     dqi_cost,
     dqi_repetition_factor,
     lambda_eff,
+    lcu_vectors,
     require_task,
     rotation_t_count,
     score,
@@ -237,6 +239,24 @@ class TestConstraintTable:
         assert constraint.violated(constraint.limit) is not legal_at_limit
         inside = math.nextafter(constraint.limit, 0.0 if legal_at_limit else 1e9)
         assert not constraint.violated(inside)
+
+
+class TestFactorizationShape:
+    """The (R, B, C) vocabulary the verifier and the parts manifest share."""
+
+    @pytest.mark.parametrize(
+        ("shape", "angle_words"),
+        [
+            # The row count of each submission's npz `angle_words`, read off the files: the
+            # shipped sample_submission at the baseline shape, and public submission 57834335
+            # at the shape its author declared in the parts manifest. Both are measurements,
+            # so this pins the formula rather than restating it.
+            (BASELINE_FACTORIZATION[:2], 3976),
+            ((8, 143), 1220),
+        ],
+    )
+    def test_the_vector_count_matches_the_submitted_angle_words(self, shape, angle_words):
+        assert lcu_vectors(*shape) == angle_words
 
 
 class TestChemistryConstraintMargins:
