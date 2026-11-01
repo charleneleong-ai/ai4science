@@ -77,7 +77,11 @@ cost–precision atlas and fitting factorizations ourselves is the next experime
 [`scripts/build_artifact.py`](scripts/build_artifact.py) into
 [`docs/artifact/index.html`](docs/artifact/index.html) and republished at each result update).
 
-The grounded entry sweep is [`reports/2026-10-31-vqcc-landscape.md`](reports/2026-10-31-vqcc-landscape.md);
+The grounded entry sweep is [`reports/2026-10-31-vqcc-landscape.md`](reports/2026-10-31-vqcc-landscape.md), and
+[`reports/2026-11-02-thc-factorization-sota.md`](reports/2026-11-02-thc-factorization-sota.md)
+is the chemistry delta sweep — it finds that the symmetry-shift lever the recent
+literature leans on hardest is frozen by the verifier, leaving an L1-regularised refit at
+fixed shift as the one remaining direction;
 the plan and the one open decision are in
 [`docs/specs/2026-10-31-quantum-compilation-design.md`](docs/specs/2026-10-31-quantum-compilation-design.md);
 verdicts are in [`docs/experiments/verdicts.yaml`](docs/experiments/verdicts.yaml).
@@ -119,7 +123,7 @@ Two consequences worth holding onto:
 
 ```bash
 uv sync --extra dev
-uv run pytest            # 112 tests
+uv run pytest            # 132 tests
 uv run vqcc --help
 ```
 
@@ -135,6 +139,8 @@ complexity check and the test suite.
 export VQCC_VERIFIERS=path/to/verifiers      # the extracted competition `verifiers/` tree
 uv run vqcc verify path/to/submission/ --seed 1   # the real score, free and unlimited
 uv run vqcc check path/to/submission/        # layout + the 128-qubit cap, instant
+uv run vqcc chem path/to/dfthcsos/submission.npz  # every chemistry constraint but
+                                             #   ANGLE_WIDTH, in 0.66 s, no circuits
 uv run vqcc resources path/to/circuits/      # static gate counts — a triage bound
 uv run vqcc blend --invsqrt 100941 --dqi 4.0334e11 --dfthcsos 3.3780e8
 uv run vqcc calibration                      # the reference costs in force, and their provenance

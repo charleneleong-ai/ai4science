@@ -34,6 +34,10 @@ run = "uv run vqcc verify"
 description = "Gate a submission's layout and the one rejection knowable without simulating"
 run = "uv run vqcc check"
 
+[tasks.chem]
+description = "Screen a chemistry factorization in under a second -- every constraint but ANGLE_WIDTH, no circuits built"
+run = "uv run vqcc chem"
+
 [tasks.resources]
 description = "Static gate counts per circuit -- a triage bound, not a cost"
 run = "uv run vqcc resources"

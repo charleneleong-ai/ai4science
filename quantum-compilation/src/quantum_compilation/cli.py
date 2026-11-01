@@ -21,6 +21,7 @@ from rich.progress import Progress
 from rich.table import Table
 
 from quantum_compilation import verify as verifier
+from quantum_compilation.chemistry import ChemistryMetrics, ChemistryScreen
 from quantum_compilation.cost import (
     DEFAULT_CALIBRATION,
     TASKS,
@@ -113,6 +114,33 @@ def print_costs(costs: dict[str, float], calibration: MetricCalibration) -> None
         console.print(f"\n[bold]score {score(costs, calibration):.5f}[/]")
     else:
         console.print(f"[yellow]no score[/] -- needs all of {TASKS}, have {sorted(costs)}")
+
+
+def print_chem_metrics(metrics: ChemistryMetrics) -> None:
+    """The screened metrics, then the terms behind `Lambda` and the gap."""
+    table = Table("metric", "value", "reads")
+    for name, value, reads in (
+        ("error_1", f"{metrics.error_1:.9f}", "one-body residual"),
+        ("error_2", f"{metrics.error_2:.9f}", "two-body Frobenius residual"),
+        ("E_gap", f"{metrics.e_gap:.9f}", "E_upper - E_SOS"),
+        ("Lambda", f"{metrics.one_norm:.6f}", "LCU one-norm"),
+        ("lambda_eff", f"{metrics.lambda_eff:.6f}", "sqrt(E_gap * D)"),
+        ("D = 2*Lambda - E_gap", f"{metrics.gap_product:.6f}", "what the score turns on"),
+    ):
+        table.add_row(name, value, reads)
+    console.print(table)
+
+    split = Table("term", "value", "share of Lambda")
+    for name, value, share in (
+        ("lambda_h2", metrics.lambda_h2, metrics.lambda_h2 / metrics.one_norm),
+        ("positive eigen mass", metrics.positive_mass, metrics.positive_mass / metrics.one_norm),
+        ("negative eigen mass", metrics.negative_mass, metrics.negative_mass / metrics.one_norm),
+        ("0.5 * sum(W^2)", metrics.half_sum_w2, None),
+        ("c0 (fixed)", metrics.c0, None),
+    ):
+        share_cell = f"{share:.1%}" if share is not None else "— (enters E_gap and D)"
+        split.add_row(name, f"{value:.6f}", share_cell)
+    console.print(split)
 
 
 def agreement_cell(result: verifier.Verification) -> str:
@@ -312,6 +340,36 @@ def blend(
     calibration = load_calibration(calibration_path)
     print_costs({"invsqrt": invsqrt, "dqi": dqi, "dfthcsos": dfthcsos}, calibration)
     warn_if_unmeasured(calibration)
+
+
+@app.command()
+def chem(
+    factorization: Annotated[Path, typer.Argument(help="A dfthcsos `submission.npz`.")],
+    verifiers: VerifiersOption,
+    toffolis: Annotated[
+        float | None, typer.Option(help="T from a verifier run, to turn lambda_eff into a cost.")
+    ] = None,
+    qubits: Annotated[int | None, typer.Option(help="Q from a verifier run.")] = None,
+) -> None:
+    """Screen a chemistry factorization's constraints without building its circuits.
+
+    Fast enough to search with -- under a second a candidate rather than a minute -- because
+    it reads the submitted angle words instead of recovering them from a simulation. That is
+    also its limit: the verifier scores the words it recovers, and it cannot know T or Q, so
+    this reports a cost only when given them.
+    """
+    metrics = ChemistryScreen(verifiers).evaluate(factorization)
+    print_chem_metrics(metrics)
+    for reason in metrics.rejected_for:
+        console.print(f"[red]reject[/] {reason}")
+    if not metrics.rejected_for:
+        console.print(
+            "[green]screened constraints ok[/] -- ANGLE widths need the circuits, "
+            "see `vqcc check`"
+        )
+    if toffolis is not None and qubits is not None:
+        cost = fmt_cost(metrics.cost(toffolis, qubits))
+        console.print(f"cost with T={toffolis:,.0f} Q={qubits}: {cost}")
 
 
 @app.command()

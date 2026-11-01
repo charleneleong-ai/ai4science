@@ -18,6 +18,7 @@ measured here bounds a candidate's cost from above and never gives it.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,6 +33,11 @@ CHEMISTRY_DIR = "dfthcsos"
 FACTORIZATION_FILE = "submission.npz"
 # The arrays submission.npz must carry: the factorization and the Givens rotation tree.
 NPZ_ARRAYS = ("U", "W", "H2_I", "H1_I", "Hsym_lower", "tree_edges")
+# What reading the factorization *without* building its circuits additionally needs. `check`
+# does not require these, because the verifier recovers the words by simulating the ANGLE
+# circuits rather than reading them; `chemistry.ChemistryScreen` reads them directly, which is
+# the whole of why it is fast and why it is a screen rather than a verification.
+NPZ_SCREEN_ARRAYS = ("angle_words", "brot")
 
 # A `Z_POW` past the T level is one Clifford+T cannot express exactly, so it needs synthesis.
 # The level marks *what needs* synthesising; it does not price it -- the metric charges every
@@ -122,7 +128,9 @@ class SubmissionAudit:
         return circuits
 
     @staticmethod
-    def npz_problems(path: Path) -> list[str]:
+    def npz_problems(path: Path, extra: Sequence[str] = ()) -> list[str]:
+        """Why `path` is not a readable factorization, checking `extra` arrays beyond the
+        required ones so a caller with stricter needs does not hand-roll a second reader."""
         if not path.is_file():
             return [f"missing {CHEMISTRY_DIR}/{FACTORIZATION_FILE}"]
         try:
@@ -131,7 +139,7 @@ class SubmissionAudit:
                 present = set(data.files)
         except (OSError, ValueError) as exc:
             return [f"{path.name} could not be read as an npz: {exc}"]
-        if absent := [name for name in NPZ_ARRAYS if name not in present]:
+        if absent := [name for name in (*NPZ_ARRAYS, *extra) if name not in present]:
             return [f"{path.name} is missing array(s) {absent}"]
         return []
 
