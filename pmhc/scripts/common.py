@@ -15,7 +15,9 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from typing import Iterable, Mapping, Protocol, runtime_checkable
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
+from typing import Protocol
 
 import gemmi
 import numpy as np
@@ -32,8 +34,22 @@ HYDROGEN = gemmi.Element("H")
 
 BACKBONE_ATOMS = frozenset(("N", "CA", "C", "O", "OXT"))
 
+# The two epitopes, as the challenge states them, and the peptide positions each generation
+# variant nominated. Declared here because prepare_target writes the generation specs from them
+# and engagement scores the poses against them; when the table lived in both, a hotspot edit in
+# one place would have silently rescored the cohort against a different nomination than it was
+# generated for.
+PEPTIDE_G12D = "VVVGADGVGK"
+PEPTIDE_WT = "VVVGAGGVGK"
 
-@runtime_checkable
+VARIANTS: dict[str, tuple[int, ...]] = {
+    "bulge_core": (5, 6, 7),
+    "bulge_wide": (4, 5, 6, 7, 8),
+    "mut_proximal": (5, 6),
+    "hub": (7, 8),
+}
+
+
 class HasRow(Protocol):
     @property
     def row(self) -> Mapping[str, object]: ...
@@ -69,15 +85,44 @@ def chain_sequence(chain: gemmi.Chain) -> str:
     return "".join(one_letter(r.name) for r in chain)
 
 
-def target_sequences(path: Path) -> frozenset[str]:
-    """Every sequence belonging to the target, from prepare_target.py's reference file."""
+def target_references(path: Path) -> dict[str, str]:
+    """Named sequences a design must not resemble: the target's chains and the known receptor.
+
+    Reads either shape prepare_target.py writes -- the role-keyed `novelty_references.json`
+    (`hla_heavy`, `b2m`, `peptide_g12d`, `peptide_wt`, `tcr_D`, `tcr_E`) or the co-fold
+    condition list -- so either file can be passed. The names are the point: a caller wanting
+    the epitopes asks for them by role rather than recovering them with a sequence heuristic.
+    """
     loaded = json.loads(path.read_text())
-    values = (
-        loaded.values()
-        if isinstance(loaded, dict)
-        else [s for entry in loaded for s in entry["chains"].values()]
-    )
-    return frozenset(str(v) for v in values)
+    if isinstance(loaded, dict):
+        return {str(k): str(v) for k, v in loaded.items()}
+    return {
+        f"{entry['name']}:{chain}": sequence
+        for entry in loaded
+        for chain, sequence in entry["chains"].items()
+    }
+
+
+def target_sequences(path: Path) -> frozenset[str]:
+    """Every sequence belonging to the target, discarding the roles."""
+    return frozenset(target_references(path).values())
+
+
+def epitopes_from(refs: Mapping[str, str]) -> tuple[str, str]:
+    """The G12D and wild-type epitopes, by role rather than by shape.
+
+    An earlier version filtered the reference values for `len(s) == 10 and startswith("VVVGA")`,
+    which worked but built its result by iterating a frozenset -- so the order varied per
+    interpreter run. Harmless while only membership was tested, and a trap for anyone indexing it.
+    """
+    try:
+        return refs["peptide_g12d"], refs["peptide_wt"]
+    except KeyError as missing:
+        raise ValueError(f"reference file has no {missing} entry") from missing
+
+
+def chain_sequences(structure: gemmi.Structure) -> dict[str, str]:
+    return {ch.name: chain_sequence(ch) for ch in structure[0]}
 
 
 def binder_chain(
@@ -100,7 +145,7 @@ def binder_chain(
     `pose` is carried only for the error message; the parse belongs to the caller, so that
     callers needing both the chain and its atoms do not read the file twice.
     """
-    chains = {ch.name: chain_sequence(ch) for ch in structure[0]}
+    chains = chain_sequences(structure)
     candidates = [
         name
         for name, seq in chains.items()
@@ -112,6 +157,52 @@ def binder_chain(
             f"{pose}: expected exactly one non-target chain, found {candidates} among {lengths}"
         )
     return candidates[0]
+
+
+@dataclass(frozen=True)
+class ChainRoles:
+    """Which chains of a pose are the binder, the peptide, and the rest of the receptor."""
+
+    design: tuple[str, ...]
+    peptide: str
+    receptor: tuple[str, ...]
+
+
+def chain_roles(
+    structure: gemmi.Structure,
+    epitopes: tuple[str, ...],
+    *,
+    targets: frozenset[str] | None = None,
+    design: tuple[str, ...] | None = None,
+    pose: Path | None = None,
+) -> ChainRoles:
+    """Partition a pose's chains into binder / peptide / receptor, in one pass.
+
+    Four separate derivations of "which chain is which" ran over the same pose before this:
+    the design by sequence, the peptide by sequence, the receptor as whatever was left, and the
+    control's binder hand-typed on the command line. Nothing asserted they agreed.
+
+    `design` names the binder chains when they are known by construction -- the 7OW6 control's
+    receptor is two chains, alpha and beta. It cannot be resolved the way a design is: the TCR
+    sits in the novelty references on purpose, so that a regurgitated receptor is caught as
+    plagiarism, which leaves `binder_chain` with zero candidates on 7OW6. Otherwise pass
+    `targets` and the design is the one chain that is none of the target's.
+    """
+    chains = chain_sequences(structure)
+    if design is None:
+        if targets is None:
+            raise ValueError("chain_roles needs either design chain names or target sequences")
+        design = (binder_chain(pose or Path("<pose>"), structure, targets),)
+    missing = [name for name in design if name not in chains]
+    if missing:
+        raise ValueError(f"{pose}: no such chain(s) {missing} among {sorted(chains)}")
+    peptide = next((name for name, seq in chains.items() if seq in epitopes), None)
+    if peptide is None:
+        raise ValueError(f"{pose}: no chain matches either epitope sequence")
+    if peptide in design:
+        raise ValueError(f"{pose}: chain {peptide} is both the epitope and a binder chain")
+    receptor = tuple(n for n in chains if n not in set(design) and n != peptide)
+    return ChainRoles(design=tuple(design), peptide=peptide, receptor=receptor)
 
 
 def heavy_coords(chain: gemmi.Chain) -> tuple[np.ndarray, list[int]]:
@@ -160,7 +251,32 @@ def sidechain_area(residue: Residue, polar_only: bool = False) -> float:
     )
 
 
-def write_rows(rows: Iterable[HasRow], out: Path, label: str = "rows") -> int:
+def rows_by(path: Path, key: str) -> dict[str, dict[str, str]]:
+    """Every row of a CSV, keyed by one column. A later row with the same key wins."""
+    with path.open() as handle:
+        return {r[key]: r for r in csv.DictReader(handle)}
+
+
+def pose_files(poses: Path) -> list[Path]:
+    found = sorted(p for p in poses.rglob("*.cif") if p.is_file())
+    if not found:
+        raise ValueError(f"{poses} holds no .cif poses")
+    return found
+
+
+def rounded(value: float | None, places: int = 4) -> float | None:
+    return None if value is None else round(value, places)
+
+
+def wrote(out: Path, count: int) -> str:
+    """What to echo after write_rows, which writes nothing when there is nothing to write.
+
+    Every caller used to print `wrote <path> (0 rows)` for a file that did not exist.
+    """
+    return f"wrote {out} ({count} rows)" if count else f"no rows to write; {out} not created"
+
+
+def write_rows(rows: Iterable[HasRow], out: Path) -> int:
     """Write dataclass rows to CSV, creating the parent directory, with LF line endings.
 
     An empty sequence writes nothing and returns 0 rather than raising: these are measurement

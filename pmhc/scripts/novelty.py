@@ -15,13 +15,12 @@ It is a hard reject, not a ranking term.
 from __future__ import annotations
 
 import csv
-import json
 from dataclasses import dataclass
 from pathlib import Path
 
 import typer
 from Bio.Align import PairwiseAligner
-from common import write_rows
+from common import target_references, write_rows, wrote
 
 app = typer.Typer(add_completion=False)
 
@@ -99,19 +98,6 @@ class Verdict:
         }
 
 
-def references(path: Path) -> dict[str, str]:
-    """Named sequences a design must not resemble: the target's chains and the known receptor."""
-    loaded = json.loads(path.read_text())
-    if isinstance(loaded, dict):
-        return {str(k): str(v) for k, v in loaded.items()}
-    # A co-fold target list, kept readable so either file can be passed.
-    return {
-        f"{entry['name']}:{chain}": sequence
-        for entry in loaded
-        for chain, sequence in entry["chains"].items()
-    }
-
-
 def judge(
     designs: dict[str, str], refs: dict[str, str], threshold: float
 ) -> list[Verdict]:
@@ -160,7 +146,7 @@ def main(
     designs = read_designs(metrics, name_column, sequence_column)
     if not designs:
         raise typer.BadParameter(f"{metrics} has no usable {sequence_column} values")
-    verdicts = judge(designs, references(targets), threshold)
+    verdicts = judge(designs, target_references(targets), threshold)
 
     for v in sorted(verdicts, key=lambda v: -v.copied):
         mark = "novel " if v.admissible else "REJECT"
@@ -174,7 +160,7 @@ def main(
         f"{len(verdicts) - rejected} of {len(verdicts)} are novel at the {threshold:.0%} threshold"
     )
 
-    typer.echo(f"wrote {out} ({write_rows(verdicts, out)} rows)")
+    typer.echo(wrote(out, write_rows(verdicts, out)))
 
 
 if __name__ == "__main__":
