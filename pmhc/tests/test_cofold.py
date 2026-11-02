@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 import pytest
+from cofold_followup import spanning, spread_of
 from cofold_scores import Dependence, collect, peptide_pair
 from cofold_specs import (
     CONTROL_PEPTIDE_SHARE,
@@ -176,3 +177,66 @@ class TestCollect:
         assert screen.directories == 4
         assert screen.unscored == 1
         assert screen.unnamed == 1
+
+
+class TestSpanningSubset:
+    RANKED = [(f"d{i}", 1.0 - 0.01 * i) for i in range(78)]
+
+    @pytest.mark.parametrize("count,head", [(12, 4), (9, 0), (5, 4), (2, 1), (3, 5), (1, 0)])
+    def test_covers_both_ends_of_the_ranking(self, count, head):
+        """A noise estimate taken only from the top would not bound the ties further down.
+
+        A head at least as large as the count is the case that used to break this silently,
+        returning the top `count` and spanning nothing.
+        """
+        picked = spanning(self.RANKED, count, head)
+        assert len(picked) == count
+        assert picked[0] == "d0"
+        assert picked[-1] == ("d77" if count > 1 else "d0")
+
+    def test_keeps_the_contenders_whatever_the_spread(self):
+        """The decision the estimate has to settle is whether the leaders are really ahead."""
+        assert spanning(self.RANKED, 12, 4)[:4] == ["d0", "d1", "d2", "d3"]
+
+    def test_asking_for_more_than_exists_returns_everything_in_order(self):
+        assert spanning(self.RANKED, 200, 4) == [f"d{i}" for i in range(78)]
+
+
+class TestSpread:
+    def test_the_drop_spread_combines_both_conditions(self):
+        """Each condition is sampled independently, so the difference is noisier than either.
+
+        The number is pinned rather than recomputed from the implementation's own formula: an
+        assertion that restates `hypot(sd, sd)` would pass just as happily if the combination
+        rule were a plain sum.
+        """
+        spread = spread_of(
+            "d", {"complex_g12d": (0.95, 0.93, 0.97), "apo_hla": (0.85, 0.82, 0.86)}
+        )
+        assert spread.drop_mean == pytest.approx(0.1067, abs=1e-4)
+        assert spread.drop_sd == pytest.approx(0.0289, abs=1e-4)
+        assert spread.drop_sd > max(spread.complex_sd, spread.apo_sd)
+
+    def test_the_range_pairs_the_best_against_the_worst(self):
+        """No complex draw belongs to any particular apo draw, so the extremes cross them."""
+        spread = spread_of(
+            "d", {"complex_g12d": (0.95, 0.93, 0.97), "apo_hla": (0.85, 0.82, 0.86)}
+        )
+        assert (spread.drop_min, spread.drop_max) == pytest.approx((0.93 - 0.86, 0.97 - 0.82))
+
+    def test_reports_both_denominators(self):
+        """One n would hide that the two conditions can come back with different sample counts."""
+        spread = spread_of("d", {"complex_g12d": (0.9, 0.91, 0.92), "apo_hla": (0.8, 0.81)})
+        assert spread.samples == "3/2"
+
+    @pytest.mark.parametrize(
+        "conditions",
+        [
+            {"complex_g12d": (0.9,), "apo_hla": (0.8,)},
+            {"complex_g12d": (0.9, 0.91)},
+            {},
+        ],
+    )
+    def test_one_sample_has_no_spread_to_report(self, conditions):
+        """Returning a 0.0 spread here would read as "measured, and tiny"."""
+        assert spread_of("d", conditions) is None

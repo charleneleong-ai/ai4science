@@ -7,7 +7,9 @@ before anything was written. The sibling campaigns hold better versions of both
 (`tnf_binder.tables.write_rows`, `tfr1/scripts/csvio.py`), but tnf-binder is not installed in
 the environment this runs in and tfr1 sits on an unmerged branch, so these live here and the
 shared package those three projects want is recorded as a follow-up rather than attempted four
-days before a deadline.
+days before a deadline. Two more belong in that same follow-up: `touchstone.boltz` already reads
+Boltz's per-sample confidence files and aggregates them, and `tnf_binder.specs.chain_block` is a
+byte-level duplicate of this campaign's co-fold spec block.
 """
 
 from __future__ import annotations

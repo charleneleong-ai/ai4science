@@ -23,8 +23,10 @@ this pipeline had just generated.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Generic, TypeVar
 
 import typer
 from common import rounded, write_rows, wrote
@@ -38,7 +40,10 @@ from cofold_specs import (
     chain_ids,
     conditions_from,
     parse_run_name,
+    predictions_dir,
 )
+
+T = TypeVar("T")
 
 app = typer.Typer(add_completion=False)
 
@@ -98,25 +103,40 @@ def peptide_pair(
     return sum(values) / len(values) if values else None
 
 
+def sample_confidences(run: Path) -> list[dict[str, object]]:
+    """Every diffusion sample's confidence JSON for one prediction, in model order.
+
+    The one place that knows what Boltz writes per run. Both readers are defined on it, because
+    two globs for the same layout had already drifted apart once.
+    """
+    found = sorted(run.glob("confidence_*_model_*.json")) or sorted(run.glob("confidence_*.json"))
+    return [json.loads(path.read_text()) for path in found]
+
+
 def read_confidence(run: Path) -> dict[str, object] | None:
-    found = sorted(run.glob("confidence_*_model_0.json")) or sorted(
-        run.glob("confidence_*.json")
-    )
-    return json.loads(found[0].read_text()) if found else None
+    return next(iter(sample_confidences(run)), None)
 
 
 @dataclass(frozen=True)
-class Screen:
+class Screen(Generic[T]):
     """Every prediction read, plus the denominators needed to report what was not read."""
 
-    runs: dict[str, dict[str, dict[str, object]]]
+    runs: dict[str, dict[str, T]]
     directories: int
     unnamed: int
     unscored: int
 
 
-def collect(predictions: Path) -> Screen:
-    runs: dict[str, dict[str, dict[str, object]]] = {}
+def collect(
+    predictions: Path, reader: Callable[[Path], T | None] = read_confidence
+) -> Screen[T]:
+    """Walk a prediction directory, counting what could not be read as well as what could.
+
+    `reader` returns None for a run it cannot score, which is counted rather than skipped: a
+    design whose apo prediction failed drops out of the ranking, and the follow-up passes read
+    the same output with a different reader, so the counting belongs here and not in each one.
+    """
+    runs: dict[str, dict[str, T]] = {}
     directories = unnamed = unscored = 0
     for run in sorted(p for p in predictions.iterdir() if p.is_dir()):
         directories += 1
@@ -125,11 +145,11 @@ def collect(predictions: Path) -> Screen:
             unnamed += 1
             continue
         design, condition = parsed
-        confidence = read_confidence(run)
-        if confidence is None:
+        value = reader(run)
+        if value is None:
             unscored += 1
             continue
-        runs.setdefault(design, {})[condition] = confidence
+        runs.setdefault(design, {})[condition] = value
     return Screen(runs=runs, directories=directories, unnamed=unnamed, unscored=unscored)
 
 
@@ -160,11 +180,7 @@ def main(
     out: Path = typer.Option(Path("cofold_dependence.csv")),
     top: int = typer.Option(25, help="how many to print"),
 ) -> None:
-    predictions = next(out_dir.glob("boltz_results_*/predictions"), None)
-    if predictions is None:
-        raise typer.BadParameter(f"no boltz_results_*/predictions under {out_dir}")
-
-    screen = collect(predictions)
+    screen = collect(predictions_dir(out_dir))
     chains = conditions_from(targets)
     rows = [
         d

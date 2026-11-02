@@ -4,8 +4,8 @@ A de novo protein that binds the KRAS G12D peptide `VVVGADGVGK` on HLA-A\*11:01 
 wild-type `VVVGAGGVGK`, and not the peptide-free HLA. Specificity outranks affinity. Submissions
 close **Sunday 8 November 2026, 23:59 AoE — Monday 9 November, 22:59 Sydney**.
 
-**Status (2026-11-02): target characterised, generation running.** Nothing submitted yet and
-nothing wet-lab measured.
+**Status (2026-11-03): all three gates run, co-fold screen read, 2 of 78 clear the control's
+peptide-dependence bar.** Nothing submitted yet and nothing wet-lab measured.
 
 ## The finding that set the strategy
 
@@ -83,7 +83,8 @@ is disqualification — but it is a correctness rule, not a bias correction.
                  35 have an immunoglobulin beta-sandwich as their closest fold
  87 engagement   peptide share >= 0.200, the measured share of the 7OW6 receptor itself
                  78 of those also touch every position their variant nominated
-  ? dependence   co-fold interface degrades against peptide-free HLA
+ 78 dependence   co-fold screened: 159 of 159 predictions scored, 0 failures
+                 2 lose at least as much confidence as the 7OW6 receptor does (+0.114)
  20 submitted    cap
 ```
 
@@ -115,6 +116,44 @@ An earlier version of this table reported 0.207 / 0.167 / 0.051 / 0.032, taking 
 two middle values of each 64-design group rather than their mean. The ordering and the
 conclusion are unchanged; `mut_proximal` still clears the 0.200 bar at its median.
 
+## The control says tier 1 is unreachable, and now says it with a number
+
+The co-fold screen put the 7OW6 receptor through all three conditions. It is the only molecule
+known to discriminate these two peptides, and it does not discriminate them here:
+
+| 7OW6 receptor, Boltz-2 | ipTM |
+| --- | --- |
+| G12D complex | 0.957 |
+| **wild-type complex** | **0.958** |
+| peptide-free HLA | 0.842 |
+
+A 0.001 difference on the positive control is the measurement that justifies not gating on
+G12D-versus-wild-type at all. The sub-angstrom backbone shift predicted the result; the control
+confirms it on the actual scoring function, so any selectivity a design appears to show on this
+predictor is noise rather than signal.
+
+Peptide-dependence does resolve. The receptor loses **0.114** ipTM when the peptide is removed,
+and that drop is the bar. Against it the cohort is unflattering:
+
+| | peptide-dependence drop |
+| --- | --- |
+| `mut_proximal_16` | **+0.148** |
+| `mut_proximal_26` | **+0.128** |
+| the 7OW6 receptor | +0.114 |
+| best of the rest (`hub_62`) | +0.081 |
+| median of 78 | **-0.010** |
+| worst | -0.121 |
+
+**2 of 78.** The median design scores slightly *better* against the peptide-free receptor than
+against the complex, which is what a groove-gripper looks like when the peptide it ignores is
+taken away. Both survivors come from `mut_proximal`, the variant the engagement gate already
+favoured on the generator's own poses -- two independent measurements agreeing about which
+nomination strategy worked.
+
+The ranking within that list is not yet claimed. Each drop is a difference of two single
+diffusion draws, so [`cofold_followup.py`](scripts/cofold_followup.py) re-runs a spanning subset
+at five samples to measure the spread; designs closer together than it are reported as ties.
+
 The fold gate cannot be a TM-score cutoff. **All 256 designs match something at TM ≥ 0.5 bar
 two**, because an 80-residue helical bundle resembles one of the thousands already deposited, so
 a TM ≥ 0.5 reject would discard the cohort. What separates them is the sequence identity to that
@@ -145,7 +184,7 @@ chains, and these designs resemble β2m as deposited in *other* entries.
 | [`scripts/cofold_scores.py`](scripts/cofold_scores.py) | reads the screen and reports each design's peptide-dependence drop |
 | [`scripts/run_fold_gate.sh`](scripts/run_fold_gate.sh) | the detached fold-gate run over the whole cohort |
 | [`scripts/run_cofold.sh`](scripts/run_cofold.sh) | the detached co-fold screen |
-| [`scripts/run_cofold_noise.sh`](scripts/run_cofold_noise.sh) | re-runs a spanning subset at five diffusion samples, to size the noise in the drop |
+| [`scripts/cofold_followup.py`](scripts/cofold_followup.py) | the passes after the screen: sampling-noise subset, its spread, and the wild-type finalists |
 | [`scripts/fold_novelty.py`](scripts/fold_novelty.py) | FoldSeek fold gate, for the copies sequence identity cannot see |
 | [`tests/test_novelty.py`](tests/test_novelty.py) | the admissibility gates, against copies they have to catch |
 | [`scripts/run_generate.sh`](scripts/run_generate.sh) | the detached BoltzGen sweep |
@@ -192,7 +231,7 @@ python scripts/novelty.py gen_out/bulge_core/final_ranked_designs/all_designs_me
 - The aspartate rotamer every design is built against comes from a receptor-bound structure.
   7OW4, the receptor-free G12D crystal, has no coordinates for positions 5 and 6 at all.
 - The screen runs one diffusion sample per condition, so the reported drop is a difference of
-  two single draws. Until [`run_cofold_noise.sh`](scripts/run_cofold_noise.sh) has sized that
+  two single draws. Until [`cofold_followup.py`](scripts/cofold_followup.py) has sized that
   spread, no ranking by drop is claimed beyond clearing the control's.
 - `design_peptide_pair_iptm` is reported for audit and is not a gate: on the control the pair
   value reaches 0.894 between two chains that make no contact at all.
