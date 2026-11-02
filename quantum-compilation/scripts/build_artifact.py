@@ -34,11 +34,13 @@ from quantum_compilation.cost import (
     clopper_pearson_upper_bound,
     BASELINE_FACTORIZATION,
     DEFAULT_CALIBRATION,
+    FEMOCO_C0,
     MAX_DQI_FAILURE_RATE,
     TASKS,
     dfthcsos_constraint_margins,
     dqi_repetition_factor,
     lcu_vectors,
+    min_lcu_lambda,
     rotation_t_count,
     score,
     task_ratio,
@@ -241,11 +243,30 @@ def is_pinned(margin: dict[str, Any]) -> bool:
     return margin["fraction_of_limit_used"] > PINNED_FRACTION
 
 
+def binding_margin(key: str, margin: dict[str, Any]) -> dict[str, Any]:
+    """`margin`, with `lcu_lambda` re-based onto the floor that actually binds it.
+
+    The constraint table carries `MIN_LAMBDA = 49.0` because that is the verifier's rejection
+    rule, and `dfthcsos_rejections` must mirror the verifier. But it never binds: `cost`'s
+    `min_lcu_lambda` is 281.52 for this reference, so plotting against 49.0 draws the one-norm
+    with 84% headroom when it has 6.1% -- the least of the four, not the most.
+    """
+    if key != "lcu_lambda":
+        return margin
+    floor = min_lcu_lambda(FEMOCO_C0)
+    return margin | {
+        "limit": floor,
+        "fraction_of_limit_used": floor / margin["value"],
+        "note": f"derived; the {margin['limit']:g} rule never binds",
+    }
+
+
 def constraint_label(key: str, margin: dict[str, Any]) -> str:
     """"E_gap vs 3.914898 floor" -- the limit and its direction read off the record itself."""
     word = "cap" if margin["sense"] == "at_or_below" else "floor"
     limit = margin["limit"]
-    return f"{QUANTITY_LABELS[key]} vs {limit:g} {word}"
+    note = f" ({margin['note']})" if "note" in margin else ""
+    return f"{QUANTITY_LABELS[key]} vs {limit:.6g} {word}{note}"
 
 
 def svg(width: int, height: int, aria: str, body: str) -> str:
@@ -318,10 +339,12 @@ def field_svg(standing: Standing) -> str:
 def headroom_svg(margins: dict[str, dict[str, Any]]) -> str:
     """How much of each hard constraint the plateau's chemistry parameterisation already spends.
 
-    Two bars sit on their limit and a third is two qubits from its cap, which is the finding:
-    there is very little left to tune inside this factorization, so a further gain has to come
-    from a different one.
+    Two bars sit on their limit, a third is two qubits from its cap, and the fourth -- the
+    one-norm, which looked like the exception -- is at 93.9% of the floor that actually binds
+    it. Nothing is left to tune inside this factorization, and `r1-price-the-factorization-
+    refit` showed a different one cannot pay either: the gain has to come from `T` and `Q`.
     """
+    margins = {key: binding_margin(key, margin) for key, margin in margins.items()}
     order = sorted(margins, key=lambda key: -margins[key]["fraction_of_limit_used"])
     width = 680
     pad_l, pad_r, pad_t, row_h = 300, 86, 30, 46
