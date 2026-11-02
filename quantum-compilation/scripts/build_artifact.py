@@ -39,6 +39,7 @@ from quantum_compilation.cost import (
     TASKS,
     dfthcsos_constraint_margins,
     dqi_repetition_factor,
+    lambda_eff_floor,
     lcu_vectors,
     min_lcu_lambda,
     rotation_t_count,
@@ -56,7 +57,7 @@ SEED_RECORD_PATH = EXPERIMENTS_DIR / "57834335-seeds.yaml"
 OUTPUT_PATH = PROJECT_ROOT / "docs" / "artifact" / "index.html"
 PROGRESS_PATH = PROJECT_ROOT / "experiments" / "progress" / "vqcc" / "progress.png"
 
-STATUS_DATE = "2026-10-31"
+STATUS_DATE = "2026-11-02"
 # A bar within this fraction of its limit counts as pinned, for the chart's colouring and for
 # the count the prose quotes. One constant so the two cannot disagree.
 PINNED_FRACTION = 0.999
@@ -930,12 +931,12 @@ class Artifact:
       limit, measured by our own verifier over the submitted files and recorded in
       <code>{PARTS_PATH.name}</code>. Amber is pinned, meaning within
       {(1 - PINNED_FRACTION) * 100:.1f}% of the limit: {" and ".join(pinned)}. The
-      ANGLE width has {int(angle["limit"]) - int(angle["value"])} qubits of room and the
-      one-norm Λ has a great deal, sitting {lcu["value"] / lcu["limit"]:.1f}× its floor — which
-      incidentally settles that
-      <code>MIN_LAMBDA</code> floors Λ and not λ_eff, since this submission&rsquo;s λ_eff of
-      {plateau["lambda_eff"]:.3f} is below that {lcu["limit"]:g} and still
-      passes.</figcaption>
+      ANGLE width has {int(angle["limit"]) - int(angle["value"])} qubits of room. The one-norm
+      is plotted against the floor that binds it, {min_lcu_lambda(FEMOCO_C0):.2f}, and not
+      against <code>MIN_LAMBDA</code>: that rule floors Λ rather than λ_eff — this
+      submission&rsquo;s λ_eff of {plateau["lambda_eff"]:.3f} is below
+      {lcu["limit"]:g} and still passes — but at {lcu["limit"]:g} it never binds, and plotting
+      it there drew Λ with 84% of room it does not have.</figcaption>
     </figure>
     <p>The move this part made is now legible. Its shape is <strong>R={r}, B={b}, C={c}</strong>
     — its author&rsquo;s report, and the shape of the arrays in the <code>submission.npz</code>
@@ -949,9 +950,12 @@ class Artifact:
     {capacity:,} — and the chart above is where that shows: the accuracy cap the reference
     clears at {ref_error * 100:.0f}% is the one this part is sitting on.
     <strong>Low rank is what the plateau found, and the accuracy cap is what stops it going
-    lower.</strong> Whether a shape exists that is cheaper than R·B&nbsp;=&nbsp;{r * b:,} and
-    still under the cap is unmeasured; reproducing the cost–precision atlas to find out is the
-    next experiment.</p>
+    lower.</strong> Searching for a cheaper shape than R·B&nbsp;=&nbsp;{r * b:,} was to be the
+    next experiment. It is closed: λ_eff cannot fall below
+    {lambda_eff_floor(FEMOCO_C0):.3f} for <em>any</em> factorization, against this
+    submission&rsquo;s {plateau["lambda_eff"]:.3f} — so the whole search is worth
+    {(1 - lambda_eff_floor(FEMOCO_C0) / plateau["lambda_eff"]) * 100:.2f}% of one of three cost
+    factors, about +0.24 of the +1.82 the blend needs. Why, and what is left, is below.</p>
 """
 
     def what_the_page_omits(self) -> str:
@@ -1159,6 +1163,7 @@ class Artifact:
 """
 
     def not_established(self) -> str:
+        plateau = self.parts["parts"]["dfthcsos"]
         return f"""
     <h2>Not established</h2>
     <ul>
@@ -1181,11 +1186,12 @@ class Artifact:
       <code>{PARTS_PATH.name}</code> — those are each part author&rsquo;s own report, copied from
       the dataset manifest; only <code>our_measurement</code> and the constraint margins are
       ours.</li>
-      <li><strong>Whether a cheaper factorization exists at all is unmeasured.</strong> The
-      plateau&rsquo;s headroom is now measured, but that only rules out tuning
-      <em>this</em> shape — it says nothing about which other shape to try, and we have not
-      reproduced the cost–precision atlas or fitted a factorization ourselves. Nothing here
-      shows a shape exists that is both under 20 mHa and cheaper.</li>
+      <li><strong>Whether <code>T</code> and <code>Q</code> have any headroom is
+      unmeasured.</strong> The λ_eff floor says where the chemistry score is <em>not</em> — no
+      factorization, of any shape, moves that factor by more than
+      {(1 - lambda_eff_floor(FEMOCO_C0) / plateau["lambda_eff"]) * 100:.2f}% — but it says
+      nothing about the loaders. Pricing one Toffoli in error budget is the open measurement,
+      and it may come back at zero.</li>
       <li><strong>Two leaderboard readings, neither on a circuit we designed.</strong> The loop
       agreed with the leaderboard on the reference and on this assembly of published circuits.
       Agreement there does not prove agreement on a candidate our own search produces.</li>
