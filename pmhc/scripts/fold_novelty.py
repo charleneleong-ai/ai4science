@@ -20,12 +20,13 @@ search with the whole co-fold pose matches the HLA trivially and says nothing ab
 from __future__ import annotations
 
 import subprocess
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
 import gemmi
 import typer
-from common import binder_chain, load, target_sequences, write_rows
+from common import binder_chain, load, pose_files, target_sequences, write_rows, wrote
 
 app = typer.Typer(add_completion=False)
 
@@ -45,6 +46,11 @@ COPIED_IDENTITY = 0.30
 # this catches the hits it can read and the rest are left to the identity test above.
 IG_SANDWICH = "2.60.40"
 
+# Every verdict FoldHit.verdict can return, most severe first. The ordering lives with the
+# vocabulary because the consumer reduces several databases' rows per design to the worst one;
+# when the two were written out separately, renaming a verdict here was a KeyError there.
+FOLD_VERDICTS: tuple[str, ...] = ("copy_of_known", "ig_sandwich", "shared_fold", "distinct_fold")
+
 FORMAT = "query,target,fident,alntmscore,evalue,alnlen"
 
 
@@ -63,7 +69,8 @@ class FoldHit:
         """Inadmissible, admissible-but-unremarkable, or structurally distinct.
 
         Deliberately not a TM-only verdict: see the note on SAME_FOLD. `copy_of_known` is the
-        only value that is a reject on its own.
+        only value that is a reject on its own. Returns the first rule that fires, so the
+        if-chain's order is FOLD_VERDICTS' order.
         """
         if self.tm_score >= SAME_FOLD and self.identity >= COPIED_IDENTITY:
             return "copy_of_known"
@@ -134,9 +141,7 @@ def best_hits(table: Path, database: str) -> dict[str, FoldHit]:
     best: dict[str, FoldHit] = {}
     with table.open() as handle:
         for line in handle:
-            if not (parts := line.rstrip("\n").split("\t")):
-                continue
-            if len(parts) < 6:
+            if len(parts := line.rstrip("\n").split("\t")) < 6:
                 continue
             query, target, fident, tm, evalue, alnlen = parts[:6]
             design = Path(query).stem
@@ -168,9 +173,7 @@ def main(
     ),
 ) -> None:
     exclude = target_sequences(references)
-    found = sorted(p for p in poses.rglob("*.cif") if p.is_file())
-    if not found:
-        raise typer.BadParameter(f"{poses} holds no .cif poses")
+    found = pose_files(poses)
 
     chains_dir = work / "binders"
     for pose in found:
@@ -190,15 +193,12 @@ def main(
                 f"  {hit.verdict:10s} {hit.design:24s} TM={hit.tm_score:.3f}"
                 f" id={100 * hit.identity:5.1f}%  {hit.target}"
             )
-        counts: dict[str, int] = {}
-        for hit in hits.values():
-            counts[hit.verdict] = counts.get(hit.verdict, 0) + 1
+        counts = Counter(hit.verdict for hit in hits.values())
         unmatched = len(found) - len(hits)
-        typer.echo(f"  {counts}, plus {unmatched} with no hit at all")
+        typer.echo(f"  {dict(counts)}, plus {unmatched} with no hit at all")
         rows.extend(hits.values())
 
-    written = write_rows(rows, out, label="hits")
-    typer.echo(f"\nwrote {out} ({written} rows)")
+    typer.echo("\n" + wrote(out, write_rows(rows, out)))
 
 
 if __name__ == "__main__":
