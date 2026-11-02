@@ -22,6 +22,7 @@ import html
 import json
 import math
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
@@ -39,8 +40,10 @@ from quantum_compilation.cost import (
     MAX_DQI_FAILURE_RATE,
     TASKS,
     ShapeResources,
+    cost_cut_for_blend,
     dfthcsos_constraint_margins,
     dqi_repetition_factor,
+    marginal_blend_per_unit,
     lambda_eff_floor,
     lcu_vectors,
     min_lcu_lambda,
@@ -436,6 +439,46 @@ def repetition_svg(dqi: TaskReport) -> str:
         f"R = {dqi.repetition_factor:.4f}</text>"
         + f'<text x="{pad_l + plot_w / 2:.0f}" y="{height - 8}" text-anchor="middle" '
         f'class="cax">bounded failure rate ε₊ (log)</text>',
+    )
+
+
+def toffoli_split_svg(entries: Sequence[tuple[str, float, float]]) -> str:
+    """One stacked bar per submission: the ANGLE Toffolis, then the heuristic ones.
+
+    Both on a shared scale, because the comparison that matters is absolute -- the plateau did
+    not merely shift the ratio, it cut the total by 5.7x. The ANGLE segment is the accented one
+    because it is the only part a submission can lower without spending accuracy.
+    """
+    width, bar_h, gap, pad_l, pad_r = 680, 46, 52, 150, 150
+    plot = width - pad_l - pad_r
+    scale = plot / max(free + bought for _, free, bought in entries)
+    rows = []
+    for index, (label, free, bought) in enumerate(entries):
+        y = index * (bar_h + gap) + 20
+        w_free, w_bought = free * scale, bought * scale
+        rows.append(
+            f'<text x="{pad_l - 14}" y="{y + 28}" text-anchor="end" class="cl">{label}</text>'
+            f'<rect x="{pad_l}" y="{y}" width="{w_free:.1f}" height="{bar_h}" rx="4" '
+            f'fill="var(--accent)"/>'
+            f'<rect x="{pad_l + w_free:.1f}" y="{y}" width="{w_bought:.1f}" height="{bar_h}" '
+            f'rx="4" fill="var(--neutral-mark)" fill-opacity="0.45"/>'
+            f'<text x="{pad_l + 12}" y="{y + 29}" class="cvi">{free / (free + bought):.0%}</text>'
+            f'<text x="{pad_l + w_free + w_bought + 12:.1f}" y="{y + 21}" class="cv">'
+            f"{free + bought:,.0f}</text>"
+            f'<text x="{pad_l + w_free + w_bought + 12:.1f}" y="{y + 39}" class="ct">'
+            f"{free:,.0f} free + {bought:,.0f} bought</text>"
+        )
+    legend = (
+        f'<text x="{pad_l}" y="{len(entries) * (bar_h + gap) + 14}" class="ct">'
+        "accented: ANGLE circuits, which cost no accuracy &#183; grey: fixed by the shape and brot"
+        "</text>"
+    )
+    return svg(
+        width,
+        len(entries) * (bar_h + gap) + 24,
+        "Half of the plateau submission's Toffoli count is ANGLE circuits, which cost no "
+        "accuracy budget",
+        "".join(rows) + legend,
     )
 
 
@@ -1019,6 +1062,12 @@ class Artifact:
             reference["hamiltonian_error_ha"],
             reference["e_gap_ha"],
         )
+        reference_res = ShapeResources.from_report(dfthcsos.detail)
+        plateau = self.parts["parts"]["dfthcsos"]
+        plateau_free = float(plateau["T_angles"])
+        plateau_bought = float(plateau["T_total"]) - plateau_free
+        blend = self.our_score
+        cut = cost_cut_for_blend(blend, ESCAPE_SCORE)
         return f"""
     <h2>What a chemistry submission actually controls</h2>
     <p class="finding">The ANGLE circuits a submission ships are
@@ -1039,6 +1088,46 @@ class Artifact:
       {resources["outer_state_prep_temporary_qubits"]},
       {resources["inner_state_prep_temporary_qubits"]}).</figcaption>
     </figure>
+    <h2>What one Toffoli is worth, and which ones are for sale</h2>
+    <p class="finding">Driving the verifier&rsquo;s own cost model at the plateau&rsquo;s shape
+    reproduces its recorded T and Q exactly, and splits them: <strong>{plateau_free:,.0f} of the
+    {plateau["T_total"]:,.0f} Toffolis ({plateau_free / plateau["T_total"]:.1%}) are ANGLE
+    circuits</strong>, which a submission writes and so can make cheaper at <em>identical</em>
+    accuracy. The rest is closed-form in <code>(R, B, C)</code> and <code>brot</code>, payable
+    only in accuracy &mdash; and the accuracy is spent, the binding residual at
+    {plateau["constraint_margins"]["hamiltonian_error_ha"]["fraction_of_limit_used"] * 100:.3f}%
+    of its cap.</p>
+    <figure>
+      {toffoli_split_svg([
+          ("reference", reference_res.angle_toffoli, float(reference_res.heuristic_toffoli)),
+          ("plateau (submitted)", plateau_free, plateau_bought),
+      ])}
+      <figcaption>The plateau cut the total 5.7&times; and, in doing so, cut the free share from
+      {reference_res.angle_share:.0%} to {plateau_free / plateau["T_total"]:.0%} &mdash; the
+      heuristic half shrank faster than the loaders did. Reference split read from its own
+      verifier report; the plateau&rsquo;s from
+      <code>T_angles</code>&nbsp;/&nbsp;<code>T_total</code> in its parts record.</figcaption>
+    </figure>
+    <p>At this cost, one Toffoli is worth
+    <strong>{marginal_blend_per_unit(blend, plateau["T_total"]):+.6f}</strong> blend and
+    one qubit {marginal_blend_per_unit(blend, plateau["Q_total"]):+.6f} &mdash; a qubit
+    is worth {plateau["T_total"] / plateau["Q_total"]:.0f} Toffolis purely because Q is that much
+    smaller. Reaching {ESCAPE_SCORE:g} needs
+    <strong>{cut:.2%}</strong> off this cost:
+    {plateau["T_total"] * cut:,.0f} Toffolis, or
+    {plateau["Q_total"] * cut:,.0f} qubits, or any
+    mix. <strong>Out of the free share alone that is loaders
+    {plateau["T_total"] * cut / plateau_free:.0%}
+    cheaper</strong> &mdash; large, and the only direction left that costs no accuracy.</p>
+    <p class="note">Every way of buying the bought half is closed, measured rather than argued.
+    <code>brot</code> cannot go down: re-rounding the submitted angles onto the
+    <code>brot&nbsp;=&nbsp;7</code> grid breaches the 20&nbsp;mHa cap by <strong>118&times;</strong>
+    on <code>error_1</code>, and they already sit on that cap at 8, so a fresh fit at half the
+    grid spacing would have to beat re-rounding by two orders of magnitude.
+    <code>brot</code> cannot go up: at 9 the inner preparation&rsquo;s QROAM jumps to a branch
+    taking the shared workspace from 304 to 607 qubits, costing <strong>&minus;3.27 blend</strong>
+    despite 1,316 fewer Toffolis. And the shape cannot be re-split: at a constant
+    R&middot;B&nbsp;=&nbsp;1,144 the submitted (8,&nbsp;143) beats all 16 integer factor pairs.</p>
     <p class="note">The reference sits close to three cliffs, all of which reject outright rather
     than gracefully: the widest ANGLE circuit at {int(angle["value"])} qubits against the
     {int(angle["limit"])} cap ({angle["fraction_of_limit_used"] * 100:.0f}% of it), the binding

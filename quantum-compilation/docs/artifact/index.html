@@ -296,6 +296,43 @@ a { color: var(--accent); }
       370,
       544).</figcaption>
     </figure>
+    <h2>What one Toffoli is worth, and which ones are for sale</h2>
+    <p class="finding">Driving the verifier&rsquo;s own cost model at the plateau&rsquo;s shape
+    reproduces its recorded T and Q exactly, and splits them: <strong>8,336 of the
+    16,266 Toffolis (51.2%) are ANGLE
+    circuits</strong>, which a submission writes and so can make cheaper at <em>identical</em>
+    accuracy. The rest is closed-form in <code>(R, B, C)</code> and <code>brot</code>, payable
+    only in accuracy &mdash; and the accuracy is spent, the binding residual at
+    99.999%
+    of its cap.</p>
+    <figure>
+      <svg viewBox="0 0 680 220" role="img" aria-label="Half of the plateau submission's Toffoli count is ANGLE circuits, which cost no accuracy budget"><text x="136" y="48" text-anchor="end" class="cl">reference</text><rect x="150" y="20" width="323.9" height="46" rx="4" fill="var(--accent)"/><rect x="473.9" y="20" width="56.1" height="46" rx="4" fill="var(--neutral-mark)" fill-opacity="0.45"/><text x="162" y="49" class="cvi">85%</text><text x="542.0" y="41" class="cv">93,237</text><text x="542.0" y="59" class="ct">79,480 free + 13,757 bought</text><text x="136" y="146" text-anchor="end" class="cl">plateau (submitted)</text><rect x="150" y="118" width="34.0" height="46" rx="4" fill="var(--accent)"/><rect x="184.0" y="118" width="32.3" height="46" rx="4" fill="var(--neutral-mark)" fill-opacity="0.45"/><text x="162" y="147" class="cvi">51%</text><text x="228.3" y="139" class="cv">16,266</text><text x="228.3" y="157" class="ct">8,336 free + 7,930 bought</text><text x="150" y="210" class="ct">accented: ANGLE circuits, which cost no accuracy &#183; grey: fixed by the shape and brot</text></svg>
+      <figcaption>The plateau cut the total 5.7&times; and, in doing so, cut the free share from
+      85% to 51% &mdash; the
+      heuristic half shrank faster than the loaders did. Reference split read from its own
+      verifier report; the plateau&rsquo;s from
+      <code>T_angles</code>&nbsp;/&nbsp;<code>T_total</code> in its parts record.</figcaption>
+    </figure>
+    <p>At this cost, one Toffoli is worth
+    <strong>+0.000475</strong> blend and
+    one qubit +0.017970 &mdash; a qubit
+    is worth 38 Toffolis purely because Q is that much
+    smaller. Reaching 25 needs
+    <strong>20.28%</strong> off this cost:
+    3,298 Toffolis, or
+    87 qubits, or any
+    mix. <strong>Out of the free share alone that is loaders
+    40%
+    cheaper</strong> &mdash; large, and the only direction left that costs no accuracy.</p>
+    <p class="note">Every way of buying the bought half is closed, measured rather than argued.
+    <code>brot</code> cannot go down: re-rounding the submitted angles onto the
+    <code>brot&nbsp;=&nbsp;7</code> grid breaches the 20&nbsp;mHa cap by <strong>118&times;</strong>
+    on <code>error_1</code>, and they already sit on that cap at 8, so a fresh fit at half the
+    grid spacing would have to beat re-rounding by two orders of magnitude.
+    <code>brot</code> cannot go up: at 9 the inner preparation&rsquo;s QROAM jumps to a branch
+    taking the shared workspace from 304 to 607 qubits, costing <strong>&minus;3.27 blend</strong>
+    despite 1,316 fewer Toffolis. And the shape cannot be re-split: at a constant
+    R&middot;B&nbsp;=&nbsp;1,144 the submitted (8,&nbsp;143) beats all 16 integer factor pairs.</p>
     <p class="note">The reference sits close to three cliffs, all of which reject outright rather
     than gracefully: the widest ANGLE circuit at 119 qubits against the
     128 cap (93% of it), the binding
