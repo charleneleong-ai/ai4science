@@ -1,12 +1,14 @@
 ## Highlights
-**Status 2026-10-31:** best **0.477** (merged-fork), from 0.115 at the first submission. It is Busya PRIME's public
-0.477 notebook run unchanged as our private kernel: the 0.465 data-fork pipeline, then a leader-safe neural re-rank
-(spectrum model at weight 0.25 for rank 1, 0.75 for ranks 2–25) and Roman Tamrazov's fragment check on rank 1.
-29 submissions scored. The leaderboard top is 0.517.
+**Status 2026-11-02 (AEDT):** best **0.479** (dedup-fork), from 0.115 at the first submission. It is alex chilton's
+public 0.479 notebook run unchanged as our private kernel: the 0.477 merged-fork pipeline plus a documentation prior on
+ranks 2–25, the old leader pinned at rank 2 and InChIKey14 deduplication. Its +0.002 over 0.477 is inside run-to-run
+noise, so it is the new base (KEEP) but not a measured gain. 30 submissions scored. Two offline probes closed without a
+submission (MIST `msg_aug` encoder, an external GNPS+MassSpecGym library). The leaderboard top is 0.521.
 
 | | public MRR@25 | submission |
 |---|---|---|
-| current best | **0.477** | merged-fork |
+| current best (inside the noise of 0.477) | **0.479** | dedup-fork |
+| merged fork | 0.477 | merged-fork |
 | data fork | 0.465 | data-fork |
 | PubChemLite fork | 0.456 | pubchemlite-fork |
 | E006 fork | 0.446 | e006-fork |
@@ -19,6 +21,8 @@
   analog propagation and LightGBM ranker use train matches as evidence, where our pipeline excluded them. Two later public forks added +0.019 (PubChemLite in engine 2, then proxy re-ordering and fold-safe FPNets).
 - **A neural re-rank helps only when it cannot move rank 1:** at weight 0.25 for rank 1 and 0.75 below it, plus a
   fragment check on rank 1, it added +0.012 (merged-fork); the same model at a flat 0.50 lost 0.021 (neural-fork).
+- **The 0.479 rebase is not a measured gain:** +0.002 over 0.477 is below G1 (+0.005) and inside the source's own
+  run-to-run spread (~0.002); it is kept because it is the current public line, not because it was shown to help.
 - **A learned spectrum model was the biggest lever:** FPNet in place of fragment matching, +0.115.
 - **Forward models were the second:** ICEBERG then GLACIER, +0.087 from v11 to v15, most of it from
   GLACIER (+0.028) and from weighting both at 1.0 instead of 0.5 (+0.029).
@@ -40,7 +44,8 @@
 | 2026-10-17 | e006-fork | the public 0.446 E006 notebook, unchanged, as our kernel | 0.446 |
 | 2026-10-20 | pubchemlite-fork | the public 0.456 notebook (+ PubChemLite in engine 2), unchanged | 0.456 |
 | 2026-10-24 | data-fork | the public 0.464 notebook (v26: proxy re-ordering, fold-safe FPNets, candidate-aware promotion), unchanged | 0.465 |
-| 2026-10-31 | merged-fork | the public 0.477 notebook (leader-safe neural re-rank + fragment check on rank 1), unchanged | **0.477** |
+| 2026-10-31 | merged-fork | the public 0.477 notebook (leader-safe neural re-rank + fragment check on rank 1), unchanged | 0.477 |
+| 2026-11-01 | dedup-fork | the public 0.479 notebook (documentation prior + InChIKey14 dedup on ranks 2–25), unchanged; inside the noise | **0.479** |
 
 ## Task
 [CASMI 2026](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra): rank
@@ -50,9 +55,15 @@ visible.
 
 ## Approach
 The current best is an unchanged fork of the public notebook
-[LB 0.477 · Two 0.472 Fixes, Merged the Right Way](https://www.kaggle.com/code/busyaprime/lb-0-477-two-0-472-fixes-merged-the-right-way),
-[`notebooks/fork477/merged_fork.ipynb`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork477/merged_fork.ipynb).
-It runs the pinned 0.465 pipeline once ([`fork464`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork464)):
+[CASMI26 LB 0.479 | MIDX Exact Dedup Fill](https://www.kaggle.com/code/alexchilton/casmi26-lb-0-479-midx-exact-dedup-fill)
+(alex chilton, running Baidalin Adilzhan's *midx exact dedup fill* unchanged),
+[`notebooks/fork479/fork479.ipynb`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork479/fork479.ipynb).
+It is the 0.477 merged notebook
+([`fork477`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork477)) with a
+final layer on ranks 2–25: a documentation prior (PubChem popularity 0.10, a spectral-library bonus 0.05 where the best
+library match reaches 0.87, a natural-product bonus 0.02), the old leader pinned at rank 2 after a fragment-check move,
+and deduplication by the metric's InChIKey14 key, with freed slots filled by scored outside candidates. Underneath, it
+runs the pinned 0.465 pipeline once ([`fork464`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork464)):
 library search of every test spectrum against train with analog propagation, a public LightGBM ranker, PubChem,
 PubChemLite, ChEBI and LipidMaps candidates, a second engine's ranks fused in, ICEBERG and GLACIER re-scoring with
 proxies, fold-safe FPNets and a candidate-aware rank-1 promotion. On top it re-ranks the final 25 with a public
@@ -77,6 +88,7 @@ Generated by `casmi wandb-sync`.
 | PubChemLite in engine 2 + N1A + popularity 0.15 (e006-fork → pubchemlite-fork) | +0.010 |
 | proxy re-ordering, fold-safe FPNets, candidate-aware promotion (pubchemlite-fork → data-fork) | +0.009 |
 | leader-safe neural re-rank + fragment check on rank 1 (data-fork → merged-fork) | +0.012 |
+| documentation prior + leader pin + InChIKey14 dedup on ranks 2–25 (merged-fork → dedup-fork) | +0.002, inside the noise |
 | FPNet in place of fragment explainability | +0.115 |
 | popularity shortlist instead of nearest-mass cut | +0.086 |
 | GLACIER beside ICEBERG | +0.028 |
@@ -108,6 +120,15 @@ Generated by `casmi wandb-sync`.
   0.477 base. Anchors with library match ≥ 0.87 boost candidates similar to their leader in molecules at spectral
   cosine ≥ 0.70 (at most 113 / 400 reachable). On labelled natural products such neighbours share structure 46% of
   the time; not enough to move the leaderboard at λ 0.10.
+- MIST `msg_aug` encoder for the de novo route (offline, 2026-11-01, no submission): mean fingerprint Tanimoto 0.385 on
+  the 50 FRIGID panel molecules against a pre-registered gate of 0.40 (the old `mist_msg.pt`: 0.261). The `noaug`
+  control is unusable (0.19 even on its own training spectra), so the source of the gain is not measured. The
+  MIST/FRIGID line stays closed.
+- An external GNPS + MassSpecGym library ([Zenodo 20042904](https://zenodo.org/records/20042904), offline, 2026-11-01,
+  no submission): 3,096 of its 41,210 structures (13,814 spectra) are not already in train, and they match 0 / 400 test
+  molecules at cosine ≥ 0.5 within 20 ppm in the same ion mode. Caveat: every visible test spectrum matches train at
+  ≥ 0.87, so the visible test looks like train stand-ins, not the hidden test; for novel Enveda-180-like structures
+  exact reach is about 0 by construction.
 - PubChem promotion at rel > 100 on E006: not run; its public sibling already scored 0.444 against 0.446.
 - FRIGID de novo (offline, 2026-10-18, no submission): 0 / 50 exact in the top 10 on Enveda-180 molecules with no
   public spectra, even with the true formula (bar fixed beforehand: 5 / 50). Its MIST encoder's fingerprints reach
@@ -118,11 +139,19 @@ Generated by `casmi wandb-sync`.
   are a property of the visible test (train examples), not the hidden test the leaderboard scores.
 
 ## Next
-The base is now the 0.477 merged fork. Analogue propagation across test molecules scored 0.477 (no change). No
-offline panel can rank changes at this level: sanpier's labelled panel ranks the 0.477 recipe below 0.465, so only the
-leaderboard measures, at about ±0.010 per comparison. Before the 0.477 fork, the base was the 0.465 data fork. Single settings of the E006 family look tuned (promotion threshold swept upstream,
+The base is now the 0.479 dedup fork (inside the noise of 0.477, kept because it is the current public line). No public
+notebook sits between 0.479 and the leaders, and no leader has published a method. The one resource left unused by
+every public notebook is the [ICEBERG PubChem atlas](https://iceberg-ms.mit.edu/) (predicted spectra for 91.4M PubChem
+structures), which the host allowed as a private dataset on 2026-10-28
+([discussion 745134](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra/discussion/745134));
+free open pre-built datasets are allowed generally
+([753662](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra/discussion/753662)). It is the
+next candidate (1–2 days): first measure the atlas's InChIKey14 coverage of answers below rank 1, and submit only if
+the reach clears the noise. Analogue propagation scored 0.477 (no change). No offline panel can rank changes at this
+level: sanpier's labelled panel ranks the 0.477 recipe below 0.465, so only the leaderboard measures, at about ±0.010
+per comparison. Before the 0.477 fork, the base was the 0.465 data fork. Single settings of the E006 family look tuned (promotion threshold swept upstream,
 engine-2 weight 0.8 lost 0.009, forward models already at 1.0, a neural re-rank at weight 0.50 lost 0.021), and the
 de novo route failed offline. The public
 lineage has gained +0.044 in a week (0.421 → 0.465), so a daily check of new public notebooks, forking any credible
-improvement that reproduces, is the cheapest lever left. The leaderboard top is 0.504. The weekly GPU quota (30 h)
-resets 2026-10-31 00:00 UTC; a fork costs about 2.5–3 GPU hours including the scoring rerun.
+improvement that reproduces, is the cheapest lever left. The leaderboard top is 0.521 (Savko; then 0.519 and 0.512, 2026-11-01). A fork costs about
+2.5–3 GPU hours of the weekly 30 h quota, including the scoring rerun.

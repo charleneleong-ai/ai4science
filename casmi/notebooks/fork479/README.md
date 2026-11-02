@@ -23,7 +23,7 @@ inside the noise.
 
 | kernel version | change | public MRR@25 |
 |---|---|---|
-| 1 | none: upstream as of 2026-11-01 | pending |
+| 1 | none: upstream as of 2026-11-01 | **0.479** (ref 57867559, 2026-11-01; reproduces upstream; KEEP, +0.002 over 0.477 is inside the noise) |
 
 Run with [`scripts/kaggle_chain.sh`](../../scripts/kaggle_chain.sh). The gate is `~/casmi-data/gates/gate_fork479.py`:
 the `fork477` gate, plus the final layer's own log lines, and no `Note: ... exception` line. Those lines are how the

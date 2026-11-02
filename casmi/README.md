@@ -6,14 +6,18 @@ up to 25 ranked SMILES per test molecule, scored by MRR@25 on the InChIKey conne
 It is a code competition — a notebook, internet off — so every model and database is attached as a
 Kaggle dataset.
 
-**Best: 0.477** (2026-10-31: Busya PRIME's public 0.477 notebook run unchanged as our private kernel
-[`casmi-merged-fork`](notebooks/fork477)). It runs the 0.465 pipeline below, then a leader-safe neural re-rank
-(spectrum model at weight 0.25 for rank 1 and 0.75 for ranks 2–25) and a fragment check that may replace rank 1.
+**Best: 0.479** (2026-11-01: alex chilton's public 0.479 notebook run unchanged as our private kernel
+[`casmi-fork479`](notebooks/fork479)). It is the 0.477 pipeline plus a documentation prior on ranks 2–25 (PubChem
+popularity, spectral-library and natural-product bonuses), the old leader pinned at rank 2 and InChIKey14
+deduplication. Its +0.002 over 0.477 is inside run-to-run noise, so it is kept as the base (KEEP), not counted as a
+measured gain. The 0.477 pipeline ([`fork477`](notebooks/fork477), Busya PRIME's public notebook) runs the 0.465
+pipeline below, then a leader-safe neural re-rank (spectrum model at weight 0.25 for rank 1 and 0.75 for ranks 2–25)
+and a fragment check that may replace rank 1.
 The 0.465 pipeline is dmitriigluzdov's public notebook, version 26 ([`fork464`](notebooks/fork464)). It builds on the 0.456 PubChemLite notebook ([`fork456`](notebooks/fork456)):
 GLACIER proxies kept where ICEBERG scores exist, joint ICEBERG+GLACIER re-ordering, fold-safe FPNets in the PubChem
 channel and a candidate-aware rank-1 PubChem promotion. The E006 lineage before it is
 [`fork446`](notebooks/fork446) (0.446). Our own pipeline's best is
-0.356 (v19, 2026-10-12). The top of the leaderboard is 0.517 (2026-10-30). The first submission scored 0.115 against a local estimate of 0.664; that estimate was
+0.356 (v19, 2026-10-12). The top of the leaderboard is 0.521 (2026-11-01). The first submission scored 0.115 against a local estimate of 0.664; that estimate was
 retracted, and since then only the leaderboard is trusted. The full history, one change per
 submission, is in [PR #80](https://github.com/charleneleong-ai/ai4science/pull/80) and the
 [spike writeup](docs/2026-10-07-casmi-spike.md).

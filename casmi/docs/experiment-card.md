@@ -1,9 +1,10 @@
 # Experiment card — CASMI 2026 molecule identification
 
 Pattern: [*A generated protein is not a result*](https://rewirebio.io/blog/a-generated-protein-is-not-a-result/),
-applied to a retrieve-and-rank campaign. Status as of 2026-10-31: the current best (0.477) is an
-unchanged fork of Busya PRIME's public 0.477 notebook, [`notebooks/fork477/merged_fork.ipynb`](../notebooks/fork477/merged_fork.ipynb);
-the previous best (0.465) is an unchanged fork of dmitriigluzdov's public notebook at version 26, [`notebooks/fork464/data_fork.ipynb`](../notebooks/fork464/data_fork.ipynb);
+applied to a retrieve-and-rank campaign. Status as of 2026-11-02 (AEDT): the current best (0.479, inside the noise of
+0.477) is an unchanged fork of alex chilton's public 0.479 notebook, [`notebooks/fork479/fork479.ipynb`](../notebooks/fork479/fork479.ipynb);
+the base before it (0.477) is an unchanged fork of Busya PRIME's public 0.477 notebook, [`notebooks/fork477/merged_fork.ipynb`](../notebooks/fork477/merged_fork.ipynb);
+before it (0.465) is an unchanged fork of dmitriigluzdov's public notebook at version 26, [`notebooks/fork464/data_fork.ipynb`](../notebooks/fork464/data_fork.ipynb);
 before it (0.456), an unchanged fork of Hongbin Gu's public 0.456 notebook, [`notebooks/fork456/pubchemlite_fork.ipynb`](../notebooks/fork456/pubchemlite_fork.ipynb);
 before it (0.446), an unchanged fork of the public E006 notebook,
 [`notebooks/fork446/e006_fork.ipynb`](../notebooks/fork446/e006_fork.ipynb); the first fork (0.415) is of the 0.421 notebook,
@@ -21,7 +22,22 @@ before it (0.446), an unchanged fork of the public E006 notebook,
 | scored on | the **public** leaderboard split only; the private split is not visible until the competition closes |
 | rules | code competition: notebook only, internet off; about 5 submissions a day |
 
-## Current best — merged-fork, public MRR@25 0.477
+## Current best — dedup-fork, public MRR@25 0.479 (KEEP, inside the noise)
+
+| | |
+|---|---|
+| kernel | `charyeezy/casmi-fork479` (private), kernel version 1, submission 57867559 (2026-11-01 20:37 AEDT), commit `a719425`; reproduces the source's public 0.479; +0.002 over merged-fork, below G1's +0.005 and inside the source's own run-to-run spread (~0.002), so KEEP: adopted as the base, not a measured gain |
+| source | [CASMI26 LB 0.479 \| MIDX Exact Dedup Fill](https://www.kaggle.com/code/alexchilton/casmi26-lb-0-479-midx-exact-dedup-fill) (alex chilton), which runs Baidalin Adilzhan's *casmi26 midx exact dedup fill* unchanged; byte-identical to its version as of 2026-11-01 (md5 `a6871ca326db69f8c4a5caff8d6b7d36`); only [`kernel-metadata.json`](../notebooks/fork479/kernel-metadata.json) differs (our id, private). Vendored in [`notebooks/fork479/README.md`](../notebooks/fork479/README.md) |
+| method | the merged-fork pipeline below, then a final layer on ranks 2–25: a documentation prior from `pool_popularity.csv` (PubChem popularity 0.10, spectral-library bonus 0.05 only where the best library match reaches 0.87, natural-product bonus 0.02); the old leader pinned at rank 2 after a fragment-check move; deduplication by the metric's InChIKey14 key, freed slots filled with scored outside candidates. Rank 1 is left to the merged-fork logic |
+| datasets | 8, as listed in [`kernel-metadata.json`](../notebooks/fork479/kernel-metadata.json): merged-fork's seven plus `metric/rdkit-2026-3-3-wheel` |
+| runtime | image `gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461`, NVIDIA T4, internet off |
+| run evidence | gate `~/casmi-data/gates/gate_fork479.py` (outside the repo) passed on the commit run: the merged-fork gate, plus the final layer's log lines: the prior loaded 710,701 pool records and reordered ranks 2–25 in 12 / 12 smoke rows, 0 dedup swaps and 0 outsider fills on the smoke run, no `Note: ... exception` line (no neutral-prior fallback taken). Outputs: `~/casmi-data/kernel_outputs/fork479-v1` |
+
+The settings were fixed by the notebook's authors before we ran it; we chose none of them. The source's own table
+shows the same code about 0.002 apart between runs, and two notebooks reported at 0.478 rescored 0.468 and 0.476, so
+0.479 is numerically our highest public score but not distinguishable from 0.477.
+
+## Previous best — merged-fork, public MRR@25 0.477
 
 | | |
 |---|---|
@@ -46,7 +62,7 @@ leader or candidate set changed against `submission_pre_analogue.csv`. It scored
 identical to the base: no measurable effect at λ 0.10, discarded. The hidden rerun's logs are not visible,
 so whether few lists moved or the moves did not matter is not established.
 
-## Previous best — data-fork, public MRR@25 0.465
+## Earlier best — data-fork, public MRR@25 0.465
 
 | | |
 |---|---|
@@ -138,7 +154,25 @@ scoring. Its one change so far, `PC_N1=10000` (fork-v2), was chosen from our rec
 
 ## Offline experiments — no submission
 
-Both ran on 2026-10-18 on an Apple M5 (PyTorch 2.6.0, MPS), outside Kaggle; nothing was submitted.
+**MIST `msg_aug` encoder probe, FAIL (2026-11-01).** Run on an A100 80 GB, about 21:30 AEDT; notes:
+[`research_notes/2026-11-01-mist-msg-aug/notes.md`](../research_notes/2026-11-01-mist-msg-aug/notes.md).
+
+| | |
+|---|---|
+| models | `mist_msg_aug.ckpt` and `mist_msg_noaug.ckpt` from [Zenodo 23303289](https://zenodo.org/records/23303289) (md5 `3e921792…` and `80594e4d…`, both matching the record); [coleygroup/MIST](https://github.com/coleygroup/MIST) at `48e339be` |
+| sample | the same 50 Enveda-180 FRIGID targets as below, plus the two 40-spectrum check samples; 2 of 130 spectra had no annotated peaks and stay in the denominator |
+| gate | mean fingerprint Tanimoto ≥ 0.40 on the 50 FRIGID molecules (4096-bit Morgan r2), **fixed before the run** |
+| result | `msg_aug` 0.385 (median 0.336, SE 0.022, 17 / 50 at ≥ 0.4), against 0.261 for the old `mist_msg.pt`: 0.015 short, so FAIL; the MIST/FRIGID line stays closed. Reopening it would be a post-hoc decision |
+| control | `noaug` is unusable: 0.19 even on its own training spectra (`aug`: 0.86), saved at step 30,000 against 430,965; how much of the gain is the synthetic data rather than code or training length is not measured |
+
+**External GNPS + MassSpecGym library, reach 0 (2026-11-01).** [Zenodo 20042904](https://zenodo.org/records/20042904)
+(CC BY 4.0) holds 41,210 structures; 3,096 of them (13,814 spectra) are not already in `train.parquet`, which holds
+221k GNPS, 102k MassBank and 92k MoNA spectra. Those 3,096 match **0 / 400** test molecules at cosine ≥ 0.5 within
+20 ppm in the same ion mode, so it was dropped without a submission. Caveat: every visible test spectrum matches train
+at ≥ 0.87, so the visible test looks like train stand-ins rather than the hidden test; for novel Enveda-180-like
+structures exact reach is about 0 by construction.
+
+The two below ran on 2026-10-18 on an Apple M5 (PyTorch 2.6.0, MPS), outside Kaggle; nothing was submitted.
 Full record: `~/casmi-data/frigid/RESULTS.md` (outside the repo).
 
 **FRIGID de novo, NO-GO.**
@@ -202,7 +236,7 @@ fragment check has none.
 
 ## Budget — every attempt in the denominator
 
-- **29 submissions, 29 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
+- **30 submissions, 30 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
   to measure noise (0.353 vs 0.356); every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including those not kept
   (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise), v19 (0.356, kept), v20 (0.354) and v21 (0.333) in
@@ -214,15 +248,17 @@ fragment check has none.
   data-fork (0.465, 57588653, kernel version 1, promoted). One from the 0.466 neural re-rank notebook:
   neural-fork (0.444, 57615727, kernel version 1, discarded). One from the 0.477 notebook: merged-fork
   (0.477, 57822991, kernel version 1, promoted); its kernel version 2, analogue-fork (0.477, 57826104, discarded).
+  One from the 0.479 notebook: dedup-fork (0.479, 57867559, kernel version 1, kept within the noise).
 - **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
   molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
   it finished because an empty mass window would have crashed it).
-- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork, 1 of the 0.451 notebook, 1 of the 0.456 notebook, 1 of the version-26 notebook, 1 of the 0.466 neural re-rank notebook and 2 of the 0.477 notebook; of our own pipeline's, the 3 not submitted were setup or reproducibility runs
+- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork, 1 of the 0.451 notebook, 1 of the 0.456 notebook, 1 of the version-26 notebook, 1 of the 0.466 neural re-rank notebook, 2 of the 0.477 notebook and 1 of the 0.479 notebook; of our own pipeline's, the 3 not submitted were setup or reproducibility runs
   (a missing RDKit wheel, a push-from-repo check). The E006 fork's version 1 ran on the CPU image
   its source's metadata names, failed the notebook's GPU preflight and was not submitted.
-- **Two offline experiments, not submissions:** FRIGID de novo (50 molecules, 3819 generations of
-  which 3588 valid, all 50 in the denominator) and the FPNet encoder check (50 held-out molecules);
-  see above.
+- **Four offline experiments, not submissions:** FRIGID de novo (50 molecules, 3819 generations of
+  which 3588 valid, all 50 in the denominator), the FPNet encoder check (50 held-out molecules), the
+  MIST `msg_aug` probe (50 FRIGID molecules, 0.385 against the 0.40 gate) and the external-library reach
+  check (3,096 new structures, 0 / 400 test molecules reached); see above.
 - **One change not run, on a reach check:** PubChem promotion at `rel > 100` on E006. Decided before
   any submission, from public evidence: its public sibling notebook already scored 0.444 against 0.446,
   so its best case sits inside the noise.
@@ -251,6 +287,9 @@ fragment check has none.
 | the neural fork's settings (frozen 0.465 baseline, spectrum model, RRF constant 3) | by its author, before we ran it | not ours; its weight 0.25 was scored on the public leaderboard |
 | neural re-rank weight 0.50 (neural-fork) | **before** it was submitted | one setting per submission; scored 0.444, discarded |
 | the merged fork's settings (re-rank weights 0.25 / 0.75, fragment check, `[P0, V0]` leader merge) | by its authors, before we ran it | not ours; each change was scored on the public leaderboard (0.472 each) |
+| the dedup fork's settings (prior weights 0.10 / 0.05 / 0.02, library gate 0.87, leader pin, InChIKey14 dedup) | by its authors, before we ran it | not ours; scored on the public leaderboard upstream (0.479) |
+| MIST `msg_aug` gate: mean Tanimoto ≥ 0.40 on the 50 FRIGID molecules | **before** the run (2026-11-01) | pre-registered; 0.385 fails it, so no FRIGID decode was run |
+| external-library reach: cosine ≥ 0.5, 20 ppm, same ion mode, structures absent from train | **before** the count | a reach check; 0 / 400, so no submission |
 | analogue propagation (fork477 v3: anchor ≥ 0.87, cosine ≥ 0.70, λ 0.10, rank 1 frozen) | **before** it was submitted | its reach (113 / 400) checked first; no offline panel can score it; scored 0.477, no change, discarded |
 | FRIGID go bar: top-10 exact ≥ 5 / 50 with the true formula | **before** the run (2026-10-18) | pre-registered; MIST-MSG over CANOPUS also fixed before |
 | FRIGID encoder diagnostics (MassBank vs Enveda Tanimoto, oracle fingerprint) | **after** the 0 / 50 result | post hoc; explain the failure, not a statistic |
@@ -258,7 +297,7 @@ fragment check has none.
 | keep the attached GLACIER checkpoint (ms-pred's public MassSpecGym-trained) | 2026-10-17, before any swap | the paper's contrastive fine-tune gives 69.95 against 69.69 MassSpecGym top-1; its NIST gain needs NIST-licensed weights |
 
 Choices marked **after** were selected on the public leaderboard, so our pipeline's 0.356 is an
-optimistic estimate of the private score; the forks' 0.415, 0.446, 0.456, 0.465 and 0.477 involve none of ours, though the E006 threshold and the 0.456 notebook's popularity weight were tuned on the public split by their authors. Differences under about ±0.005 — the run-to-run noise
+optimistic estimate of the private score; the forks' 0.415, 0.446, 0.456, 0.465, 0.477 and 0.479 involve none of ours, though the E006 threshold and the 0.456 notebook's popularity weight were tuned on the public split by their authors. Differences under about ±0.005 — the run-to-run noise
 of identical runs — were treated as no change.
 
 ## What is not measured
@@ -272,6 +311,10 @@ of identical runs — were treated as no change.
 - **Whether a de novo route could help with a better encoder.** FRIGID found 0 / 50 with MIST's
   fingerprints; an encoder fine-tuned on Enveda's spectra is untested. The 39–52% of the test outside
   PubChem and COCONUT is the SOTA sweep's estimate, not a measurement on the hidden test.
+- **Whether the 0.479 layer helps at all.** +0.002 over 0.477 is inside the source's ~0.002 run-to-run spread; the
+  layer's effect on its own (documentation prior, leader pin, dedup) is not measured by us.
+- **What `msg_aug` would do to ranking.** At Tanimoto 0.26 FRIGID found 0 / 50; whether 0.385 gives any hits, or helps
+  as an FPNet replacement or a re-ranking feature, was not run.
 - **What in the 0.477 notebook earns its +0.012.** We ran it unchanged; the split between the leader-safe
   re-rank and the fragment check (0.472 each upstream) is unmeasured by us.
 - **Whether a larger λ would help analogue propagation.** At λ 0.10 it gave no change (0.477 against 0.477; at most 113 / 400 molecules reachable); a larger λ is untested, and why it changed nothing (few lists moved, or the moves did not matter) is not established.

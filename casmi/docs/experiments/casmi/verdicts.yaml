@@ -73,4 +73,7 @@ submissions:
   - {version: 2, label: analogue-fork, outputs: fork477-v3, ref: 57826104, date: 2026-10-31, family: fusion, commit: cfabe09,
      score: 0.477, verdict: DISCARD,
      change: "merged fork + analogue propagation across test molecules on ranks 2-25 (anchors library >= 0.87, cosine >= 0.70, lambda 0.10)"}
+  - {version: 1, label: dedup-fork, outputs: fork479-v1, ref: 57867559, date: 2026-11-01, family: rebase, commit: a719425,
+     score: 0.479, verdict: KEEP,
+     change: "the public 0.479 notebook (alexchilton / baidalinadilzhan) unchanged: the 0.477 merge + PubChem/library/NP documentation prior on ranks 2-25, old leader pinned at rank 2, metric-exact InChIKey14 dedup; +0.002 is inside run-to-run noise, kept as the base"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==

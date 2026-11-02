@@ -4,9 +4,9 @@
 \usepackage{amsmath}
 \usepackage[hidelinks]{hyperref}
 
-\title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.477}
+\title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.479}
 \author{Charlene Leong}
-\date{31 October 2026}
+\date{2 November 2026}
 
 \begin{document}
 \maketitle
@@ -35,8 +35,11 @@ FRIGID, given the true formula, placed the answer in its top 10 for 0 of 50 held
 a pre-registered bar of 5. A sixth fork, a neural spectrum-model re-rank of the final 25 at twice its
 upstream weight, scored 0.444 and was discarded. A seventh, Busya PRIME's public 0.477 notebook, which keeps
 the same re-rank off rank 1 (weight 0.25 there, 0.75 for ranks 2--25) and adds a fragment check that may
-replace rank 1, scored 0.477 as our kernel, $+0.012$ over the 0.465 fork and the current best. Analogue propagation across
-test molecules on top of it scored the same 0.477 and was discarded. 29 submissions were made and all were
+replace rank 1, scored 0.477 as our kernel, $+0.012$ over the 0.465 fork, the last measured gain. Analogue propagation across
+test molecules on top of it scored the same 0.477 and was discarded. A ninth, alex chilton's public 0.479 notebook,
+which adds a documentation prior and InChIKey14 deduplication on ranks 2--25, scored 0.479: our highest public score,
+but $+0.002$ is inside the run-to-run noise, so it is kept as the base, not counted as a gain. Two offline probes, a
+newer MIST encoder and an external spectral library, were closed without a submission. 30 submissions were made and all were
 scored. No calibrated local estimate of the score exists.
 \end{abstract}
 
@@ -47,7 +50,16 @@ the first 14 characters of the InChIKey. The competition runs notebooks offline,
 and model is attached as a dataset. Only the public split of the leaderboard is visible.
 
 \section{Method}
-\textbf{Current best: a fork of the public 0.477 notebook (merged-fork, 0.477).} The submission is
+\textbf{Current best: a fork of the public 0.479 notebook (dedup-fork, 0.479, inside the noise of 0.477).} The
+submission is alex chilton's public notebook \emph{CASMI26 LB 0.479 \textbar{} MIDX Exact Dedup Fill} (itself
+Baidalin Adilzhan's \emph{midx exact dedup fill}, unchanged), run byte-identical (md5 \texttt{a6871ca3\ldots}) as the
+private kernel \nolinkurl{charyeezy/casmi-fork479}, version 1, vendored at \nolinkurl{casmi/notebooks/fork479/}. It
+is the merged-fork pipeline described next with a final layer on ranks 2--25: a documentation prior read from
+\texttt{pool\_popularity.csv} (PubChem popularity 0.10, a spectral-library bonus 0.05 only where the best library
+match reaches 0.87, a natural-product bonus 0.02); the old leader pinned at rank 2 after a fragment-check move; and
+deduplication by the metric's InChIKey14 key, with freed slots filled by scored outside candidates.
+
+\textbf{Base before it: a fork of the public 0.477 notebook (merged-fork, 0.477).} The submission was
 Busya PRIME's public notebook \emph{LB 0.477 $\cdot$ Two 0.472 Fixes, Merged the Right Way}, run byte-identical
 (md5 \texttt{74efef20\ldots}) as the private kernel \nolinkurl{charyeezy/casmi-merged-fork}, version 1,
 vendored at \nolinkurl{casmi/notebooks/fork477/}. It runs the pinned 0.465 pipeline described next once,
@@ -134,7 +146,7 @@ molecules whose top-1 the forward models change ($\lambda=1$) & 208 \\
 \end{center}
 
 \section{Results}
-Every score is the public leaderboard's. Twenty-nine submissions were made, including one identical
+Every score is the public leaderboard's. Thirty submissions were made, including one identical
 re-run; all were scored; none is omitted. One further run, the E006 fork's kernel version 1, failed its
 own GPU preflight and was not submitted (below).
 
@@ -173,8 +185,9 @@ spectra-fork & the public 0.451 notebook at version 53, unchanged (not kept) & 0
 pubchemlite-fork & the public 0.456 notebook (+ PubChemLite in engine 2), unchanged & 0.456 \\
 data-fork & the public 0.464 notebook (v26), unchanged & 0.465 \\
 neural-fork & the public 0.466 neural re-rank, weight 0.50 (not kept) & 0.444 \\
-merged-fork & the public 0.477 notebook, unchanged & \textbf{0.477} \\
+merged-fork & the public 0.477 notebook, unchanged & 0.477 \\
 analogue-fork & + analogue propagation on ranks 2--25 (not kept) & 0.477 \\
+dedup-fork & the public 0.479 notebook, unchanged (inside the noise) & \textbf{0.479} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -258,7 +271,25 @@ most 113 of 400 visible-test molecules have such a neighbour; on labelled natura
 share structure 46\% of the time. It scored 0.477 (31 October), identical to the base: not enough to move
 the leaderboard at $\lambda = 0.10$, and discarded.
 
-\textbf{Two offline checks, no submission.} Both ran on an Apple M5 on 18 October. FRIGID, the
+The ninth fork (dedup-fork, submission 57867559, 1 November 20:37 AEDT) scored 0.479, reproducing its public
+score: $+0.002$ over merged-fork, below G1's $+0.005$ and inside the source's own run-to-run spread of about
+0.002 (two notebooks reported at 0.478 on their pages rescored 0.468 and 0.476). It is numerically our highest
+score but not a measured gain; it is kept (KEEP) as the base because it is the current public line. Its gate
+(\texttt{gate\_fork479.py}) passed: the merged-fork checks, plus the final layer's log lines; the prior loaded
+710{,}701 pool records and reordered 12 of 12 smoke lists, with 0 dedup swaps, 0 outsider fills and no
+neutral-prior fallback.
+
+\textbf{Two offline checks, 1 November, no submission.} The MIST \texttt{msg\_aug} encoder
+(Zenodo 23303289), run on an A100, reached mean fingerprint Tanimoto 0.385 on the 50 FRIGID molecules below
+(median 0.336, SE 0.022) against a gate of 0.40 fixed before the run; the old \texttt{mist\_msg.pt} gave 0.261.
+Its \texttt{noaug} control is unusable (0.19 even on its own training spectra), so the source of the gain is not
+measured; the MIST/FRIGID line stays closed. An external GNPS + MassSpecGym library (Zenodo 20042904) holds
+41{,}210 structures, of which 3{,}096 (13{,}814 spectra) are not already in train; they match 0 of 400 test
+molecules at cosine $\geq 0.5$ within 20\,ppm in the same ion mode. Every visible test spectrum matches train at
+$\geq 0.87$, so the visible test looks like train stand-ins rather than the hidden test; for novel
+Enveda-180-like structures exact reach is about 0 by construction. Dropped without a submission.
+
+\textbf{Two offline checks, 18 October, no submission.} Both ran on an Apple M5 on 18 October. FRIGID, the
 host-approved de novo model (MIST-MSG encoder, FRIGID-base decoder), was run on 50 Enveda-180
 $[\mathrm{M{+}H}]^+$ molecules that have no spectra in any public library, given the true formula.
 The bar, fixed before the run, was the answer in the top 10 for at least 5 of 50. It found 0 of 50
@@ -292,15 +323,24 @@ its fingerprints reach Tanimoto 0.245 in its own 10{,}226-bit space and 0.180 ma
     NIST-licensed weights, so there is nothing to swap.
   \item Analogue propagation across test molecules on ranks 2--25 (analogue-fork): 0.477, no change from
     the 0.477 base at $\lambda = 0.10$ (at most 113 of 400 molecules reachable).
+  \item MIST \texttt{msg\_aug} as FRIGID's encoder: Tanimoto 0.385 on the 50 FRIGID molecules against a
+    pre-registered gate of 0.40.
+  \item External GNPS + MassSpecGym library (Zenodo 20042904): 3{,}096 structures new to train reach 0 of
+    400 test molecules.
   \item PubChem channel over 10{,}000 rows (fork-v2), forward-model weight 1.5 (v17), GLACIER on
     $[\mathrm{M{+}H}]^+$ only (v16), popularity weight 0.15 (v8): inside the noise or below it.
 \end{itemize}
 
-\textbf{Next.} The base is now the 0.477 merged fork; analogue propagation on it scored 0.477 (no change). Before it, single settings of the E006 family look tuned
+\textbf{Next.} The base is now the 0.479 dedup fork (inside the noise of 0.477). No leader has published a method,
+and no public notebook sits between 0.479 and the leaders. The one resource no public notebook uses is the ICEBERG
+PubChem atlas (predicted spectra for 91.4M PubChem structures), which the host allowed as a private dataset on
+28 October (discussion 745134); free open pre-built datasets are allowed generally (753662). It is the next
+candidate, 1--2 days: measure its InChIKey14 coverage of answers below rank 1 first, and submit only if the reach
+clears the noise. Analogue propagation on the 0.477 base scored 0.477 (no change). Before it, single settings of the E006 family look tuned
 (promotion threshold swept upstream, engine-2 weight 0.8 lost 0.009, forward models already at 1.0, a neural re-rank at
 weight 0.50 lost 0.021) and the de novo route failed offline, while the public lineage gained $+0.044$ in a week (0.421 to
 0.465), then $+0.012$ more to 0.477. The cheapest lever left is a daily check of new public notebooks,
-forking any credible improvement that reproduces. The leaderboard top is 0.517 (31 October).
+forking any credible improvement that reproduces; it gave the 0.479 rebase. The leaderboard top is 0.521 (1 November).
 
 \section{What is not established}
 \begin{itemize}
@@ -313,6 +353,11 @@ forking any credible improvement that reproduces. The leaderboard top is 0.517 (
   \item \textbf{Whether a de novo route could help with a better encoder.} FRIGID found nothing with
     MIST's fingerprints; an encoder fine-tuned on Enveda's spectra is untested. The 39--52\% of the test
     outside PubChem and COCONUT is the SOTA sweep's estimate, not a measurement on the hidden test.
+  \item \textbf{Whether the 0.479 layer helps at all.} Its $+0.002$ over 0.477 is inside the source's own
+    run-to-run spread; the effect of the documentation prior, leader pin and deduplication on their own is not
+    measured by us.
+  \item \textbf{What \texttt{msg\_aug} would do to ranking.} At Tanimoto 0.26 FRIGID found 0 of 50; whether 0.385
+    gives any hits, or helps as an FPNet replacement or a re-ranking feature, was not run.
   \item \textbf{What in the 0.477 notebook earns its gain.} We ran it unchanged; how its $+0.012$ over
     the 0.465 fork divides between the leader-safe re-rank and the fragment check is not measured by us
     (each showed 0.472 upstream alone).
@@ -343,7 +388,7 @@ forking any credible improvement that reproduces. The leaderboard top is 0.517 (
     input --- were selected on the public split, as was v19's similarity threshold, so 0.356 is optimistic.
     The forks' settings were fixed by their authors before we saw any result, but tuned on the public
     leaderboard (the E006 notebook reports its threshold sweep there; the 0.456 notebook chose its
-    popularity weight there), so 0.446, 0.456, 0.465 and 0.477 may be optimistic too.
+    popularity weight there), so 0.446, 0.456, 0.465, 0.477 and 0.479 may be optimistic too.
   \item \textbf{Candidate recall.} Whether the answer is among the candidates cannot be separated
     from ranking with one MRR; a wider PubChem channel added held-out answers but no score (fork-v2).
   \item \textbf{Why the data is shaped as it is.} The copied train structures are the answer for at
@@ -356,7 +401,7 @@ forking any credible improvement that reproduces. The leaderboard top is 0.517 (
 
 \section*{Sources}
 \sloppy
-Code and history: \url{https://github.com/charleneleong-ai/ai4science/pull/80}. Forked notebooks: \href{https://www.kaggle.com/code/busyaprime/lb-0-477-two-0-472-fixes-merged-the-right-way}{LB 0.477 $\cdot$ Two 0.472 Fixes, Merged the Right Way} (current best), \href{https://www.kaggle.com/code/guhongbin/casmi26-v465-v15-pop015}{casmi26-v465-v15-pop015}, \href{https://www.kaggle.com/code/seyitkaangunes/casmi26-e006-pubchem-promo-rel-150-lb-0-446}{CASMI26 \textbar{} E006 + PubChem Promo rel$>$150 \textbar{} LB 0.446}, \href{https://www.kaggle.com/code/dmitriigluzdov/casmi-26-from-spectra-to-structures}{CASMI 26: From Spectra to Structures} and \href{https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421}{CASMI26 \textbar{} v4n Fusion + PubChem on public 0.421}.
+Code and history: \url{https://github.com/charleneleong-ai/ai4science/pull/80}. Forked notebooks: \href{https://www.kaggle.com/code/alexchilton/casmi26-lb-0-479-midx-exact-dedup-fill}{CASMI26 LB 0.479 \textbar{} MIDX Exact Dedup Fill} (current best), \href{https://www.kaggle.com/code/busyaprime/lb-0-477-two-0-472-fixes-merged-the-right-way}{LB 0.477 $\cdot$ Two 0.472 Fixes, Merged the Right Way}, \href{https://www.kaggle.com/code/guhongbin/casmi26-v465-v15-pop015}{casmi26-v465-v15-pop015}, \href{https://www.kaggle.com/code/seyitkaangunes/casmi26-e006-pubchem-promo-rel-150-lb-0-446}{CASMI26 \textbar{} E006 + PubChem Promo rel$>$150 \textbar{} LB 0.446}, \href{https://www.kaggle.com/code/dmitriigluzdov/casmi-26-from-spectra-to-structures}{CASMI 26: From Spectra to Structures} and \href{https://www.kaggle.com/code/huseyinemreaksoy/casmi26-v4n-fusion-pubchem-on-public-0-421}{CASMI26 \textbar{} v4n Fusion + PubChem on public 0.421}.
 Every input and
 checkpoint with its version: \texttt{casmi/docs/experiment-card.md}. Competition:
 \url{https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra}.
