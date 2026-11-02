@@ -63,3 +63,5 @@ pmhc/cofold_probe*/
 pmhc/logs/
 pmhc/data/*.cif
 pmhc/targets/
+pmhc/cofold_noise*/
+pmhc/cofold_wt*/

@@ -28,6 +28,7 @@ from __future__ import annotations
 import csv
 import json
 from collections import Counter
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -83,6 +84,14 @@ def binder_ids(design: str) -> tuple[str, ...]:
 def chain_ids(design: str, condition_chains: tuple[str, ...]) -> tuple[str, ...]:
     """Chain ids in the order the spec lists them, which is how Boltz indexes its pair matrix."""
     return binder_ids(design) + tuple(condition_chains)
+
+
+def predictions_dir(out_dir: Path) -> Path:
+    """Boltz's prediction directory inside an --out_dir. The layout is ours to know once."""
+    found = next(out_dir.glob("boltz_results_*/predictions"), None)
+    if found is None:
+        raise typer.BadParameter(f"no boltz_results_*/predictions under {out_dir}")
+    return found
 
 
 def conditions_from(targets: Path) -> dict[str, dict[str, str]]:
@@ -180,6 +189,48 @@ def write_spec(out: Path, name: str, chains: list[tuple[str, str]]) -> Path:
     return path
 
 
+Entry = tuple[str, list[tuple[str, str]]]
+
+
+def design_entries(
+    designs: Sequence[str],
+    sequences: Mapping[str, str],
+    conditions: Mapping[str, Mapping[str, str]],
+    condition_names: Sequence[str],
+) -> list[Entry]:
+    """One spec per design per condition: the binder as chain X, then the condition's chains."""
+    return [
+        (
+            run_name(design, condition),
+            [(BINDER_CHAIN, sequences[design]), *conditions[condition].items()],
+        )
+        for design in designs
+        for condition in condition_names
+    ]
+
+
+def control_entries(
+    tcr: Mapping[str, str],
+    conditions: Mapping[str, Mapping[str, str]],
+    condition_names: Sequence[str] | None = None,
+) -> list[Entry]:
+    """The 7OW6 receptor through the given conditions, so every pass carries its own scale.
+
+    Defaults to every condition: the screen runs the control through all three even though the
+    designs only get two, because the wild-type number is only interpretable next to it.
+    """
+    return [
+        (run_name(CONTROL, condition), [*tcr.items(), *conditions[condition].items()])
+        for condition in (tuple(conditions) if condition_names is None else condition_names)
+    ]
+
+
+def write_entries(out: Path, entries: Sequence[Entry]) -> int:
+    for name, chains in entries:
+        write_spec(out, name, chains)
+    return len(entries)
+
+
 @app.command()
 def main(
     novelty: Path = typer.Option(Path("."), help="directory holding novelty_<variant>.csv"),
@@ -220,23 +271,12 @@ def main(
     if absent := sorted(f.design for f in selected if f.design not in sequences):
         raise typer.BadParameter(f"{gen_out} has no sequence for selected design(s) {absent}")
 
-    specs: list[tuple[str, list[tuple[str, str]]]] = [
-        (
-            run_name(fate.design, condition),
-            [(BINDER_CHAIN, sequences[fate.design]), *conditions[condition].items()],
-        )
-        for fate in selected
-        for condition in SCREEN_CONDITIONS
-    ]
-    specs += [
-        (run_name(CONTROL, condition), [*tcr.items(), *conditions[condition].items()])
-        for condition in conditions
-    ]
+    specs = design_entries(
+        [f.design for f in selected], sequences, conditions, SCREEN_CONDITIONS
+    ) + control_entries(tcr, conditions)
 
     typer.echo(wrote(manifest, write_rows(fates, manifest)))
-
-    for name, chains in specs:
-        write_spec(out, name, chains)
+    written = write_entries(out, specs)
 
     tally = Counter(f.verdict for f in fates)
     typer.echo("funnel over every generated design:")
@@ -246,7 +286,7 @@ def main(
         f"selected {len(selected)} of {len(fates)};"
         f" by variant {dict(Counter(f.variant for f in selected))}"
     )
-    typer.echo(f"wrote {len(specs)} specs to {out}")
+    typer.echo(f"wrote {written} specs to {out}")
 
 
 if __name__ == "__main__":
