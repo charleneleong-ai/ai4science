@@ -77,6 +77,17 @@ FEMOCO_C0 = -559.132473148504
 NUM_ORBITALS = 76
 BASELINE_FACTORIZATION = (65, 60, 60)
 
+# The rotation precisions worth costing. No verifier rule bounds `brot`; these are wide enough
+# to show both walls that do -- below, the angle grid coarsens past MAX_HAMILTONIAN_ERROR_HA,
+# and above, the inner preparation's QROAM jumps to a branch that doubles the shared workspace.
+MIN_BROT = 4
+MAX_BROT = 16
+
+# The blend that clears the plateau: the lowest score among the teams above the 0.6-wide band
+# half the field sits in, off docs/experiments/leaderboard-2026-10-31.json. A result number, so
+# every consumer reads it from here rather than typing 25.0.
+ESCAPE_SCORE = 25.0
+
 # R(eps) is positive only for eps < 1/16: at eps = 1/16 the denominator -ln(1/2 + 2 sqrt(eps))
 # hits zero, so a decoder failing more than 6.25% of shots has unbounded cost. The dqi
 # verifier rejects eps_plus >= 1/16 outright.
@@ -312,17 +323,192 @@ def cost_from_report(task: str, report: Mapping[str, Any]) -> float:
             )
 
 
+# The two dicts that carry these terms name the qubit ones differently, and that difference is
+# a trap worth stating: in `heuristic_costs`' output `persistent_qubits` and `temporary_qubits`
+# are the *heuristic* figures, while in a verifier report the same two keys are the totals over
+# both families and the heuristic ones carry a `heuristic_` prefix. Reading a report through the
+# closed-form names silently picks up the totals, so each source gets its own mapping.
+HEURISTIC_FIELDS = {
+    "outer_toffoli": "outer_state_prep_toffoli",
+    "inner_toffoli": "inner_state_prep_toffoli",
+    "givens_toffoli": "givens_rotations_toffoli",
+    "heuristic_persistent_qubits": "persistent_qubits",
+    "heuristic_temporary_qubits": "temporary_qubits",
+}
+REPORT_FIELDS = HEURISTIC_FIELDS | {
+    "heuristic_persistent_qubits": "heuristic_persistent_qubits",
+    "heuristic_temporary_qubits": "heuristic_temporary_qubits",
+}
+
+
+@dataclass(frozen=True)
+class ShapeResources:
+    """`T_total` and `Q_total`, split into what a submission buys and what it compiles free.
+
+    The split is the point. Every heuristic term follows analytically from the shape
+    `(R, B, C)` and `brot`, so a submission moves it only by refitting the factorization --
+    which it pays for in accuracy. The ANGLE terms are measurements of circuits the submitter
+    writes, so cheaper loaders for the *same* words score better at *identical* accuracy.
+    """
+
+    outer_toffoli: int
+    inner_toffoli: int
+    givens_toffoli: int
+    heuristic_persistent_qubits: int
+    heuristic_temporary_qubits: int
+    angle_toffoli: float
+    angle_word_qubits: int
+    angle_temporary_qubits: int
+
+    @classmethod
+    def from_terms(
+        cls,
+        terms: Mapping[str, Any],
+        fields: Mapping[str, str],
+        angle_toffoli: float,
+        angle_word_qubits: int,
+        angle_temporary_qubits: int,
+    ) -> ShapeResources:
+        """The heuristic half out of `fields`, the ANGLE half measured and passed in."""
+        return cls(
+            **{name: int(terms[key]) for name, key in fields.items()},
+            angle_toffoli=angle_toffoli,
+            angle_word_qubits=angle_word_qubits,
+            angle_temporary_qubits=angle_temporary_qubits,
+        )
+
+    @classmethod
+    def from_heuristic(
+        cls,
+        heuristic: Mapping[str, Any],
+        angle_toffoli: float,
+        angle_word_qubits: int,
+        angle_temporary_qubits: int = 0,
+    ) -> ShapeResources:
+        """From `dfthcsos.verify.heuristic_costs`' output for a shape, built or not."""
+        return cls.from_terms(
+            heuristic, HEURISTIC_FIELDS, angle_toffoli, angle_word_qubits, angle_temporary_qubits
+        )
+
+    @classmethod
+    def from_report(cls, report: Mapping[str, Any]) -> ShapeResources:
+        """Both halves from a verifier report, which publishes every term separately.
+
+        The one path needing neither the FCIDUMP nor a cost model, so it is what pins the
+        closed-form split against a submission the verifier actually scored.
+        """
+        resources = report["resources"]
+        return cls.from_terms(
+            resources,
+            REPORT_FIELDS,
+            angle_toffoli=float(resources["angles_toffoli"]),
+            angle_word_qubits=int(resources["angles_persistent_qubits"]),
+            angle_temporary_qubits=int(resources["angles_temporary_qubits"]),
+        )
+
+    @property
+    def heuristic_toffoli(self) -> int:
+        return self.outer_toffoli + self.inner_toffoli + self.givens_toffoli
+
+    @property
+    def toffoli(self) -> float:
+        return self.angle_toffoli + self.heuristic_toffoli
+
+    @property
+    def qubits(self) -> int:
+        """The verifier's `Q_total`: the workspace is shared, so it is a max and not a sum."""
+        return (
+            self.heuristic_persistent_qubits
+            + self.angle_word_qubits
+            + max(self.heuristic_temporary_qubits, self.angle_temporary_qubits)
+        )
+
+    @property
+    def angle_share(self) -> float:
+        """The fraction of `T_total` that costs no accuracy."""
+        return self.angle_toffoli / self.toffoli
+
+    def angle_cut_for(self, cost_cut: float) -> float:
+        """How much cheaper the ANGLE family must get to take `cost_cut` off `T * Q` alone.
+
+        Above 1.0 the target is out of reach from the free share even with the loaders at zero
+        Toffolis, which is the question worth asking before writing a single circuit.
+        """
+        return self.toffoli * cost_cut / self.angle_toffoli
+
+
+def word_registers(
+    qubits_total: int, heuristic_persistent: int, heuristic_temporary: int, brot: int
+) -> int:
+    """`J`, the angle-word register count, recovered from a recorded `Q_total`.
+
+    The one resource term a verifier report states only as a product
+    (`angles_persistent_qubits = J * brot`) and a parts record not at all. Everything else in
+    `Q` is closed-form in the shape, so J is whatever is left -- exact, not fitted, and it
+    fails loudly rather than rounding if the recorded total does not decompose.
+
+    Takes the two heuristic qubit counts as numbers rather than a dict: the key that holds each
+    one depends on which of the two sources it came from, per `HEURISTIC_FIELDS` above.
+    """
+    words = qubits_total - heuristic_persistent - heuristic_temporary
+    if words <= 0 or words % brot:
+        raise ValueError(
+            f"Q_total {qubits_total} leaves {words} qubits for the word registers, "
+            f"which is not a positive multiple of brot={brot}"
+        )
+    return words // brot
+
+
 def task_ratio(task: str, cost: float, calibration: MetricCalibration) -> float:
     if cost <= 0:
         raise ValueError(f"{task} cost must be positive, got {cost}")
     return calibration.reference_costs[require_task(task)] / cost
 
 
+def blend_factor(cost: float, reference_cost: float) -> float:
+    """What moving one task's cost multiplies the whole blend by.
+
+    The blend is a geometric mean of three ratios, so changing one task's cost scales it by
+    the cube root of the inverse change -- whatever the other two costs happen to be. That is
+    why 1% off *any* task is worth the same, and it makes a sensitivity computable without a
+    calibration or the other two measurements. `score` is the product of these, which is the
+    identity rather than a coincidence.
+    """
+    if cost <= 0 or reference_cost <= 0:
+        raise ValueError(f"costs must be positive, got {cost} against {reference_cost}")
+    return (reference_cost / cost) ** (1 / len(TASKS))
+
+
 def score(costs: Mapping[str, float], calibration: MetricCalibration) -> float:
     """Geometric mean of the three per-task improvement ratios."""
     if set(costs) != set(TASKS):
         raise ValueError(f"need a cost for each of {TASKS}, got {sorted(costs)}")
-    return math.prod(task_ratio(t, costs[t], calibration) for t in TASKS) ** (1 / len(TASKS))
+    return math.prod(
+        blend_factor(costs[t], calibration.reference_costs[require_task(t)]) for t in TASKS
+    )
+
+
+def cost_cut_for_blend(blend: float, target: float) -> float:
+    """The fraction off one task's cost that lifts `blend` to `target`.
+
+    The inverse of `blend_factor`: what a stated score goal costs, in one number, before any
+    of it is attributed to lambda_eff, T or Q.
+    """
+    if blend <= 0 or target <= 0:
+        raise ValueError(f"blends must be positive, got {blend} and {target}")
+    return 1.0 - (blend / target) ** len(TASKS)
+
+
+def marginal_blend_per_unit(blend: float, total: float) -> float:
+    """What one unit off a resource of size `total` is worth, as blend points.
+
+    The derivative of `blend_factor` at the current point, so the Toffoli price and the qubit
+    price come from one place: `Q` being ~38x smaller than `T` is the whole reason a qubit is
+    worth ~38 Toffolis.
+    """
+    if blend <= 0 or total <= 0:
+        raise ValueError(f"blend and total must be positive, got {blend} and {total}")
+    return blend / (len(TASKS) * total)
 
 
 # Every hard constraint the dfthcsos verifier rejects on, in one table. `sense` is the whole

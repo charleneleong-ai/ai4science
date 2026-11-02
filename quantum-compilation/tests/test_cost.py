@@ -25,13 +25,18 @@ from quantum_compilation.cost import (
     dfthcsos_rejections,
     dqi_cost,
     dqi_repetition_factor,
+    ShapeResources,
+    blend_factor,
+    cost_cut_for_blend,
     lambda_eff,
+    marginal_blend_per_unit,
     lambda_eff_floor,
     lcu_vectors,
     min_lcu_lambda,
     require_task,
     rotation_t_count,
     score,
+    word_registers,
     toffoli_equivalents,
 )
 
@@ -52,10 +57,24 @@ def failed_shots(seed: dict[str, Any], shots: int) -> int:
     return round(seed["dqi_detail"]["empirical_error_rate"] * shots)
 
 
+def reference_report(task: str) -> dict:
+    """One shipped verifier's own output, as captured on `sample_submission/`."""
+    return json.loads((Path(__file__).parent / "data" / f"reference_{task}.json").read_text())
+
+
 @pytest.fixture(scope="module")
 def dqi_report() -> dict:
-    """The official dqi verifier's own output, as captured on `sample_submission/`."""
-    return json.loads((Path(__file__).parent / "data" / "reference_dqi.json").read_text())
+    return reference_report("dqi")
+
+
+@pytest.fixture(scope="module")
+def dfthcsos_report() -> dict:
+    return reference_report("dfthcsos")
+
+
+@pytest.fixture(scope="module")
+def reference_resources(dfthcsos_report) -> ShapeResources:
+    return ShapeResources.from_report(dfthcsos_report)
 
 
 class TestRotationPricing:
@@ -225,6 +244,48 @@ class TestScore:
             score(AT_REFERENCE | {"dqi": cost}, DEFAULT_CALIBRATION)
 
 
+class TestBlendPricing:
+    """Pricing one task's cost change without the other two, and inverting it."""
+
+    def test_agrees_with_the_full_score(self):
+        moved = AT_REFERENCE | {"dqi": AT_REFERENCE["dqi"] / 1.37}
+        direct = score(moved, DEFAULT_CALIBRATION)
+        assert direct == pytest.approx(
+            score(AT_REFERENCE, DEFAULT_CALIBRATION)
+            * blend_factor(moved["dqi"], AT_REFERENCE["dqi"])
+        )
+
+    @pytest.mark.parametrize(
+        ("blend", "target"),
+        [(23.18119, 25.0), (1.0, 2.0), (40.0, 41.0), (25.0, 23.18119)],
+    )
+    def test_the_cut_it_names_lands_on_the_target(self, blend, target):
+        cut = cost_cut_for_blend(blend, target)
+        assert blend * blend_factor(1.0 - cut, 1.0) == pytest.approx(target)
+        assert (cut < 0) == (target < blend)
+
+    def test_the_per_unit_price_is_the_slope_of_the_factor(self):
+        """What `shape` prints per Toffoli, against the finite difference it approximates."""
+        total = 16266.0
+        step = 23.18119 * (blend_factor(total - 1, total) - 1)
+        assert marginal_blend_per_unit(23.18119, total) == pytest.approx(step, rel=1e-4)
+
+    @pytest.mark.parametrize(
+        ("fn", "args"),
+        [
+            (blend_factor, (0.0, 1.0)),
+            (blend_factor, (1.0, -1.0)),
+            (cost_cut_for_blend, (0.0, 1.0)),
+            (cost_cut_for_blend, (1.0, -1.0)),
+            (marginal_blend_per_unit, (0.0, 1.0)),
+            (marginal_blend_per_unit, (1.0, -1.0)),
+        ],
+    )
+    def test_rejects_non_positive_inputs(self, fn, args):
+        with pytest.raises(ValueError, match="must be positive"):
+            fn(*args)
+
+
 class TestRequireTask:
     """One canonical rejection of an unknown task name, shared by every lookup."""
 
@@ -235,6 +296,50 @@ class TestRequireTask:
 
     def test_returns_the_task_so_it_can_wrap_a_lookup(self):
         assert require_task("dqi") == "dqi"
+
+
+class TestShapeResourcesFromReport:
+    """The T/Q split against the reference submission's own verifier report.
+
+    Runs on a bare clone: the report is committed, so this is the agreement check the
+    closed-form path in `chemistry` cannot make without the 122 MB FCIDUMP.
+    """
+
+    @pytest.mark.parametrize("field", ["toffoli", "qubits", "heuristic_toffoli"])
+    def test_reproduces_the_reported_total(self, reference_resources, dfthcsos_report, field):
+        assert getattr(reference_resources, field) == dfthcsos_report["resources"][field]
+
+    def test_the_angle_share_is_most_of_the_references_toffolis(self, reference_resources):
+        """85% here against 51% for the plateau: the share is a property of the shape."""
+        assert reference_resources.angle_share == pytest.approx(0.8525, abs=5e-4)
+
+    def test_the_workspace_is_a_max_not_a_sum(self, reference_resources):
+        """Both families' temporaries are reported; `Q` counts the larger once."""
+        res = reference_resources
+        assert res.angle_temporary_qubits < res.heuristic_temporary_qubits
+        assert res.qubits < (
+            res.heuristic_persistent_qubits
+            + res.angle_word_qubits
+            + res.heuristic_temporary_qubits
+            + res.angle_temporary_qubits
+        )
+
+    def test_J_is_recovered_from_the_reported_total(self, reference_resources, dfthcsos_report):
+        """`word_registers` inverts `Q_total`; the report states J directly, so it is checkable."""
+        res, resources = reference_resources, dfthcsos_report["resources"]
+        recovered = word_registers(
+            resources["qubits"],
+            res.heuristic_persistent_qubits,
+            res.heuristic_temporary_qubits,
+            resources["brot"],
+        )
+        assert recovered == dfthcsos_report["batch_size"]
+        assert recovered * resources["brot"] == res.angle_word_qubits
+
+    @pytest.mark.parametrize("qubits_total", [90, 731])
+    def test_an_undecomposable_total_is_rejected(self, qubits_total):
+        with pytest.raises(ValueError, match="word registers"):
+            word_registers(qubits_total, 90, 544, 12)
 
 
 class TestChemistryRejections:
@@ -335,10 +440,7 @@ class TestChemistryConstraintMargins:
         assert margins["hamiltonian_error_ha"]["value"] == 19e-3
 
     def test_the_reference_submission_has_headroom_on_every_constraint(self):
-        detail = json.loads(
-            (Path(__file__).parent / "data" / "reference_dfthcsos.json").read_text()
-        )
-        margins = dfthcsos_constraint_margins(detail)
+        margins = dfthcsos_constraint_margins(reference_report("dfthcsos"))
         assert all(0 < m["fraction_of_limit_used"] < 1 for m in margins.values())
         # Lambda is the one constraint nowhere near binding -- the distinction that makes
         # MIN_LAMBDA a Lambda floor rather than a lambda_eff floor.

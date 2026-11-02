@@ -75,18 +75,46 @@ plateau found; the accuracy cap is what stops it going lower.
 constant of the reference Hamiltonian**: writing `D = 2Λ − E_gap` out in full cancels the
 negative eigenvalue mass and leaves `D = 2P + 2(λ_h2 − ¼ΣW²) − c0` with both leading terms
 provably non-negative, so `D ≥ −c0 = 559.132473` of our 595.73. That puts
-[`lambda_eff_floor`](src/quantum_compilation/cost.py#L251) at 46.786 against our 48.293 — the
+[`lambda_eff_floor`](src/quantum_compilation/cost.py#L269) at 46.786 against our 48.293 — the
 whole factorization search is worth **3.12%**, or **+0.243 blend** against the **+1.82** that
 25.0 needs, and the floor is unreachable at that. **DISCARDed before any compute was spent.**
-[`vqcc chem`](src/quantum_compilation/cli.py#L146) prints the headroom on every run; the
+[`vqcc chem`](src/quantum_compilation/cli.py#L175) prints the headroom on every run; the
 derivation, its numerical verification and the literature sweep behind it are in
 [`reports/2026-11-02-thc-factorization-sota.md`](reports/2026-11-02-thc-factorization-sota.md).
 
 So the chemistry cost is **`T · Q` and essentially nothing else** — the ANGLE loaders' Toffoli
-count and the 430-qubit footprint, not the fit. That direction has support already measured:
-the ANGLE circuits carry 85% of the task's Toffoli cost (79,480 of 93,237) on only 96 of 186
-persistent qubits. Pricing one Toffoli in error budget is the next measurement, and whether any
-are left to buy is unmeasured.
+count and the 430-qubit footprint, not the fit.
+
+**Half of `T` costs no accuracy, and the other half cannot be bought.** Driving the verifier's
+own `SpinFreeData_V1` at our shape reproduces both recorded totals exactly:
+
+| | Toffolis | share of `T` | bought with |
+|---|---|---|---|
+| ANGLE circuits | 8,336 | **51.25%** | **nothing — circuits a submission writes** |
+| inner state prep | 5,311 | 32.65% | the shape `(R, B, C)` |
+| Givens rotations | 2,250 | 13.83% | `brot` |
+| outer state prep | 369 | 2.27% | the shape `(R, B, C)` |
+
+and `Q = 430` as 304 shared workspace + 86 persistent state-prep qubits + 40 angle-word
+registers (`J = 5` × `brot = 8`). Everything but the ANGLE row is closed-form in the shape and
+`brot`, so it is paid for in error budget — and the error budget is spent, both residuals at
+99.999% of the 20 mHa cap. The ANGLE Toffolis are the simulated mean of circuits the submitter
+writes, so cheaper loaders for the *same* words score better at *identical* accuracy.
+
+[`vqcc shape`](src/quantum_compilation/cli.py#L476) prices it: one Toffoli is **+0.000475
+blend**, one qubit **+0.017998** (38× a Toffoli, `Q` being 38× smaller). Reaching 25.0 needs
+**20.28% off the chemistry cost** — 3,298 Toffolis, 87 qubits, or any mix. From the free share
+alone that is a **39.6% cheaper ANGLE family**.
+
+Every way of buying the *bought* part is closed, all three measured rather than argued.
+**`brot` cannot go down**: re-rounding the submitted angles onto the `brot = 7` grid breaches
+the cap by **118×** on `error_1`, and since the angles already sit on the cap at `brot = 8`, no
+fresh fit at half the grid spacing closes two orders of magnitude. **`brot` cannot go up**: at
+`brot = 9` the inner preparation's QROAM jumps to a branch taking the workspace from 304 to 607
+qubits, costing **−3.27 blend** despite 1,316 fewer Toffolis. **The shape cannot be re-split**:
+at constant `R·B = 1,144` the submitted `(8, 143)` is the best of all 16 integer factor pairs.
+So the ANGLE loaders are the only direction left that costs no accuracy — and no top submission
+has moved them; they are reused byte-identical across the plateau.
 
 **Progress artifact:** <https://claude.ai/artifact/EzjSoAxvhTvi9pWgdJDEDq> (private; rebuilt by
 [`scripts/build_artifact.py`](scripts/build_artifact.py) into
@@ -156,6 +184,8 @@ uv run vqcc verify path/to/submission/ --seed 1   # the real score, free and unl
 uv run vqcc check path/to/submission/        # layout + the 128-qubit cap, instant
 uv run vqcc chem path/to/dfthcsos/submission.npz  # every chemistry constraint but
                                              #   ANGLE_WIDTH, in 0.66 s, no circuits
+uv run vqcc shape docs/experiments/57834335-parts.yaml --blend 23.18119 --sweep-brot
+                                             # where T and Q go, and what each is worth
 uv run vqcc resources path/to/circuits/      # static gate counts — a triage bound
 uv run vqcc blend --invsqrt 100941 --dqi 4.0334e11 --dfthcsos 3.3780e8
 uv run vqcc calibration                      # the reference costs in force, and their provenance
@@ -258,10 +288,10 @@ against the same constraint table once a report exists.
 - **Two leaderboard readings, neither on a circuit we designed.** The loop agreed with the
   leaderboard on the reference and on this assembly. That does not prove it agrees on a
   candidate our own search produces.
-- **Whether `T` and `Q` have any headroom is unmeasured.** The floor above says where the
-  chemistry score is *not* — no factorization, of any shape, moves `lambda_eff` by more than
-  3.12% — but it says nothing about the loaders. Pricing one Toffoli in error budget is the
-  open measurement, and it may come back at zero.
+- **Whether a cheaper ANGLE family exists is unmeasured.** `T` and `Q` are now priced, and
+  the 8,336 free Toffolis are large enough to reach 25.0 on their own at a 39.6% cut. That
+  says the budget is there, not that the circuit is: nothing here has looked inside the
+  loaders, and 39.6% off a design the whole frontier reuses may well be out of reach.
 - **Why 9 teams cleared 25 while half the field sits near 22.7 is unexplained**, and which
   task holds the margin that separates them from the plateau is the most valuable unknown in
   the competition.
@@ -269,8 +299,8 @@ against the same constraint table once a report exists.
   `dfthcsos`, on skill fit and on its ratio being the weakest of the three (9.93 against
   invsqrt 20.62 and dqi 60.80). The qualification is that its width is governed by the
   state-prep workspace rather than by the circuits a submission ships — the ANGLE circuits are
-  96 of the task's 186 persistent qubits and none of its 544 temporary ones — so `Q` is the
-  less reachable half of the `T · Q` that is left.
+  40 of our 126 persistent qubits and none of the 304 temporary ones — so `Q` is effectively
+  fixed and `T` is the whole of what is left.
 
 ## Attribution
 

@@ -16,6 +16,7 @@ from typing import Annotated
 
 import kickmix as km
 import typer
+import yaml
 from rich.console import Console
 from rich.progress import Progress
 from rich.table import Table
@@ -24,15 +25,27 @@ from quantum_compilation import verify as verifier
 from quantum_compilation.chemistry import ChemistryMetrics, ChemistryScreen
 from quantum_compilation.cost import (
     DEFAULT_CALIBRATION,
+    ESCAPE_SCORE,
+    MAX_BROT,
+    MIN_BROT,
     TASKS,
     MetricCalibration,
+    ShapeResources,
+    blend_factor,
+    cost_cut_for_blend,
     dfthcsos_rejections,
     lambda_eff_floor,
+    marginal_blend_per_unit,
     require_task,
     score,
     task_ratio,
 )
-from quantum_compilation.submission import CIRCUIT_SUFFIXES, Resources, SubmissionAudit
+from quantum_compilation.submission import (
+    CHEMISTRY_DIR,
+    CIRCUIT_SUFFIXES,
+    Resources,
+    SubmissionAudit,
+)
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 console = Console()
@@ -117,6 +130,22 @@ def print_costs(costs: dict[str, float], calibration: MetricCalibration) -> None
         console.print(f"[yellow]no score[/] -- needs all of {TASKS}, have {sorted(costs)}")
 
 
+def share_table(
+    unit: str, whole: str, total: float, rows: Sequence[tuple[str, float, str]]
+) -> Table:
+    """A term/value/share-of-total table, closed by the bolded total itself.
+
+    Shared by the `T` and `Q` tables, which were otherwise the same loop twice. The two
+    float-valued share tables above stay as they are: routing them through here would cost a
+    value-format and an optional-column parameter, which is more than the repetition.
+    """
+    table = Table("term", unit, f"share of {whole}", "bought with")
+    for name, value, note in rows:
+        table.add_row(name, f"{value:,.0f}", f"{value / total:.2%}", note)
+    table.add_row(f"[bold]{whole}_total[/]", f"[bold]{total:,.0f}[/]", "", "")
+    return table
+
+
 def print_chem_metrics(metrics: ChemistryMetrics) -> None:
     """The screened metrics, then the terms behind `Lambda` and the gap."""
     table = Table("metric", "value", "reads")
@@ -139,7 +168,7 @@ def print_chem_metrics(metrics: ChemistryMetrics) -> None:
         ("positive eigen mass", metrics.positive_mass),
         ("negative eigen mass", metrics.negative_mass),
     ):
-        split.add_row(name, f"{value:.6f}", f"{value / metrics.one_norm:.1%}")
+        split.add_row(name, f"{value:.6f}", f"{value / metrics.one_norm:.2%}")
     console.print(split)
 
 
@@ -161,6 +190,55 @@ def print_chem_headroom(metrics: ChemistryMetrics) -> None:
         f"lambda_eff floor [bold]{lambda_eff_floor(metrics.c0):.6f}[/] against "
         f"{metrics.lambda_eff:.6f} -- the whole factorization search is worth "
         f"[bold]{metrics.lambda_eff_headroom:.3%}[/]"
+    )
+
+
+def print_shape_resources(res: ShapeResources, blend: float, target: float) -> None:
+    """Where `T` and `Q` go, then what a point of blend costs in each.
+
+    Printed together on purpose: the shares say which of the two is worth attacking, and the
+    prices say whether the attack can reach a stated target at all.
+    """
+    shape, free = "the shape (R, B, C)", "nothing -- submitted circuits"
+    console.print(
+        share_table(
+            "Toffolis",
+            "T",
+            res.toffoli,
+            [
+                ("ANGLE circuits", res.angle_toffoli, free),
+                ("inner state prep", res.inner_toffoli, shape),
+                ("Givens rotations", res.givens_toffoli, "brot"),
+                ("outer state prep", res.outer_toffoli, shape),
+            ],
+        )
+    )
+    console.print(
+        share_table(
+            "qubits",
+            "Q",
+            res.qubits,
+            [
+                ("shared workspace", res.heuristic_temporary_qubits, shape),
+                ("persistent state prep", res.heuristic_persistent_qubits, shape),
+                ("angle-word registers", res.angle_word_qubits, "brot"),
+            ],
+        )
+    )
+
+    cut = cost_cut_for_blend(blend, target)
+    console.print(
+        f"\none Toffoli [bold]{marginal_blend_per_unit(blend, res.toffoli):+.6f}[/] blend, "
+        f"one qubit [bold]{marginal_blend_per_unit(blend, res.qubits):+.6f}[/]"
+    )
+    console.print(
+        f"{blend:.5f} -> {target:g} needs [bold]{cut:.2%}[/] off the chemistry cost: "
+        f"{res.toffoli * cut:,.0f} Toffolis, or {res.qubits * cut:,.1f} qubits, or both"
+    )
+    reach = res.angle_cut_for(cut)
+    verdict = "reachable" if reach <= 1 else "[red]out of reach[/]"
+    console.print(
+        f"from the free share alone: ANGLE loaders [bold]{reach:.2%}[/] cheaper -- {verdict}"
     )
 
 
@@ -392,6 +470,60 @@ def chem(
     if toffolis is not None and qubits is not None:
         cost = fmt_cost(metrics.cost(toffolis, qubits))
         console.print(f"cost with T={toffolis:,.0f} Q={qubits}: {cost}")
+
+
+@app.command()
+def shape(
+    parts: Annotated[
+        Path, typer.Argument(help="A submission's parts record, e.g. docs/experiments/*-parts.yaml.")
+    ],
+    verifiers: VerifiersOption,
+    blend: Annotated[float, typer.Option(help="The blend this submission scores.")],
+    target: Annotated[float, typer.Option(help="The blend to price the gap to.")] = ESCAPE_SCORE,
+    sweep_brot: Annotated[
+        bool, typer.Option("--sweep-brot", help="Also cost every brot the model admits.")
+    ] = False,
+) -> None:
+    """Split `T` and `Q` into the part a factorization buys and the part it compiles for free.
+
+    Reads the shape, `brot` and the ANGLE Toffoli mean from the record of what was submitted,
+    and derives the word-register count `J` from its `Q_total`. Only the heuristic half is
+    modelled, so `--sweep-brot` costs nothing.
+    """
+    part = yaml.safe_load(parts.read_text())["parts"][CHEMISTRY_DIR]
+    screen = ChemistryScreen(verifiers)
+    here = screen.resources_from_record(part)
+    print_shape_resources(here, blend, target)
+    if not sweep_brot:
+        return
+
+    # lambda_eff and the ANGLE mean are both held fixed -- the first drops out of a ratio of
+    # costs, the second is a property of the loaders rather than of the model -- so this ranks
+    # the heuristic half alone, with no chemistry and no circuits.
+    shape_args = (int(part["R"]), int(part["B"]), int(part["C"]))
+    reference = here.toffoli * here.qubits
+    table = Table("brot", "T", "Q", "workspace", "blend", "delta")
+    for candidate in range(MIN_BROT, MAX_BROT + 1):
+        try:
+            res = screen.resources(
+                *shape_args,
+                candidate,
+                angle_toffoli=here.angle_toffoli,
+                angle_word_registers=here.angle_word_qubits // int(part["brot"]),
+            )
+        except ValueError as exc:
+            table.add_row(str(candidate), f"[yellow]{exc}[/]", "", "", "", "")
+            continue
+        moved = blend * blend_factor(res.toffoli * res.qubits, reference)
+        table.add_row(
+            str(candidate),
+            f"{res.toffoli:,.0f}",
+            f"{res.qubits:,}",
+            f"{res.heuristic_temporary_qubits:,}",
+            f"{moved:.5f}",
+            f"{moved - blend:+.4f}",
+        )
+    console.print(table)
 
 
 @app.command()

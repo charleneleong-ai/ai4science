@@ -4,8 +4,9 @@ A full `dfthcsos` verification takes about a minute because it constructs the AN
 and simulates them to recover the angle words. But every constraint that rejects a candidate
 -- both Frobenius residuals, the one-norm floor, the energy gap -- and the first factor of the
 score, `lambda_eff`, are functions of the *words* alone. Feeding the submitted words straight
-into the verifier's own evaluator gives all of them in well under a second, which is what makes
-a search over factorizations affordable at all.
+into the verifier's own evaluator gives all of them in well under a second once the reference is
+loaded, which is what makes a search over factorizations affordable at all -- see
+`cache_reference_loads`, without which each candidate re-parses the FCIDUMP instead.
 
 Two honest limits, both load-bearing:
 
@@ -29,15 +30,25 @@ imported or spawned.
 
 from __future__ import annotations
 
+import functools
 import math
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
-from .cost import DFTHCSOS_CONSTRAINTS, Constraint, dfthcsos_cost, lambda_eff_floor
+from .cost import (
+    DFTHCSOS_CONSTRAINTS,
+    NUM_ORBITALS,
+    Constraint,
+    ShapeResources,
+    dfthcsos_cost,
+    lambda_eff_floor,
+    word_registers,
+)
 from .submission import CHEMISTRY_DIR, NPZ_SCREEN_ARRAYS, SubmissionAudit
 from .verify import verifier_script
 
@@ -167,11 +178,33 @@ class ChemistryMetrics:
         return dfthcsos_cost(qubits, toffolis, self.e_gap, self.one_norm)
 
 
+def cache_reference_loads() -> None:
+    """Memoize the verifier's two reference loaders, which parse the same files every call.
+
+    `load_inputs` rebuilds the reference from scratch per factorization, so screening N
+    candidates parsed the 122 MB FCIDUMP N times -- about four seconds each, which made the
+    "thousands of candidates" this class exists for cost hours rather than minutes. Both
+    loaders are pure functions of a path, and `verify.py` resolves them as module globals at
+    call time, so wrapping them there is enough.
+
+    It changes nothing about what is computed. In particular `check_fcidump()` is called
+    *outside* the cached function on every `load_inputs`, so the SHA-256 integrity check on
+    the packaged FCIDUMP still runs each time.
+    """
+    import dfthcsos.verify as dfthcsos_verify
+
+    for name in ("load_reference", "load_fixed_shifts"):
+        loader = getattr(dfthcsos_verify, name)
+        if not hasattr(loader, "cache_info"):  # idempotent across screens
+            setattr(dfthcsos_verify, name, functools.lru_cache(maxsize=1)(loader))
+
+
 class ChemistryScreen:
     """The FeMoCo reference, loaded once, against which many factorizations are screened.
 
     Loading the 122 MB FCIDUMP costs about four seconds and is the whole reason this is a
-    class: a search evaluates thousands of candidates against one reference.
+    class: a search evaluates thousands of candidates against one reference. The verifier
+    reloads it per call, so `cache_reference_loads` is what makes "once" true.
     """
 
     def __init__(self, verifiers_root: Path | str) -> None:
@@ -181,6 +214,64 @@ class ChemistryScreen:
         self.package_root = verifier_script(verifiers_root, CHEMISTRY_DIR).parent.parent
         if str(self.package_root) not in sys.path:
             sys.path.insert(0, str(self.package_root))
+        cache_reference_loads()
+
+    def heuristic_costs(
+        self, rank_r: int, bases_b: int, ensemble_c: int, brot: int
+    ) -> dict[str, int]:
+        """The verifier's own closed-form costs for a shape, built or not.
+
+        Needs neither the FCIDUMP nor any circuits, which is what makes a shape sweep free.
+        """
+        # Deferred: resolves only once `__init__` has put the verifier on `sys.path`.
+        from dfthcsos.verify import heuristic_costs
+
+        return heuristic_costs(NUM_ORBITALS, rank_r, bases_b, ensemble_c, brot)
+
+    def resources(
+        self,
+        rank_r: int,
+        bases_b: int,
+        ensemble_c: int,
+        brot: int,
+        angle_toffoli: float,
+        angle_word_registers: int,
+        angle_temporary_qubits: int = 0,
+    ) -> ShapeResources:
+        """A shape's `T` and `Q`, given the three ANGLE measurements no model can supply.
+
+        `angle_temporary_qubits` defaults to 0 rather than being required because it is
+        provably irrelevant whenever the inner preparation's workspace reaches the 128-qubit
+        ANGLE width cap: the ANGLE term cannot exceed that cap, so the shared `max` is the
+        heuristic one. Pass the measured value when a report has it -- or use `from_report`.
+        """
+        return ShapeResources.from_heuristic(
+            self.heuristic_costs(rank_r, bases_b, ensemble_c, brot),
+            angle_toffoli=angle_toffoli,
+            angle_word_qubits=angle_word_registers * brot,
+            angle_temporary_qubits=angle_temporary_qubits,
+        )
+
+    def resources_from_record(self, part: Mapping[str, Any]) -> ShapeResources:
+        """`T` and `Q` from a parts record's own fields, with `J` derived from its `Q_total`.
+
+        The record is the provenance of what was actually submitted, so this is the path that
+        prices the live submission without re-running a verifier or restating its numbers.
+        """
+        shape = (int(part["R"]), int(part["B"]), int(part["C"]))
+        brot = int(part["brot"])
+        heuristic = self.heuristic_costs(*shape, brot)
+        return self.resources(
+            *shape,
+            brot,
+            angle_toffoli=float(part["T_angles"]),
+            angle_word_registers=word_registers(
+                int(part["Q_total"]),
+                heuristic["persistent_qubits"],
+                heuristic["temporary_qubits"],
+                brot,
+            ),
+        )
 
     def evaluate(self, factorization: Path | str) -> ChemistryMetrics:
         # Deferred: these resolve only once `__init__` has put the verifier on `sys.path`.

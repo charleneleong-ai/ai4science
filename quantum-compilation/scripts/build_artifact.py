@@ -34,9 +34,11 @@ from quantum_compilation.cost import (
     clopper_pearson_upper_bound,
     BASELINE_FACTORIZATION,
     DEFAULT_CALIBRATION,
+    ESCAPE_SCORE,
     FEMOCO_C0,
     MAX_DQI_FAILURE_RATE,
     TASKS,
+    ShapeResources,
     dfthcsos_constraint_margins,
     dqi_repetition_factor,
     lambda_eff_floor,
@@ -61,8 +63,7 @@ STATUS_DATE = "2026-11-02"
 # A bar within this fraction of its limit counts as pinned, for the chart's colouring and for
 # the count the prose quotes. One constant so the two cannot disagree.
 PINNED_FRACTION = 0.999
-# The score that marks the far side of the cliff, for the count of teams that cleared it.
-ESCAPE_SCORE = 25.0
+
 
 # Wall-clock minutes per verifier on 10 CPU cores, and the competition's daily submission
 # budget. Neither is in any result file; the footer declares them as recorded by hand.
@@ -446,18 +447,13 @@ def angle_share_svg(report: TaskReport) -> str:
     bars show the Toffoli partition and the persistent-qubit partition, and the prose below
     carries the max.
     """
-    resources = report.detail["resources"]
+    res = ShapeResources.from_report(report.detail)
     bars = [
-        (
-            "Toffolis",
-            float(resources["angles_toffoli"]),
-            float(resources["toffoli"]),
-            "of all Toffolis",
-        ),
+        ("Toffolis", res.angle_toffoli, res.toffoli, "of all Toffolis"),
         (
             "Persistent qubits",
-            float(resources["angles_persistent_qubits"]),
-            float(resources["persistent_qubits"]),
+            float(res.angle_word_qubits),
+            float(res.heuristic_persistent_qubits + res.angle_word_qubits),
             "of persistent width",
         ),
     ]

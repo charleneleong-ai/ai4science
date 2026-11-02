@@ -240,3 +240,41 @@ experiments:
       zero.
     verdict: DISCARD
     pr: 104
+  - name: r2-price-the-toffoli-budget
+    date: 2026-11-02
+    baseline: >-
+      the submitted plateau submission 57834335 at T_total 16,266 and Q_total 430, whose
+      chemistry cost r1 left as "T * Q and essentially nothing else"
+    gate: >-
+      none -- the same reach calculation as r1, run before spending compute
+    result: >-
+      With `lambda_eff` floored, the question was what `T` and `Q` are made of and which parts
+      a submission can actually move. Driving the verifier's own `SpinFreeData_V1` at the
+      submitted shape reproduces both recorded totals **exactly**: `T = 16,266` splits into
+      **8,336 ANGLE Toffolis (51.25%)** plus a heuristic 7,930 (inner state prep 5,311, Givens
+      rotations 2,250, outer 369), and `Q = 430` into 304 shared workspace, 86 persistent
+      state-prep qubits and 40 angle-word registers (`J = 5` back-solved from Q, times
+      `brot = 8`). **The split is the finding.** Everything heuristic is closed-form in the
+      shape `(R, B, C)` and `brot`, so it can only be bought with error budget -- and the
+      error budget is spent, both residuals sitting at 99.999% of the 20 mHa cap. The ANGLE
+      Toffolis are the simulated mean of circuits the submitter writes, so cheaper loaders for
+      the *same* words score better at *identical* accuracy. Half of `T` costs nothing.
+      Price: one Toffoli is **+0.000475 blend**, one qubit **+0.017998** (38x a Toffoli, since
+      `Q` is 38x smaller). Reaching 25.0 needs **20.28% off the chemistry cost** -- 3,298
+      Toffolis, or 87 qubits, or any mix. From the free share alone that is a **39.6% cheaper
+      ANGLE family**: large, but the only direction left that costs no accuracy.
+      Three ways of buying the bought part were measured and all are closed. **brot cannot go
+      down**: re-rounding the submitted angles onto the `brot = 7` grid breaches the cap by
+      **118x** on error_1 and 22x on error_2, and since the angles already sit on the cap at
+      `brot = 8`, no fresh fit at half the grid spacing closes two orders of magnitude.
+      **brot cannot go up**: at `brot = 9` the inner preparation's QROAM jumps to a branch that
+      takes the shared workspace from 304 to 607 qubits, costing **-3.27 blend** despite
+      1,316 fewer Toffolis. **The shape cannot be re-split**: at constant `R*B = 1,144` the
+      submitted `(8, 143)` is the best of all 16 integer factor pairs, every other costing
+      -0.23 to -16.46. Shapes that are cheaper -- lower `R*B`, or lower `C` -- all cut the
+      representational capacity of a factorization already at the accuracy cap.
+      Pinned by `ShapeResources` / `ChemistryScreen.resources` in chemistry.py and
+      `blend_factor` / `cost_cut_for_blend` in cost.py, printed by `vqcc shape`, with the
+      brot wall and both totals under test. Cost: no compute.
+    verdict: KEEP
+    pr: 104

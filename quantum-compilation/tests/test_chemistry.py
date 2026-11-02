@@ -8,10 +8,11 @@ import os
 from dataclasses import replace
 from pathlib import Path
 
+import numpy as np
 import pytest
 import yaml
 from quantum_compilation.chemistry import ChemistryScreen
-from quantum_compilation.cost import FEMOCO_C0, lambda_eff
+from quantum_compilation.cost import FEMOCO_C0, MAX_HAMILTONIAN_ERROR_HA, lambda_eff
 
 EXPERIMENTS_DIR = Path(__file__).parents[1] / "docs" / "experiments"
 VERIFIERS = os.environ.get("VQCC_VERIFIERS", "")
@@ -32,8 +33,38 @@ def part() -> dict[str, object]:
 
 
 @pytest.fixture(scope="module")
-def metrics(part):
-    return ChemistryScreen(VERIFIERS).evaluate(SUBMITTED)
+def screen() -> ChemistryScreen:
+    return ChemistryScreen(VERIFIERS)
+
+
+@pytest.fixture(scope="module")
+def metrics(screen):
+    return screen.evaluate(SUBMITTED)
+
+
+@pytest.fixture(scope="module")
+def resources(screen, part):
+    """`T` and `Q` rebuilt from the shape and `Q_total` the parts record carries."""
+    return screen.resources_from_record(part)
+
+
+@pytest.fixture(scope="module")
+def coarsened(screen, tmp_path_factory):
+    """The submitted factorization with every angle re-rounded onto the `brot = 7` grid.
+
+    A fresh fit at that precision would beat re-rounding, but not by the two orders of
+    magnitude the result leaves to find, which is what makes this a wall and not an estimate.
+    """
+    with np.load(SUBMITTED, allow_pickle=False) as arrays:
+        data = dict(arrays)
+    brot = int(data["brot"]) - 1
+    scaled = np.rint(np.asarray(data["angle_words"], dtype=np.float64) / 2.0)
+    # Words are unsigned in [0, 2**brot); rounding the largest up lands one past the end.
+    data["angle_words"] = np.clip(scaled, 0, 2**brot - 1).astype(data["angle_words"].dtype)
+    data["brot"] = np.asarray(brot)
+    path = tmp_path_factory.mktemp("coarse") / "submission.npz"
+    np.savez(path, **data)
+    return screen.evaluate(path)
 
 
 class TestAgainstTheVerifier:
@@ -128,3 +159,23 @@ class TestRejection:
     )
     def test_a_breached_constraint_is_named(self, metrics, field, bad, named):
         assert any(named in r for r in replace(metrics, **{field: bad}).rejected_for)
+
+
+class TestShapeResources:
+    """`T` and `Q` rebuilt from the shape, against what the verifier reported for that shape."""
+
+    @pytest.mark.parametrize(("field", "recorded"), [("toffoli", "T_total"), ("qubits", "Q_total")])
+    def test_reproduces_the_verifier(self, resources, part, field, recorded):
+        assert getattr(resources, field) == part[recorded]
+
+    def test_J_comes_out_of_the_recorded_total(self, resources, part):
+        """The one term no report states on its own, so `Q` is only reproducible if it is right."""
+        assert resources.angle_word_qubits == 5 * int(part["brot"])
+
+
+class TestTheRotationPrecisionWall:
+    """Why `brot` cannot be lowered: the submitted angles already sit on the 20 mHa cap."""
+
+    def test_one_bit_coarser_breaches_the_cap_by_two_orders_of_magnitude(self, coarsened):
+        assert coarsened.hamiltonian_error_ha > 100 * MAX_HAMILTONIAN_ERROR_HA
+        assert any("hamiltonian_error_ha" in r for r in coarsened.rejected_for)

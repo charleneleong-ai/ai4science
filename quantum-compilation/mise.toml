@@ -38,6 +38,10 @@ run = "uv run vqcc check"
 description = "Screen a chemistry factorization in under a second -- every constraint but ANGLE_WIDTH, no circuits built"
 run = "uv run vqcc chem"
 
+[tasks.shape]
+description = "Split a submission's T and Q into what its factorization buys and what it compiles free"
+run = "uv run vqcc shape"
+
 [tasks.resources]
 description = "Static gate counts per circuit -- a triage bound, not a cost"
 run = "uv run vqcc resources"
