@@ -10,6 +10,7 @@ __pycache__/
 .venv/
 venv/
 .ipynb_checkpoints/
+.pytest_cache/
 
 # Data / model artefacts (regenerable)
 *.parquet
@@ -51,3 +52,11 @@ tfr1/data/*
 !tfr1/data/targets/
 tfr1/data/targets/*
 !tfr1/data/targets/hotspots.json
+# pmhc: generator and verifier outputs, regenerable from the committed scripts
+pmhc/gen_out/
+pmhc/smoke*/
+pmhc/fold_work*/
+pmhc/cohort_poses/
+pmhc/logs/
+pmhc/data/*.cif
+pmhc/targets/
