@@ -262,7 +262,9 @@ experiments:
       Price: one Toffoli is **+0.000475 blend**, one qubit **+0.017998** (38x a Toffoli, since
       `Q` is 38x smaller). Reaching 25.0 needs **20.28% off the chemistry cost** -- 3,298
       Toffolis, or 87 qubits, or any mix. From the free share alone that is a **39.6% cheaper
-      ANGLE family**: large, but the only direction left that costs no accuracy.
+      ANGLE family**: large, but the only direction left that costs no accuracy. The parts record
+      has this submission reusing its predecessor's loaders byte-identical, on "the existing
+      16,266-Toffoli loaders"; whether anyone on the leaderboard has rewritten them is unknown.
       Three ways of buying the bought part were measured and all are closed. **brot cannot go
       down**: re-rounding the submitted angles onto the `brot = 7` grid breaches the cap by
       **118x** on error_1 and 22x on error_2, and since the angles already sit on the cap at

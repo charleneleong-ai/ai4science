@@ -113,8 +113,9 @@ fresh fit at half the grid spacing closes two orders of magnitude. **`brot` cann
 `brot = 9` the inner preparation's QROAM jumps to a branch taking the workspace from 304 to 607
 qubits, costing **−3.27 blend** despite 1,316 fewer Toffolis. **The shape cannot be re-split**:
 at constant `R·B = 1,144` the submitted `(8, 143)` is the best of all 16 integer factor pairs.
-So the ANGLE loaders are the only direction left that costs no accuracy — and no top submission
-has moved them; they are reused byte-identical across the plateau.
+So the ANGLE loaders are the only direction left that costs no accuracy. The parts record has
+this submission reusing its predecessor's loaders byte-identical, on "the existing 16,266-Toffoli
+loaders" — whether anyone on the leaderboard has rewritten them is unknown to us.
 
 **Progress artifact:** <https://claude.ai/artifact/EzjSoAxvhTvi9pWgdJDEDq> (private; rebuilt by
 [`scripts/build_artifact.py`](scripts/build_artifact.py) into

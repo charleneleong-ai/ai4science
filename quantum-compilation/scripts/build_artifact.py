@@ -1118,7 +1118,10 @@ class Artifact:
     {plateau["Q_total"] * cut:,.0f} qubits, or any
     mix. <strong>Out of the free share alone that is loaders
     {plateau["T_total"] * cut / plateau_free:.0%}
-    cheaper</strong> &mdash; large, and the only direction left that costs no accuracy.</p>
+    cheaper</strong> &mdash; large, and the only direction left that costs no accuracy. The parts
+    record has this submission reusing its predecessor&rsquo;s loaders byte-identical, on
+    &ldquo;the existing 16,266-Toffoli loaders&rdquo;; whether anyone on the leaderboard has
+    rewritten them is unknown to us.</p>
     <p class="note">Every way of buying the bought half is closed, measured rather than argued.
     <code>brot</code> cannot go down: re-rounding the submitted angles onto the
     <code>brot&nbsp;=&nbsp;7</code> grid breaches the 20&nbsp;mHa cap by <strong>118&times;</strong>
