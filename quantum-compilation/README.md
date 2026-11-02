@@ -113,9 +113,58 @@ fresh fit at half the grid spacing closes two orders of magnitude. **`brot` cann
 `brot = 9` the inner preparation's QROAM jumps to a branch taking the workspace from 304 to 607
 qubits, costing **−3.27 blend** despite 1,316 fewer Toffolis. **The shape cannot be re-split**:
 at constant `R·B = 1,144` the submitted `(8, 143)` is the best of all 16 integer factor pairs.
-So the ANGLE loaders are the only direction left that costs no accuracy. The parts record has
-this submission reusing its predecessor's loaders byte-identical, on "the existing 16,266-Toffoli
-loaders" — whether anyone on the leaderboard has rewritten them is unknown to us.
+So the ANGLE loaders are the only direction left that costs no accuracy — and reading them
+closes that one too.
+
+### The loaders are AND/XOR circuits, and the floor leaves room
+
+They are not lookup tables. Each `ANGLE_k` is a GF(2) circuit: a ladder of AND-ancillas,
+~33,500 CNOTs fanning their products into the word bits, then `HMR` plus conditioned `CZ`
+uncomputing every ancilla. Of circuit 13's 33,540 CNOTs, **27,444 target the selection register
+itself**, used in place as a linear scratchpad and restored by the end. Because the verifier's
+own `recover_words_from_circuits` charges Toffoli-like gates only, and a conditioned gate only
+on the shots whose bit is set, **XOR costs nothing and the AND gates are the whole bill**: a
+loader's price is the multiplicative complexity of its word table, not its address count.
+
+Rebuilding the same `angle_words` three ways sizes the construction:
+
+| construction | Toffolis per pass | qubits |
+| --- | --- | --- |
+| kickmix's own `init_lookup` | 30,690 | 62 |
+| starter-kit segment-tree QROM | 18,270 | 61 |
+| **the plateau submission** | **4,168** | 126 |
+
+7.4× cheaper than the library primitive and 4.4× cheaper than the starter kit, bought with 65
+extra workspace qubits. How much is left is a counting question: a straight-line GF(2) circuit
+with `n` inputs, `A` ANDs and `b` outputs realises at most `2**(2An + A² + A + b(n+A+1))` maps
+and must hit a specific `b`-bit word on each of 1,220 addresses, so all but a vanishing fraction
+of tables need [`A² + A(2n+1+b) + b(n+1) ≥ 1220b`](src/quantum_compilation/cost.py#L502).
+
+**`n` is 51, not 11.** Each circuit runs with its word registers already holding the previous
+batch — itself a function of the address — so they are 40 free nonlinear inputs, and the
+submitted circuits use them: 8 of circuit 13's 516 AND operands are word qubits. A bound that
+withheld them would not be a floor on what a construction may do. That puts the floor at
+**A ≥ 157** at `b = 40`, against 191 for the address bits alone, and the submitted mean of
+277.9 at **1.770×** it.
+
+[`vqcc angle-floor`](src/quantum_compilation/cli.py#L544) sweeps the batch size `J`:
+
+| | J=5 (submitted) | J=11 | J=13 | J=14 | J=15 |
+| --- | --- | --- | --- | --- | --- |
+| circuits | 15 | 7 | 6 | 6 | — |
+| free workspace | 77 | 29 | 13 | 5 | over the 128-qubit cap |
+| AND floor / circuit | 157 | 202 | 211 | 215 | — |
+| blend at the floor | 25.214 | **25.684** | 25.641 | 25.465 | — |
+| **at the submitted 1.770× rate** | 23.181 | 24.154 | **24.222** | 24.038 | — |
+| ANDs needed for 25.0 | 168 | 267 | 280 | 265 | — |
+
+So **the floor permits 25.0 at every J ≥ 5** — the loaders are the one direction that is not
+closed. Two numbers say what it costs. Re-batching alone, holding the measured 1.770× rate, is
+**+1.041 blend → 24.22169 at J=13**, at identical accuracy and with no new circuit cleverness.
+Reaching 25.0 needs **280 ANDs per circuit at J=13, 1.33× the floor** — and the submitted family
+already builds 258–301 per circuit. The target is therefore a J=13 construction no dearer per
+circuit than the ones already written at J=5, over 2.6× the output bits: a 25% efficiency gain
+on top of the re-batch, not a new order of magnitude. Whether one exists is not established.
 
 **Progress artifact:** <https://claude.ai/artifact/EzjSoAxvhTvi9pWgdJDEDq> (private; rebuilt by
 [`scripts/build_artifact.py`](scripts/build_artifact.py) into
@@ -289,10 +338,12 @@ against the same constraint table once a report exists.
 - **Two leaderboard readings, neither on a circuit we designed.** The loop agreed with the
   leaderboard on the reference and on this assembly. That does not prove it agrees on a
   candidate our own search produces.
-- **Whether a cheaper ANGLE family exists is unmeasured.** `T` and `Q` are now priced, and
-  the 8,336 free Toffolis are large enough to reach 25.0 on their own at a 39.6% cut. That
-  says the budget is there, not that the circuit is: nothing here has looked inside the
-  loaders, and 39.6% off a design the whole frontier reuses may well be out of reach.
+- **Whether a J=13 loader family is buildable is unmeasured.** The floor says 25.0 is
+  reachable through the loaders and that re-batching at their measured AND rate is worth
+  +1.041. It does not say a construction at 1.33× the floor exists in 13 workspace qubits —
+  getting from 1.770× to 1.33× is Boolean-minimisation work nobody here has done, and the
+  counting bound is an argument about almost every table, not a proof about this one. It
+  bounds what is possible, not what is reachable.
 - **Why 9 teams cleared 25 while half the field sits near 22.7 is unexplained**, and which
   task holds the margin that separates them from the plateau is the most valuable unknown in
   the competition.

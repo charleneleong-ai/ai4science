@@ -42,6 +42,10 @@ run = "uv run vqcc chem"
 description = "Split a submission's T and Q into what its factorization buys and what it compiles free"
 run = "uv run vqcc shape"
 
+[tasks.angle-floor]
+description = "How cheap the ANGLE loaders can get at each batch size, against the AND counting bound"
+run = "uv run vqcc angle-floor"
+
 [tasks.resources]
 description = "Static gate counts per circuit -- a triage bound, not a cost"
 run = "uv run vqcc resources"

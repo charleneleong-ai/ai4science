@@ -25,7 +25,7 @@ from __future__ import annotations
 import json
 import math
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -76,6 +76,10 @@ FEMOCO_C0 = -559.132473148504
 # `W` (R, B, C). The sample submission's npz agrees, carrying `U` of (65, 60, 76).
 NUM_ORBITALS = 76
 BASELINE_FACTORIZATION = (65, 60, 60)
+
+# Angle words per LCU vector, and so the number of ANGLE circuits a batch size J must cover:
+# the Givens network that rotates N orbitals takes N - 1 angles.
+NUM_ANGLE_WORDS = NUM_ORBITALS - 1
 
 # The rotation precisions worth costing. No verifier rule bounds `brot`; these are wide enough
 # to show both walls that do -- below, the angle grid coarsens past MAX_HAMILTONIAN_ERROR_HA,
@@ -391,6 +395,37 @@ class ShapeResources:
         )
 
     @classmethod
+    def from_parts_record(cls, part: Mapping[str, Any]) -> ShapeResources:
+        """The lumped split a parts record supports, with no verifier tree on the path.
+
+        A record carries the three sums -- `T_total`, `T_angles` and `Q_total` -- and `J`, but
+        not the heuristic qubit split, which only `heuristic_costs` produces. So the heuristic
+        half is lumped: its whole Toffoli count into `givens_toffoli` and its whole qubit count
+        into `heuristic_persistent_qubits`, both temporaries zero. Every quantity derived from
+        here reads the sums rather than the terms, so `toffoli`, `qubits` and `cost_proxy` are
+        exact.
+
+        Zero angle temporaries is exact too, under re-batching as well as at the recorded
+        batching, but by an argument rather than by construction: folding the heuristic
+        workspace into the persistent count is only faithful while that workspace stays the
+        larger side of the `max` in `qubits`, and `ANGLE_WIDTH` caps a family's own temporaries
+        at `MAX_ANGLE_QUBITS` minus its selection register. That holds for every shape this is
+        used on and is pinned against the verifier-backed split by test, not assumed.
+        """
+        brot, batch = int(part["brot"]), int(part["J"])
+        words = batch * brot
+        return cls(
+            outer_toffoli=0,
+            inner_toffoli=0,
+            givens_toffoli=int(float(part["T_total"]) - float(part["T_angles"])),
+            heuristic_persistent_qubits=int(part["Q_total"]) - words,
+            heuristic_temporary_qubits=0,
+            angle_toffoli=float(part["T_angles"]),
+            angle_word_qubits=words,
+            angle_temporary_qubits=0,
+        )
+
+    @classmethod
     def from_report(cls, report: Mapping[str, Any]) -> ShapeResources:
         """Both halves from a verifier report, which publishes every term separately.
 
@@ -424,6 +459,15 @@ class ShapeResources:
         )
 
     @property
+    def cost_proxy(self) -> float:
+        """`T * Q`: everything in the chemistry cost that a submission still moves.
+
+        `lambda_eff` is the third factor and divides out of any ratio of two costs, so this
+        is what a projected change in resources is measured on.
+        """
+        return self.toffoli * self.qubits
+
+    @property
     def angle_share(self) -> float:
         """The fraction of `T_total` that costs no accuracy."""
         return self.angle_toffoli / self.toffoli
@@ -435,6 +479,33 @@ class ShapeResources:
         Toffolis, which is the question worth asking before writing a single circuit.
         """
         return self.toffoli * cost_cut / self.angle_toffoli
+
+    def blend_from(self, blend: float, before: ShapeResources) -> float:
+        """Where `before`'s `blend` lands on these resources.
+
+        A change in `T * Q` alone moves the blend by the cube root of its inverse, which is
+        `blend_factor` on the two cost proxies -- so a hypothetical ANGLE family can be priced
+        with no calibration and no verifier run.
+        """
+        return blend * blend_factor(self.cost_proxy, before.cost_proxy)
+
+    def with_angle_family(
+        self, family: AngleFamily, ands_per_circuit: float, temporary_qubits: int
+    ) -> ShapeResources:
+        """The same heuristic half with a differently batched ANGLE family priced onto it.
+
+        The heuristic terms depend on the factorization shape and `brot`, not on `J`, so
+        re-batching the loaders moves only the three ANGLE fields -- which is what makes `J`
+        a lever that costs no accuracy. `temporary_qubits` is asked for rather than taken from
+        the family's width headroom: a construction need not saturate the cap, and the
+        submitted one does not (126 qubits, 75 temporary, against 77 of headroom).
+        """
+        return replace(
+            self,
+            angle_toffoli=family.toffoli(ands_per_circuit),
+            angle_word_qubits=family.output_bits,
+            angle_temporary_qubits=temporary_qubits,
+        )
 
 
 def word_registers(
@@ -457,6 +528,243 @@ def word_registers(
             f"which is not a positive multiple of brot={brot}"
         )
     return words // brot
+
+
+def and_counting_floor(output_bits: int, input_bits: int, num_addresses: int) -> int:
+    """The fewest AND gates any ANGLE circuit of this shape can have, for a generic table.
+
+    An ANGLE_k circuit is not a lookup table but a GF(2) circuit: the verifier charges
+    Toffoli-like gates (`CCX`, `CCZ`, `CSWAP`) only, and a conditioned gate only on the shots
+    whose bit is set, so XOR is free and so is the measurement-based uncompute, whose fixups
+    are Clifford. A straight-line circuit with `input_bits` inputs, `A` AND gates and
+    `output_bits` outputs realises at most
+
+        2 ** (2*A*n + A**2 + A + b*(n + A + 1))
+
+    distinct maps -- each AND operand is affine in the inputs and the `i - 1` earlier ANDs, and
+    each output is affine in the inputs and all `A` ANDs. The circuit has to reproduce a
+    specific `b`-bit word on each of `num_addresses` constrained addresses, one of
+    `2 ** (b * num_addresses)` tables, so all but a vanishing fraction of tables need
+
+        A**2 + A*(2n + 1 + b) + b*(n + 1) >= b * num_addresses.
+
+    A counting argument, so it bounds almost every table rather than proving anything about
+    one: a table with structure can fall far below it.
+    """
+    if min(output_bits, input_bits, num_addresses) <= 0:
+        raise ValueError(
+            f"need positive bit and address counts, got {output_bits}, "
+            f"{input_bits}, {num_addresses}"
+        )
+    linear = 2 * input_bits + 1 + output_bits
+    free = output_bits * (num_addresses - input_bits - 1)
+    return math.ceil((-linear + math.sqrt(linear**2 + 4 * max(free, 0))) / 2)
+
+
+@dataclass(frozen=True)
+class AngleFamily:
+    """One admissible ANGLE batching: `K = ceil(75 / J)` circuits of `J * brot` output bits.
+
+    `J` is a free parameter of a submission -- the contract fixes only that the family covers
+    all `NUM_ANGLE_WORDS` angles and that no circuit exceeds `MAX_ANGLE_QUBITS`. Raising it
+    trades circuits against width: `K` falls as `1 / J` while a circuit's AND floor grows only
+    as `sqrt(J)`, so the family gets cheaper in Toffolis and dearer in qubits.
+    """
+
+    batch_size: int
+    brot: int
+    num_addresses: int
+
+    def __post_init__(self) -> None:
+        if min(self.batch_size, self.brot, self.num_addresses) <= 0:
+            raise ValueError(f"batch size, brot and address count must be positive, got {self}")
+
+    @classmethod
+    def from_resources(
+        cls, resources: ShapeResources, brot: int, num_addresses: int
+    ) -> AngleFamily:
+        """The batching a measured submission used, with `J` read off its word registers."""
+        words = resources.angle_word_qubits
+        if words <= 0 or words % brot:
+            raise ValueError(
+                f"{words} angle-word qubits is not a positive multiple of brot={brot}"
+            )
+        return cls(words // brot, brot, num_addresses)
+
+    @property
+    def address_bits(self) -> int:
+        """The selection width the verifier demands: extra bits would be uncharged workspace."""
+        return (self.num_addresses - 1).bit_length()
+
+    @property
+    def num_circuits(self) -> int:
+        return math.ceil(NUM_ANGLE_WORDS / self.batch_size)
+
+    @property
+    def output_bits(self) -> int:
+        return self.batch_size * self.brot
+
+    @property
+    def public_qubits(self) -> int:
+        """Selection plus the word registers, the part of a circuit the contract names."""
+        return self.address_bits + self.output_bits
+
+    @property
+    def free_workspace(self) -> int:
+        """Qubits the width cap leaves for AND ancillas."""
+        return MAX_ANGLE_QUBITS - self.public_qubits
+
+    @property
+    def feasible(self) -> bool:
+        """Whether a circuit this wide is admissible at all, by the one width predicate."""
+        return not ANGLE_WIDTH.violated(self.public_qubits)
+
+    @property
+    def and_floor(self) -> int:
+        """The counting floor, granting the circuit its word registers as inputs.
+
+        They arrive holding the previous batch, which is itself a function of the address, so
+        they are `output_bits` nonlinear functions available for free -- and the submitted
+        circuits do use them, 8 of circuit 13's 516 AND operands being word qubits. A bound
+        that withheld them would not be a floor on what a construction may do.
+        """
+        return and_counting_floor(self.output_bits, self.public_qubits, self.num_addresses)
+
+    @property
+    def address_only_floor(self) -> int:
+        """The same bound with the word registers withheld -- the weaker claim, kept to name.
+
+        Granting them is what makes `and_floor` a floor on what a construction may do, and
+        the difference is large enough to change a verdict: at the submitted shape this reads
+        191 against 157, and a sweep against 191 rules out a target the circuits can in fact
+        be built toward. Exposed so the page and the tests cite one derivation of it.
+        """
+        return and_counting_floor(self.output_bits, self.address_bits, self.num_addresses)
+
+    def toffoli(self, ands_per_circuit: float) -> float:
+        """The family's charged Toffoli mean: every AND runs once per pass, and there are two."""
+        return 2 * self.num_circuits * ands_per_circuit
+
+    def ands_for_toffoli(self, toffoli: float) -> float:
+        """The inverse: ANDs per circuit that a family-wide Toffoli mean implies."""
+        return toffoli / (2 * self.num_circuits)
+
+
+def rebatched(
+    resources: ShapeResources, family: AngleFamily, ands_per_circuit: float
+) -> ShapeResources:
+    """`resources` with `family` priced onto it at `ands_per_circuit` AND gates per circuit.
+
+    The temporary count is zero rather than the family's width headroom: `ANGLE_WIDTH` caps a
+    circuit at `MAX_ANGLE_QUBITS`, so its workspace cannot exceed that minus its selection
+    register, which is below the heuristic workspace of any shape worth sweeping -- it never
+    reaches the `max` in `ShapeResources.qubits`. Passing zero states that, where passing the
+    headroom would quietly depend on it.
+    """
+    return resources.with_angle_family(family, ands_per_circuit, 0)
+
+
+@dataclass(frozen=True)
+class AngleFloorRow:
+    """One admissible batching, priced at the counting floor and at a measured AND rate."""
+
+    family: AngleFamily
+    at_floor: float
+    at_rate: float
+    ands_for_target: float
+
+    @property
+    def batch_size(self) -> int:
+        return self.family.batch_size
+
+    @property
+    def target_over_floor(self) -> float:
+        """What a family reaching the target would cost as a multiple of the bound."""
+        return self.ands_for_target / self.family.and_floor
+
+    @property
+    def reaches_target(self) -> bool:
+        """Whether the target is reachable here at all, loaders at zero Toffolis included."""
+        return self.ands_for_target > 0
+
+
+@dataclass(frozen=True)
+class AngleFloorSweep:
+    """Every admissible ANGLE batching of one submission, priced without a verifier run.
+
+    `J` is the lever the contract leaves free -- it fixes only that a family covers all
+    `NUM_ANGLE_WORDS` angles and that no circuit exceeds `MAX_ANGLE_QUBITS` -- and raising it
+    trades circuits against width: `K` falls as `1 / J` while a circuit's AND floor grows only
+    as `sqrt(J)`. The width cap ends the sweep.
+
+    Built once and rendered by both `vqcc angle-floor` and the artifact page, so the table a
+    reader runs and the chart a reader is shown cannot disagree.
+    """
+
+    submitted: AngleFamily
+    measured_ands: float
+    blend: float
+    target: float
+    rows: tuple[AngleFloorRow, ...]
+
+    @classmethod
+    def over(
+        cls,
+        resources: ShapeResources,
+        brot: int,
+        num_addresses: int,
+        blend: float,
+        target: float = ESCAPE_SCORE,
+        max_batch: int = NUM_ANGLE_WORDS,
+    ) -> AngleFloorSweep:
+        """Sweep `J` on a measured submission, holding its accuracy and its heuristic half."""
+        submitted = AngleFamily.from_resources(resources, brot, num_addresses)
+        measured = submitted.ands_for_toffoli(resources.angle_toffoli)
+        rate = measured / submitted.and_floor
+        # The cost proxy that scores `target`; a candidate's own Q then fixes the T it needs.
+        wanted = resources.cost_proxy * (blend / target) ** len(TASKS)
+        rows = []
+        for size in range(1, max_batch + 1):
+            family = AngleFamily(size, brot, num_addresses)
+            if not family.feasible:
+                continue
+            floor = family.and_floor
+            rows.append(
+                AngleFloorRow(
+                    family=family,
+                    at_floor=rebatched(resources, family, floor).blend_from(blend, resources),
+                    at_rate=rebatched(resources, family, rate * floor).blend_from(
+                        blend, resources
+                    ),
+                    ands_for_target=family.ands_for_toffoli(
+                        wanted / rebatched(resources, family, 0).qubits
+                        - resources.heuristic_toffoli
+                    ),
+                )
+            )
+        return cls(submitted, measured, blend, target, tuple(rows))
+
+    @property
+    def rate(self) -> float:
+        """The submitted loaders' AND count as a multiple of their own counting floor."""
+        return self.measured_ands / self.submitted.and_floor
+
+    @property
+    def best_floor(self) -> AngleFloorRow:
+        return max(self.rows, key=lambda row: row.at_floor)
+
+    @property
+    def best_rate(self) -> AngleFloorRow:
+        return max(self.rows, key=lambda row: row.at_rate)
+
+    @property
+    def permits_target(self) -> bool:
+        """Whether any admissible batching could reach the target at the counting floor."""
+        return self.best_floor.at_floor >= self.target
+
+    def at(self, batch_size: int) -> AngleFloorRow | None:
+        """The row for one batching, or None where the width cap forbids it."""
+        return next((row for row in self.rows if row.batch_size == batch_size), None)
 
 
 def task_ratio(task: str, cost: float, calibration: MetricCalibration) -> float:

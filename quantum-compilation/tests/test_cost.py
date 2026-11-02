@@ -1,5 +1,6 @@
 import json
 import math
+from functools import partial
 from itertools import pairwise
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,10 @@ import yaml
 from quantum_compilation.cost import (
     BASELINE_FACTORIZATION,
     DEFAULT_CALIBRATION,
+    ESCAPE_SCORE,
+    AngleFamily,
+    AngleFloorSweep,
+    and_counting_floor,
     DFTHCSOS_CONSTRAINTS,
     FEMOCO_C0,
     MAX_ANGLE_QUBITS,
@@ -41,6 +46,9 @@ from quantum_compilation.cost import (
 )
 
 AT_REFERENCE = dict(DEFAULT_CALIBRATION.reference_costs)
+
+# The plateau submission's leaderboard blend, which several classes price against.
+PLATEAU_BLEND = 23.18119
 
 
 EXPERIMENTS_DIR = Path(__file__).parents[1] / "docs" / "experiments"
@@ -257,7 +265,7 @@ class TestBlendPricing:
 
     @pytest.mark.parametrize(
         ("blend", "target"),
-        [(23.18119, 25.0), (1.0, 2.0), (40.0, 41.0), (25.0, 23.18119)],
+        [(PLATEAU_BLEND, 25.0), (1.0, 2.0), (40.0, 41.0), (25.0, PLATEAU_BLEND)],
     )
     def test_the_cut_it_names_lands_on_the_target(self, blend, target):
         cut = cost_cut_for_blend(blend, target)
@@ -267,8 +275,10 @@ class TestBlendPricing:
     def test_the_per_unit_price_is_the_slope_of_the_factor(self):
         """What `shape` prints per Toffoli, against the finite difference it approximates."""
         total = 16266.0
-        step = 23.18119 * (blend_factor(total - 1, total) - 1)
-        assert marginal_blend_per_unit(23.18119, total) == pytest.approx(step, rel=1e-4)
+        step = PLATEAU_BLEND * (blend_factor(total - 1, total) - 1)
+        assert marginal_blend_per_unit(PLATEAU_BLEND, total) == pytest.approx(
+            step, rel=1e-4
+        )
 
     @pytest.mark.parametrize(
         ("fn", "args"),
@@ -517,3 +527,134 @@ class TestSeedNoiseRecord:
         assert set(blends) == {0, 1}, "both a clean and a failed seed are needed to compare"
         assert len(blends[0]) == 1, "zero-failure seeds disagree on the blend"
         assert blends[0] != blends[1], "the failed seed scored the same as the clean ones"
+
+
+# The plateau submission 57834335. The heuristic split is not in the parts record, so those
+# five terms are transcribed -- but the three totals they must reproduce are, and
+# `test_the_fixture_still_matches_the_record` is what catches drift in either direction.
+def output_bit_floor(input_bits: int, num_addresses: int, output_bits: int) -> int:
+    """`and_counting_floor` with its arguments ordered for a sweep over the output width."""
+    return and_counting_floor(output_bits, input_bits + output_bits, num_addresses)
+
+
+PARTS = yaml.safe_load((EXPERIMENTS_DIR / "57834335-parts.yaml").read_text())["parts"]["dfthcsos"]
+INCUMBENT = ShapeResources(
+    outer_toffoli=369,
+    inner_toffoli=5311,
+    givens_toffoli=2250,
+    heuristic_persistent_qubits=86,
+    heuristic_temporary_qubits=304,
+    angle_toffoli=float(PARTS["T_angles"]),
+    angle_word_qubits=40,
+    angle_temporary_qubits=75,
+)
+SUBMITTED_FAMILY = AngleFamily.from_resources(
+    INCUMBENT, int(PARTS["brot"]), lcu_vectors(int(PARTS["R"]), int(PARTS["B"]))
+)
+SUBMITTED_ANDS = SUBMITTED_FAMILY.ands_for_toffoli(INCUMBENT.angle_toffoli)
+
+
+# The sweep as the CLI builds it, off the five transcribed heuristic terms, and as the artifact
+# builder builds it, off the committed record alone. They must agree to the last digit: the
+# page has no verifier on its path and so cannot check its own numbers.
+SWEEP = AngleFloorSweep.over(
+    INCUMBENT, int(PARTS["brot"]), SUBMITTED_FAMILY.num_addresses, PLATEAU_BLEND
+)
+RECORD_SWEEP = AngleFloorSweep.over(
+    ShapeResources.from_parts_record(PARTS),
+    int(PARTS["brot"]),
+    SUBMITTED_FAMILY.num_addresses,
+    PLATEAU_BLEND,
+)
+
+
+class TestAngleLoaderFloor:
+    """The counting floor on the loaders, and the batch size it turns into a lever."""
+
+    def test_the_fixture_still_matches_the_record(self):
+        """The five transcribed heuristic terms, checked against the totals that are recorded."""
+        assert INCUMBENT.toffoli == PARTS["T_total"]
+        assert INCUMBENT.qubits == PARTS["Q_total"]
+        assert SUBMITTED_FAMILY.num_circuits == 15
+        assert SUBMITTED_FAMILY.address_bits == 11
+
+    def test_the_recorded_batch_size_agrees_with_what_the_total_implies(self):
+        """`J` is ours, written by the generator, so the third party's `Q_total` audits it."""
+        assert int(PARTS["J"]) == SUBMITTED_FAMILY.batch_size
+        assert int(PARTS["J"]) == word_registers(
+            int(PARTS["Q_total"]),
+            INCUMBENT.heuristic_persistent_qubits,
+            INCUMBENT.heuristic_temporary_qubits,
+            int(PARTS["brot"]),
+        )
+
+    def test_the_submitted_loaders_sit_above_the_floor_but_well_under_twice_it(self):
+        """What makes this a floor worth quoting: the loaders are already close to it."""
+        assert SUBMITTED_FAMILY.and_floor == 157
+        assert 1.0 < SWEEP.rate < 2.0
+
+    def test_granting_the_word_registers_as_inputs_lowers_the_floor(self):
+        """They arrive holding a function of the address, so a bound must allow their use."""
+        assert SUBMITTED_FAMILY.and_floor < SUBMITTED_FAMILY.address_only_floor == 191
+
+    @pytest.mark.parametrize(
+        ("floor_of", "sizes"),
+        [
+            (partial(and_counting_floor, 40, 51), range(200, 2001, 200)),
+            (partial(output_bit_floor, 11, 1220), range(8, 129, 8)),
+        ],
+        ids=["addresses", "output_bits"],
+    )
+    def test_the_floor_grows_with_the_table_it_has_to_encode(self, floor_of, sizes):
+        assert all(a < b for a, b in pairwise([floor_of(n) for n in sizes]))
+
+    @pytest.mark.parametrize("bits", [(0, 11, 1220), (40, 0, 1220), (40, 11, 0), (-40, 11, 1220)])
+    def test_a_degenerate_shape_is_rejected_rather_than_returning_a_floor(self, bits):
+        with pytest.raises(ValueError, match="positive"):
+            and_counting_floor(*bits)
+
+    def test_the_width_cap_is_what_bounds_the_batch_size(self):
+        """J=14 is the widest legal batching at brot=8: 11 + 112 fits 128, J=15 does not."""
+        brot, addresses = SUBMITTED_FAMILY.brot, SUBMITTED_FAMILY.num_addresses
+        assert AngleFamily(14, brot, addresses).feasible
+        assert not AngleFamily(15, brot, addresses).feasible
+        assert [row.batch_size for row in SWEEP.rows] == list(range(1, 15))
+
+    def test_re_batching_the_submission_into_its_own_family_changes_nothing(self):
+        """The round trip that keeps the projection honest, exact on every resource term."""
+        same = INCUMBENT.with_angle_family(
+            SUBMITTED_FAMILY, SUBMITTED_ANDS, INCUMBENT.angle_temporary_qubits
+        )
+        assert same == INCUMBENT
+        assert SWEEP.at(SUBMITTED_FAMILY.batch_size).at_rate == pytest.approx(PLATEAU_BLEND)
+
+    def test_the_floor_permits_the_escape_score_once_the_word_inputs_are_granted(self):
+        """The verdict r3 turns on: the loaders are not closed off from the escape band."""
+        assert SWEEP.permits_target
+        assert SWEEP.best_floor.batch_size == 11
+        assert SWEEP.best_floor.at_floor == pytest.approx(25.684, abs=5e-4)
+        assert SWEEP.best_floor.at_floor > ESCAPE_SCORE
+
+    def test_re_batching_alone_is_worth_a_point_at_the_submitted_and_rate(self):
+        """J is a free parameter, so this gain needs no new circuit cleverness."""
+        best = SWEEP.best_rate
+        assert best.batch_size == 13
+        assert best.at_rate - PLATEAU_BLEND == pytest.approx(1.0405, abs=5e-4)
+        assert best.at_rate < ESCAPE_SCORE, "re-batching alone is not the escape"
+        assert best.target_over_floor == pytest.approx(1.326, abs=5e-4)
+
+    def test_the_record_alone_prices_the_sweep_exactly_as_the_split_does(self):
+        """What licenses the artifact page: it has no verifier, so the lumping must be free.
+
+        Folding the heuristic workspace into the persistent count is faithful only while that
+        workspace is the larger side of the `max` in `qubits`, which the ANGLE width cap
+        guarantees -- so the second assertion is the reason the first one holds.
+        """
+        for lumped, split in zip(RECORD_SWEEP.rows, SWEEP.rows, strict=True):
+            assert lumped.batch_size == split.batch_size
+            assert lumped.at_floor == pytest.approx(split.at_floor, abs=1e-12)
+            assert lumped.at_rate == pytest.approx(split.at_rate, abs=1e-12)
+            assert lumped.ands_for_target == pytest.approx(split.ands_for_target, abs=1e-9)
+        assert max(row.family.free_workspace for row in SWEEP.rows) < (
+            INCUMBENT.heuristic_temporary_qubits
+        )

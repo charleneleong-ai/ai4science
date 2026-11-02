@@ -12,7 +12,7 @@ from __future__ import annotations
 import time
 from collections.abc import Iterator, Sequence
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import kickmix as km
 import typer
@@ -26,15 +26,20 @@ from quantum_compilation.chemistry import ChemistryMetrics, ChemistryScreen
 from quantum_compilation.cost import (
     DEFAULT_CALIBRATION,
     ESCAPE_SCORE,
+    FEMOCO_C0,
+    MAX_ANGLE_QUBITS,
     MAX_BROT,
     MIN_BROT,
     TASKS,
+    AngleFamily,
+    AngleFloorSweep,
     MetricCalibration,
     ShapeResources,
     blend_factor,
     cost_cut_for_blend,
     dfthcsos_rejections,
     lambda_eff_floor,
+    lcu_vectors,
     marginal_blend_per_unit,
     require_task,
     score,
@@ -191,6 +196,19 @@ def print_chem_headroom(metrics: ChemistryMetrics) -> None:
         f"{metrics.lambda_eff:.6f} -- the whole factorization search is worth "
         f"[bold]{metrics.lambda_eff_headroom:.3%}[/]"
     )
+
+
+def read_parts(
+    parts: Path, verifiers: Path
+) -> tuple[dict[str, Any], ChemistryScreen, ShapeResources]:
+    """A submission's chemistry record, a screen over the verifier, and the priced resources.
+
+    The `["parts"][CHEMISTRY_DIR]` key path and the order of these three steps are the same
+    for every command that prices a recorded submission, so they live here rather than in each.
+    """
+    part = yaml.safe_load(parts.read_text())["parts"][CHEMISTRY_DIR]
+    screen = ChemistryScreen(verifiers)
+    return part, screen, screen.resources_from_record(part)
 
 
 def print_shape_resources(res: ShapeResources, blend: float, target: float) -> None:
@@ -490,9 +508,7 @@ def shape(
     and derives the word-register count `J` from its `Q_total`. Only the heuristic half is
     modelled, so `--sweep-brot` costs nothing.
     """
-    part = yaml.safe_load(parts.read_text())["parts"][CHEMISTRY_DIR]
-    screen = ChemistryScreen(verifiers)
-    here = screen.resources_from_record(part)
+    part, screen, here = read_parts(parts, verifiers)
     print_shape_resources(here, blend, target)
     if not sweep_brot:
         return
@@ -501,7 +517,6 @@ def shape(
     # costs, the second is a property of the loaders rather than of the model -- so this ranks
     # the heuristic half alone, with no chemistry and no circuits.
     shape_args = (int(part["R"]), int(part["B"]), int(part["C"]))
-    reference = here.toffoli * here.qubits
     table = Table("brot", "T", "Q", "workspace", "blend", "delta")
     for candidate in range(MIN_BROT, MAX_BROT + 1):
         try:
@@ -514,7 +529,7 @@ def shape(
         except ValueError as exc:
             table.add_row(str(candidate), f"[yellow]{exc}[/]", "", "", "", "")
             continue
-        moved = blend * blend_factor(res.toffoli * res.qubits, reference)
+        moved = res.blend_from(blend, here)
         table.add_row(
             str(candidate),
             f"{res.toffoli:,.0f}",
@@ -524,6 +539,75 @@ def shape(
             f"{moved - blend:+.4f}",
         )
     console.print(table)
+
+
+@app.command("angle-floor")
+def angle_floor(
+    parts: Annotated[
+        Path, typer.Argument(help="A submission's parts record, e.g. docs/experiments/*-parts.yaml.")
+    ],
+    verifiers: VerifiersOption,
+    blend: Annotated[float, typer.Option(help="The blend this submission scores.")],
+    target: Annotated[float, typer.Option(help="The blend to test the loaders against.")] = ESCAPE_SCORE,
+    max_batch: Annotated[int, typer.Option(help="Largest batch size J to cost.")] = 16,
+) -> None:
+    """What the ANGLE loaders can cost at each batch size, against the AND counting floor.
+
+    Three readings per batching, because they answer different questions. `at floor` is the
+    counting bound, which nothing can beat. `at rate` holds the submitted loaders' measured
+    AND count per circuit at its current multiple of that bound, which is what re-batching
+    alone would buy. `for target` is the rate a family would have to reach instead. Only the
+    three ANGLE resource terms move, so no accuracy changes and no verifier runs.
+    """
+    part, _, here = read_parts(parts, verifiers)
+    addresses = lcu_vectors(int(part["R"]), int(part["B"]))
+    brot = int(part["brot"])
+    sweep = AngleFloorSweep.over(here, brot, addresses, blend, target, max_batch)
+    submitted = sweep.submitted
+    console.print(
+        f"submitted: J={submitted.batch_size}, {submitted.num_circuits} circuits over "
+        f"{addresses:,} addresses, {sweep.measured_ands:,.1f} AND gates each against a floor "
+        f"of {submitted.and_floor} = [bold]{sweep.rate:.3f}x[/] the counting bound"
+    )
+
+    columns = ("J", "K", "ws", "floor", "at floor", "at rate", "gain", f"ANDs for {target:g}")
+    table = Table(*columns)
+    for size in range(1, max_batch + 1):
+        head = [str(size), str(AngleFamily(size, brot, addresses).num_circuits)]
+        row = sweep.at(size)
+        if row is None:
+            reason = f"[yellow]over {MAX_ANGLE_QUBITS} qubits[/]"
+            table.add_row(*head, reason, *[""] * (len(columns) - len(head) - 1))
+            continue
+        table.add_row(
+            *head,
+            f"{row.family.free_workspace:,}",
+            f"{row.family.and_floor:,}",
+            f"{row.at_floor:.5f}",
+            f"{row.at_rate:.5f}",
+            f"{row.at_rate - blend:+.4f}",
+            f"{row.ands_for_target:,.0f} = {row.target_over_floor:.2f}x"
+            if row.reaches_target
+            else "[yellow]unreachable[/]",
+        )
+    console.print(table)
+
+    best_floor, best_rate = sweep.best_floor, sweep.best_rate
+    verdict = "permits" if sweep.permits_target else "rules out"
+    console.print(
+        f"\nthe floor {verdict} {target:g}: best is J={best_floor.batch_size} at "
+        f"[bold]{best_floor.at_floor:.5f}[/] ({best_floor.at_floor - target:+.4f})"
+    )
+    console.print(
+        f"re-batching alone, at the submitted AND rate: J={best_rate.batch_size} -> "
+        f"[bold]{best_rate.at_rate:.5f}[/] ({best_rate.at_rate - blend:+.4f})"
+    )
+    floored = best_floor.at_floor * blend_factor(
+        lambda_eff_floor(FEMOCO_C0), float(part["lambda_eff"])
+    )
+    console.print(
+        f"with lambda_eff also at its floor: {floored:.5f} ({floored - target:+.4f} vs {target:g})"
+    )
 
 
 @app.command()
