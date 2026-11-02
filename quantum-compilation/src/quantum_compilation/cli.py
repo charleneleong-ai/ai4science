@@ -27,6 +27,7 @@ from quantum_compilation.cost import (
     TASKS,
     MetricCalibration,
     dfthcsos_rejections,
+    lambda_eff_floor,
     require_task,
     score,
     task_ratio,
@@ -126,21 +127,41 @@ def print_chem_metrics(metrics: ChemistryMetrics) -> None:
         ("Lambda", f"{metrics.one_norm:.6f}", "LCU one-norm"),
         ("lambda_eff", f"{metrics.lambda_eff:.6f}", "sqrt(E_gap * D)"),
         ("D = 2*Lambda - E_gap", f"{metrics.gap_product:.6f}", "what the score turns on"),
+        ("0.5 * sum(W^2)", f"{metrics.half_sum_w2:.6f}", "raises E_gap, lowers D"),
+        ("c0", f"{metrics.c0:.6f}", "fixed by the reference Hamiltonian"),
     ):
         table.add_row(name, value, reads)
     console.print(table)
 
-    split = Table("term", "value", "share of Lambda")
-    for name, value, share in (
-        ("lambda_h2", metrics.lambda_h2, metrics.lambda_h2 / metrics.one_norm),
-        ("positive eigen mass", metrics.positive_mass, metrics.positive_mass / metrics.one_norm),
-        ("negative eigen mass", metrics.negative_mass, metrics.negative_mass / metrics.one_norm),
-        ("0.5 * sum(W^2)", metrics.half_sum_w2, None),
-        ("c0 (fixed)", metrics.c0, None),
+    split = Table("term of Lambda", "value", "share")
+    for name, value in (
+        ("lambda_h2", metrics.lambda_h2),
+        ("positive eigen mass", metrics.positive_mass),
+        ("negative eigen mass", metrics.negative_mass),
     ):
-        share_cell = f"{share:.1%}" if share is not None else "— (enters E_gap and D)"
-        split.add_row(name, f"{value:.6f}", share_cell)
+        split.add_row(name, f"{value:.6f}", f"{value / metrics.one_norm:.1%}")
     console.print(split)
+
+
+def print_chem_headroom(metrics: ChemistryMetrics) -> None:
+    """How much of `D` a factorization search can actually move.
+
+    `D = 2P + 2 * two_body_excess - c0` with both leading terms non-negative, so `-c0` is a
+    floor no refit can cross. Printed on every screen because it is the number that decides
+    whether a candidate chemistry direction is worth any compute at all.
+    """
+    table = Table("term of D", "value", "share")
+    for name, value in (
+        ("movable: 2P + 2*excess", metrics.movable_mass),
+        ("fixed: -c0", -metrics.c0),
+    ):
+        table.add_row(name, f"{value:.6f}", f"{value / metrics.gap_product:.2%}")
+    console.print(table)
+    console.print(
+        f"lambda_eff floor [bold]{lambda_eff_floor(metrics.c0):.6f}[/] against "
+        f"{metrics.lambda_eff:.6f} -- the whole factorization search is worth "
+        f"[bold]{metrics.lambda_eff_headroom:.3%}[/]"
+    )
 
 
 def agreement_cell(result: verifier.Verification) -> str:
@@ -360,6 +381,7 @@ def chem(
     """
     metrics = ChemistryScreen(verifiers).evaluate(factorization)
     print_chem_metrics(metrics)
+    print_chem_headroom(metrics)
     for reason in metrics.rejected_for:
         console.print(f"[red]reject[/] {reason}")
     if not metrics.rejected_for:

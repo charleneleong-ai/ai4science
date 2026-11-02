@@ -10,6 +10,7 @@ from quantum_compilation.cost import (
     BASELINE_FACTORIZATION,
     DEFAULT_CALIBRATION,
     DFTHCSOS_CONSTRAINTS,
+    FEMOCO_C0,
     MAX_ANGLE_QUBITS,
     MAX_DQI_FAILURE_RATE,
     MAX_HAMILTONIAN_ERROR_HA,
@@ -25,7 +26,9 @@ from quantum_compilation.cost import (
     dqi_cost,
     dqi_repetition_factor,
     lambda_eff,
+    lambda_eff_floor,
     lcu_vectors,
+    min_lcu_lambda,
     require_task,
     rotation_t_count,
     score,
@@ -156,6 +159,29 @@ class TestCostFunctions:
     def test_dfthcsos_is_linear_in_toffolis(self):
         base = dfthcsos_cost(430, 1e5, 4.0, 50.0)
         assert dfthcsos_cost(430, 2e5, 4.0, 50.0) == pytest.approx(2 * base)
+
+
+class TestLambdaEffFloor:
+    """`D >= -c0`, so `lambda_eff` has a floor -- the bound that closed the refit."""
+
+    def test_the_femoco_floor(self):
+        assert lambda_eff_floor(FEMOCO_C0) == pytest.approx(46.786180, abs=1e-6)
+
+    def test_the_derived_bound_puts_D_at_minus_c0(self):
+        """What makes the floor a floor: at `min_lcu_lambda`, `D` sits exactly at `-c0`."""
+        assert 2 * min_lcu_lambda(FEMOCO_C0) - MIN_E_GAP_HA == pytest.approx(
+            -FEMOCO_C0, rel=1e-15
+        )
+
+    @pytest.mark.parametrize(
+        ("c0", "expected"),
+        [
+            (FEMOCO_C0, 281.523686),  # the derived bound dominates, 5.7x MIN_LAMBDA
+            (-50.0, MIN_LAMBDA),  # a shallow c0 leaves the verifier's rule binding instead
+        ],
+    )
+    def test_the_one_norm_floor_takes_whichever_bound_binds(self, c0, expected):
+        assert min_lcu_lambda(c0) == pytest.approx(expected, abs=1e-6)
 
 
 class TestScore:

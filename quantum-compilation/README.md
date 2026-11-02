@@ -15,7 +15,7 @@ This is the `ai4science` thesis with the two halves handed over pre-separated �
 verifier that cannot be gamed, and an unbounded generator space. The only question is how
 well the search loop around it is built.
 
-## Status — 2026-10-31
+## Status — 2026-11-02
 
 **We are on the plateau, by assembly rather than by compression; no compression of our own
 has been attempted yet.** The measurement loop is validated twice over — all three official
@@ -53,10 +53,12 @@ authors are credited per part, with the lineage behind each one, in
 **The finding that matters more than the score is that the chemistry part has almost no
 headroom left.** The accuracy term sits at 99.999084% of the 20 mHa cap and `E_gap` clears its
 strict floor by 1.03 × 10⁻⁶ Ha — two of the four rejecting constraints spent to within 0.1% of
-their limit — while the widest ANGLE circuit is 126 of 128 qubits (98.4%) and the one-norm `Λ`
-is the only one with real room, at 6.1× its floor. So the 0.6-wide band half the field sits in
-is a constraint, not a fashion: tuning this shape is finished, and a further `dfthcsos` gain
-needs a different factorization.
+their limit — while the widest ANGLE circuit is 126 of 128 qubits (98.4%). The one-norm `Λ`
+looked like the exception at 6.1× its floor, but that floor was the `MIN_LAMBDA = 49.0`
+rejection rule, which never binds: against the floor the algebra below establishes
+([`min_lcu_lambda`](src/quantum_compilation/cost.py) = 281.52) `Λ` sits at **1.065×**, so it has
+the *least* room of the four, not the most. So the 0.6-wide band half the field sits in is a
+constraint, not a fashion — and tuning this shape is finished.
 
 **What the plateau did, in the shape's own terms.** The part is **R=8, B=143, C=60** — its
 author's manifest figure, and the shape of the arrays in the `submission.npz` we submitted —
@@ -69,9 +71,22 @@ capacity R·C, down 8.1× from 3,900 to 480 — and that shows as accuracy: the 
 reference clears at 93.2% is the one this part sits on, at 99.999%. Low rank is what the
 plateau found; the accuracy cap is what stops it going lower.
 
-**Which shape to try instead is still open.** Nothing here shows a factorization exists that is
-both cheaper than this submission's R·B = 1,144 and still under the cap. Reproducing the
-cost–precision atlas and fitting factorizations ourselves is the next experiment.
+**Refitting the factorization is closed — it cannot pay.** `lambda_eff` is **93.86% a fixed
+constant of the reference Hamiltonian**: writing `D = 2Λ − E_gap` out in full cancels the
+negative eigenvalue mass and leaves `D = 2P + 2(λ_h2 − ¼ΣW²) − c0` with both leading terms
+provably non-negative, so `D ≥ −c0 = 559.132473` of our 595.73. That puts
+[`lambda_eff_floor`](src/quantum_compilation/cost.py#L251) at 46.786 against our 48.293 — the
+whole factorization search is worth **3.12%**, or **+0.243 blend** against the **+1.82** that
+25.0 needs, and the floor is unreachable at that. **DISCARDed before any compute was spent.**
+[`vqcc chem`](src/quantum_compilation/cli.py#L146) prints the headroom on every run; the
+derivation, its numerical verification and the literature sweep behind it are in
+[`reports/2026-11-02-thc-factorization-sota.md`](reports/2026-11-02-thc-factorization-sota.md).
+
+So the chemistry cost is **`T · Q` and essentially nothing else** — the ANGLE loaders' Toffoli
+count and the 430-qubit footprint, not the fit. That direction has support already measured:
+the ANGLE circuits carry 85% of the task's Toffoli cost (79,480 of 93,237) on only 96 of 186
+persistent qubits. Pricing one Toffoli in error budget is the next measurement, and whether any
+are left to buy is unmeasured.
 
 **Progress artifact:** <https://claude.ai/artifact/EzjSoAxvhTvi9pWgdJDEDq> (private; rebuilt by
 [`scripts/build_artifact.py`](scripts/build_artifact.py) into
@@ -80,8 +95,8 @@ cost–precision atlas and fitting factorizations ourselves is the next experime
 The grounded entry sweep is [`reports/2026-10-31-vqcc-landscape.md`](reports/2026-10-31-vqcc-landscape.md), and
 [`reports/2026-11-02-thc-factorization-sota.md`](reports/2026-11-02-thc-factorization-sota.md)
 is the chemistry delta sweep — it finds that the symmetry-shift lever the recent
-literature leans on hardest is frozen by the verifier, leaving an L1-regularised refit at
-fixed shift as the one remaining direction;
+literature leans on hardest is frozen by the verifier, and that the refit it does leave open is
+bounded at +0.243 blend, as above;
 the plan and the one open decision are in
 [`docs/specs/2026-10-31-quantum-compilation-design.md`](docs/specs/2026-10-31-quantum-compilation-design.md);
 verdicts are in [`docs/experiments/verdicts.yaml`](docs/experiments/verdicts.yaml).
@@ -243,18 +258,19 @@ against the same constraint table once a report exists.
 - **Two leaderboard readings, neither on a circuit we designed.** The loop agreed with the
   leaderboard on the reference and on this assembly. That does not prove it agrees on a
   candidate our own search produces.
-- **Whether a cheaper factorization exists at all is unmeasured.** The headroom above rules
-  out tuning *this* shape; it says nothing about which other shape to try. We have not
-  reproduced the cost–precision atlas or fitted a factorization ourselves.
+- **Whether `T` and `Q` have any headroom is unmeasured.** The floor above says where the
+  chemistry score is *not* — no factorization, of any shape, moves `lambda_eff` by more than
+  3.12% — but it says nothing about the loaders. Pricing one Toffoli in error budget is the
+  open measurement, and it may come back at zero.
 - **Why 9 teams cleared 25 while half the field sits near 22.7 is unexplained**, and which
   task holds the margin that separates them from the plateau is the most valuable unknown in
   the competition.
 - Which task to commit to is **open** — see the design doc. The recommendation is
-  `dfthcsos`, on skill fit and on the headroom measurement above. One further fact from the
-  reference run bears on it: the ANGLE circuits are 85% of that task's Toffoli cost
-  (79,480 of 93,237) but only 96 of its 186 persistent qubits and none of its 544 temporary
-  ones, so width is governed by the state-prep workspace rather than by the circuits a
-  submission ships.
+  `dfthcsos`, on skill fit and on its ratio being the weakest of the three (9.93 against
+  invsqrt 20.62 and dqi 60.80). The qualification is that its width is governed by the
+  state-prep workspace rather than by the circuits a submission ships — the ANGLE circuits are
+  96 of the task's 186 persistent qubits and none of its 544 temporary ones — so `Q` is the
+  less reachable half of the `T · Q` that is left.
 
 ## Attribution
 

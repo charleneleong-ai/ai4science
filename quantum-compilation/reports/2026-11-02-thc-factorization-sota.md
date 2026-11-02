@@ -1,18 +1,28 @@
-# Cutting the DF-THC one-norm: what the literature does, and which half of it this competition forbids
+# The DF-THC one-norm is 94% a constant: why no factorization refit can lift this score
 
 **Date:** 2026-11-02 · **For:** the `dfthcsos` task, after gate G1 cleared chemistry for
 single-seed comparison · **Status of our entry:** blend 23.18119, chemistry cost 337,780,865
 at Λ = 299.82, λ_eff = 48.293.
 
-## Why this sweep was run
+**Headline:** the literature's strongest one-norm lever (joint symmetry-shift optimisation) is
+frozen by the verifier, and the one it leaves open — an L1-regularised refit of the THC factors
+— is worth at most **+0.243 blend** against the **+1.82** needed for 25.0, because `lambda_eff`
+is **93.9% a fixed constant of the reference Hamiltonian**. Proven below, from the verifier's
+own source, and verified numerically to machine precision. The refit is **DISCARDed before
+launch**; the chemistry score lives in `T` and `Q`.
+
+## Why this was asked
 
 The chemistry cost is `lambda_eff * T * Q` with `lambda_eff = sqrt(E_gap * (2Λ - E_gap))`, and
-measurement (below, and in `docs/experiments/`) shows the submitted factorization is pinned
-against every cheap knob: both Frobenius residuals sit at 99.999% of the 20 mHa cap, `E_gap`
-sits 1e-6 above its strict floor, `W` is held by `error_1` at a sharp local minimum, and `brot`
-is already down at 8. Λ is 95.7% `lambda_h2`, the two-body LCU one-norm. Nothing is gettable by
-tuning; the only route left is a better *fit*. This asks what the field's best fitting methods
-are, and which of them this verifier permits.
+measurement (below, and in `docs/experiments/`) showed the submitted factorization pinned
+against every cheap knob: both Frobenius residuals at 99.999% of the 20 mHa cap, `E_gap` 1e-6
+above its strict floor, `brot` already down at 8, and Λ 95.7% `lambda_h2`. Nothing was gettable
+by tuning, so the question became what the field's best *fitting* methods are and which of them
+this verifier permits — and, as it turned out, whether a better fit could matter at all.
+
+One earlier reading is corrected below: a `W` scan that appeared to show `error_1` holding `W`
+at a sharp local minimum had held the submitted one-body rows fixed — see *Where the chemistry
+score actually lives*.
 
 ## The method the task is built from
 
@@ -41,8 +51,7 @@ prefactors at `N_DF = 5N` sends the one-norm back up to 145.8 Ha.
 [Follow-up work (arXiv:2412.01338)](https://arxiv.org/abs/2412.01338) claims a further 25%
 reduction in the block-encoding constant by optimising shifts and factorization together, and
 [BLISS-THC (arXiv:2501.06165)](https://arxiv.org/abs/2501.06165) carries the shift into THC
-specifically. A 2025 block-encoding survey puts BLISS's effect on THC LCUs at **roughly 21% on
-average**.
+specifically — so the shift is not a side technique but the axis the recent work is built on.
 
 **This lever is closed to us.** The verifier's `load_inputs` calls `load_fixed_shifts()` and
 *overwrites* whatever `H1_I` and `Hsym_lower` a submission carries, before `S` and `beta_1` are
@@ -50,7 +59,8 @@ derived — the shift is always the baseline's. The competition has frozen the s
 the recent literature leans on hardest. Any plan that assumes a BLISS-style gain is planning
 for a rejected submission.
 
-**Lever 2 — the fit itself, at fixed shift.** This is what remains. The established recipe,
+**Lever 2 — the fit itself, at fixed shift.** This is the one the verifier leaves open,
+and the rest of this report prices it. The established recipe,
 from [Goings et al. on cytochrome P450 (PNAS 119, 2022)](https://www.pnas.org/doi/10.1073/pnas.2203533119),
 is: initialise from a symmetric canonical-polyadic decomposition of the Cholesky vectors, then
 run **L1-regularized optimization of the THC factors**. The regularization exponent is the
@@ -59,12 +69,12 @@ reduced λ relative to plain XDF and THC. BLISS-THC's contribution on this axis 
 the ℓ2 fit error *and* the 1-norm together, trading rank against λ, which is precisely our
 constrained problem with the shift term deleted.
 [*Benchmarking least-squares THC techniques* (arXiv:2608.17885)](https://arxiv.org/abs/2608.17885)
-is the most recent survey of the fitting step itself and is the first thing to read before
-choosing an optimiser.
+is the most recent survey of the fitting step itself — the route that would have been
+followed, had it been worth following.
 
-## What this means for the plan
+## The objective, and why it is already exhausted
 
-The objective is already written for us by the verifier's own source:
+The objective is written for us by the verifier's own source:
 
 ```
 minimise   lambda_h2(w, W) = 1/4 * sum_(rho,c) ( ||w^(rho c)||_1 + |W^(rho c) + sum_b w_b^(rho c)| )^2
@@ -73,22 +83,71 @@ subject to error_2 = || sum_(rho c) X (x) X - shift - tei ||_F <= 20 mHa,
 where     X^(rho c) = sum_b w_b^(rho c) u_b^(rho) u_b^(rho)^T
 ```
 
-That is an **L1²-penalised THC fit with the symmetry shift held fixed** — lever 2 exactly, and
-nothing else. Parameters are `u` (8×143×76), `w` (8×143×60) and `W` (8×60), about 155k values,
-against a 76⁴ integral tensor; gradient-based optimisation is tractable on CPU.
+That is an **L1²-penalised THC fit with the symmetry shift held fixed** — lever 2 exactly. The
+plan was to run it: gradient descent on `(u, w)` from the incumbent, constraints as penalties,
+`brot = 8` by straight-through rounding.
 
-**First thing to try:** L1-regularised refit of `(u, w)` by gradient descent from the current
-best factorization as the initialisation, with the constraints as penalty terms and the
-quantisation to `brot = 8` handled by straight-through rounding. Starting from the incumbent
-rather than from a CP decomposition is the deviation from the published recipe, and it is
-deliberate: the incumbent already satisfies the constraints, so the optimiser starts inside the
-feasible set and the question becomes only whether λ_h2 can be walked downhill from there.
+**That experiment is closed before launch.** Writing the score's first factor out in full shows
+the reachable range is 3.1%, and the proof is three lines of algebra on the verifier's own
+quantities.
 
-**What would make this fail, stated up front:** the incumbent may already be at a local
-optimum of the same objective — its author's notes say a weights-only reoptimisation bought
-0.005%. If gradient descent from the incumbent moves λ_h2 by less than a percent, the answer is
-that a *different initialisation* (CP decomposition of the Cholesky vectors, per the published
-recipe) or a different shape is needed, and that is a larger experiment.
+`lambda_eff = sqrt(E_gap · D)` with `D = 2·Lambda − E_gap`, `Lambda = P + M + lambda_h2` and
+`E_gap = c0 + 2M + ½ΣW²`, where `P` and `M` are the positive and negative eigenvalue mass of
+`h1_prime`. Substituting, **`M` cancels**:
+
+```
+D = 2P + 2·lambda_h2 − ½ΣW² − c0  =  2P + 2Δ − c0,     Δ := lambda_h2 − ¼ΣW²
+```
+
+`Δ ≥ 0` identically, not incidentally: termwise `A + B ≥ |W|` where `A = ‖w^ρc‖₁ ≥ 0` and
+`B = |W^ρc + Σ_b w_b^ρc| ≥ |W^ρc| − A`, so every `(A+B)² − W²` term is non-negative. Measured
+on the incumbent: all 480 terms positive, smallest `4.1e-5`, and `Δ` recovered to `2e-14`
+([`TestTheFloorOnTheScore`](../tests/test_chemistry.py)).
+
+So `D ≥ −c0`, and `c0 = E_upper − ecore + n·β₁` is **fixed**: `UPPER_ENERGY = −22140.27335`
+and `ecore` are constants of the shipped verifier's `scoreinfra/reference.py`, and `β₁` comes
+from its `load_fixed_shifts()`. It evaluates to **−559.132473**
+([`FEMOCO_C0`](../src/quantum_compilation/cost.py)), which is **93.86% of the incumbent's `D` of
+595.73**. With `E_GAP_FLOOR = 3.914898` likewise hardcoded
+([`min_lcu_lambda`](../src/quantum_compilation/cost.py)):
+
+| | value |
+| --- | --- |
+| `lambda_eff` floor = `sqrt(3.914898 · 559.132473)` | **46.786180** |
+| incumbent `lambda_eff` | 48.293182 |
+| best conceivable cut | **3.121%** |
+| blend gain, at +0.0778 per 1% of a task's cost | **+0.243** |
+
+And 46.786 is unreachable, not merely a bound: it needs `P = 0` *and* `Δ = 0`, and `Δ = 0`
+forces `w ≡ 0`, which destroys `error_2` entirely. Halving `Δ` — already an optimistic ask
+against a fit whose author reports a weights-only reoptimisation bought 0.005% — yields
+`lambda_eff` 47.60, **+0.11 blend**.
+
+A perfect refit therefore delivers 13% of the **+1.82** the blend needs, and a realistic one
+about 6%.
+
+**Verdict: DISCARD, before any compute was spent.**
+
+## Where the chemistry score actually lives
+
+`cost = lambda_eff · T · Q = 48.293 · 16,266 · 430 = 3.3778e8`, against a reference of 3.3556e9
+for a ratio of **9.93** — the weakest of our three tasks (`invsqrt` 20.62, `dqi` 60.80), so the
+headroom is here if it is anywhere. But it is not in `lambda_eff`. With that factor floored
+within 3.1%, the chemistry cost is **`T · Q` and essentially nothing else**, and both are
+circuit-compilation quantities — the Toffoli count of the ANGLE loaders and the 430-qubit
+footprint — not properties of the factorization.
+
+This also reframes the two saturated error budgets. Both residuals sit at 99.999% of the 20 mHa
+cap, which is not a fit straining to be feasible: `error_1` compares the submitted one-body rows
+against the exact eigenvectors of `h1_prime` and is **decoupled from every scored quantity**
+(the eigenvalues come from the exact `h1_prime`, never from the submitted rows). Spending that
+budget buys coarser rotations, which buys Toffolis. The incumbent has already sold both error
+budgets for `T`. That is the market to trade in, and the next measurement must price it before
+committing: **what does one Toffoli of the ANGLE loaders cost in error budget, and how many are
+left to buy?**
+
+The 20.4% that `25.0` needs off the product of the three costs is not in the chemistry
+factorization. Nothing in this sweep says it is not in the loaders.
 
 ## Not established
 
@@ -98,7 +157,10 @@ recipe) or a different shape is needed, and that is a larger experiment.
   surface (≈5.3×10⁹ Toffolis, 2,142 logical qubits for a 108-qubit representation) are for a
   different resource model than the one scored here and must not be compared to our 16,266.
   Establishing a comparable published floor for Λ would need the primary papers read in full.
-- **No code was located that performs this fit**, only papers describing it. The P450 paper
-  provides resource *estimation* as an OpenFermion submodule, which is not the fitting routine.
-  Whether `openfermion`, `pyscf` or the BLISS-THC authors ship a usable optimiser is unchecked.
+- **Whether `T` and `Q` have any headroom at all is unmeasured.** The `lambda_eff` floor says
+  where the chemistry score is *not*; it does not say the loaders can be improved. Pricing one
+  Toffoli in error budget is the next measurement, and it may come back at zero.
 - The 21% BLISS figure is quoted from a survey, not reproduced, and is moot here anyway.
+- The floor proof assumes the shipped verifier is the scored one. It is the dev-set verifier,
+  and the three constants it rests on (`UPPER_ENERGY`, `ecore`, `E_GAP_FLOOR`) are hardcoded
+  there. If the leaderboard scorer differs, the floor moves with `c0`.

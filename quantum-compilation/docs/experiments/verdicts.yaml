@@ -200,3 +200,43 @@ experiments:
       a precaution. Cost: 5 runs x ~7 min.
     verdict: KEEP
     pr: 102
+  - name: r1-price-the-factorization-refit
+    date: 2026-11-02
+    baseline: >-
+      the submitted plateau factorization (submission 57834335, chemistry cost 337,780,865 at
+      lambda_eff 48.293182, Lambda 299.823549), which G0c left as "needs a different
+      factorization" and this experiment was meant to refit
+    gate: >-
+      none -- a reach calculation done before spending compute, per the rule that a change
+      whose best case is below what the decision needs must not be run
+    result: >-
+      The experiment queued after G0c was an L1-regularised refit of the THC factors at fixed
+      shift -- the one lever the verifier leaves open, since `load_inputs` calls
+      `load_fixed_shifts()` and overwrites any submitted `H1_I`/`Hsym_lower`, closing the joint
+      shift optimisation the recent literature leans on hardest. **Pricing it first closed
+      it.** Writing `D = 2*Lambda - E_gap` out in full cancels the negative eigenvalue mass and
+      leaves `D = 2P + 2*(lambda_h2 - sum(W^2)/4) - c0` with both leading terms provably
+      non-negative, so `D >= -c0` -- and `c0` is fixed by the reference Hamiltonian and the
+      frozen shift. At `c0 = -559.132473` that is **93.86% of the submitted D of 595.73**,
+      putting the floor at `lambda_eff >= 46.786180` against 48.293182: **3.121%**, worth
+      **+0.243 blend** against the **+1.82** that 25.0 needs, and unreachable at that (it needs
+      `w = 0`, which destroys error_2). A realistic halving of the movable part gives +0.11.
+      So the plateau is not merely at a local optimum of this objective; the objective has
+      almost no range, and no refit can lift this score materially. Verified against the
+      shipped verifier on the submitted factorization -- identity exact to 0.0, all 480 excess
+      terms positive, excess recovered to 2e-14 -- and pinned by `min_lcu_lambda` /
+      `lambda_eff_floor` in cost.py with tests in test_cost.py and test_chemistry.py, printed
+      on every `vqcc chem` run. Derivation, literature sweep and what remains unmeasured:
+      reports/2026-11-02-thc-factorization-sota.md. Cost: no compute.
+      Two corrections fall out. The one-norm was recorded in G0c as the knob with "real room,
+      at 6.1x its floor" -- that floor was the `MIN_LAMBDA = 49.0` rejection rule, which never
+      binds; against the derived floor of 281.52 the submitted Lambda sits at **1.065x**, the
+      least room of the four constraints, not the most. And a `W` scan that appeared to show
+      `error_1` pinning `W` had held the submitted one-body rows fixed; `error_1` compares those
+      rows against the exact eigenvectors of `h1_prime` and is decoupled from every scored
+      quantity, so a refit recomputes them and it returns to its quantisation floor.
+      With the leading factor floored, the chemistry cost is `T * Q` and essentially nothing
+      else. Pricing one Toffoli in error budget is the next measurement and may come back at
+      zero.
+    verdict: DISCARD
+    pr: 104

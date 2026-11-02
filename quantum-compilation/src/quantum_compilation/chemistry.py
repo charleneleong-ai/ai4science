@@ -37,7 +37,7 @@ from typing import Any
 
 import numpy as np
 
-from .cost import DFTHCSOS_CONSTRAINTS, Constraint, dfthcsos_cost
+from .cost import DFTHCSOS_CONSTRAINTS, Constraint, dfthcsos_cost, lambda_eff_floor
 from .submission import CHEMISTRY_DIR, NPZ_SCREEN_ARRAYS, SubmissionAudit
 from .verify import verifier_script
 
@@ -81,6 +81,25 @@ class ChemistryMetrics:
     def positive_mass(self) -> float:
         """Positive eigenvalue mass, from `Lambda = positive + negative + lambda_h2`."""
         return self.one_norm - self.lambda_h2 - self.negative_mass
+
+    @property
+    def two_body_excess(self) -> float:
+        """`lambda_h2 - sum(W^2)/4`, non-negative, and with `P` the only movable part of `D`."""
+        return self.lambda_h2 - self.half_sum_w2 / 2.0
+
+    @property
+    def movable_mass(self) -> float:
+        """`2P + 2 * two_body_excess`: everything in `D` a factorization search can touch.
+
+        Taken as `D + c0` rather than rebuilt from the two terms, because that identity is
+        what makes the rest non-negative and so bounds the search -- see `cost.min_lcu_lambda`.
+        """
+        return self.gap_product + self.c0
+
+    @property
+    def lambda_eff_headroom(self) -> float:
+        """The fraction of `lambda_eff` the whole factorization search could ever remove."""
+        return 1.0 - lambda_eff_floor(self.c0) / self.lambda_eff
 
     @property
     def gap_product(self) -> float:

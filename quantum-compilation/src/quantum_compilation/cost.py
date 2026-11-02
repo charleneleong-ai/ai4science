@@ -61,6 +61,13 @@ MAX_HAMILTONIAN_ERROR_HA = 20e-3
 MIN_LAMBDA = 49.0
 MIN_E_GAP_HA = 3.914898
 
+# c0 = E_upper - ecore + n * beta_1, the additive constant of the SOS gap. Every term is fixed
+# by the FeMoCo reference and the frozen symmetry shift -- `UPPER_ENERGY = -22140.27335` and
+# `ecore` are constants of the verifier's `scoreinfra/reference.py`, and `beta_1` comes from
+# its `load_fixed_shifts()`, which overwrites whatever shift a submission carries. It is what
+# floors the chemistry score: see `min_lcu_lambda`.
+FEMOCO_C0 = -559.132473148504
+
 # The orbital count of the FeMoCo instance every dfthcsos submission factorizes, and the
 # baseline factorization's shape (R, B, C) -- the rank, the basis count and the ensemble rank.
 # Both come from the shipped verifier rather than from its JSON report, which is why reading
@@ -229,6 +236,32 @@ def lambda_eff(e_gap_ha: float, lcu_lambda: float) -> float:
             "E_gap (2 Lambda - E_gap); lambda_eff is not real there"
         )
     return math.sqrt(inner)
+
+
+def min_lcu_lambda(c0: float) -> float:
+    """The smallest `Lambda` a chemistry submission can reach, over both floors on it.
+
+    `MIN_LAMBDA` is the verifier's rejection rule; this is the stronger, derived bound.
+    `D = 2 Lambda - E_gap` rearranges to `2P + 2(lambda_h2 - sum(W^2)/4) - c0`, in which the
+    negative eigenvalue mass cancels. Both remaining terms are non-negative -- `P` is a mass,
+    and `lambda_h2 - sum(W^2)/4` sums `((|w|_1 + |W + sum w|)^2 - W^2) / 4` terms, each
+    non-negative because `|w|_1 + |W + sum w| >= |W|`. So `D >= -c0`, and `Lambda` is smallest
+    when `D` sits at that bound and `E_gap` at its floor.
+
+    `c0` is fixed by the reference Hamiltonian and the frozen shift, so no factorization can
+    cross this. For FeMoCo the derived bound dominates by 5.7x, which is why the one-norm has
+    far less room than `MIN_LAMBDA` alone suggests.
+    """
+    return max(MIN_LAMBDA, (MIN_E_GAP_HA - c0) / 2.0)
+
+
+def lambda_eff_floor(c0: float) -> float:
+    """`lambda_eff` at `min_lcu_lambda(c0)` with `E_gap` at its floor.
+
+    Unreachable rather than merely a bound: it needs `P = 0` and `lambda_h2 = sum(W^2)/4`, the
+    second forcing `w = 0`, which destroys the two-body residual. It bounds the search anyway.
+    """
+    return lambda_eff(MIN_E_GAP_HA, min_lcu_lambda(c0))
 
 
 def dfthcsos_cost(

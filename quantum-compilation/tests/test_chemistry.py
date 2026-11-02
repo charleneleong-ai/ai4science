@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import yaml
 from quantum_compilation.chemistry import ChemistryScreen
-from quantum_compilation.cost import lambda_eff
+from quantum_compilation.cost import FEMOCO_C0, lambda_eff
 
 EXPERIMENTS_DIR = Path(__file__).parents[1] / "docs" / "experiments"
 VERIFIERS = os.environ.get("VQCC_VERIFIERS", "")
@@ -80,6 +80,29 @@ class TestDecomposition:
         """Why the experiment targets `lambda_h2`: it is nearly all of `Lambda`."""
         assert metrics.lambda_h2 / metrics.one_norm > 0.9
         assert metrics.positive_mass < metrics.negative_mass < metrics.lambda_h2
+
+
+class TestTheFloorOnTheScore:
+    """`D`'s split into a movable and a fixed part -- the result that closed the refit."""
+
+    def test_the_movable_mass_rebuilds_from_its_two_terms(self, metrics):
+        """`D + c0 = 2P + 2*excess`, both non-negative -- the identity behind the floor.
+
+        The two sides come from different quantities (`D` and `c0` against `P` and the
+        `lambda_h2`/`W` excess), so agreement is a real check, and the excess being positive
+        is what stops any factorization pushing `D` below `-c0`.
+        """
+        assert metrics.movable_mass == pytest.approx(
+            2 * metrics.positive_mass + 2 * metrics.two_body_excess, rel=1e-14
+        )
+        assert metrics.two_body_excess > 0.0
+
+    def test_c0_is_the_constant_cost_py_assumes(self, metrics):
+        """The CI-green floor tests hardcode `FEMOCO_C0`; this is what pins it to the verifier."""
+        assert metrics.c0 == pytest.approx(FEMOCO_C0, rel=1e-12)
+
+    def test_the_whole_search_is_worth_three_percent(self, metrics):
+        assert metrics.lambda_eff_headroom == pytest.approx(0.0312, abs=5e-4)
 
 
 class TestRejection:
