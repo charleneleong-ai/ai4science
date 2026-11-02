@@ -1,0 +1,21 @@
+[project]
+name = "pmhc"
+version = "0.0.1"
+description = "Selective KRAS G12D pMHC binder design for Adaptyv Challenge 5"
+requires-python = ">=3.11"
+# The scripts themselves run on the design host against the environment that holds BoltzGen and
+# FoldSeek, so this file is not how they are deployed. It exists so the admissibility gates'
+# tests run in CI, which is the only place they are guaranteed to run at all: those gates are
+# what stand between a plagiarised design and a disqualified submission.
+dependencies = ["biopython>=1.85", "gemmi>=0.6.5", "numpy>=1.26", "typer>=0.12"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+# Flat scripts importing each other by name, not an installable package; tests/conftest.py puts
+# scripts/ on sys.path.
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
