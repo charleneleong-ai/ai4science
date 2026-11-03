@@ -59,9 +59,8 @@ pmhc/fold_work*/
 pmhc/cohort_poses/
 pmhc/cofold_specs/
 pmhc/cofold_out/
-pmhc/cofold_probe*/
+pmhc/cofold_*_out/
 pmhc/logs/
 pmhc/data/*.cif
 pmhc/targets/
-pmhc/cofold_noise*/
-pmhc/cofold_wt*/
+pmhc/cofold_wt_specs/
