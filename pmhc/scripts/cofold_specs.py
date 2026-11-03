@@ -86,9 +86,19 @@ def chain_ids(design: str, condition_chains: tuple[str, ...]) -> tuple[str, ...]
     return binder_ids(design) + tuple(condition_chains)
 
 
+def find_predictions(out_dir: Path) -> Path | None:
+    """Boltz's prediction directory inside an --out_dir, or None if this is not one.
+
+    The layout is ours to know once, and callers that ask whether a directory *is* an --out_dir
+    need the question without the assertion -- otherwise they re-type this glob and the layout
+    lives in two modules.
+    """
+    return next(out_dir.glob("boltz_results_*/predictions"), None)
+
+
 def predictions_dir(out_dir: Path) -> Path:
-    """Boltz's prediction directory inside an --out_dir. The layout is ours to know once."""
-    found = next(out_dir.glob("boltz_results_*/predictions"), None)
+    """Boltz's prediction directory inside an --out_dir, which must be there."""
+    found = find_predictions(out_dir)
     if found is None:
         raise typer.BadParameter(f"no boltz_results_*/predictions under {out_dir}")
     return found

@@ -4,8 +4,12 @@ A de novo protein that binds the KRAS G12D peptide `VVVGADGVGK` on HLA-A\*11:01 
 wild-type `VVVGAGGVGK`, and not the peptide-free HLA. Specificity outranks affinity. Submissions
 close **Sunday 8 November 2026, 23:59 AoE — Monday 9 November, 22:59 Sydney**.
 
-**Status (2026-11-03): all three gates run, co-fold screen read, 2 of 78 clear the control's
-peptide-dependence bar.** Nothing submitted yet and nothing wet-lab measured.
+**Status (2026-11-03): all three gates run, the cohort re-measured at five samples, and the
+bar itself calibrated over eight independent runs at +0.101. 14 of 78 designs have a
+peptide-dependence drop that clears their own standard error; the leader sits 0.011 above the
+bar against a 0.011 margin, so whether anything beats the control is undecided and a full
+replicate of the cohort pass is running to settle it.** Nothing submitted, nothing wet-lab
+measured.
 
 ## The finding that set the strategy
 
@@ -83,9 +87,10 @@ is disqualification — but it is a correctness rule, not a bias correction.
                  35 have an immunoglobulin beta-sandwich as their closest fold
  87 engagement   peptide share >= 0.200, the measured share of the 7OW6 receptor itself
                  78 of those also touch every position their variant nominated
- 78 dependence   co-fold screened: 159 of 159 predictions scored, 0 failures
-                 2 lose at least as much confidence as the 7OW6 receptor does (+0.114)
- 20 submitted    cap
+ 78 dependence   co-fold screened at 5 samples: 159 of 159 predictions scored, 0 failures
+                 14 have a drop clearing their own standard error at 2 sigma
+                  1 sits above the bar (+0.101, 8 runs) by less than its own margin -- undecided
+ 20 submitted    cap; nothing uploaded yet
 ```
 
 The denominator stays 256. 188 admissible for 20 slots, so every gate can be conservative for
@@ -127,28 +132,57 @@ known to discriminate these two peptides, and it does not discriminate them here
 | **wild-type complex** | **0.958** |
 | peptide-free HLA | 0.842 |
 
-A 0.001 difference on the positive control is the measurement that justifies not gating on
-G12D-versus-wild-type at all. The sub-angstrom backbone shift predicted the result; the control
-confirms it on the actual scoring function, so any selectivity a design appears to show on this
-predictor is noise rather than signal.
+That difference is not merely too small to use -- it has the wrong sign, and repetition makes
+the sign solid rather than softening it. Paired within each of eight independent runs, the
+control scores wild type **above** G12D by +0.0027 +- 0.0006, in seven of the eight. The one
+receptor known to discriminate these peptides is scored here as preferring the peptide it does
+not recognise. The sub-angstrom backbone shift predicted that tier 1 would be unreachable; the
+control shows the scoring function is not just blind to it but inverted on it, so no
+selectivity a design appears to show on this predictor can be read as signal.
 
-Peptide-dependence does resolve. The receptor loses **0.114** ipTM when the peptide is removed,
-and that drop is the bar. Against it the cohort is unflattering:
+Peptide-dependence does resolve, and its bar is now measured rather than read off one run.
+Eight independent invocations of the control put the drop at **+0.101**, with a between-run
+spread of 0.004 against the 0.007 each run reports internally -- a permutation test over the
+pooled samples places that spread at the 4th percentile of the no-run-effect null, so a single
+run's own standard error is already an honest error bar and needs no widening. Against that
+bar, the five-sample cohort:
 
 | | peptide-dependence drop |
 | --- | --- |
-| `mut_proximal_16` | **+0.148** |
-| `mut_proximal_26` | **+0.128** |
-| the 7OW6 receptor | +0.114 |
-| best of the rest (`hub_62`) | +0.081 |
+| `mut_proximal_16` | **+0.112 +- 0.005** |
+| `mut_proximal_26` | **+0.110 +- 0.011** |
+| the 7OW6 receptor, 8 runs | +0.101 +- 0.004 |
+| best of the rest (`hub_62`) | -0.016 +- 0.023 |
 | median of 78 | **-0.010** |
 | worst | -0.121 |
 
-**2 of 78.** The median design scores slightly *better* against the peptide-free receptor than
-against the complex, which is what a groove-gripper looks like when the peptide it ignores is
-taken away. Both survivors come from `mut_proximal`, the variant the engagement gate already
-favoured on the generator's own poses -- two independent measurements agreeing about which
-nomination strategy worked.
+**14 of 78** clear their own standard error at 2 sigma. The median design scores slightly
+*better* against the peptide-free receptor than against the complex, which is what a
+groove-gripper looks like when the peptide it ignores is taken away. Both leaders come from
+`mut_proximal`, the variant the engagement gate already favoured on the generator's own poses
+-- two independent measurements agreeing about which nomination strategy worked.
+
+Whether either leader actually beats the control is **not settled**. `mut_proximal_16` is
++0.0112 above the bar against a 2-sigma margin of 0.0106: above by six ten-thousandths, which
+is a coin toss dressed as a result. A full replicate of the 159-spec cohort pass is running to
+decide it.
+
+**The bar moved once, and the reason matters more than the number.** The 159-spec cohort run
+scored the control's drop at +0.150, four of its own standard errors above the probe's +0.104.
+It is not run-to-run noise: the spec is byte-identical, the processed structure hashes equal,
+the flags match, and eight replicates span only +0.095 to +0.108. What degraded was the
+*peptide-free* pose alone -- pTM 0.836 against 0.877, and receptor-to-HLA pair ipTM 0.710
+against 0.786, while pLDDT barely moved and the complex condition reproduced to three decimals.
+With no peptide in the groove the receptor's placement is underdetermined, which is why the apo
+term's spread is 4-10x the complex term's, and why the drop inherits all its noise from the
+condition that defines it. The 12 designs measured in both runs shifted their apo scores by
++0.0006 +- 0.0150 while the control's fell 0.045, so this was not a run-level offset that an
+internal control would absorb -- which is the reason the cohort's +0.150 is not used as the bar.
+
+One consequence is a bias, and it runs toward false positives: an unlucky apo pose *inflates* a
+design's drop. The top of this ranking is therefore enriched for peptide-free-pose failures as
+well as for genuine peptide reading, and the replicate pass is the test -- artifacts regress
+toward the middle, real peptide-readers do not.
 
 The ranking within that list is not claimed from the screen. Each of its drops is a difference
 of two single diffusion draws, and a 26-design probe at five samples settled the question the
@@ -187,8 +221,8 @@ chains, and these designs resemble β2m as deposited in *other* entries.
 | [`scripts/cofold_specs.py`](scripts/cofold_specs.py) | applies all three gates, records every design's fate, writes the co-fold specs |
 | [`scripts/cofold_scores.py`](scripts/cofold_scores.py) | reads the screen and reports each design's peptide-dependence drop |
 | [`scripts/run_fold_gate.sh`](scripts/run_fold_gate.sh) | the detached fold-gate run over the whole cohort |
-| [`scripts/run_cofold.sh`](scripts/run_cofold.sh) | the detached co-fold screen |
-| [`scripts/cofold_followup.py`](scripts/cofold_followup.py) | the five-sample cohort pass, the one significance rule the campaign uses, and the wild-type finalists |
+| [`scripts/run_cofold.sh`](scripts/run_cofold.sh) | the detached co-fold screen; a fourth argument repeats the pass as separate invocations |
+| [`scripts/cofold_followup.py`](scripts/cofold_followup.py) | the five-sample cohort pass, the one significance rule the campaign uses, the replicated bar and inverted tier-1 measurement, and the wild-type finalists |
 | [`scripts/submission.py`](scripts/submission.py) | ranks on the five-sample means and writes the upload CSV, refusing to rank without the control |
 | [`scripts/fold_novelty.py`](scripts/fold_novelty.py) | FoldSeek fold gate, for the copies sequence identity cannot see |
 | [`tests/test_novelty.py`](tests/test_novelty.py) | the admissibility gates, against copies they have to catch |
