@@ -2,12 +2,17 @@
 # Boltz co-fold runner. One script for every pass, because they differ only in which specs go
 # in, where the output lands, and how many diffusion samples each prediction draws:
 #
-#   screen:    run_cofold.sh                                     # every spec, 1 sample
-#   noise:     run_cofold.sh cofold_noise_specs cofold_noise_out 5
+#   pilot:     run_cofold.sh                                     # every spec, 1 sample
+#   probe:     run_cofold.sh cofold_noise_specs cofold_noise_out 5
+#   cohort:    run_cofold.sh cofold_specs       cofold_full5_out 5
 #   wild type: run_cofold.sh cofold_wt_specs    cofold_wt_out    1
 #
+# The cohort pass is the measurement of record: the probe over a 26-spec subset showed that a
+# single diffusion sample reverses the sign of a design's peptide-dependence drop, so the whole
+# cohort is re-run at five and the one-sample pass is retrospectively a pilot.
+#
 # See cofold_specs.py for why only two of the three conditions are screened on every design,
-# and cofold_followup.py for why the noise pass exists at all.
+# and cofold_followup.py for what reads each pass.
 #
 # Invocation gotchas inherited from the TNF campaign, both already paid for once:
 #   --use_msa_server is a boolean FLAG, so passing it a value makes click read a stray

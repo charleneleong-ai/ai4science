@@ -7,9 +7,13 @@ before anything was written. The sibling campaigns hold better versions of both
 (`tnf_binder.tables.write_rows`, `tfr1/scripts/csvio.py`), but tnf-binder is not installed in
 the environment this runs in and tfr1 sits on an unmerged branch, so these live here and the
 shared package those three projects want is recorded as a follow-up rather than attempted four
-days before a deadline. Two more belong in that same follow-up: `touchstone.boltz` already reads
-Boltz's per-sample confidence files and aggregates them, and `tnf_binder.specs.chain_block` is a
-byte-level duplicate of this campaign's co-fold spec block.
+days before a deadline. Three more belong in that same follow-up: `touchstone.boltz` already reads
+Boltz's per-sample confidence files and aggregates them, `tnf_binder.specs.chain_block` is a
+byte-level duplicate of this campaign's co-fold spec block, and `tnf_binder.submission` holds the
+Proteinbase upload rules -- accepted molecule classes, the 20-row cap, the 10-250 aa range --
+which `submission.py` restates because they are portal rules owned by no campaign. That last one
+is the most urgent of the four: the portal has already changed its stated format once, glp1r is a
+third track against it, and the next change has to be found in two places.
 """
 
 from __future__ import annotations

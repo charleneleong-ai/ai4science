@@ -1,12 +1,21 @@
 """The co-fold passes that run after the screen has ranked the survivors.
 
-**Sampling noise.** The screen draws one diffusion sample per condition, so a design's drop is
-a difference of two single draws and carries the variance of both. Ranking 78 designs on it is
-only defensible once the spread of that difference is known, and the screen cannot report it:
-one sample has no spread. `select-noise` writes specs for a subset spanning the observed drop
-ranking, to be run at several samples, and `report-noise` gives each design the standard
-deviation of its per-condition ipTM plus the implied spread of the drop. Designs whose drops
-differ by less than that spread are ties, and are reported as ties.
+**Repeated sampling.** The screen drew one diffusion sample per condition, so a design's drop
+was a difference of two single draws and carried the variance of both. `select-noise` wrote
+specs for a subset spanning that ranking to be re-run at five samples, and the probe answered
+its question in the worst way available: two of the pilot's top four reversed sign. The whole
+cohort is therefore re-run at five samples, `report-spread` reads it, and the one-sample screen
+is retrospectively a pilot. `select-noise` and `spanning` are kept as the record of how that
+was established; nothing downstream reads their output any more.
+
+**One significance rule, defined here.** `report-spread` and `submission.py` both have to say
+whether a difference is real, and they must say it the same way or the table a human reads
+disagrees with the file that gets uploaded. `SIGMA` and `comparison` below are that rule, and
+they are here rather than in the submission stage because this is the only module that sees the
+samples -- in particular it is the only place that knows `n`, and `n` is what makes the rule
+correct. `drop_sd` is the spread of *one* difference; the quantity being tested is a mean of
+`n`, whose standard error is `drop_sem = drop_sd / sqrt(n)`. Testing a mean against the
+per-draw spread is a sqrt(n)-times-too-strict gate, which under-reports real drops.
 
 This is not a fresh discovery: `touchstone.boltz` already records the measurement that best and
 mean differ by up to 0.35 within a single design, and that ranking on best-of-n reorders the
@@ -46,6 +55,24 @@ from cofold_specs import (
 from common import rows_by, write_rows, wrote
 
 app = typer.Typer(add_completion=False)
+
+# How many standard errors two means must be apart before the difference is called a difference.
+# Two, so the claim is roughly 95% rather than "the means differ", which at these spreads they
+# always do.
+SIGMA = 2.0
+
+
+def comparison(mean_a: float, sem_a: float, mean_b: float, sem_b: float) -> str:
+    """Whether mean_a sits above, tied with, or below mean_b, given each one's standard error.
+
+    The one place the campaign decides what counts as a difference. Pass `0.0, 0.0` for the
+    second pair to test a single mean against zero.
+    """
+    margin = SIGMA * math.hypot(sem_a, sem_b)
+    difference = mean_a - mean_b
+    if difference > margin:
+        return "above"
+    return "below" if difference < -margin else "tied"
 
 
 def spanning(designs: list[tuple[str, float]], count: int, head: int = 0) -> list[str]:
@@ -156,6 +183,25 @@ class Spread:
         return math.hypot(self.complex_sd, self.apo_sd)
 
     @property
+    def drop_sem(self) -> float:
+        """Standard error of `drop_mean` -- the quantity actually compared.
+
+        Each condition's mean carries `sd / sqrt(n)`, and the drop is their difference, so the
+        two combine in quadrature. This, not `drop_sd`, is the denominator of the tie rule: the
+        conditions are sampled independently and may carry different `n`, which is why the
+        division happens per condition rather than once at the end.
+        """
+        return math.hypot(
+            self.complex_sd / math.sqrt(len(self.complexed)),
+            self.apo_sd / math.sqrt(len(self.apo)),
+        )
+
+    @property
+    def drop_significant(self) -> bool:
+        """Whether this drop clears its own sampling noise."""
+        return comparison(self.drop_mean, self.drop_sem, 0.0, 0.0) == "above"
+
+    @property
     def drop_min(self) -> float:
         """Widest the drop gets across every pairing of the two conditions' samples.
 
@@ -181,6 +227,8 @@ class Spread:
             "iptm_apo_sd": round(self.apo_sd, 4),
             "drop_mean": round(self.drop_mean, 4),
             "drop_sd": round(self.drop_sd, 4),
+            "drop_sem": round(self.drop_sem, 4),
+            "drop_significant": self.drop_significant,
             "drop_min": round(self.drop_min, 4),
             "drop_max": round(self.drop_max, 4),
         }
@@ -225,9 +273,9 @@ def select_wildtype(
 
 
 @app.command()
-def report_noise(
-    out_dir: Path = typer.Option(Path("cofold_noise_out"), help="boltz --out_dir"),
-    out: Path = typer.Option(Path("cofold_noise.csv")),
+def report_spread(
+    out_dir: Path = typer.Option(Path("cofold_full5_out"), help="boltz --out_dir"),
+    out: Path = typer.Option(Path("cofold_spread.csv")),
 ) -> None:
     screen = collect(predictions_dir(out_dir), sample_iptms)
     typer.echo(
@@ -240,29 +288,48 @@ def report_noise(
     if not rows:
         raise typer.BadParameter(f"no design in {out_dir} has repeated samples for both conditions")
 
+    control = next((r for r in rows if r.design == CONTROL), None)
+    designs = [r for r in rows if r.design != CONTROL]
+
     typer.echo(
         f"\n  {'design':20s} {'n':>5s} {'complex':>15s} {'apo':>15s}"
-        f" {'drop':>8s} {'+-':>6s} {'range':>16s}"
+        f" {'drop':>8s} {'sem':>6s} {'>noise':>7s} {'vs ctrl':>8s} {'range':>16s}"
     )
     for row in sorted(rows, key=lambda r: -r.drop_mean):
+        versus = "--" if control is None else comparison(
+            row.drop_mean, row.drop_sem, control.drop_mean, control.drop_sem
+        )
         typer.echo(
             f"  {row.design:20s} {row.samples:>5s}"
             f" {row.complex_mean:7.3f}+-{row.complex_sd:<6.3f}"
             f" {row.apo_mean:7.3f}+-{row.apo_sd:<6.3f}"
-            f" {row.drop_mean:+8.3f} {row.drop_sd:6.3f}"
+            f" {row.drop_mean:+8.3f} {row.drop_sem:6.3f}"
+            f" {'yes' if row.drop_significant else 'no':>7s} {versus:>8s}"
             f" [{row.drop_min:+.3f},{row.drop_max:+.3f}]"
         )
 
-    worst = max(r.drop_sd for r in rows)
-    control = next((r for r in rows if r.design == CONTROL), None)
+    # The same rule the submission is built from, printed here so the table a human reads and
+    # the file that gets uploaded cannot disagree about which designs are tied.
+    significant = sum(r.drop_significant for r in designs)
     typer.echo(
-        f"\nlargest drop spread over {len(rows)} entities: {worst:.3f}."
-        " Two designs whose drops differ by less than this are tied."
+        f"\n{significant} of {len(designs)} designs have a drop clearing its own standard error"
+        f" at {SIGMA:g} sigma"
     )
-    if control is not None:
+    if control is None:
         typer.echo(
-            f"the control's own drop is {control.drop_mean:+.3f} +- {control.drop_sd:.3f}"
-            f" over {control.samples} samples, so its bar is a band, not a line"
+            f"NO CONTROL: {CONTROL} has no repeated samples here, so these drops have no scale."
+            " Nothing downstream may rank them; re-run the pass with the control's specs."
+        )
+    else:
+        verdicts = [
+            comparison(r.drop_mean, r.drop_sem, control.drop_mean, control.drop_sem)
+            for r in designs
+        ]
+        tally = {v: verdicts.count(v) for v in ("above", "tied", "below")}
+        typer.echo(
+            f"against the control's {control.drop_mean:+.3f} +- {control.drop_sem:.3f}"
+            f" over {control.samples} samples: {tally['above']} above,"
+            f" {tally['tied']} tied, {tally['below']} below -- its bar is a band, not a line"
         )
     typer.echo(wrote(out, write_rows(rows, out)))
 

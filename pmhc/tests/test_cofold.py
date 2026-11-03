@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import math
 
 import pytest
-from cofold_followup import spanning, spread_of
+import typer
+from cofold_followup import SIGMA, Spread, comparison, spanning, spread_of
 from cofold_scores import Dependence, collect, peptide_pair
 from cofold_specs import (
+    CONTROL,
     CONTROL_PEPTIDE_SHARE,
     FOLD_SEVERITY,
     chain_ids,
@@ -18,6 +21,8 @@ from cofold_specs import (
     spec_text,
 )
 from fold_novelty import FOLD_VERDICTS
+import submission
+from submission import Candidate, candidates, csv_problems, row_problem
 
 
 def novelty_row(novel: bool = True, copied: float = 0.05) -> dict[str, str]:
@@ -65,6 +70,24 @@ class TestJudge:
         assert judge("d", novelty_row(), "shared_fold", engagement_row(share=0.199)).verdict == (
             "rejected_groove_gripper"
         )
+
+
+def submission_row(**changes: str) -> dict[str, str]:
+    return {"name": "pmhc_01", "sequence": "ACDEFGHIKL", "molecule_class": "single_chain"} | changes
+
+
+def spread_rows(drops: dict[str, tuple[float, float]]) -> dict[str, dict[str, str]]:
+    """A spread table as `report-spread` writes it, keyed by design, from (drop_mean, drop_sem)."""
+    return {
+        design: {"design": design, "drop_mean": str(mean), "drop_sd": str(sem), "drop_sem": str(sem)}
+        for design, (mean, sem) in drops.items()
+    }
+
+
+def one_candidate(mean: float, sem: float, control: tuple[float, float] = (0.10, 0.01)) -> Candidate:
+    return candidates(
+        spread_rows({"a": (mean, sem), CONTROL: control}), {"a": "A" * 60}, {}, count=20
+    )[0]
 
 
 class TestFoldSeverity:
@@ -240,3 +263,111 @@ class TestSpread:
     def test_one_sample_has_no_spread_to_report(self, conditions):
         """Returning a 0.0 spread here would read as "measured, and tiny"."""
         assert spread_of("d", conditions) is None
+
+
+class TestSubmissionFormat:
+    def test_accepts_a_legal_row(self):
+        """`row_problem` returns None for a clean row, which no reject case can assert."""
+        assert row_problem(submission_row()) is None
+
+    @pytest.mark.parametrize(
+        "change,expected",
+        [
+            ({"molecule_class": "protein"}, "bad class"),
+            ({"sequence": "ACDEFGHIKX"}, "non-standard residues"),
+            ({"sequence": "ACDEFGHIK"}, "length 9"),
+            ({"sequence": "A" * 251}, "length 251"),
+        ],
+    )
+    def test_rejects_what_the_submit_page_rejects(self, change, expected):
+        """`protein` is not an accepted class and 10-250 aa is the stated range."""
+        assert expected in row_problem(submission_row(**change))
+
+    @pytest.mark.parametrize(
+        "rows,expected",
+        [
+            ([], "empty"),
+            ([submission_row(), submission_row(name="pmhc_02")], "duplicate sequences"),
+            ([submission_row(), submission_row(sequence="C" * 60)], "duplicate names"),
+            ([submission_row(name=f"pmhc_{i:02d}", sequence="A" * (10 + i)) for i in range(21)],
+             "21 rows > 20 limit"),
+        ],
+    )
+    def test_file_level_rules_a_single_row_cannot_see(self, rows, expected):
+        assert any(expected in p for p in csv_problems(rows))
+
+    def test_a_wrong_header_is_reported_rather_than_raised(self):
+        """`check` reads files this code did not write, and `row_problem` indexes the columns
+        it checks -- so the column problem has to come back alone."""
+        problems = csv_problems([{"id": "x", "seq": "ACDEFGHIKL", "kind": "single_chain"}])
+        assert len(problems) == 1 and "columns" in problems[0]
+
+
+class TestCandidateSelection:
+    def test_ranks_by_mean_drop_and_names_in_rank_order(self):
+        chosen = candidates(
+            spread_rows({"a": (0.05, 0.01), "b": (0.12, 0.01), CONTROL: (0.10, 0.01)}),
+            {"a": "A" * 60, "b": "C" * 60},
+            {},
+            count=20,
+        )
+        assert [(c.name, c.design) for c in chosen] == [("pmhc_01", "b"), ("pmhc_02", "a")]
+
+    def test_submits_no_more_than_the_cap(self):
+        """The cap defines the submission, so the truncation it implies has to be exercised."""
+        drops = {f"d{i:02d}": (0.10 - i / 1000, 0.001) for i in range(25)}
+        chosen = candidates(
+            spread_rows({**drops, CONTROL: (0.10, 0.01)}),
+            {d: "A" * (20 + i) for i, d in enumerate(drops)},
+            {},
+            count=3,
+        )
+        assert [c.design for c in chosen] == ["d00", "d01", "d02"]
+
+    @pytest.mark.parametrize(
+        "spread,sequences,message",
+        [
+            ({"a": (0.1, 0.01)}, {"a": "A" * 60}, CONTROL),
+            ({CONTROL: (0.1, 0.01)}, {}, "control and no designs"),
+            ({"a": (0.1, 0.01), CONTROL: (0.1, 0.01)}, {}, "no sequence"),
+        ],
+    )
+    def test_refuses_to_rank_what_it_cannot_rank(self, spread, sequences, message):
+        """Without a control the drops have no scale, which is the basis of the whole claim."""
+        with pytest.raises(typer.BadParameter, match=message):
+            candidates(spread_rows(spread), sequences, {}, count=20)
+
+    @pytest.mark.parametrize(
+        "mean,sd,significant",
+        [(0.12, 0.01, True), (0.02, 0.08, False), (-0.05, 0.01, False)],
+    )
+    def test_a_drop_must_clear_the_standard_error_of_its_own_mean(self, mean, sd, significant):
+        """The pilot's third and fourth place reversed sign at five samples; a drop smaller
+        than its own noise is not a drop."""
+        assert one_candidate(mean, sd).drop_significant is significant
+
+    @pytest.mark.parametrize(
+        "mean,sd,verdict",
+        [(0.30, 0.01, "above"), (0.105, 0.01, "tied"), (0.00, 0.01, "below")],
+    )
+    def test_compared_against_the_control_as_a_band_not_a_line(self, mean, sd, verdict):
+        assert one_candidate(mean, sd).versus_control == verdict
+
+    def test_the_sigma_rule_is_the_one_the_spread_report_states(self):
+        """Two modules computing it independently is how the printed table and the uploaded
+        file come to disagree about which designs are tied."""
+        assert submission.comparison is comparison and submission.SIGMA == SIGMA
+
+
+class TestSpreadStatistics:
+    def test_the_tested_quantity_is_a_mean_so_its_error_is_the_standard_error(self):
+        """drop_sd is the spread of one difference; drop_mean is a mean of n, and testing a
+        mean against the per-draw spread is a sqrt(n)-times-too-strict gate."""
+        spread = Spread(design="d", complexed=(0.9, 0.8, 0.85, 0.82, 0.88), apo=(0.7,) * 5)
+        assert spread.drop_sem == pytest.approx(spread.drop_sd / math.sqrt(5))
+
+    def test_the_consumer_reads_the_keys_the_producer_writes(self):
+        """`candidates()` reads these back off the CSV, so a rename here must break a test
+        rather than only break production."""
+        written = Spread(design="d", complexed=(0.9, 0.8), apo=(0.7, 0.6)).row
+        assert {"design", "drop_mean", "drop_sd", "drop_sem"} <= set(written)

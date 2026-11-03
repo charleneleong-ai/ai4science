@@ -150,9 +150,13 @@ taken away. Both survivors come from `mut_proximal`, the variant the engagement 
 favoured on the generator's own poses -- two independent measurements agreeing about which
 nomination strategy worked.
 
-The ranking within that list is not yet claimed. Each drop is a difference of two single
-diffusion draws, so [`cofold_followup.py`](scripts/cofold_followup.py) re-runs a spanning subset
-at five samples to measure the spread; designs closer together than it are reported as ties.
+The ranking within that list is not claimed from the screen. Each of its drops is a difference
+of two single diffusion draws, and a 26-design probe at five samples settled the question the
+wrong way: two of the screen's top four **reverse sign** when measured five times. The whole
+cohort is therefore re-run at five samples and read by
+[`cofold_followup.py`](scripts/cofold_followup.py) `report-spread`, which owns the campaign's one
+significance rule — a difference must clear two standard errors of the mean, and `drop_sem`, not
+the per-draw `drop_sd`, is that denominator. Designs inside the band are reported as ties.
 
 The fold gate cannot be a TM-score cutoff. **All 256 designs match something at TM ≥ 0.5 bar
 two**, because an 80-residue helical bundle resembles one of the thousands already deposited, so
@@ -184,7 +188,8 @@ chains, and these designs resemble β2m as deposited in *other* entries.
 | [`scripts/cofold_scores.py`](scripts/cofold_scores.py) | reads the screen and reports each design's peptide-dependence drop |
 | [`scripts/run_fold_gate.sh`](scripts/run_fold_gate.sh) | the detached fold-gate run over the whole cohort |
 | [`scripts/run_cofold.sh`](scripts/run_cofold.sh) | the detached co-fold screen |
-| [`scripts/cofold_followup.py`](scripts/cofold_followup.py) | the passes after the screen: sampling-noise subset, its spread, and the wild-type finalists |
+| [`scripts/cofold_followup.py`](scripts/cofold_followup.py) | the five-sample cohort pass, the one significance rule the campaign uses, and the wild-type finalists |
+| [`scripts/submission.py`](scripts/submission.py) | ranks on the five-sample means and writes the upload CSV, refusing to rank without the control |
 | [`scripts/fold_novelty.py`](scripts/fold_novelty.py) | FoldSeek fold gate, for the copies sequence identity cannot see |
 | [`tests/test_novelty.py`](tests/test_novelty.py) | the admissibility gates, against copies they have to catch |
 | [`scripts/run_generate.sh`](scripts/run_generate.sh) | the detached BoltzGen sweep |
