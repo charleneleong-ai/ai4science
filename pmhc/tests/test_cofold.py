@@ -7,7 +7,17 @@ import math
 
 import pytest
 import typer
-from cofold_followup import SIGMA, Spread, comparison, spanning, spread_of
+from cofold_followup import (
+    SIGMA,
+    Paired,
+    Spread,
+    comparison,
+    invocation_predictions,
+    pooled_between_sd,
+    run_effect_sd,
+    spanning,
+    spread_of,
+)
 from cofold_scores import Dependence, collect, peptide_pair
 from cofold_specs import (
     CONTROL,
@@ -371,3 +381,73 @@ class TestSpreadStatistics:
         rather than only break production."""
         written = Spread(design="d", complexed=(0.9, 0.8), apo=(0.7, 0.6)).row
         assert {"design", "drop_mean", "drop_sd", "drop_sem"} <= set(written)
+
+
+class TestReplicateStatistics:
+    """The between-run component, measured by separate invocations rather than more samples."""
+
+    def test_the_between_run_spread_is_of_the_run_means_not_of_the_samples(self):
+        """The eight invocations of the control, whose spread is what the pass exists to get."""
+        bar = Paired("control_tcr", (0.100, 0.095, 0.104, 0.099, 0.108, 0.099, 0.102, 0.098))
+        assert bar.mean == pytest.approx(0.10063, abs=1e-5)
+        assert bar.between_sd == pytest.approx(0.00400, abs=1e-5)
+        assert bar.sem == pytest.approx(bar.between_sd / math.sqrt(8))
+
+    @pytest.mark.parametrize(
+        "values,verdict",
+        [
+            ((0.100, 0.102, 0.098, 0.101), "above"),
+            ((0.001, -0.002, 0.003, -0.001), "tied"),
+            ((-0.05, -0.04, -0.06, -0.05), "below"),
+        ],
+    )
+    def test_a_repeated_quantity_is_tested_against_zero_by_the_shared_rule(self, values, verdict):
+        assert Paired("d", values).verdict == verdict
+
+    @pytest.mark.parametrize(
+        "between,within,expected",
+        [
+            # The control, measured: a spread smaller than its own sampling error leaves no
+            # run effect to charge a design for, and must not come back as a hypot of the two.
+            (0.004, 0.007, 0.0),
+            (0.007, 0.007, 0.0),
+            (0.013, 0.005, 0.012),
+            (0.010, 0.000, 0.010),
+        ],
+    )
+    def test_the_two_components_subtract_because_the_spread_already_holds_the_sampling(
+        self, between, within, expected
+    ):
+        """Var(run means) = Var(run effect) + within**2, so adding them would double-count."""
+        assert run_effect_sd(between, within) == pytest.approx(expected, abs=5e-4)
+
+    def test_variances_pool_across_designs_not_standard_deviations(self):
+        """Averaging SDs would understate a cohort whose designs vary in reproducibility."""
+        sds = (0.02, 0.06)
+        assert pooled_between_sd(sds) == pytest.approx(0.044721, abs=1e-6)
+        assert pooled_between_sd(sds) > sum(sds) / 2
+
+
+class TestInvocationPredictions:
+    """Both shapes a replicated pass arrives in, so no caller has to know which it has."""
+
+    def test_a_directory_of_invocations_resolves_each_ones_predictions(self, tmp_path):
+        for name in ("rep2", "rep1"):
+            (tmp_path / name / "boltz_results_x" / "predictions").mkdir(parents=True)
+        found = invocation_predictions(tmp_path)
+        assert [p.parent.parent.name for p in found] == ["rep1", "rep2"]
+        assert all(p.name == "predictions" for p in found)
+
+    def test_one_pass_out_dir_is_a_single_invocation(self, tmp_path):
+        (tmp_path / "boltz_results_x" / "predictions").mkdir(parents=True)
+        assert invocation_predictions(tmp_path) == [tmp_path / "boltz_results_x" / "predictions"]
+
+    def test_a_sibling_holding_no_predictions_is_not_an_invocation(self, tmp_path):
+        """Counting a stray directory would inflate the denominator of every between-run claim."""
+        (tmp_path / "rep1" / "boltz_results_x" / "predictions").mkdir(parents=True)
+        (tmp_path / "logs").mkdir()
+        assert len(invocation_predictions(tmp_path)) == 1
+
+    def test_refuses_a_directory_holding_neither(self, tmp_path):
+        with pytest.raises(typer.BadParameter, match="no predictions"):
+            invocation_predictions(tmp_path)
