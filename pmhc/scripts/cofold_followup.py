@@ -467,16 +467,53 @@ def paired_drops(by_design: Mapping[str, list[RunRow]]) -> dict[str, Paired]:
     }
 
 
-def echo_replicate_table(by_design: Mapping[str, list[RunRow]], paired: Mapping[str, Paired]) -> None:
+@dataclass(frozen=True)
+class Cohort:
+    """The whole field's reproducibility, which is the denominator each design has to borrow.
+
+    Two invocations cannot estimate a design's own between-run spread: the estimate carries
+    about 70% relative error, and the pair that happens to agree reports zero. Taken at face
+    value that makes a +0.011 drop look significant and a reproducible +0.112 look infinitely
+    so. Pooling across designs buys roughly one degree of freedom each, and every per-design
+    verdict below divides by the pooled number rather than by its own two points.
+    """
+
+    between_sd: float
+    within_sem: float
+
+    @classmethod
+    def of(cls, by_design: Mapping[str, list[RunRow]], paired: Mapping[str, Paired]) -> Cohort:
+        designs = [design for design in paired if design != CONTROL] or list(paired)
+        return cls(
+            between_sd=pooled_between_sd([paired[design].between_sd for design in designs]),
+            within_sem=mean(row.spread.drop_sem for design in designs for row in by_design[design]),
+        )
+
+    @property
+    def run_effect(self) -> float:
+        return run_effect_sd(self.between_sd, self.within_sem)
+
+    def sem(self, runs: int) -> float:
+        """What a mean of `runs` invocations is worth, on the cohort's measured spread."""
+        return self.between_sd / math.sqrt(runs)
+
+    def verdict(self, drops: Paired, against: float = 0.0, against_sem: float = 0.0) -> str:
+        return comparison(drops.mean, self.sem(drops.runs), against, against_sem)
+
+
+def echo_replicate_table(
+    by_design: Mapping[str, list[RunRow]], paired: Mapping[str, Paired], cohort: Cohort
+) -> None:
     typer.echo(
-        f"\n  {'design':20s} {'runs':>4s} {'drop':>8s} {'between':>8s}"
-        f" {'within':>7s} {'effect':>7s} {'vs 0':>6s}  per-run drops"
+        f"\n  {'design':20s} {'runs':>4s} {'drop':>8s} {'own sd':>7s}"
+        f" {'within':>7s} {'sem':>6s} {'vs 0':>6s}  per-run drops"
     )
     for design, drops in sorted(paired.items(), key=lambda kv: -kv[1].mean):
         within = mean(row.spread.drop_sem for row in by_design[design])
         typer.echo(
-            f"  {design:20s} {drops.runs:4d} {drops.mean:+8.3f} {drops.between_sd:8.3f}"
-            f" {within:7.3f} {run_effect_sd(drops.between_sd, within):7.3f} {drops.verdict:>6s}"
+            f"  {design:20s} {drops.runs:4d} {drops.mean:+8.3f} {drops.between_sd:7.3f}"
+            f" {within:7.3f} {cohort.sem(drops.runs):6.3f}"
+            f" {cohort.verdict(drops):>6s}"
             f"  {' '.join(f'{v:+.3f}' for v in drops.values)}"
         )
 
@@ -509,43 +546,45 @@ def report_replicates(
     )
 
     paired = paired_drops(by_design)
-    echo_replicate_table(by_design, paired)
-    echo_bar(by_design, paired)
+    cohort = Cohort.of(by_design, paired)
+    echo_replicate_table(by_design, paired, cohort)
+    echo_bar(by_design, paired, cohort)
     echo_wildtype(walk.rows)
     typer.echo(wrote(out, write_rows(walk.rows, out)))
 
 
-def echo_bar(by_design: Mapping[str, list[RunRow]], paired: Mapping[str, Paired]) -> None:
-    """The control's drop, and whether the spread across invocations needs its own error term."""
+def echo_bar(
+    by_design: Mapping[str, list[RunRow]], paired: Mapping[str, Paired], cohort: Cohort
+) -> None:
+    """The control's drop, and how the field stands against it on the cohort's own spread."""
+    typer.echo(
+        f"\ncohort reproducibility over {len(paired)} designs: between-run SD"
+        f" {cohort.between_sd:.3f} against a within-run error of {cohort.within_sem:.3f},"
+        f" leaving a run effect of {cohort.run_effect:.3f}"
+    )
     if (control := paired.get(CONTROL)) is None:
         typer.echo(
-            f"\nNO CONTROL: {CONTROL} is not repeated here, so this pass calibrates nothing."
+            f"NO CONTROL: {CONTROL} is not repeated here, so this pass calibrates nothing."
             " Nothing downstream may rank against it; re-run with the control's specs included."
         )
         return
     within = mean(row.spread.drop_sem for row in by_design[CONTROL])
-    effect = run_effect_sd(control.between_sd, within)
     typer.echo(
-        f"\nBAR: the control's drop is {control.mean:+.3f} over {control.runs} invocations,"
+        f"BAR: the control's drop is {control.mean:+.3f} over {control.runs} invocations,"
         f" spread {control.between_sd:.3f} against a within-run error of {within:.3f}"
-    )
-    typer.echo(
-        f"run effect {effect:.3f}:"
-        + (
-            " not resolved above within-run sampling, so one invocation's own standard error is"
-            " already the honest bar and needs no between-run widening"
-            if effect == 0.0
-            else " a design measured once carries this on top of its own standard error"
-        )
     )
 
     designs = [p for design, p in paired.items() if design != CONTROL]
-    if designs:
-        typer.echo(
-            f"pooled over {len(designs)} designs: between-run SD"
-            f" {pooled_between_sd([p.between_sd for p in designs]):.3f} against a within-run"
-            f" error of {mean(row.spread.drop_sem for runs in by_design.values() for row in runs):.3f}"
-        )
+    if not designs:
+        return
+    bar_sem = cohort.sem(control.runs)
+    verdicts = [cohort.verdict(p, control.mean, bar_sem) for p in designs]
+    tally = {v: verdicts.count(v) for v in ("above", "tied", "below")}
+    typer.echo(
+        f"against it, on the pooled spread: {tally['above']} above, {tally['tied']} tied,"
+        f" {tally['below']} below -- and {sum(cohort.verdict(p) == 'above' for p in designs)}"
+        f" of {len(designs)} clear zero"
+    )
 
 
 def echo_wildtype(rows: Sequence[RunRow]) -> None:
