@@ -4,12 +4,12 @@ A de novo protein that binds the KRAS G12D peptide `VVVGADGVGK` on HLA-A\*11:01 
 wild-type `VVVGAGGVGK`, and not the peptide-free HLA. Specificity outranks affinity. Submissions
 close **Sunday 8 November 2026, 23:59 AoE — Monday 9 November, 22:59 Sydney**.
 
-**Status (2026-11-03): all three gates run, the cohort re-measured at five samples, and the
-bar itself calibrated over eight independent runs at +0.101. 14 of 78 designs have a
-peptide-dependence drop that clears their own standard error; the leader sits 0.011 above the
-bar against a 0.011 margin, so whether anything beats the control is undecided and a full
-replicate of the cohort pass is running to settle it.** Nothing submitted, nothing wet-lab
-measured.
+**Status (2026-11-03): all three gates run, the cohort measured twice at five samples, and the
+bar calibrated over ten independent runs at +0.106. No design beats the 7OW6 receptor's
+peptide-dependence; 4 of 78 are statistically indistinguishable from it and 14 clear zero. The
+leader, `mut_proximal_16`, returned +0.112 in both independent cohort runs.** Ranking tier 1 is
+not merely unresolvable on this predictor but inverted on the one molecule that can calibrate
+it. Nothing submitted, nothing wet-lab measured.
 
 ## The finding that set the strategy
 
@@ -87,9 +87,9 @@ is disqualification — but it is a correctness rule, not a bias correction.
                  35 have an immunoglobulin beta-sandwich as their closest fold
  87 engagement   peptide share >= 0.200, the measured share of the 7OW6 receptor itself
                  78 of those also touch every position their variant nominated
- 78 dependence   co-fold screened at 5 samples: 159 of 159 predictions scored, 0 failures
-                 14 have a drop clearing their own standard error at 2 sigma
-                  1 sits above the bar (+0.101, 8 runs) by less than its own margin -- undecided
+ 78 dependence   co-fold screened twice at 5 samples: 318 of 318 predictions scored, 0 failures
+                 14 clear zero on the cohort's measured between-run spread (0.018)
+                  4 tied with the bar (+0.106, 10 runs), 0 above it
  20 submitted    cap; nothing uploaded yet
 ```
 
@@ -141,17 +141,18 @@ control shows the scoring function is not just blind to it but inverted on it, s
 selectivity a design appears to show on this predictor can be read as signal.
 
 Peptide-dependence does resolve, and its bar is now measured rather than read off one run.
-Eight independent invocations of the control put the drop at **+0.101**, with a between-run
-spread of 0.004 against the 0.007 each run reports internally -- a permutation test over the
-pooled samples places that spread at the 4th percentile of the no-run-effect null, so a single
-run's own standard error is already an honest error bar and needs no widening. Against that
-bar, the five-sample cohort:
+Ten independent invocations of the control put the drop at **+0.106**. Eight of them, run as
+small batches, span only +0.095 to +0.108 with a spread of 0.004 against the 0.007 each run
+reports internally -- a permutation test over the pooled samples places that spread at the 4th
+percentile of the no-run-effect null, so for the control a single run's own standard error is
+already honest. The spread of 0.016 over all ten is one run's doing, diagnosed below. Against
+that bar, the two five-sample cohort runs:
 
 | | peptide-dependence drop |
 | --- | --- |
-| `mut_proximal_16` | **+0.112 +- 0.005** |
-| `mut_proximal_26` | **+0.110 +- 0.011** |
-| the 7OW6 receptor, 8 runs | +0.101 +- 0.004 |
+| `mut_proximal_16` | **+0.112** (+0.112, +0.112) |
+| `mut_proximal_26` | **+0.095** (+0.109, +0.081) |
+| the 7OW6 receptor, 10 runs | +0.106, spread 0.016 |
 | best of the rest (`hub_62`) | -0.016 +- 0.023 |
 | median of 78 | **-0.010** |
 | worst | -0.121 |
@@ -162,10 +163,19 @@ groove-gripper looks like when the peptide it ignores is taken away. Both leader
 `mut_proximal`, the variant the engagement gate already favoured on the generator's own poses
 -- two independent measurements agreeing about which nomination strategy worked.
 
-Whether either leader actually beats the control is **not settled**. `mut_proximal_16` is
-+0.0112 above the bar against a 2-sigma margin of 0.0106: above by six ten-thousandths, which
-is a coin toss dressed as a result. A full replicate of the 159-spec cohort pass is running to
-decide it.
+Whether either leader beats the control is now settled, and the answer is no. Replicating the
+whole 159-spec pass gives every design two independent measurements, and the field's
+reproducibility is the denominator each one has to borrow: a between-run SD of **0.018** against
+a within-run error of 0.015, leaving a run effect of 0.009. Two runs cannot estimate a single
+design's own spread -- the estimate carries ~70% relative error, and a pair that happens to
+agree reports zero -- so every verdict divides by the pooled number instead. On it: **0 designs
+above the bar, 4 tied, 74 below**, and 14 of 78 clear zero. The verdict is the same whether the
+bar is the 10-run +0.106 or the +0.101 that excludes the degraded-pose run.
+
+The replicate also ran the artifact test, and the leaders split on it. `mut_proximal_16`
+returned **+0.112 in both runs** -- a between-run SD of 0.000, so its peptide-dependence is not
+a lucky apo pose. `mut_proximal_26` fell from +0.109 to +0.081, which is the bias doing exactly
+what was predicted of it.
 
 **The bar moved once, and the reason matters more than the number.** The 159-spec cohort run
 scored the control's drop at +0.150, four of its own standard errors above the probe's +0.104.

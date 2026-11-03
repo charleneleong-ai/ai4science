@@ -12,12 +12,15 @@ from cofold_followup import (
     Paired,
     Spread,
     comparison,
+    Cohort,
     invocation_predictions,
+    paired_drops,
     pooled_between_sd,
     run_effect_sd,
     spanning,
     spread_of,
 )
+from cofold_followup import RunRow
 from cofold_scores import Dependence, collect, peptide_pair
 from cofold_specs import (
     CONTROL,
@@ -451,3 +454,47 @@ class TestInvocationPredictions:
     def test_refuses_a_directory_holding_neither(self, tmp_path):
         with pytest.raises(typer.BadParameter, match="no predictions"):
             invocation_predictions(tmp_path)
+
+
+class TestCohortDenominator:
+    """Why a two-run design borrows the field's spread instead of trusting its own two points."""
+
+    @pytest.mark.parametrize(
+        "drops,expected",
+        [
+            # Two runs that happen to agree report zero spread; taken at face value that makes
+            # any drop infinitely significant, which is how +0.011 came to read as "above".
+            ((0.011, 0.011), "tied"),
+            ((0.112, 0.112), "above"),
+            ((-0.093, -0.093), "below"),
+        ],
+    )
+    def test_a_designs_own_spread_is_not_its_error_at_two_runs(self, drops, expected):
+        cohort = Cohort(between_sd=0.018, within_sem=0.015)
+        assert Paired("d", drops).between_sd == pytest.approx(0.0)
+        assert cohort.verdict(Paired("d", drops)) == expected
+
+    def test_the_pooled_sem_tightens_with_the_number_of_invocations(self):
+        cohort = Cohort(between_sd=0.018, within_sem=0.015)
+        assert cohort.sem(2) == pytest.approx(0.018 / math.sqrt(2))
+        assert cohort.sem(8) < cohort.sem(2)
+
+    def test_the_run_effect_is_what_the_spread_leaves_over_the_sampling(self):
+        assert Cohort(between_sd=0.018, within_sem=0.015).run_effect == pytest.approx(
+            math.sqrt(0.018**2 - 0.015**2), abs=1e-6
+        )
+
+    def test_the_control_is_excluded_from_the_spread_it_is_the_bar_for(self):
+        """Pooling the bar's own irreproducibility in would let it widen its own margin."""
+        def runs(design, drops):
+            return [
+                RunRow(replicate=f"r{i}", spread=Spread(design, (d + 0.7,) * 5, (0.7,) * 5), wildtype_mean=None)
+                for i, d in enumerate(drops)
+            ]
+
+        by_design = {CONTROL: runs(CONTROL, (0.10, 0.15)), "d": runs("d", (0.05, 0.07))}
+        paired = paired_drops(by_design)
+        cohort = Cohort.of(by_design, paired)
+        # The control's two runs differ by 0.05, the design's by 0.02; only the design counts.
+        assert cohort.between_sd == pytest.approx(paired["d"].between_sd, abs=1e-9)
+        assert cohort.between_sd < paired[CONTROL].between_sd
