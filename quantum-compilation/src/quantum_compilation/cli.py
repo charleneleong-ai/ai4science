@@ -554,10 +554,11 @@ def angle_floor(
     """What the ANGLE loaders can cost at each batch size, against the AND counting floor.
 
     Three readings per batching, because they answer different questions. `at floor` is the
-    counting bound, which nothing can beat. `at rate` holds the submitted loaders' measured
-    AND count per circuit at its current multiple of that bound, which is what re-batching
-    alone would buy. `for target` is the rate a family would have to reach instead. Only the
-    three ANGLE resource terms move, so no accuracy changes and no verifier runs.
+    counting bound, which nothing can beat. `at model` prices the construction the submitted
+    loaders use, calibrated to their measured AND count, whose pool the width cap shrinks as
+    `J` grows -- what re-batching alone would buy. `for target` is the rate a family would
+    have to reach instead. Only the three ANGLE resource terms move, so no accuracy changes
+    and no verifier runs.
     """
     part, _, here = read_parts(parts, verifiers)
     addresses = lcu_vectors(int(part["R"]), int(part["B"]))
@@ -570,7 +571,7 @@ def angle_floor(
         f"of {submitted.and_floor} = [bold]{sweep.rate:.3f}x[/] the counting bound"
     )
 
-    columns = ("J", "K", "ws", "floor", "at floor", "at rate", "gain", f"ANDs for {target:g}")
+    columns = ("J", "K", "ws", "floor", "at floor", "at model", "gain", f"ANDs for {target:g}")
     table = Table(*columns)
     for size in range(1, max_batch + 1):
         head = [str(size), str(AngleFamily(size, brot, addresses).num_circuits)]
@@ -584,23 +585,24 @@ def angle_floor(
             f"{row.family.free_workspace:,}",
             f"{row.family.and_floor:,}",
             f"{row.at_floor:.5f}",
-            f"{row.at_rate:.5f}",
-            f"{row.at_rate - blend:+.4f}",
+            f"{row.at_model:.5f}",
+            f"{row.at_model - blend:+.4f}",
             f"{row.ands_for_target:,.0f} = {row.target_over_floor:.2f}x"
             if row.reaches_target
             else "[yellow]unreachable[/]",
         )
     console.print(table)
 
-    best_floor, best_rate = sweep.best_floor, sweep.best_rate
+    best_floor, best_model = sweep.best_floor, sweep.best_model
     verdict = "permits" if sweep.permits_target else "rules out"
     console.print(
         f"\nthe floor {verdict} {target:g}: best is J={best_floor.batch_size} at "
         f"[bold]{best_floor.at_floor:.5f}[/] ({best_floor.at_floor - target:+.4f})"
     )
     console.print(
-        f"re-batching alone, at the submitted AND rate: J={best_rate.batch_size} -> "
-        f"[bold]{best_rate.at_rate:.5f}[/] ({best_rate.at_rate - blend:+.4f})"
+        f"re-batching alone, by the pool model ({sweep.calibration:.3f}x calibrated): "
+        f"J={best_model.batch_size} -> [bold]{best_model.at_model:.5f}[/] "
+        f"({best_model.at_model - blend:+.4f})"
     )
     floored = best_floor.at_floor * blend_factor(
         lambda_eff_floor(FEMOCO_C0), float(part["lambda_eff"])

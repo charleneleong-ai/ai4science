@@ -138,14 +138,16 @@ Rebuilding the same `angle_words` three ways sizes the construction:
 extra workspace qubits. How much is left is a counting question: a straight-line GF(2) circuit
 with `n` inputs, `A` ANDs and `b` outputs realises at most `2**(2An + A² + A + b(n+A+1))` maps
 and must hit a specific `b`-bit word on each of 1,220 addresses, so all but a vanishing fraction
-of tables need [`A² + A(2n+1+b) + b(n+1) ≥ 1220b`](src/quantum_compilation/cost.py#L502).
+of tables need [`A² + A(2n+1+b) + b(n+1) ≥ 1220b`](src/quantum_compilation/cost.py#L533).
 
 **`n` is 51, not 11.** Each circuit runs with its word registers already holding the previous
-batch — itself a function of the address — so they are 40 free nonlinear inputs, and the
-submitted circuits use them: 8 of circuit 13's 516 AND operands are word qubits. A bound that
-withheld them would not be a floor on what a construction may do. That puts the floor at
-**A ≥ 157** at `b = 40`, against 191 for the address bits alone, and the submitted mean of
-277.9 at **1.770×** it.
+batch — itself a function of the address — so a floor must grant them as 40 nonlinear inputs.
+That puts it at **A ≥ 157** at `b = 40`, against **191 for the address bits alone**. The
+submitted circuits never use them: simulated gate by gate from a zeroed register, every one
+still adds exactly the right delta, so their 277.9 mean is 1.45× the address-only bound (1.770×
+the granted one). Using them is harder than it looks — the reverse pass runs the same circuit
+from this batch back to the previous one, so a delta read off the registers must agree from
+both.
 
 [`vqcc angle-floor`](src/quantum_compilation/cli.py#L544) sweeps the batch size `J`:
 
@@ -155,16 +157,23 @@ withheld them would not be a floor on what a construction may do. That puts the 
 | free workspace | 77 | 29 | 13 | 5 | over the 128-qubit cap |
 | AND floor / circuit | 157 | 202 | 211 | 215 | — |
 | blend at the floor | 25.214 | **25.684** | 25.641 | 25.465 | — |
-| **at the submitted 1.770× rate** | 23.181 | 24.154 | **24.222** | 24.038 | — |
+| **by the calibrated pool model** | 23.181 | 19.942 | 17.496 | 15.331 | — |
 | ANDs needed for 25.0 | 168 | 267 | 280 | 265 | — |
 
-So **the floor permits 25.0 at every J ≥ 5** — the loaders are the one direction that is not
-closed. Two numbers say what it costs. Re-batching alone, holding the measured 1.770× rate, is
-**+1.041 blend → 24.22169 at J=13**, at identical accuracy and with no new circuit cleverness.
-Reaching 25.0 needs **280 ANDs per circuit at J=13, 1.33× the floor** — and the submitted family
-already builds 258–301 per circuit. The target is therefore a J=13 construction no dearer per
-circuit than the ones already written at J=5, over 2.6× the output bits: a 25% efficiency gain
-on top of the re-batch, not a new order of magnitude. Whether one exists is not established.
+The floor rises with `J`; **the construction falls.** Every loader keeps a pool of address
+functions in its workspace — the selection bits plus an AND ladder — and writes each output bit
+as a sum of products of two pool combinations, about `1220 / (2 × pool)` of them per bit.
+[`AngleFamily.pool_model_ands`](src/quantum_compilation/cost.py#L644) prices that, calibrated
+once (0.784×) to the measured family. The word registers eat the pool, leaving 13 workspace
+qubits at J=13, so **re-batching is no lever**: the best batching is J=4 at +0.024, inside the
+model's error, and J=13 is −5.69. An earlier revision of this section held the 1.770× rate
+fixed across `J` and read **+1.041 at J=13** off it; the floor ignores width, and that rate is
+unreachable once the pool is gone.
+
+So the floor's "25.0 at every J ≥ 5" is a statement about word-reading constructions only.
+At J=5, 25.0 needs **168 ANDs per circuit, below the address-only bound of 191** — no
+construction of the kind anyone has submitted reaches the band through the loaders. Each 20
+ANDs per circuit saved at J=5 is worth about +0.3.
 
 **Progress artifact:** <https://claude.ai/artifact/EzjSoAxvhTvi9pWgdJDEDq> (private; rebuilt by
 [`scripts/build_artifact.py`](scripts/build_artifact.py) into
@@ -338,12 +347,11 @@ against the same constraint table once a report exists.
 - **Two leaderboard readings, neither on a circuit we designed.** The loop agreed with the
   leaderboard on the reference and on this assembly. That does not prove it agrees on a
   candidate our own search produces.
-- **Whether a J=13 loader family is buildable is unmeasured.** The floor says 25.0 is
-  reachable through the loaders and that re-batching at their measured AND rate is worth
-  +1.041. It does not say a construction at 1.33× the floor exists in 13 workspace qubits —
-  getting from 1.770× to 1.33× is Boolean-minimisation work nobody here has done, and the
-  counting bound is an argument about almost every table, not a proof about this one. It
-  bounds what is possible, not what is reachable.
+- **Whether a loader can read its word registers is unmeasured.** It is the only route the
+  counting floor leaves to 25.0 through the loaders, and it must add the same delta whether
+  the registers hold the previous batch or this one. The pool model behind the re-batching
+  verdict is fitted at one batch size (J=5) and extrapolated; it describes the submitted
+  construction, not every construction that fits the width cap.
 - **Why 9 teams cleared 25 while half the field sits near 22.7 is unexplained**, and which
   task holds the margin that separates them from the plateau is the most valuable unknown in
   the competition.

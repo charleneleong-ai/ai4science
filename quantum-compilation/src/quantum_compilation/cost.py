@@ -624,22 +624,35 @@ class AngleFamily:
         """The counting floor, granting the circuit its word registers as inputs.
 
         They arrive holding the previous batch, which is itself a function of the address, so
-        they are `output_bits` nonlinear functions available for free -- and the submitted
-        circuits do use them, 8 of circuit 13's 516 AND operands being word qubits. A bound
-        that withheld them would not be a floor on what a construction may do.
+        a bound that withheld them would not be a floor on what a construction may do. It is
+        a loose one: the circuit runs forward from the previous batch and backward from this
+        one, so a delta read off the word registers must agree from both, and the submitted
+        circuits never do it -- they add the same delta to a zeroed register.
         """
         return and_counting_floor(self.output_bits, self.public_qubits, self.num_addresses)
 
     @property
     def address_only_floor(self) -> int:
-        """The same bound with the word registers withheld -- the weaker claim, kept to name.
+        """The same bound with the word registers withheld: the regime the loaders work in.
 
-        Granting them is what makes `and_floor` a floor on what a construction may do, and
-        the difference is large enough to change a verdict: at the submitted shape this reads
-        191 against 157, and a sweep against 191 rules out a target the circuits can in fact
-        be built toward. Exposed so the page and the tests cite one derivation of it.
+        Not a floor on every construction -- `and_floor` is -- but the one the submitted
+        circuits are measured against, since their delta is a function of the address alone.
         """
         return and_counting_floor(self.output_bits, self.address_bits, self.num_addresses)
+
+    @property
+    def pool_model_ands(self) -> float:
+        """ANDs per circuit for the construction the submitted loaders use, uncalibrated.
+
+        A circuit holds a pool of address functions -- the selection bits plus one AND
+        ancilla per free workspace qubit -- and writes each output bit as a linear form plus
+        `r` products of two pool combinations. A product carries about `2 * pool` free
+        coefficients against `num_addresses` constraints, so `r = num_addresses / (2 * pool)`.
+        The width cap bounds the pool and the word registers eat into it, so the per-bit cost
+        climbs with `J` where the counting floor's, which ignores width, falls.
+        """
+        pool = self.address_bits + self.free_workspace
+        return self.free_workspace + self.output_bits * self.num_addresses / (2 * pool)
 
     def toffoli(self, ands_per_circuit: float) -> float:
         """The family's charged Toffoli mean: every AND runs once per pass, and there are two."""
@@ -666,11 +679,11 @@ def rebatched(
 
 @dataclass(frozen=True)
 class AngleFloorRow:
-    """One admissible batching, priced at the counting floor and at a measured AND rate."""
+    """One admissible batching, priced at the counting floor and by the calibrated pool model."""
 
     family: AngleFamily
     at_floor: float
-    at_rate: float
+    at_model: float
     ands_for_target: float
 
     @property
@@ -695,7 +708,9 @@ class AngleFloorSweep:
     `J` is the lever the contract leaves free -- it fixes only that a family covers all
     `NUM_ANGLE_WORDS` angles and that no circuit exceeds `MAX_ANGLE_QUBITS` -- and raising it
     trades circuits against width: `K` falls as `1 / J` while a circuit's AND floor grows only
-    as `sqrt(J)`. The width cap ends the sweep.
+    as `sqrt(J)`. The floor ignores width, though, and the construction the loaders use does
+    not: `at_model` prices each batching by `AngleFamily.pool_model_ands`, calibrated to the
+    measured family. The width cap ends the sweep.
 
     Built once and rendered by both `vqcc angle-floor` and the artifact page, so the table a
     reader runs and the chart a reader is shown cannot disagree.
@@ -703,6 +718,7 @@ class AngleFloorSweep:
 
     submitted: AngleFamily
     measured_ands: float
+    calibration: float
     blend: float
     target: float
     rows: tuple[AngleFloorRow, ...]
@@ -720,7 +736,8 @@ class AngleFloorSweep:
         """Sweep `J` on a measured submission, holding its accuracy and its heuristic half."""
         submitted = AngleFamily.from_resources(resources, brot, num_addresses)
         measured = submitted.ands_for_toffoli(resources.angle_toffoli)
-        rate = measured / submitted.and_floor
+        # The measured family's AND count over the pool model's, at the submitted `J`.
+        calibration = measured / submitted.pool_model_ands
         # The cost proxy that scores `target`; a candidate's own Q then fixes the T it needs.
         wanted = resources.cost_proxy * (blend / target) ** len(TASKS)
         rows = []
@@ -733,16 +750,16 @@ class AngleFloorSweep:
                 AngleFloorRow(
                     family=family,
                     at_floor=rebatched(resources, family, floor).blend_from(blend, resources),
-                    at_rate=rebatched(resources, family, rate * floor).blend_from(
-                        blend, resources
-                    ),
+                    at_model=rebatched(
+                        resources, family, calibration * family.pool_model_ands
+                    ).blend_from(blend, resources),
                     ands_for_target=family.ands_for_toffoli(
                         wanted / rebatched(resources, family, 0).qubits
                         - resources.heuristic_toffoli
                     ),
                 )
             )
-        return cls(submitted, measured, blend, target, tuple(rows))
+        return cls(submitted, measured, calibration, blend, target, tuple(rows))
 
     @property
     def rate(self) -> float:
@@ -754,8 +771,8 @@ class AngleFloorSweep:
         return max(self.rows, key=lambda row: row.at_floor)
 
     @property
-    def best_rate(self) -> AngleFloorRow:
-        return max(self.rows, key=lambda row: row.at_rate)
+    def best_model(self) -> AngleFloorRow:
+        return max(self.rows, key=lambda row: row.at_model)
 
     @property
     def permits_target(self) -> bool:

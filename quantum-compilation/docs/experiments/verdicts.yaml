@@ -312,33 +312,34 @@ experiments:
       a specific `b`-bit word on each of 1,220 addresses -- one of `2**(b*1220)` tables -- so
       all but a vanishing fraction need `A**2 + A*(2n + 1 + b) + b*(n + 1) >= b*1220`. **`n` is
       not 11 but 51**: each circuit runs with its word registers already holding the previous
-      batch, itself a function of the address, so they are 40 free nonlinear inputs, and the
-      submitted circuits do use them -- 8 of circuit 13's 516 AND operands are word qubits. A
-      bound that withheld them would not be a floor on what a construction may do. At `b = 40`
-      that gives **A >= 157** (against 191 if only the address bits counted), and the submitted
-      mean of 277.9 is **1.770x** it.
-      **So the loaders are not closed off from 25.0 -- the opposite of what the address-only
-      bound said.** Sweeping the batch size `J`, which the contract leaves free, the floor
-      *permits* the escape band at every `J >= 5`: best is **J=11 at 25.684** (+0.684), with
-      J=13 at 25.641 and J=5 at 25.214. J=15 is illegal -- 120 word qubits plus 11 selection
-      breach the 128-qubit cap -- so J=14 is the widest batching that exists. With `lambda_eff`
-      also at its own floor the pair reach 25.957.
-      **What that costs, concretely.** Re-batching alone, holding the loaders' measured 1.770x
-      rate, is **+1.041 blend: 23.18119 -> 24.22169 at J=13** (6 circuits), at identical
-      accuracy and with no new circuit cleverness. Reaching 25.0 needs **280 AND gates per
-      circuit at J=13, which is 1.33x the floor** -- and the submitted family already builds
-      258-301 ANDs per circuit. So the target is a J=13 construction no dearer per circuit than
-      the ones already written at J=5, over 2.6x the output bits: a **25% gain in construction
-      efficiency on top of the re-batch**, not a new order of magnitude.
-      Not established: that such a construction exists. 1.770x -> 1.33x is Boolean-minimisation
-      work nobody here has done, the 29-to-13 workspace qubits a wide batching leaves are
-      untested, and the counting bound is an argument about almost every table rather than a
-      proof about this one -- it bounds what is possible, not what is reachable. Correction:
-      this experiment first reported the loaders as closed off from 25.0 on the address-only
-      bound of 191; granting the word-register inputs is what reopened it.
-      Pinned by `and_counting_floor`, `AngleFamily`, `ShapeResources.with_angle_family` and
-      `blend_from` in cost.py, printed by `vqcc angle-floor`, with 9 tests including the round
-      trip that re-batching the submission into its own family reproduces every resource term
-      and 23.18119 exactly. Cost: no compute.
+      batch, itself a function of the address, so a floor must grant them as 40 nonlinear
+      inputs. At `b = 40` that gives **A >= 157**, against **191** for the address bits alone.
+      The submitted circuits never use them: simulated gate by gate from a zeroed register,
+      every circuit still adds exactly the right delta, so their 277.9 mean is 1.45x the
+      address-only bound and 1.770x the granted one. Using them is harder than it looks: the
+      reverse pass runs the same circuit from this batch back to the previous one, so a delta
+      read off the registers must agree from both.
+      **The floor rises with the batch size `J`; the construction falls.** Every loader keeps
+      a pool of address functions in its workspace -- selection bits plus an AND ladder -- and
+      writes each output bit as a sum of products of two pool combinations, about
+      `1220 / (2 * pool)` of them per bit. That model, calibrated once (0.784x) to the measured
+      family, prices every batching. The word registers eat the pool -- J=13 leaves 13
+      workspace qubits -- so **re-batching is no lever**: best is J=4 at +0.024, inside the
+      model's error, and J=13 is -5.69. Correction: an earlier revision held the 1.770x rate
+      fixed across `J` and read **+1.041 at J=13** off it; the floor ignores width, and that
+      rate is unreachable once the pool is gone.
+      **So the floor's escape band is a statement about word-reading constructions only.**
+      It permits 25.0 at every `J >= 5` (best J=11 at 25.684; 25.957 with `lambda_eff` at its
+      own floor too), but at J=5, 25.0 needs **168 ANDs per circuit, below the address-only
+      bound of 191** -- no construction of the kind anyone has submitted reaches the band
+      through the loaders. Each 20 ANDs per circuit saved at J=5 is worth about +0.3.
+      Not established: that a loader can read its word registers consistently in both
+      directions, or that the pool model -- fitted at J=5 and extrapolated -- holds for
+      constructions other than the submitted one.
+      Pinned by `and_counting_floor`, `AngleFamily` (with `pool_model_ands`),
+      `ShapeResources.with_angle_family` and `AngleFloorSweep` in cost.py, printed by
+      `vqcc angle-floor`, with tests including the round trip that re-batching the submission
+      into its own family reproduces every resource term and 23.18119 exactly. Cost: no
+      compute.
     verdict: KEEP
     pr: 104

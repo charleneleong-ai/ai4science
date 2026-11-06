@@ -626,7 +626,7 @@ class TestAngleLoaderFloor:
             SUBMITTED_FAMILY, SUBMITTED_ANDS, INCUMBENT.angle_temporary_qubits
         )
         assert same == INCUMBENT
-        assert SWEEP.at(SUBMITTED_FAMILY.batch_size).at_rate == pytest.approx(PLATEAU_BLEND)
+        assert SWEEP.at(SUBMITTED_FAMILY.batch_size).at_model == pytest.approx(PLATEAU_BLEND)
 
     def test_the_floor_permits_the_escape_score_once_the_word_inputs_are_granted(self):
         """The verdict r3 turns on: the loaders are not closed off from the escape band."""
@@ -635,13 +635,17 @@ class TestAngleLoaderFloor:
         assert SWEEP.best_floor.at_floor == pytest.approx(25.684, abs=5e-4)
         assert SWEEP.best_floor.at_floor > ESCAPE_SCORE
 
-    def test_re_batching_alone_is_worth_a_point_at_the_submitted_and_rate(self):
-        """J is a free parameter, so this gain needs no new circuit cleverness."""
-        best = SWEEP.best_rate
-        assert best.batch_size == 13
-        assert best.at_rate - PLATEAU_BLEND == pytest.approx(1.0405, abs=5e-4)
-        assert best.at_rate < ESCAPE_SCORE, "re-batching alone is not the escape"
-        assert best.target_over_floor == pytest.approx(1.326, abs=5e-4)
+    def test_the_pool_model_leaves_re_batching_no_lever(self):
+        """The width cap shrinks the pool as J grows, so re-batching alone is no lever.
+
+        r3 priced J=13 at the submitted multiple of the counting floor and read +1.04 off it;
+        the floor ignores width, and at J=13 the cap leaves 13 workspace qubits for the pool.
+        """
+        assert SUBMITTED_FAMILY.pool_model_ands == pytest.approx(354.3, abs=0.05)
+        assert SWEEP.calibration == pytest.approx(0.784, abs=5e-4)
+        assert SWEEP.best_model.batch_size in {4, SUBMITTED_FAMILY.batch_size}
+        assert SWEEP.best_model.at_model - PLATEAU_BLEND < 0.05
+        assert SWEEP.at(13).at_model - PLATEAU_BLEND < -5
 
     def test_the_record_alone_prices_the_sweep_exactly_as_the_split_does(self):
         """What licenses the artifact page: it has no verifier, so the lumping must be free.
@@ -653,7 +657,7 @@ class TestAngleLoaderFloor:
         for lumped, split in zip(RECORD_SWEEP.rows, SWEEP.rows, strict=True):
             assert lumped.batch_size == split.batch_size
             assert lumped.at_floor == pytest.approx(split.at_floor, abs=1e-12)
-            assert lumped.at_rate == pytest.approx(split.at_rate, abs=1e-12)
+            assert lumped.at_model == pytest.approx(split.at_model, abs=1e-12)
             assert lumped.ands_for_target == pytest.approx(split.ands_for_target, abs=1e-9)
         assert max(row.family.free_workspace for row in SWEEP.rows) < (
             INCUMBENT.heuristic_temporary_qubits

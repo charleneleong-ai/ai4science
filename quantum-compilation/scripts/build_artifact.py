@@ -88,7 +88,6 @@ LOADER_REBUILDS = {
     "circuit_cx": 33_540,
     "selection_cx": 27_444,
     "cheapest_circuit_toffoli": 258,
-    "dearest_circuit_toffoli": 301,
     "extra_workspace_qubits": 65,
 }
 
@@ -503,17 +502,17 @@ def toffoli_split_svg(entries: Sequence[tuple[str, float, float]]) -> str:
 
 
 def angle_floor_svg(sweep: AngleFloorSweep) -> str:
-    """Blend against batch size, at the AND counting floor and at the submitted AND rate.
+    """Blend against batch size, at the AND counting floor and by the calibrated pool model.
 
-    Two lines on one scale because the gap between them is the finding: the floor clears the
-    escape band everywhere the contract allows and the measured construction clears none of
-    it, so what separates them is circuit quality rather than budget. The window is taken from
-    the data, including the two reference rules, so nothing plotted can fall outside it.
+    Two lines on one scale because they diverge: the floor ignores width and rises with `J`,
+    while the construction the loaders use loses its pool to the word registers and falls.
+    The window is taken from the data, including the two reference rules, so nothing plotted
+    can fall outside it.
     """
     width, height = 680, 360
     pad_l, pad_r, pad_t, pad_b = 66, 26, 26, 62
     plot_w, plot_h = width - pad_l - pad_r, height - pad_t - pad_b
-    plotted = [v for row in sweep.rows for v in (row.at_floor, row.at_rate)]
+    plotted = [v for row in sweep.rows for v in (row.at_floor, row.at_model)]
     y_lo = math.floor(min(*plotted, sweep.blend, sweep.target) * 2) / 2
     y_hi = math.ceil(max(*plotted, sweep.blend, sweep.target) * 2) / 2
     x_lo, x_hi = sweep.rows[0].batch_size, sweep.rows[-1].batch_size
@@ -549,8 +548,8 @@ def angle_floor_svg(sweep: AngleFloorSweep) -> str:
     return svg(
         width,
         height,
-        "Blend against the ANGLE batch size, at the AND counting floor and at the submitted "
-        "rate, with the escape score marked",
+        "Blend against the ANGLE batch size, at the AND counting floor and by the calibrated "
+        "pool model, with the escape score marked",
         grid
         + ticks
         + f'<line x1="{pad_l}" y1="{target_y:.1f}" x2="{x_right}" y2="{target_y:.1f}" '
@@ -562,11 +561,13 @@ def angle_floor_svg(sweep: AngleFloorSweep) -> str:
         + f'<text x="{x_right - 6:.1f}" y="{blend_y + 18:.1f}" text-anchor="end" class="ct">'
         f"submitted, {sweep.blend:.2f}</text>"
         + line([place(row.batch_size, row.at_floor) for row in sweep.rows], "var(--accent)")
-        + line([place(row.batch_size, row.at_rate) for row in sweep.rows], "var(--warn)")
+        + line([place(row.batch_size, row.at_model) for row in sweep.rows], "var(--warn)")
         + f'<text x="{bx + 10:.1f}" y="{by - 8:.1f}" class="cv">'
         f"J={best.batch_size}, {best.at_floor:.2f}</text>"
-        + f'<text x="{x_right - 6:.1f}" y="{pad_t + plot_h - 9:.1f}" text-anchor="end" '
-        'class="ct">accent: counting floor &#183; warm: submitted rate</text>'
+        + "".join(
+            f'<text x="{pad_l + 8}" y="{pad_t + plot_h - 9 - 18 * row:.1f}" class="ct">{label}</text>'
+            for row, label in enumerate(("warm: pool model, calibrated", "accent: counting floor"))
+        )
         + f'<text x="{pad_l + plot_w / 2:.0f}" y="{height - 8}" text-anchor="middle" '
         'class="cax">J, angle-word registers per circuit</text>',
     )
@@ -1238,13 +1239,13 @@ class Artifact:
             resources, int(plateau["brot"]), addresses, self.our_score
         )
         submitted, per_pass = sweep.submitted, resources.angle_toffoli / 2
-        best_floor, best_rate = sweep.best_floor, sweep.best_rate
-        target = sweep.at(best_rate.batch_size)
+        best_floor, best_model = sweep.best_floor, sweep.best_model
+        here, wide = sweep.at(submitted.batch_size), sweep.at(13)
         paired = best_floor.at_floor * blend_factor(
             lambda_eff_floor(FEMOCO_C0), float(plateau["lambda_eff"])
         )
         return f"""
-    <h2>The loaders are Boolean circuits, and their floor still clears the band</h2>
+    <h2>The loaders are Boolean circuits, and the width cap pins their batch size</h2>
     <p class="finding">The free half is not a lookup table. Each <code>ANGLE_k</code> is a GF(2)
     circuit: a ladder of AND-ancillas, {LOADER_REBUILDS["circuit_cx"]:,} CNOTs fanning their
     products into the word bits &mdash;
@@ -1274,33 +1275,38 @@ class Artifact:
       given <em>b</em>-bit word on each of {addresses:,} addresses, so almost every table needs
       A&nbsp;&ge;&nbsp;{submitted.and_floor} here. <em>n</em> is {submitted.public_qubits}, not
       {submitted.address_bits}: each circuit starts with its word registers holding the previous
-      batch, itself a function of the address, and the submitted circuits use them. Withholding
-      them would give {submitted.address_only_floor} and a floor that never clears the band
-      &mdash; a bound must allow every resource a construction may legitimately use.</figcaption>
+      batch, itself a function of the address, and a floor must allow every input a
+      construction may use. Withheld, the bound is {submitted.address_only_floor}.</figcaption>
     </figure>
     <p>The submitted mean of {sweep.measured_ands:,.1f} ANDs per circuit is
-    <strong>{sweep.rate:.3f}&times;</strong> that floor, and <code>J</code> &mdash; the batch
-    size &mdash; is a free parameter: the contract fixes only that a family covers all
-    {NUM_ANGLE_WORDS} angles and that no circuit exceeds {MAX_ANGLE_QUBITS} qubits, so
-    <em>K</em> falls as 1/<em>J</em> while a circuit&rsquo;s floor grows only as &radic;<em>J</em>.
-    Two numbers follow. <strong>Re-batching alone is
-    {best_rate.at_rate - sweep.blend:+.3f} blend</strong>, to {best_rate.at_rate:.5f} at
-    J={best_rate.batch_size}, with no new circuit cleverness and no accuracy change. And
-    reaching {sweep.target:g} needs <strong>{target.ands_for_target:,.0f} ANDs per circuit at
-    J={target.batch_size}, {target.target_over_floor:.2f}&times; the floor</strong> &mdash;
-    where this family already builds {LOADER_REBUILDS["cheapest_circuit_toffoli"]}&ndash;{
-        LOADER_REBUILDS["dearest_circuit_toffoli"]} per circuit at J={submitted.batch_size}.
-    The target is a J={target.batch_size} construction no dearer per circuit than the ones
-    already written, over
-    {target.family.output_bits / submitted.output_bits:.1f}&times; the output bits.</p>
-    <p class="note">So the loaders are the one direction not closed: the floor reaches
-    {best_floor.at_floor:.3f} at J={best_floor.batch_size}, above the band, and with
-    <code>lambda_eff</code> at its own floor too the pair reach {paired:.2f}. What is not
-    established is that any such construction exists. Going from {sweep.rate:.2f}&times; to
-    {target.target_over_floor:.2f}&times; is Boolean-minimisation work this project has not
-    done, the {target.family.free_workspace} workspace qubits a J={target.batch_size} batching
-    leaves are untested, and a counting argument bounds almost every table rather than proving
-    anything about this one &mdash; it says what is possible, not what is reachable.</p>
+    {sweep.rate:.3f}&times; that floor, and <code>J</code> &mdash; the batch size &mdash; is
+    free: the contract fixes only that a family covers all {NUM_ANGLE_WORDS} angles and that
+    no circuit exceeds {MAX_ANGLE_QUBITS} qubits. The floor rises with <em>J</em>, since
+    <em>K</em> falls as 1/<em>J</em> while a circuit&rsquo;s floor grows only as
+    &radic;<em>J</em>. <strong>The construction does not.</strong> Simulated gate by gate, every
+    loader keeps a pool of address functions in its workspace &mdash; selection bits plus an
+    AND ladder &mdash; and writes each output bit as a sum of products of two pool
+    combinations, about {addresses:,}&nbsp;/&nbsp;(2&nbsp;&times;&nbsp;pool) per bit. That
+    model, calibrated once ({sweep.calibration:.3f}&times;) to the measured family, prices every
+    batching. The word registers eat the pool: J={wide.batch_size} leaves {wide.family.free_workspace}
+    workspace qubits, and the model puts it at <strong>{wide.at_model:.2f},
+    {wide.at_model - sweep.blend:+.2f}</strong>. The best batching is
+    J={best_model.batch_size} at {best_model.at_model - sweep.blend:+.3f}, inside the
+    model&rsquo;s error, so <strong>re-batching is no lever</strong> and J={submitted.batch_size}
+    is where the width cap puts it.</p>
+    <p class="note">This corrects an earlier revision of the page, which held the submitted
+    multiple of the floor fixed across <em>J</em> and read +1.04 off J=13 &mdash; the floor
+    ignores width, and that rate is unreachable once the pool is gone. Two more facts bound
+    what is left. The circuits never read the word registers as inputs: zeroed, they still
+    add exactly the right delta, so they work against {submitted.address_only_floor}, not
+    {submitted.and_floor}, at {sweep.measured_ands / submitted.address_only_floor:.2f}&times;.
+    And {sweep.target:g} at J={submitted.batch_size} needs
+    <strong>{here.ands_for_target:,.0f} ANDs per circuit, below that
+    {submitted.address_only_floor}</strong>: no address-only construction reaches the band. The
+    floor&rsquo;s {best_floor.at_floor:.3f} at J={best_floor.batch_size}, and {paired:.2f} with
+    <code>lambda_eff</code> at its floor too, need a loader that reads the word registers and
+    adds the same delta whether they hold the previous batch or this one, as the reverse pass
+    requires. Whether one exists is not established.</p>
 """
 
     def cost_anatomy(self) -> str:
