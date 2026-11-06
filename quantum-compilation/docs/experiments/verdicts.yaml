@@ -200,3 +200,146 @@ experiments:
       a precaution. Cost: 5 runs x ~7 min.
     verdict: KEEP
     pr: 102
+  - name: r1-price-the-factorization-refit
+    date: 2026-11-02
+    baseline: >-
+      the submitted plateau factorization (submission 57834335, chemistry cost 337,780,865 at
+      lambda_eff 48.293182, Lambda 299.823549), which G0c left as "needs a different
+      factorization" and this experiment was meant to refit
+    gate: >-
+      none -- a reach calculation done before spending compute, per the rule that a change
+      whose best case is below what the decision needs must not be run
+    result: >-
+      The experiment queued after G0c was an L1-regularised refit of the THC factors at fixed
+      shift -- the one lever the verifier leaves open, since `load_inputs` calls
+      `load_fixed_shifts()` and overwrites any submitted `H1_I`/`Hsym_lower`, closing the joint
+      shift optimisation the recent literature leans on hardest. **Pricing it first closed
+      it.** Writing `D = 2*Lambda - E_gap` out in full cancels the negative eigenvalue mass and
+      leaves `D = 2P + 2*(lambda_h2 - sum(W^2)/4) - c0` with both leading terms provably
+      non-negative, so `D >= -c0` -- and `c0` is fixed by the reference Hamiltonian and the
+      frozen shift. At `c0 = -559.132473` that is **93.86% of the submitted D of 595.73**,
+      putting the floor at `lambda_eff >= 46.786180` against 48.293182: **3.121%**, worth
+      **+0.243 blend** against the **+1.82** that 25.0 needs, and unreachable at that (it needs
+      `w = 0`, which destroys error_2). A realistic halving of the movable part gives +0.11.
+      So the plateau is not merely at a local optimum of this objective; the objective has
+      almost no range, and no refit can lift this score materially. Verified against the
+      shipped verifier on the submitted factorization -- identity exact to 0.0, all 480 excess
+      terms positive, excess recovered to 2e-14 -- and pinned by `min_lcu_lambda` /
+      `lambda_eff_floor` in cost.py with tests in test_cost.py and test_chemistry.py, printed
+      on every `vqcc chem` run. Derivation, literature sweep and what remains unmeasured:
+      reports/2026-11-02-thc-factorization-sota.md. Cost: no compute.
+      Two corrections fall out. The one-norm was recorded in G0c as the knob with "real room,
+      at 6.1x its floor" -- that floor was the `MIN_LAMBDA = 49.0` rejection rule, which never
+      binds; against the derived floor of 281.52 the submitted Lambda sits at **1.065x**, the
+      least room of the four constraints, not the most. And a `W` scan that appeared to show
+      `error_1` pinning `W` had held the submitted one-body rows fixed; `error_1` compares those
+      rows against the exact eigenvectors of `h1_prime` and is decoupled from every scored
+      quantity, so a refit recomputes them and it returns to its quantisation floor.
+      With the leading factor floored, the chemistry cost is `T * Q` and essentially nothing
+      else. Pricing one Toffoli in error budget is the next measurement and may come back at
+      zero.
+    verdict: DISCARD
+    pr: 104
+  - name: r2-price-the-toffoli-budget
+    date: 2026-11-02
+    baseline: >-
+      the submitted plateau submission 57834335 at T_total 16,266 and Q_total 430, whose
+      chemistry cost r1 left as "T * Q and essentially nothing else"
+    gate: >-
+      none -- the same reach calculation as r1, run before spending compute
+    result: >-
+      With `lambda_eff` floored, the question was what `T` and `Q` are made of and which parts
+      a submission can actually move. Driving the verifier's own `SpinFreeData_V1` at the
+      submitted shape reproduces both recorded totals **exactly**: `T = 16,266` splits into
+      **8,336 ANGLE Toffolis (51.25%)** plus a heuristic 7,930 (inner state prep 5,311, Givens
+      rotations 2,250, outer 369), and `Q = 430` into 304 shared workspace, 86 persistent
+      state-prep qubits and 40 angle-word registers (`J = 5` back-solved from Q, times
+      `brot = 8`). **The split is the finding.** Everything heuristic is closed-form in the
+      shape `(R, B, C)` and `brot`, so it can only be bought with error budget -- and the
+      error budget is spent, both residuals sitting at 99.999% of the 20 mHa cap. The ANGLE
+      Toffolis are the simulated mean of circuits the submitter writes, so cheaper loaders for
+      the *same* words score better at *identical* accuracy. Half of `T` costs nothing.
+      Price: one Toffoli is **+0.000475 blend**, one qubit **+0.017998** (38x a Toffoli, since
+      `Q` is 38x smaller). Reaching 25.0 needs **20.28% off the chemistry cost** -- 3,298
+      Toffolis, or 87 qubits, or any mix. From the free share alone that is a **39.6% cheaper
+      ANGLE family**: large, but the only direction left that costs no accuracy. The parts record
+      has this submission reusing its predecessor's loaders byte-identical, on "the existing
+      16,266-Toffoli loaders"; whether anyone on the leaderboard has rewritten them is unknown.
+      Three ways of buying the bought part were measured and all are closed. **brot cannot go
+      down**: re-rounding the submitted angles onto the `brot = 7` grid breaches the cap by
+      **118x** on error_1 and 22x on error_2, and since the angles already sit on the cap at
+      `brot = 8`, no fresh fit at half the grid spacing closes two orders of magnitude.
+      **brot cannot go up**: at `brot = 9` the inner preparation's QROAM jumps to a branch that
+      takes the shared workspace from 304 to 607 qubits, costing **-3.27 blend** despite
+      1,316 fewer Toffolis. **The shape cannot be re-split**: at constant `R*B = 1,144` the
+      submitted `(8, 143)` is the best of all 16 integer factor pairs, every other costing
+      -0.23 to -16.46. Shapes that are cheaper -- lower `R*B`, or lower `C` -- all cut the
+      representational capacity of a factorization already at the accuracy cap.
+      Pinned by `ShapeResources` / `ChemistryScreen.resources` in chemistry.py and
+      `blend_factor` / `cost_cut_for_blend` in cost.py, printed by `vqcc shape`, with the
+      brot wall and both totals under test. Cost: no compute.
+    verdict: KEEP
+    pr: 104
+  - name: r3-crack-the-angle-loaders
+    date: 2026-11-03
+    baseline: >-
+      the submitted plateau submission 57834335's own ANGLE family -- 15 circuits, 8,336
+      Toffolis, which r2 left as the one direction that costs no accuracy and priced at
+      needing a 39.6% cut to reach 25.0
+    gate: >-
+      none -- the same reach calculation as r1 and r2, run before writing a single circuit
+    result: >-
+      **The submitted loaders are not lookup tables.** Each `ANGLE_k` is a GF(2) circuit: a
+      ladder of AND-ancillas, then ~33,500 CNOTs fanning their products into the word bits,
+      then `HMR` plus conditioned `CZ` uncomputing every ancilla at Clifford cost. Of circuit
+      13's 33,540 CNOTs, **27,444 target the selection register itself**, used in place as a
+      linear scratchpad and restored by the end; 183 of its 258 Toffolis write straight into
+      word bits and 75 build reusable ancillas. Since `recover_words_from_circuits` charges
+      Toffoli-like gates only -- and "a conditioned gate counts only on the shots whose bit is
+      set", so the measurement-based uncompute is free -- **XOR costs nothing and the AND gates
+      are the entire bill**. A loader's price is the multiplicative complexity of its word
+      table, not its address count.
+      Rebuilding the same `angle_words` three ways sizes that construction: kickmix's own
+      `init_lookup` costs **30,690** Toffolis per pass over the family (2,046 per circuit, 62
+      qubits), the starter kit's segment-tree QROM with Qualtran's `_break_early` costs
+      **18,270** (1,218 per circuit, 61 qubits), and the submitted family costs **4,168**
+      (258-301 per circuit, 126 qubits). So the plateau is already **7.4x cheaper than the
+      library primitive and 4.4x cheaper than the starter kit**, bought with 65 extra workspace
+      qubits, and it is nobody's default -- it is a hand-built construction.
+      **How much is left is a counting question.** A straight-line GF(2) circuit with `n`
+      inputs, `A` AND gates and `b` outputs realises at most
+      `2**(2An + A**2 + A + b*(n + A + 1))` distinct maps, while a family member must reproduce
+      a specific `b`-bit word on each of 1,220 addresses -- one of `2**(b*1220)` tables -- so
+      all but a vanishing fraction need `A**2 + A*(2n + 1 + b) + b*(n + 1) >= b*1220`. **`n` is
+      not 11 but 51**: each circuit runs with its word registers already holding the previous
+      batch, itself a function of the address, so a floor must grant them as 40 nonlinear
+      inputs. At `b = 40` that gives **A >= 157**, against **191** for the address bits alone.
+      The submitted circuits never use them: simulated gate by gate from a zeroed register,
+      every circuit still adds exactly the right delta, so their 277.9 mean is 1.45x the
+      address-only bound and 1.770x the granted one. Using them is harder than it looks: the
+      reverse pass runs the same circuit from this batch back to the previous one, so a delta
+      read off the registers must agree from both.
+      **The floor rises with the batch size `J`; the construction falls.** Every loader keeps
+      a pool of address functions in its workspace -- selection bits plus an AND ladder -- and
+      writes each output bit as a sum of products of two pool combinations, about
+      `1220 / (2 * pool)` of them per bit. That model, calibrated once (0.784x) to the measured
+      family, prices every batching. The word registers eat the pool -- J=13 leaves 13
+      workspace qubits -- so **re-batching is no lever**: best is J=4 at +0.024, inside the
+      model's error, and J=13 is -5.69. Correction: an earlier revision held the 1.770x rate
+      fixed across `J` and read **+1.041 at J=13** off it; the floor ignores width, and that
+      rate is unreachable once the pool is gone.
+      **So the floor's escape band is a statement about word-reading constructions only.**
+      It permits 25.0 at every `J >= 5` (best J=11 at 25.684; 25.957 with `lambda_eff` at its
+      own floor too), but at J=5, 25.0 needs **168 ANDs per circuit, below the address-only
+      bound of 191** -- no construction of the kind anyone has submitted reaches the band
+      through the loaders. Each 20 ANDs per circuit saved at J=5 is worth about +0.3.
+      Not established: that a loader can read its word registers consistently in both
+      directions, or that the pool model -- fitted at J=5 and extrapolated -- holds for
+      constructions other than the submitted one.
+      Pinned by `and_counting_floor`, `AngleFamily` (with `pool_model_ands`),
+      `ShapeResources.with_angle_family` and `AngleFloorSweep` in cost.py, printed by
+      `vqcc angle-floor`, with tests including the round trip that re-batching the submission
+      into its own family reproduces every resource term and 23.18119 exactly. Cost: no
+      compute.
+    verdict: KEEP
+    pr: 104

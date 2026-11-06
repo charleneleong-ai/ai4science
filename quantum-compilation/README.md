@@ -15,7 +15,7 @@ This is the `ai4science` thesis with the two halves handed over pre-separated �
 verifier that cannot be gamed, and an unbounded generator space. The only question is how
 well the search loop around it is built.
 
-## Status — 2026-10-31
+## Status — 2026-11-02
 
 **We are on the plateau, by assembly rather than by compression; no compression of our own
 has been attempted yet.** The measurement loop is validated twice over — all three official
@@ -53,10 +53,12 @@ authors are credited per part, with the lineage behind each one, in
 **The finding that matters more than the score is that the chemistry part has almost no
 headroom left.** The accuracy term sits at 99.999084% of the 20 mHa cap and `E_gap` clears its
 strict floor by 1.03 × 10⁻⁶ Ha — two of the four rejecting constraints spent to within 0.1% of
-their limit — while the widest ANGLE circuit is 126 of 128 qubits (98.4%) and the one-norm `Λ`
-is the only one with real room, at 6.1× its floor. So the 0.6-wide band half the field sits in
-is a constraint, not a fashion: tuning this shape is finished, and a further `dfthcsos` gain
-needs a different factorization.
+their limit — while the widest ANGLE circuit is 126 of 128 qubits (98.4%). The one-norm `Λ`
+looked like the exception at 6.1× its floor, but that floor was the `MIN_LAMBDA = 49.0`
+rejection rule, which never binds: against the floor the algebra below establishes
+([`min_lcu_lambda`](src/quantum_compilation/cost.py) = 281.52) `Λ` sits at **1.065×**, so it has
+the *least* room of the four, not the most. So the 0.6-wide band half the field sits in is a
+constraint, not a fashion — and tuning this shape is finished.
 
 **What the plateau did, in the shape's own terms.** The part is **R=8, B=143, C=60** — its
 author's manifest figure, and the shape of the arrays in the `submission.npz` we submitted —
@@ -69,15 +71,119 @@ capacity R·C, down 8.1× from 3,900 to 480 — and that shows as accuracy: the 
 reference clears at 93.2% is the one this part sits on, at 99.999%. Low rank is what the
 plateau found; the accuracy cap is what stops it going lower.
 
-**Which shape to try instead is still open.** Nothing here shows a factorization exists that is
-both cheaper than this submission's R·B = 1,144 and still under the cap. Reproducing the
-cost–precision atlas and fitting factorizations ourselves is the next experiment.
+**Refitting the factorization is closed — it cannot pay.** `lambda_eff` is **93.86% a fixed
+constant of the reference Hamiltonian**: writing `D = 2Λ − E_gap` out in full cancels the
+negative eigenvalue mass and leaves `D = 2P + 2(λ_h2 − ¼ΣW²) − c0` with both leading terms
+provably non-negative, so `D ≥ −c0 = 559.132473` of our 595.73. That puts
+[`lambda_eff_floor`](src/quantum_compilation/cost.py#L269) at 46.786 against our 48.293 — the
+whole factorization search is worth **3.12%**, or **+0.243 blend** against the **+1.82** that
+25.0 needs, and the floor is unreachable at that. **DISCARDed before any compute was spent.**
+[`vqcc chem`](src/quantum_compilation/cli.py#L175) prints the headroom on every run; the
+derivation, its numerical verification and the literature sweep behind it are in
+[`reports/2026-11-02-thc-factorization-sota.md`](reports/2026-11-02-thc-factorization-sota.md).
+
+So the chemistry cost is **`T · Q` and essentially nothing else** — the ANGLE loaders' Toffoli
+count and the 430-qubit footprint, not the fit.
+
+**Half of `T` costs no accuracy, and the other half cannot be bought.** Driving the verifier's
+own `SpinFreeData_V1` at our shape reproduces both recorded totals exactly:
+
+| | Toffolis | share of `T` | bought with |
+|---|---|---|---|
+| ANGLE circuits | 8,336 | **51.25%** | **nothing — circuits a submission writes** |
+| inner state prep | 5,311 | 32.65% | the shape `(R, B, C)` |
+| Givens rotations | 2,250 | 13.83% | `brot` |
+| outer state prep | 369 | 2.27% | the shape `(R, B, C)` |
+
+and `Q = 430` as 304 shared workspace + 86 persistent state-prep qubits + 40 angle-word
+registers (`J = 5` × `brot = 8`). Everything but the ANGLE row is closed-form in the shape and
+`brot`, so it is paid for in error budget — and the error budget is spent, both residuals at
+99.999% of the 20 mHa cap. The ANGLE Toffolis are the simulated mean of circuits the submitter
+writes, so cheaper loaders for the *same* words score better at *identical* accuracy.
+
+[`vqcc shape`](src/quantum_compilation/cli.py#L476) prices it: one Toffoli is **+0.000475
+blend**, one qubit **+0.017998** (38× a Toffoli, `Q` being 38× smaller). Reaching 25.0 needs
+**20.28% off the chemistry cost** — 3,298 Toffolis, 87 qubits, or any mix. From the free share
+alone that is a **39.6% cheaper ANGLE family**.
+
+Every way of buying the *bought* part is closed, all three measured rather than argued.
+**`brot` cannot go down**: re-rounding the submitted angles onto the `brot = 7` grid breaches
+the cap by **118×** on `error_1`, and since the angles already sit on the cap at `brot = 8`, no
+fresh fit at half the grid spacing closes two orders of magnitude. **`brot` cannot go up**: at
+`brot = 9` the inner preparation's QROAM jumps to a branch taking the workspace from 304 to 607
+qubits, costing **−3.27 blend** despite 1,316 fewer Toffolis. **The shape cannot be re-split**:
+at constant `R·B = 1,144` the submitted `(8, 143)` is the best of all 16 integer factor pairs.
+So the ANGLE loaders are the only direction left that costs no accuracy — and reading them
+closes that one too.
+
+### The loaders are AND/XOR circuits, and the floor leaves room
+
+They are not lookup tables. Each `ANGLE_k` is a GF(2) circuit: a ladder of AND-ancillas,
+~33,500 CNOTs fanning their products into the word bits, then `HMR` plus conditioned `CZ`
+uncomputing every ancilla. Of circuit 13's 33,540 CNOTs, **27,444 target the selection register
+itself**, used in place as a linear scratchpad and restored by the end. Because the verifier's
+own `recover_words_from_circuits` charges Toffoli-like gates only, and a conditioned gate only
+on the shots whose bit is set, **XOR costs nothing and the AND gates are the whole bill**: a
+loader's price is the multiplicative complexity of its word table, not its address count.
+
+Rebuilding the same `angle_words` three ways sizes the construction:
+
+| construction | Toffolis per pass | qubits |
+| --- | --- | --- |
+| kickmix's own `init_lookup` | 30,690 | 62 |
+| starter-kit segment-tree QROM | 18,270 | 61 |
+| **the plateau submission** | **4,168** | 126 |
+
+7.4× cheaper than the library primitive and 4.4× cheaper than the starter kit, bought with 65
+extra workspace qubits. How much is left is a counting question: a straight-line GF(2) circuit
+with `n` inputs, `A` ANDs and `b` outputs realises at most `2**(2An + A² + A + b(n+A+1))` maps
+and must hit a specific `b`-bit word on each of 1,220 addresses, so all but a vanishing fraction
+of tables need [`A² + A(2n+1+b) + b(n+1) ≥ 1220b`](src/quantum_compilation/cost.py#L533).
+
+**`n` is 51, not 11.** Each circuit runs with its word registers already holding the previous
+batch — itself a function of the address — so a floor must grant them as 40 nonlinear inputs.
+That puts it at **A ≥ 157** at `b = 40`, against **191 for the address bits alone**. The
+submitted circuits never use them: simulated gate by gate from a zeroed register, every one
+still adds exactly the right delta, so their 277.9 mean is 1.45× the address-only bound (1.770×
+the granted one). Using them is harder than it looks — the reverse pass runs the same circuit
+from this batch back to the previous one, so a delta read off the registers must agree from
+both.
+
+[`vqcc angle-floor`](src/quantum_compilation/cli.py#L544) sweeps the batch size `J`:
+
+| | J=5 (submitted) | J=11 | J=13 | J=14 | J=15 |
+| --- | --- | --- | --- | --- | --- |
+| circuits | 15 | 7 | 6 | 6 | — |
+| free workspace | 77 | 29 | 13 | 5 | over the 128-qubit cap |
+| AND floor / circuit | 157 | 202 | 211 | 215 | — |
+| blend at the floor | 25.214 | **25.684** | 25.641 | 25.465 | — |
+| **by the calibrated pool model** | 23.181 | 19.942 | 17.496 | 15.331 | — |
+| ANDs needed for 25.0 | 168 | 267 | 280 | 265 | — |
+
+The floor rises with `J`; **the construction falls.** Every loader keeps a pool of address
+functions in its workspace — the selection bits plus an AND ladder — and writes each output bit
+as a sum of products of two pool combinations, about `1220 / (2 × pool)` of them per bit.
+[`AngleFamily.pool_model_ands`](src/quantum_compilation/cost.py#L644) prices that, calibrated
+once (0.784×) to the measured family. The word registers eat the pool, leaving 13 workspace
+qubits at J=13, so **re-batching is no lever**: the best batching is J=4 at +0.024, inside the
+model's error, and J=13 is −5.69. An earlier revision of this section held the 1.770× rate
+fixed across `J` and read **+1.041 at J=13** off it; the floor ignores width, and that rate is
+unreachable once the pool is gone.
+
+So the floor's "25.0 at every J ≥ 5" is a statement about word-reading constructions only.
+At J=5, 25.0 needs **168 ANDs per circuit, below the address-only bound of 191** — no
+construction of the kind anyone has submitted reaches the band through the loaders. Each 20
+ANDs per circuit saved at J=5 is worth about +0.3.
 
 **Progress artifact:** <https://claude.ai/artifact/EzjSoAxvhTvi9pWgdJDEDq> (private; rebuilt by
 [`scripts/build_artifact.py`](scripts/build_artifact.py) into
 [`docs/artifact/index.html`](docs/artifact/index.html) and republished at each result update).
 
-The grounded entry sweep is [`reports/2026-10-31-vqcc-landscape.md`](reports/2026-10-31-vqcc-landscape.md);
+The grounded entry sweep is [`reports/2026-10-31-vqcc-landscape.md`](reports/2026-10-31-vqcc-landscape.md), and
+[`reports/2026-11-02-thc-factorization-sota.md`](reports/2026-11-02-thc-factorization-sota.md)
+is the chemistry delta sweep — it finds that the symmetry-shift lever the recent
+literature leans on hardest is frozen by the verifier, and that the refit it does leave open is
+bounded at +0.243 blend, as above;
 the plan and the one open decision are in
 [`docs/specs/2026-10-31-quantum-compilation-design.md`](docs/specs/2026-10-31-quantum-compilation-design.md);
 verdicts are in [`docs/experiments/verdicts.yaml`](docs/experiments/verdicts.yaml).
@@ -119,7 +225,7 @@ Two consequences worth holding onto:
 
 ```bash
 uv sync --extra dev
-uv run pytest            # 112 tests
+uv run pytest            # 132 tests
 uv run vqcc --help
 ```
 
@@ -135,6 +241,10 @@ complexity check and the test suite.
 export VQCC_VERIFIERS=path/to/verifiers      # the extracted competition `verifiers/` tree
 uv run vqcc verify path/to/submission/ --seed 1   # the real score, free and unlimited
 uv run vqcc check path/to/submission/        # layout + the 128-qubit cap, instant
+uv run vqcc chem path/to/dfthcsos/submission.npz  # every chemistry constraint but
+                                             #   ANGLE_WIDTH, in 0.66 s, no circuits
+uv run vqcc shape docs/experiments/57834335-parts.yaml --blend 23.18119 --sweep-brot
+                                             # where T and Q go, and what each is worth
 uv run vqcc resources path/to/circuits/      # static gate counts — a triage bound
 uv run vqcc blend --invsqrt 100941 --dqi 4.0334e11 --dfthcsos 3.3780e8
 uv run vqcc calibration                      # the reference costs in force, and their provenance
@@ -237,18 +347,20 @@ against the same constraint table once a report exists.
 - **Two leaderboard readings, neither on a circuit we designed.** The loop agreed with the
   leaderboard on the reference and on this assembly. That does not prove it agrees on a
   candidate our own search produces.
-- **Whether a cheaper factorization exists at all is unmeasured.** The headroom above rules
-  out tuning *this* shape; it says nothing about which other shape to try. We have not
-  reproduced the cost–precision atlas or fitted a factorization ourselves.
+- **Whether a loader can read its word registers is unmeasured.** It is the only route the
+  counting floor leaves to 25.0 through the loaders, and it must add the same delta whether
+  the registers hold the previous batch or this one. The pool model behind the re-batching
+  verdict is fitted at one batch size (J=5) and extrapolated; it describes the submitted
+  construction, not every construction that fits the width cap.
 - **Why 9 teams cleared 25 while half the field sits near 22.7 is unexplained**, and which
   task holds the margin that separates them from the plateau is the most valuable unknown in
   the competition.
 - Which task to commit to is **open** — see the design doc. The recommendation is
-  `dfthcsos`, on skill fit and on the headroom measurement above. One further fact from the
-  reference run bears on it: the ANGLE circuits are 85% of that task's Toffoli cost
-  (79,480 of 93,237) but only 96 of its 186 persistent qubits and none of its 544 temporary
-  ones, so width is governed by the state-prep workspace rather than by the circuits a
-  submission ships.
+  `dfthcsos`, on skill fit and on its ratio being the weakest of the three (9.93 against
+  invsqrt 20.62 and dqi 60.80). The qualification is that its width is governed by the
+  state-prep workspace rather than by the circuits a submission ships — the ANGLE circuits are
+  40 of our 126 persistent qubits and none of the 304 temporary ones — so `Q` is effectively
+  fixed and `T` is the whole of what is left.
 
 ## Attribution
 
