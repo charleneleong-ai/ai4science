@@ -4,12 +4,15 @@ A de novo protein that binds the KRAS G12D peptide `VVVGADGVGK` on HLA-A\*11:01 
 wild-type `VVVGAGGVGK`, and not the peptide-free HLA. Specificity outranks affinity. Submissions
 close **Sunday 8 November 2026, 23:59 AoE — Monday 9 November, 22:59 Sydney**.
 
-**Status (2026-11-03): all three gates run, the cohort measured twice at five samples, and the
+**Status (2026-11-06): all three gates run, the cohort measured twice at five samples, and the
 bar calibrated over ten independent runs at +0.106. No design beats the 7OW6 receptor's
 peptide-dependence; 4 of 78 are statistically indistinguishable from it and 14 clear zero. The
 leader, `mut_proximal_16`, returned +0.112 in both independent cohort runs.** Ranking tier 1 is
 not merely unresolvable on this predictor but inverted on the one molecule that can calibrate
-it. Nothing submitted, nothing wet-lab measured.
+it. The replicated, paired wild-type pass then **retracted** the one per-variant result that
+had looked mechanistic: it was an artifact of an unpaired difference. The 20-slot submission is
+assembled and validated but **not yet uploaded** -- the Proteinbase portal takes entries by
+hand -- and nothing is wet-lab measured.
 
 ## The finding that set the strategy
 
@@ -29,7 +32,7 @@ mechanism shows. Over 262,144 rays at a 1.55 Å probe:
 | G12D position 6 backbone O | 16.6% | 3.1% | 2.8% | 2.6% | 2.3% | **1.8%** |
 | wild-type position 6 backbone O | 18.0% | 5.6% | 3.2% | 3.2% | 3.0% | **2.9%** |
 
-The carboxylate's cone collapses 165-fold between 6 and 7 Å while the backbone carbonyl's holds:
+The carboxylate's cone collapses 161-fold between 6 and 7 Å while the backbone carbonyl's holds:
 OD1 sits at the bottom of a pocket about 6 Å deep, and the backbone keeps an open channel the
 whole way out. An earlier version of this README reported **0.02%** from 4096 rays, which was a
 single surviving ray at the sampling floor — the conclusion was right and the number was not.
@@ -173,7 +176,7 @@ above the bar, 4 tied, 74 below**, and 14 of 78 clear zero. The verdict is the s
 bar is the 10-run +0.106 or the +0.101 that excludes the degraded-pose run.
 
 The replicate also ran the artifact test, and the leaders split on it. `mut_proximal_16`
-returned **+0.112 in both runs** -- a between-run SD of 0.000, so its peptide-dependence is not
+returned **+0.112 in both runs** -- a between-run SD of 0.0001, so its peptide-dependence is not
 a lucky apo pose. `mut_proximal_26` fell from +0.109 to +0.081, which is the bias doing exactly
 what was predicted of it.
 
@@ -202,6 +205,51 @@ python scripts/cofold_followup.py pool-replicates \
   --out-dir cofold_ctrl_out --out-dir cofold_full5_out --out-dir cofold_full5b_out \
   --out cofold_spread_pooled.csv
 python scripts/submission.py build          # defaults to that table
+```
+
+**Ranking tier 1.** `select-wildtype` writes both peptides for the finalists *and* for the
+control, and the pass is run at least twice as separate invocations:
+
+```bash
+python scripts/cofold_followup.py select-wildtype --out cofold_wt_specs
+bash scripts/run_cofold.sh cofold_wt_specs cofold_wt_out 5 2
+python scripts/cofold_followup.py report-wildtype --out-dir cofold_wt_out \
+  --out cofold_wildtype.csv
+```
+
+Both conditions in one pass because the difference is only interpretable paired: an invocation
+shifts both conditions together, so forming the difference inside it cancels that shift, while
+taking the two sides from different invocations does not — and the error bar cannot see what it
+left out. The control travels with the finalists for the same reason the bar does everywhere
+else here: it is the threshold, and it has to be measured in the same runs.
+
+**What it returned, and what it retracted.** 420 predictions, 0 failures. The control's own
+difference is **+0.0018 ± 0.0065** over the two invocations — still positive, so the predictor
+still prefers the peptide the receptor does not recognise, but tied zero at this sample size.
+3 of 20 finalists sit below that bar, 13 tied, 4 above; the cohort averages +0.0090 ± 0.0058.
+An earlier *unpaired* pass over the same designs had shown `bulge_core` — the variant placed
+over the bulge — 4 of 4 negative at mean −0.0149, Fisher p = 0.0072, which was the one result
+here that looked mechanistic. Paired, those four average **+0.0115** at **p = 0.1011**, because
+`bulge_core_27` moves across zero. The measured order is `mut_proximal` < `bulge_wide` <
+`bulge_core` < `hub`, not the pre-registered one; only `hub` being the most positive group
+survives. Reported, never gated, and no design was re-ranked on it.
+
+**Rebuilding the deliverables.** Both render from the committed files, so neither can carry a
+stale number:
+
+```bash
+uv run --extra artifact python scripts/build_artifact.py   # -> docs/artifact/index.html
+cd docs && pdflatex report.tex && pdflatex report.tex      # -> docs/report.pdf
+```
+
+The W&B side is the same files again, logged rather than rendered. The ledger goes up as one run
+per experiment, and the report's Results and run-log sections are rewritten in place from it,
+leaving the narrative sections alone:
+
+```bash
+uv run --extra wandb python scripts/log_wandb.py --entity <entity>
+uv run --extra wandb python scripts/build_wandb_report.py create --entity <entity>
+uv run --extra wandb python scripts/build_wandb_report.py refresh --entity <entity> --url <report url>
 ```
 
 Every row names the scale its error bar is built on, in a `sem_basis` column, because the same
@@ -256,6 +304,12 @@ chains, and these designs resemble β2m as deposited in *other* entries.
 | [`tests/test_novelty.py`](tests/test_novelty.py) | the admissibility gates, against copies they have to catch |
 | [`scripts/run_generate.sh`](scripts/run_generate.sh) | the detached BoltzGen sweep |
 | [`docs/experiment-card.md`](docs/experiment-card.md) | frozen inputs, versions, budget, and what is not established |
+| [`docs/experiments/pmhc/campaign.yaml`](docs/experiments/pmhc/campaign.yaml) | the measured numbers that are not a CSV row: the escape-cone grid, the funnel, the bar, the variance components |
+| [`scripts/build_artifact.py`](scripts/build_artifact.py) | renders the progress page from those files; nothing on the page is typed in |
+| [`scripts/log_wandb.py`](scripts/log_wandb.py) | mirrors the ledger to W&B, one run per experiment, so the runs table *is* the verdict table |
+| [`scripts/build_wandb_report.py`](scripts/build_wandb_report.py) | the project's one W&B report: narrative written once, Results and run log regenerated in place |
+| [`docs/artifact/index.html`](docs/artifact/index.html) | the built page, committed on every rebuild |
+| [`docs/report.tex`](docs/report.tex) · [`docs/report.pdf`](docs/report.pdf) | the written report: method, funnel with every denominator, and what is not established |
 
 ## Running it
 
