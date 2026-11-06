@@ -77,7 +77,7 @@ from cofold_specs import (
     predictions_dir,
     write_entries,
 )
-from common import rounded, rows_by, write_rows, wrote
+from common import rounded, rows_by, variant_of, write_rows, wrote
 
 app = typer.Typer(add_completion=False)
 
@@ -90,6 +90,10 @@ SIGMA = 2.0
 # consumer reading one CSV never has to know which command produced it.
 OWN_BASIS = "own_samples"
 COHORT_BASIS = "cohort_between_runs"
+
+# The two conditions ranking tier 1 is the difference of. Written into one pass so the
+# difference is paired within an invocation, exactly as the control's bar is.
+TIER1_CONDITIONS = (WILDTYPE, COMPLEX)
 
 
 def comparison(mean_a: float, sem_a: float, mean_b: float, sem_b: float) -> str:
@@ -244,6 +248,48 @@ def select_noise(
     typer.echo(f"wrote {written} specs to {out}")
 
 
+def difference_sem(high: Sequence[float], low: Sequence[float]) -> float:
+    """Standard error of `mean(high) - mean(low)` for two independently sampled conditions.
+
+    Each condition's mean carries `sd / sqrt(n)` and the difference is their difference, so the
+    two combine in quadrature. The division happens per condition rather than once at the end
+    because the conditions are sampled independently and may carry different `n`. Both the
+    peptide-dependence drop and the tier-1 wild-type difference are this shape, so the rule
+    lives here and neither restates it.
+    """
+    return math.hypot(
+        stdev(high) / math.sqrt(len(high)),
+        stdev(low) / math.sqrt(len(low)),
+    )
+
+
+@dataclass(frozen=True)
+class Contrast:
+    """One design in one invocation: the difference of two conditions' repeated draws.
+
+    `Spread` is the same shape for the drop's own pair of conditions and carries that pair's
+    vocabulary in its column names. This is the condition-agnostic form the tier-1 pass needs,
+    so `Paired` and `Cohort` can supervise it without a second statistics path beside them.
+    """
+
+    design: str
+    replicate: str
+    high: tuple[float, ...]
+    low: tuple[float, ...]
+
+    @property
+    def mean(self) -> float:
+        return mean(self.high) - mean(self.low)
+
+    @property
+    def sem(self) -> float:
+        return difference_sem(self.high, self.low)
+
+    @property
+    def samples(self) -> str:
+        return f"{len(self.high)}/{len(self.low)}"
+
+
 @dataclass(frozen=True)
 class Spread:
     """One design's repeated ipTM draws, and the statistics that follow from them."""
@@ -286,15 +332,10 @@ class Spread:
     def drop_sem(self) -> float:
         """Standard error of `drop_mean` -- the quantity actually compared.
 
-        Each condition's mean carries `sd / sqrt(n)`, and the drop is their difference, so the
-        two combine in quadrature. This, not `drop_sd`, is the denominator of the tie rule: the
-        conditions are sampled independently and may carry different `n`, which is why the
-        division happens per condition rather than once at the end.
+        This, not `drop_sd`, is the denominator of the tie rule. See `difference_sem`, which
+        is the same rule the tier-1 pass uses.
         """
-        return math.hypot(
-            self.complex_sd / math.sqrt(len(self.complexed)),
-            self.apo_sd / math.sqrt(len(self.apo)),
-        )
+        return difference_sem(self.complexed, self.apo)
 
     @property
     def drop_significant(self) -> bool:
@@ -372,24 +413,46 @@ def select_wildtype(
     ),
     targets: Path = typer.Option(Path("targets/cofold_targets.json")),
     gen_out: Path = typer.Option(Path("gen_out")),
+    controls: Path = typer.Option(Path("targets/controls.json")),
     out: Path = typer.Option(Path("cofold_wt_specs")),
     count: int = typer.Option(20, help="finalists, which is the submission cap"),
 ) -> None:
+    """Specs for ranking tier 1: both peptides, for the finalists and for the control.
+
+    Both conditions in the same pass, and the control alongside them, because the difference
+    tier 1 asks for is only interpretable paired. The control's own bar is `complex_wt` minus
+    `complex_g12d` measured inside one invocation, so the invocation's offset cancels out of it;
+    a design's difference has to be formed the same way or it is not comparable to the bar. An
+    earlier version of this pass wrote `complex_wt` alone and took the G12D side from a different
+    invocation's table. On the control the two conditions move together within a run (+0.0024,
+    +0.0023) while the run itself shifts both by ~0.0012 -- 44% of the bar -- so that difference
+    carried a run offset the bar does not contain, and the error bar did not know about it.
+    """
     chosen = ranked_designs(dependence)[:count]
     finalists = [name for name, _ in chosen]
     conditions = conditions_from(targets)
-    if WILDTYPE not in conditions:
-        raise typer.BadParameter(f"{targets} has no condition {WILDTYPE}")
+    for needed in TIER1_CONDITIONS:
+        if needed not in conditions:
+            raise typer.BadParameter(f"{targets} has no condition {needed}")
 
+    tcr = json.loads(controls.read_text())["tcr"]
     written = write_entries(
         out,
-        design_entries(finalists, design_sequences(gen_out), conditions, (WILDTYPE,)),
+        [
+            *design_entries(finalists, design_sequences(gen_out), conditions, TIER1_CONDITIONS),
+            *control_entries(tcr, conditions, TIER1_CONDITIONS),
+        ],
     )
     typer.echo(
         f"{len(chosen)} finalists by drop,"
         f" {chosen[0][1]:+.3f} down to {chosen[-1][1]:+.3f}"
     )
-    typer.echo(f"wrote {written} specs to {out}")
+    typer.echo(
+        f"wrote {written} specs to {out}:"
+        f" {len(finalists)} designs plus {CONTROL} through {', '.join(TIER1_CONDITIONS)}."
+        " Run it at least twice, as separate invocations -- a single run cannot see the"
+        " between-run spread of a difference of two sampled conditions"
+    )
 
 
 def invocation_predictions(out_dir: Path) -> list[Path]:
@@ -504,11 +567,18 @@ class Cohort:
     within_sem: float
 
     @classmethod
-    def of(cls, by_design: Mapping[str, list[RunRow]], paired: Mapping[str, Paired]) -> Cohort:
+    def of(
+        cls, within_sems: Mapping[str, Sequence[float]], paired: Mapping[str, Paired]
+    ) -> Cohort:
+        """`within_sems` is each design's per-invocation within-run error, whatever produced it.
+
+        Taking the numbers rather than the rows is what lets the drop and the tier-1 difference
+        share one denominator rule instead of each growing its own.
+        """
         designs = [design for design in paired if design != CONTROL] or list(paired)
         return cls(
             between_sd=pooled_between_sd([paired[design].between_sd for design in designs]),
-            within_sem=mean(row.spread.drop_sem for design in designs for row in by_design[design]),
+            within_sem=mean(sem for design in designs for sem in within_sems[design]),
         )
 
     @property
@@ -652,7 +722,10 @@ class Replicated:
             walk=walk,
             by_design=by_design,
             paired=paired,
-            cohort=Cohort.of(by_design, paired),
+            cohort=Cohort.of(
+                {d: [row.spread.drop_sem for row in runs] for d, runs in by_design.items()},
+                paired,
+            ),
         )
 
     @property
@@ -780,6 +853,176 @@ def report_spread(
             f" over {control.samples} samples: {tally['above']} above,"
             f" {tally['tied']} tied, {tally['below']} below -- its bar is a band, not a line"
         )
+    typer.echo(wrote(out, write_rows(rows, out)))
+
+
+def tier1_contrasts(out_dirs: Sequence[Path]) -> tuple[list[Contrast], Walk]:
+    """Every design's wild-type-minus-G12D difference, once per independent invocation.
+
+    Paired inside the invocation that produced both conditions, which is the whole point of the
+    pass: an invocation shifts both conditions together, so forming the difference within it
+    cancels that shift. Taking the two sides from different invocations does not, and the error
+    bar cannot see what it left out.
+    """
+    contrasts: list[Contrast] = []
+    directories = unscored = unnamed = 0
+    for out_dir in out_dirs:
+        for predictions in invocation_predictions(out_dir):
+            screen = collect(predictions, sample_iptms)
+            directories += screen.directories
+            unscored += screen.unscored
+            unnamed += screen.unnamed
+            for design, conditions in sorted(screen.runs.items()):
+                high, low = conditions.get(WILDTYPE, ()), conditions.get(COMPLEX, ())
+                if len(high) > 1 and len(low) > 1:
+                    contrasts.append(
+                        Contrast(
+                            design=design,
+                            replicate=predictions.parent.parent.name,
+                            high=high,
+                            low=low,
+                        )
+                    )
+    walk = Walk(rows=(), directories=directories, unscored=unscored, unnamed=unnamed)
+    return contrasts, walk
+
+
+@dataclass(frozen=True)
+class WildtypeRow:
+    """One design's tier-1 difference against the control's, pooled over invocations.
+
+    The bar is the control measured in the same invocations, so nothing is carried in from
+    another pass -- see the module docstring for why only the comparison against it is readable.
+    """
+
+    design: str
+    differences: Paired
+    cohort: Cohort
+    bar: Paired
+
+    @property
+    def sem(self) -> float:
+        """The cohort's pooled between-run spread over this design's runs, as the drop uses."""
+        return self.cohort.sem(self.differences.runs)
+
+    @property
+    def bar_sem(self) -> float:
+        return self.cohort.sem(self.bar.runs)
+
+    @property
+    def versus_bar(self) -> str:
+        return self.cohort.verdict(self.differences, self.bar.mean, self.bar_sem)
+
+    @property
+    def row(self) -> dict[str, object]:
+        return {
+            "design": self.design,
+            "variant": variant_of(self.design),
+            "runs": self.differences.runs,
+            "wt_minus_g12d": rounded(self.differences.mean),
+            "wt_minus_g12d_sd": rounded(self.cohort.between_sd),
+            "wt_minus_g12d_sem": rounded(self.sem),
+            "sem_basis": COHORT_BASIS,
+            "wt_minus_g12d_own_sd": rounded(self.differences.between_sd),
+            "control_bar": rounded(self.bar.mean),
+            "control_bar_sem": rounded(self.bar_sem),
+            "control_bar_runs": self.bar.runs,
+            "versus_bar": self.versus_bar,
+            "per_run": " ".join(f"{v:+.4f}" for v in self.differences.values),
+        }
+
+
+def echo_screen(label: str, directories: int, scored: int, unscored: int, unnamed: int) -> None:
+    """The denominators every pass reports. One wording, so two commands cannot diverge."""
+    typer.echo(
+        f"{directories} prediction directories in {label}: {scored} scored,"
+        f" {unscored} with no samples, {unnamed} unrecognised names"
+    )
+
+
+@app.command()
+def report_wildtype(
+    out_dir: list[Path] = typer.Option(
+        [Path("cofold_wt_out")],
+        help="repeatable: a directory of replicate sub-directories, or one pass's --out_dir",
+    ),
+    out: Path = typer.Option(Path("cofold_wildtype.csv")),
+) -> None:
+    """Ranking tier 1, paired within each invocation and scaled by the cohort. Never gated.
+
+    The difference has to be formed inside each invocation and needs at least two invocations
+    to scale it; this command requires both rather than annotating their absence.
+    """
+    contrasts, walk = tier1_contrasts(out_dir)
+    echo_screen(
+        ", ".join(str(d) for d in out_dir),
+        walk.directories,
+        len(contrasts),
+        walk.unscored,
+        walk.unnamed,
+    )
+
+    by_design: dict[str, list[Contrast]] = {}
+    for contrast in contrasts:
+        by_design.setdefault(contrast.design, []).append(contrast)
+    by_design = {d: runs for d, runs in by_design.items() if len(runs) > 1}
+    if CONTROL not in by_design:
+        raise typer.BadParameter(
+            f"{CONTROL} has no repeated {WILDTYPE}/{COMPLEX} pair in"
+            f" {[str(d) for d in out_dir]}, so these differences have no bar. Tier 1 is only"
+            " interpretable against the one receptor known to discriminate these peptides;"
+            " re-run the pass with select-wildtype, which writes the control's specs beside the"
+            " finalists'."
+        )
+
+    paired = {
+        design: Paired(design, tuple(c.mean for c in runs)) for design, runs in by_design.items()
+    }
+    cohort = Cohort.of({d: [c.sem for c in runs] for d, runs in by_design.items()}, paired)
+    bar = paired[CONTROL]
+    rows = [
+        WildtypeRow(design=design, differences=differences, cohort=cohort, bar=bar)
+        for design, differences in paired.items()
+        if design != CONTROL
+    ]
+
+    typer.echo(
+        f"\nBAR: the control's own {WILDTYPE} minus {COMPLEX} is {bar.mean:+.4f}"
+        f" +- {cohort.sem(bar.runs):.4f} over {bar.runs} invocations"
+        f" ({' '.join(f'{v:+.4f}' for v in bar.values)}) -- {bar.verdict} zero."
+        " Positive means this predictor prefers the peptide the control does NOT recognise,"
+        " so a design's position relative to this bar is the only readable thing here"
+    )
+    typer.echo(
+        f"SCALE: cohort between-run SD {cohort.between_sd:.4f} against a within-run"
+        f" {cohort.within_sem:.4f}, leaving a run effect of {cohort.run_effect:.4f}"
+    )
+
+    typer.echo(
+        f"\n  {'design':20s} {'variant':14s} {'runs':>4s} {'wt-G12D':>9s} {'own sd':>7s}"
+        f" {'sem':>7s} {'vs bar':>7s}  per-run"
+    )
+    for row in sorted(rows, key=lambda r: r.differences.mean):
+        typer.echo(
+            f"  {row.design:20s} {variant_of(row.design):14s} {row.differences.runs:4d}"
+            f" {row.differences.mean:+9.4f} {row.differences.between_sd:7.4f} {row.sem:7.4f}"
+            f" {row.versus_bar:>7s}  {' '.join(f'{v:+.4f}' for v in row.differences.values)}"
+        )
+
+    verdicts = [row.versus_bar for row in rows]
+    tally = {v: verdicts.count(v) for v in ("above", "tied", "below")}
+    across = [row.differences.mean for row in rows]
+    typer.echo(
+        f"\n{tally['below']} of {len(rows)} finalists sit below the bar, {tally['tied']} tied,"
+        f" {tally['above']} above. Across designs -- a spread over designs, not over runs --"
+        f" the difference averages {mean(across):+.4f}"
+        f" +- {stdev(across) / math.sqrt(len(across)):.4f}"
+    )
+    typer.echo(
+        "REPORTED, NOT GATED: the bar's sign is inverted on the one molecule that can calibrate"
+        " it, and one predictor's agreement with itself across runs is not a second method."
+        " No design is ranked on this column."
+    )
     typer.echo(wrote(out, write_rows(rows, out)))
 
 

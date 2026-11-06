@@ -32,6 +32,7 @@ import numpy as np
 import typer
 from common import (
     VARIANTS,
+    variant_of,
     ChainRoles,
     chain_roles,
     chain_sequences,
@@ -123,20 +124,6 @@ def contact_pairs(
     squared = (binder * binder).sum(axis=1)[:, None] + (target * target).sum(axis=1)[None, :]
     squared -= 2.0 * (binder @ target.T)
     return squared <= cutoff**2
-
-
-def variant_of(design: str) -> str:
-    """The generation variant a design came from, by name prefix.
-
-    BoltzGen names designs after the spec stem and prepare_target names each spec after its
-    variant, so the prefix is reliable for this cohort -- but the coupling is implicit. The
-    variant is also authoritative in the pose path (`gen_out/<variant>/...`), which is the
-    sounder source and is recorded as a follow-up.
-    """
-    for name in VARIANTS:
-        if design.startswith(name):
-            return name
-    raise typer.BadParameter(f"{design}: no known variant prefix")
 
 
 def stack(model: gemmi.Model, names: tuple[str, ...]) -> np.ndarray:
@@ -253,7 +240,13 @@ def main(
         typer.echo(wrote(control_out, write_rows([measured], control_out)))
         return
 
-    rows = [measure(pose, targets, epitopes, cutoff) for pose in pose_files(poses)]
+    # `variant_of` lives in a typer-free module and raises ValueError, which is the right type
+    # for a library; translating it here keeps the repo's loud-refusal convention at the one
+    # place a user sees, rather than a traceback for a re-prefixed pose name.
+    try:
+        rows = [measure(pose, targets, epitopes, cutoff) for pose in pose_files(poses)]
+    except ValueError as error:
+        raise typer.BadParameter(str(error)) from error
 
     for row in sorted(rows, key=lambda r: -r.peptide_share)[:15]:
         typer.echo(

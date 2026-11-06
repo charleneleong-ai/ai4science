@@ -5,7 +5,7 @@
 #   pilot:     run_cofold.sh                                     # every spec, 1 sample
 #   probe:     run_cofold.sh cofold_noise_specs cofold_noise_out 5
 #   cohort:    run_cofold.sh cofold_specs       cofold_full5_out 5
-#   wild type: run_cofold.sh cofold_wt_specs    cofold_wt_out    1
+#   wild type: run_cofold.sh cofold_wt_specs    cofold_wt_out    5 2
 #   replicate: run_cofold.sh cofold_control_specs cofold_ctrl_out 5 8
 #
 # A fourth argument runs the pass that many times as SEPARATE invocations, into OUT/rep1..repN.

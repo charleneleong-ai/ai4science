@@ -7,6 +7,8 @@
 #   G2  the drop is at or above the 7OW6 receptor's, measured over 10 independent invocations
 #       (+0.106), by the same rule
 #   G3  the measurement reproduces across independent Boltz invocations of a byte-identical spec
+#   G4  a tier-1 (wild type vs G12D) difference clears the control's OWN wild-type bias, which
+#       is +0.0027 +- 0.0006 and in the wrong direction, by the same 2-sigma rule
 
 task: KRAS G12D pMHC binder, Anthropic x Adaptyv Challenge 5
 updated: 2026-11-06
@@ -18,8 +20,8 @@ experiments:
     baseline: none — this is a property of the target
     gate: none (a measurement, not a candidate)
     result: >
-      OD1 has a 0.013% escape cone at 8 A reach (34 of 262,144 rays), collapsing 165-fold
-      between 7 and 8 A. Probe controls behaved: position-7 carbonyl 39.1%, position-4 0.00%.
+      OD1 has a 0.013% escape cone at 8 A reach (34 of 262,144 rays), collapsing 161-fold
+      between 6 and 7 A. Probe controls behaved: position-7 carbonyl 39.1%, position-4 0.00%.
     verdict: KEEP
     consequence: set the whole strategy — target the bulge at positions 5-8, not the mutation
     pr: 103
@@ -29,8 +31,10 @@ experiments:
     baseline: the 7OW6 receptor, which is G12D-specific by construction
     gate: G3 plus a sign in the correct direction on the control
     result: >
-      Paired within each of 10 invocations the control scores WILD TYPE ABOVE G12D by
-      +0.0027 +- 0.0005, positive in 7 of the 8 small-batch runs. Not unresolved — inverted.
+      Paired within each of the 8 invocations that predicted complex_wt, the control scores
+      WILD TYPE ABOVE G12D by +0.0027 +- 0.0006, positive in 7 of the 8. Not unresolved —
+      inverted. (The bar's 10 invocations include the two cohort runs, which had no complex_wt
+      condition, so tier 1 rests on 8 and not on 10.)
       Backbone shift is 0.85/0.73/0.48 A at positions 6/7/8 against a 0.337 A superposition
       residual, i.e. below Boltz-2 coordinate error as predicted.
     verdict: DISCARD
@@ -141,10 +145,44 @@ experiments:
       systematic error shared by every run. The tier-1 inversion is precisely such a case.
     pr: 103
 
+  - id: wildtype-finalists
+    what: the 20 submitted finalists scored against the wild-type peptide, paired and replicated
+    baseline: the control's own wild-type difference, paired inside the same invocations
+    gate: G4 — and it cannot be a promotion gate, because G4's bar points the wrong way
+    result: >
+      420 predictions, 0 failures, both conditions written into each invocation and the pass run
+      twice. The control's bar is +0.0018 +- 0.0065 over the 2 invocations (+0.0030, +0.0007) —
+      positive, but tied zero at this sample size, so "below the bar" is a weak classification.
+      3 of 20 finalists sit below it, 13 tied, 4 above; 7 of 20 are negative in raw sign; the
+      cohort averages +0.0090 +- 0.0058 over designs. Between-run SD 0.0092 against within-run
+      0.0093, so the run effect is ~0.
+      THE WITHDRAWN PASS'S HEADLINE DID NOT REPRODUCE. Unpaired, bulge_core — the variant placed
+      over the bulge — looked 4 of 4 negative at mean -0.0149, Fisher p = 0.0072. Paired, its
+      mean is +0.0115 and the Fisher p is 0.1011, because bulge_core_27 moves from negative to
+      +0.0767. The measured ordering is mut_proximal (-0.0012) < bulge_wide (+0.0106) <
+      bulge_core (+0.0115) < hub (+0.0183), not the pre-registered one.
+    verdict: KEEP
+    consequence: >
+      Reported, never gated, and no design was re-ranked on it — the submission is unchanged.
+      The one result the unpaired pass called worth a second predictor was an artifact of its
+      own denominator: taking the two conditions from different invocations left the run offset
+      in the difference and out of the error bar. The only ordinal fact that survives is that
+      hub, which puts the least area on the peptide, is the most positive group (0 of 3
+      negative). Selectivity in this submission is sampled, not engineered.
+    pr: 103
+
 not_established:
   - No wet-lab measurement of anything — no KD, no expression, no sensorgram.
   - Tier 3 (affinity) is not addressed; peptide-dependence is not binding strength.
   - Only one co-fold predictor was used (see chai-consensus).
-  - The aspartate rotamer any design must read has never been observed unliganded: 7OW4 has no
-    coordinates for peptide positions 5 and 6.
+  - >-
+    The aspartate rotamer any design must read has never been observed unliganded: 7OW4 has
+    no coordinates for peptide positions 5 and 6.
   - No design was shown to exceed the control on any tier.
+  - >-
+    The tier-1 bar is now replicated but weak: the control's own wild-type difference is
+    +0.0018 +- 0.0065 over 2 invocations, tied zero, so "below the bar" separates almost
+    nothing. Two invocations bound the run effect; they do not make the bar sharp.
+  - >-
+    No selectivity mechanism is established. The per-variant ordering that would have been one
+    did not survive pairing, and the grouping was post-hoc in the first place.
