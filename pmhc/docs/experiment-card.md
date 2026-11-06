@@ -99,7 +99,8 @@ is excluded from that budget and reported separately below, because the target d
 | fold novelty | top FoldSeek hit must not be a known protein at high identity, nor the target's own immunoglobulin β-sandwich class | **After** the smoke batch. Declared, not pre-registered. |
 | engagement | peptide share ≥ 0.200 and every nominated hotspot touched, on the generator's own pose | Criterion **before**; the 0.200 figure is the 7OW6 receptor measured with the same code, so the threshold is calibrated rather than chosen |
 | peptide-dependence | co-fold interface against `apo_hla` must degrade relative to `complex_g12d` | Before |
-| selectivity | co-fold against `complex_wt` | **Reported, not gated** — see below |
+| selectivity | co-fold against `complex_wt` | **Reported, not gated.** Not a judgement call: on the one molecule that can calibrate it the predictor's sign is inverted — see below |
+| ranking denominator | the cohort's pooled between-run SD, not a design's own | **After** the cohort was replicated. Declared, not pre-registered: two runs per design cannot estimate a per-design spread |
 
 ## The novelty incident
 
@@ -195,6 +196,84 @@ including one whose own best matches were TM 0.865 and 0.995 to other folds. The
 query; reading the tail of that list reports the most spurious hit, not the most informative. The
 top-TM hit defines the fold, and the class check applies to it.
 
+## The measurement of record
+
+The one-sample screen is retrospectively a pilot. Its drops were differences of two single
+diffusion draws, and a 26-design probe at five samples **reversed the sign** of two of its top
+four. Everything below is five diffusion samples per condition, and the whole 159-spec cohort
+pass was run **twice independently** — 318 predictions, 318 scored, 0 failures.
+
+### The bar, calibrated over ten independent invocations
+
+| | drop |
+| --- | --- |
+| control, 8 small-batch invocations | +0.101, spread 0.004 (span +0.095 to +0.108) |
+| control, 26-spec probe | +0.104 |
+| control, 159-spec cohort run 1 | **+0.150** |
+| control, 159-spec cohort run 2 | +0.101 |
+| **pooled over all 10** | **+0.106**, spread 0.016 |
+
+Nine of ten measurements of the same molecule agree; one does not. That run is excluded from
+the +0.101 figure on a **structural** criterion measured independently of its drop, not on the
+drop itself: its peptide-free prediction scored pTM 0.836 against 0.877 and receptor-to-HLA pair
+ipTM 0.710 against 0.786, while pLDDT barely moved and the complex condition reproduced to three
+decimals. It is a docking failure in one condition of one run.
+
+An internal control does not excuse it, which was measured rather than assumed: across the 12
+designs present in both the probe and cohort runs, design apo scores moved **+0.0006 ± 0.0150**
+while the control's fell **0.045**. The shift was not shared, so pairing designs against that
+run's control would have charged every design for one bad prediction.
+
+### Two variance components, and the one that is not there
+
+`Var(run means)` already contains the within-run sampling error, so the two **subtract**:
+`run_effect = sqrt(between_sd² − within_sem²)`. On the control, between 0.004 against within
+0.007 gives a negative variance, and a 20,000-draw permutation test over the pooled samples puts
+the observed spread at the **4th percentile** of the no-run-effect null. There is no resolved
+between-run component for the control, and its single-run standard error is if anything
+conservative. An earlier version of this analysis combined the two in quadrature; that
+double-counted and is withdrawn.
+
+Designs are different: pooled between-run SD **0.018** against a within-run error of 0.015,
+leaving a run effect of **0.009**. Every per-design verdict divides by the pooled figure over
+√runs, because two runs cannot estimate one design's own spread — the estimate carries ~70%
+relative error and a pair that happens to agree reports 0.000, which would make a +0.011 drop
+read as significant and a reproducible +0.112 read as infinitely so. The control is excluded
+from the pool it is the bar for, so the bar cannot widen its own margin.
+
+### Ranking tier 1 is inverted, not merely unresolved
+
+Paired within each invocation, the control scores **wild type above G12D by +0.0027 ± 0.0005**
+over ten runs, positive in seven of the eight small-batch runs. The receptor known to
+discriminate these peptides is scored as preferring the peptide it does not recognise. The
+sub-ångström backbone shift predicted that tier 1 would be unreachable; this says the scoring
+function is not blind to it but anti-correlated with it, so no selectivity a design shows in
+this column can be read as signal in either direction.
+
+### The result
+
+| | peptide-dependence drop |
+| --- | --- |
+| `mut_proximal_16` | **+0.112** (+0.112, +0.112 — between-run SD 0.0001) |
+| `mut_proximal_26` | +0.095 (+0.109, +0.081) |
+| the 7OW6 receptor, 10 runs | +0.106 |
+| median of 78 | −0.010 |
+| worst | −0.093 |
+
+**0 designs above the bar, 4 tied, 74 below. 14 of 78 clear zero.** Unchanged whether the bar
+is the 10-run +0.106 or the +0.101 that excludes the degraded-pose run, which is the most that
+can be said for it. All 20 slots are used: the cap is 20, the admissible field is 78, and a
+submission of 20 with 4 tied and 0 above is reported as exactly that.
+
+### The bias the replicate was run to test
+
+An unlucky peptide-free pose *inflates* a drop, because the drop is complex minus apo. The top
+of this ranking is therefore enriched for apo-prediction failures as well as for genuine peptide
+reading, and the apo term carries 4–10× the complex term's spread precisely because removing the
+peptide leaves the binder's placement underdetermined. Replication is the test: artifacts
+regress toward the middle, real signal does not. The two leaders split on it — `mut_proximal_16`
+returned +0.112 twice, `mut_proximal_26` fell from +0.109 to +0.081.
+
 ## What is not established
 
 - **Selectivity is not engineered, and cannot be verified with these tools.** The only atom that
@@ -207,7 +286,18 @@ top-TM hit defines the fold, and the class check applies to it.
   receptor-free G12D crystal, has no coordinates for positions 5 and 6; 7OW6 holds the peptide in
   a conformation a TCR selected. Every design is built against a receptor-shaped conformation.
 - **No wet-lab measurement of anything here.** No K<sub>D</sub>, no expression, no sensorgram.
-- **Affinity is not calibrated.** The one positive control available on this epitope is the TCR
-  from 7OW6, and whether co-folding reproduces its known binding is not yet measured.
-- **No ranking between designs is claimed** beyond the gates, until the two co-fold verifiers are
-  compared and their agreement measured.
+- **Affinity is not calibrated, and tier 3 is not addressed at all.** The quantity measured here
+  is peptide-*dependence*, not affinity. No K<sub>D</sub> is predicted and nothing ranks designs
+  by binding strength; a design tied with the control on dependence may bind far more weakly.
+- **Only one co-fold predictor was used.** The standing discipline on this project is that every
+  load-bearing claim gets an independent second method, and that is **not met here**: the Chai-1
+  container was never located, so the consensus pass did not run. Every number above is Boltz
+  2.2.1 scoring structures Boltz 2.2.1 predicted. What stands in for a second method is
+  replication of the same method — ten invocations of the bar and two of the whole cohort — which
+  bounds sampling and run-to-run error but cannot detect a systematic error shared by every run.
+  The tier-1 inversion is exactly the kind of systematic error a second predictor would be needed
+  to confirm or refute.
+- **The control calibrates dependence, not the ranking's validity.** That the 7OW6 receptor loses
+  0.106 ipTM when the peptide is removed establishes the scale a design is judged against. It
+  does not establish that a design matching that number binds the peptide the way the receptor
+  does, and no design was shown to exceed it.

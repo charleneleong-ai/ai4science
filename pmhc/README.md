@@ -194,6 +194,21 @@ design's drop. The top of this ranking is therefore enriched for peptide-free-po
 well as for genuine peptide reading, and the replicate pass is the test -- artifacts regress
 toward the middle, real peptide-readers do not.
 
+**Reproducing the ranking.** `pool-replicates` writes the table of record and `submission.py`
+reads it:
+
+```bash
+python scripts/cofold_followup.py pool-replicates \
+  --out-dir cofold_ctrl_out --out-dir cofold_full5_out --out-dir cofold_full5b_out \
+  --out cofold_spread_pooled.csv
+python scripts/submission.py build          # defaults to that table
+```
+
+Every row names the scale its error bar is built on, in a `sem_basis` column, because the same
+`drop_sd` header means a design's own sample spread in a single-pass table and the cohort's
+between-run spread in the pooled one. The published evidence file carries it, so the ranking's
+denominator is readable without knowing which command wrote the file.
+
 The ranking within that list is not claimed from the screen. Each of its drops is a difference
 of two single diffusion draws, and a 26-design probe at five samples settled the question the
 wrong way: two of the screen's top four **reverse sign** when measured five times. The whole
@@ -232,6 +247,9 @@ chains, and these designs resemble β2m as deposited in *other* entries.
 | [`scripts/cofold_scores.py`](scripts/cofold_scores.py) | reads the screen and reports each design's peptide-dependence drop |
 | [`scripts/run_fold_gate.sh`](scripts/run_fold_gate.sh) | the detached fold-gate run over the whole cohort |
 | [`scripts/run_cofold.sh`](scripts/run_cofold.sh) | the detached co-fold screen; a fourth argument repeats the pass as separate invocations |
+| [`data/cofold_spread_pooled.csv`](data/cofold_spread_pooled.csv) | **the table the submission ranks on** — both cohort runs pooled, `drop_sem` on the cohort's between-run spread |
+| [`data/cofold_replicates.csv`](data/cofold_replicates.csv) | one row per design per invocation, the audit trail under the pooled table |
+| [`docs/experiments/pmhc/verdicts.yaml`](docs/experiments/pmhc/verdicts.yaml) | one row per experiment: gate, result, verdict, and what is not established |
 | [`scripts/cofold_followup.py`](scripts/cofold_followup.py) | the five-sample cohort pass, the one significance rule the campaign uses, the replicated bar and inverted tier-1 measurement, and the wild-type finalists |
 | [`scripts/submission.py`](scripts/submission.py) | ranks on the five-sample means and writes the upload CSV, refusing to rank without the control |
 | [`scripts/fold_novelty.py`](scripts/fold_novelty.py) | FoldSeek fold gate, for the copies sequence identity cannot see |

@@ -38,7 +38,7 @@ from pathlib import Path
 import typer
 from cofold_followup import SIGMA, comparison
 from cofold_specs import CONTROL, design_sequences
-from common import rows_by, write_rows, wrote
+from common import rounded, rows_by, write_rows, wrote
 
 app = typer.Typer(add_completion=False)
 
@@ -126,6 +126,8 @@ class Candidate:
     drop_mean: float
     drop_sd: float
     drop_sem: float
+    sem_basis: str
+    drop_own_sd: float | None
     control: Control
     evidence: Mapping[str, str]
 
@@ -158,6 +160,8 @@ class Candidate:
             "drop_mean": round(self.drop_mean, 4),
             "drop_sd": round(self.drop_sd, 4),
             "drop_sem": round(self.drop_sem, 4),
+            "sem_basis": self.sem_basis,
+            "drop_own_sd": rounded(self.drop_own_sd),
             "drop_significant": self.drop_significant,
             "versus_control": self.versus_control,
             "peptide_share": self.evidence.get("peptide_share", ""),
@@ -200,6 +204,10 @@ def candidates(
             drop_mean=float(row["drop_mean"]),
             drop_sd=float(row["drop_sd"]),
             drop_sem=float(row["drop_sem"]),
+            sem_basis=row.get("sem_basis", ""),
+            drop_own_sd=(
+                float(own) if (own := row.get("drop_own_sd")) not in (None, "") else None
+            ),
             control=control,
             evidence=manifest.get(row["design"], {}),
         )
@@ -210,7 +218,8 @@ def candidates(
 @app.command()
 def build(
     spread: Path = typer.Option(
-        Path("cofold_spread.csv"), help="written by cofold_followup report-spread"
+        Path("cofold_spread_pooled.csv"),
+        help="written by cofold_followup pool-replicates, or report-spread for a single pass"
     ),
     manifest: Path = typer.Option(Path("cofold_manifest.csv")),
     gen_out: Path = typer.Option(Path("gen_out")),
