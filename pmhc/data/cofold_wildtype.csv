@@ -1,0 +1,21 @@
+design,variant,runs,wt_minus_g12d,wt_minus_g12d_sd,wt_minus_g12d_sem,sem_basis,wt_minus_g12d_own_sd,control_bar,control_bar_sem,control_bar_runs,versus_bar,per_run
+bulge_core_09,bulge_core,2,-0.0038,0.0092,0.0065,cohort_between_runs,0.0014,0.0018,0.0065,2,tied,-0.0028 -0.0047
+bulge_core_13,bulge_core,2,-0.0071,0.0092,0.0065,cohort_between_runs,0.0054,0.0018,0.0065,2,tied,-0.0109 -0.0033
+bulge_core_20,bulge_core,2,-0.02,0.0092,0.0065,cohort_between_runs,0.0033,0.0018,0.0065,2,below,-0.0177 -0.0224
+bulge_core_27,bulge_core,2,0.0767,0.0092,0.0065,cohort_between_runs,0.0039,0.0018,0.0065,2,above,+0.0739 +0.0795
+bulge_wide_01,bulge_wide,2,0.01,0.0092,0.0065,cohort_between_runs,0.0144,0.0018,0.0065,2,tied,-0.0002 +0.0201
+bulge_wide_04,bulge_wide,2,0.0168,0.0092,0.0065,cohort_between_runs,0.0023,0.0018,0.0065,2,tied,+0.0151 +0.0184
+bulge_wide_08,bulge_wide,2,-0.0002,0.0092,0.0065,cohort_between_runs,0.0078,0.0018,0.0065,2,tied,+0.0053 -0.0057
+bulge_wide_15,bulge_wide,2,-0.0461,0.0092,0.0065,cohort_between_runs,0.0035,0.0018,0.0065,2,below,-0.0486 -0.0436
+bulge_wide_17,bulge_wide,2,0.0198,0.0092,0.0065,cohort_between_runs,0.0018,0.0018,0.0065,2,tied,+0.0185 +0.0211
+bulge_wide_24,bulge_wide,2,0.0112,0.0092,0.0065,cohort_between_runs,0.0063,0.0018,0.0065,2,tied,+0.0067 +0.0156
+bulge_wide_39,bulge_wide,2,0.0453,0.0092,0.0065,cohort_between_runs,0.015,0.0018,0.0065,2,above,+0.0346 +0.0559
+bulge_wide_59,bulge_wide,2,0.0283,0.0092,0.0065,cohort_between_runs,0.0096,0.0018,0.0065,2,above,+0.0215 +0.0350
+hub_01,hub,2,0.037,0.0092,0.0065,cohort_between_runs,0.0084,0.0018,0.0065,2,above,+0.0430 +0.0311
+hub_22,hub,2,0.0107,0.0092,0.0065,cohort_between_runs,0.0023,0.0018,0.0065,2,tied,+0.0091 +0.0123
+hub_29,hub,2,0.0073,0.0092,0.0065,cohort_between_runs,0.0139,0.0018,0.0065,2,tied,-0.0025 +0.0172
+mut_proximal_01,mut_proximal,2,0.0057,0.0092,0.0065,cohort_between_runs,0.0012,0.0018,0.0065,2,tied,+0.0066 +0.0049
+mut_proximal_12,mut_proximal,2,-0.0071,0.0092,0.0065,cohort_between_runs,0.0038,0.0018,0.0065,2,tied,-0.0098 -0.0044
+mut_proximal_16,mut_proximal,2,0.0026,0.0092,0.0065,cohort_between_runs,0.0023,0.0018,0.0065,2,tied,+0.0042 +0.0009
+mut_proximal_26,mut_proximal,2,-0.0187,0.0092,0.0065,cohort_between_runs,0.0119,0.0018,0.0065,2,below,-0.0271 -0.0104
+mut_proximal_33,mut_proximal,2,0.0117,0.0092,0.0065,cohort_between_runs,0.024,0.0018,0.0065,2,tied,-0.0053 +0.0286

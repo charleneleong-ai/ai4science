@@ -5,9 +5,8 @@ from __future__ import annotations
 import gemmi
 import numpy as np
 import pytest
-import typer
-from common import PEPTIDE_G12D, PEPTIDE_WT, chain_roles
-from engagement import CONTACT, Engagement, contact_pairs, variant_of
+from common import PEPTIDE_G12D, PEPTIDE_WT, chain_roles, variant_of
+from engagement import CONTACT, Engagement, contact_pairs
 
 EPITOPES = (PEPTIDE_G12D, PEPTIDE_WT)
 
@@ -160,5 +159,5 @@ class TestVariantOf:
 
     def test_rejects_a_name_whose_prefix_is_not_a_variant(self):
         """A rank-prefixed name is the shape that breaks this, so it must fail loudly."""
-        with pytest.raises(typer.BadParameter):
+        with pytest.raises(ValueError):
             variant_of("rank01_bulge_core_25")

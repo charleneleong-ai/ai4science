@@ -9,12 +9,15 @@ import pytest
 import typer
 from cofold_followup import (
     SIGMA,
+    Contrast,
     Paired,
     Spread,
+    WildtypeRow,
     comparison,
     COHORT_BASIS,
     Cohort,
     Pooled,
+    difference_sem,
     invocation_predictions,
     paired_drops,
     pooled_between_sd,
@@ -506,7 +509,9 @@ class TestCohortDenominator:
 
         by_design = {CONTROL: runs(CONTROL, (0.10, 0.15)), "d": runs("d", (0.05, 0.07))}
         paired = paired_drops(by_design)
-        cohort = Cohort.of(by_design, paired)
+        cohort = Cohort.of(
+            {d: [r.spread.drop_sem for r in rs] for d, rs in by_design.items()}, paired
+        )
         # The control's two runs differ by 0.05, the design's by 0.02; only the design counts.
         assert cohort.between_sd == pytest.approx(paired["d"].between_sd, abs=1e-9)
         assert cohort.between_sd < paired[CONTROL].between_sd
@@ -550,3 +555,95 @@ class TestPooledTable:
         assert row["drop_significant"] is one_candidate(
             float(row["drop_mean"]), float(row["drop_sem"])
         ).drop_significant
+
+
+class TestTier1Difference:
+    """The wild-type difference: paired inside an invocation, scaled by the cohort."""
+
+    @staticmethod
+    def contrast(design: str, replicate: str, difference: float, spread: float = 0.002) -> Contrast:
+        low = tuple(0.930 + spread * i for i in range(5))
+        return Contrast(
+            design=design,
+            replicate=replicate,
+            high=tuple(v + difference for v in low),
+            low=low,
+        )
+
+    def test_pairing_inside_the_invocation_cancels_the_run_offset(self):
+        """The defect this pass exists to fix. Two invocations that differ by a large offset in
+        both conditions must give the same difference as two that do not -- an unpaired
+        subtraction would report the offset as signal."""
+        level = self.contrast("d", "r1", difference=-0.010)
+        shifted = Contrast(
+            design="d",
+            replicate="r2",
+            high=tuple(v + 0.050 for v in level.high),
+            low=tuple(v + 0.050 for v in level.low),
+        )
+        assert shifted.mean == pytest.approx(level.mean, abs=1e-9)
+
+    def test_the_error_is_the_two_conditions_in_quadrature(self):
+        c = self.contrast("d", "r1", difference=-0.010)
+        assert c.sem == pytest.approx(difference_sem(c.high, c.low), abs=1e-12)
+
+    def test_the_drop_and_the_difference_share_one_quadrature_rule(self):
+        """`Spread.drop_sem` and `Contrast.sem` are the same statistic; if they ever disagree the
+        campaign has two denominators for one shape of quantity."""
+        c = self.contrast("d", "r1", difference=-0.010)
+        assert Spread(design="d", complexed=c.high, apo=c.low).drop_sem == pytest.approx(c.sem)
+
+    @pytest.mark.parametrize(
+        "design_diffs,expected",
+        [
+            ((-0.030, -0.031), "below"),  # clearly the other side of the control's bar
+            ((+0.003, +0.002), "tied"),  # sitting on the bar
+            ((+0.040, +0.041), "above"),  # scores wild type higher than even the control does
+        ],
+    )
+    def test_a_design_is_judged_against_the_control_not_against_zero(self, design_diffs, expected):
+        """The control's own difference is positive, so zero is the wrong reference: a small
+        negative difference is not selectivity, it is less bias than the control shows."""
+        bar_diffs = (+0.0027, +0.0027)
+        by_design = {
+            CONTROL: [self.contrast(CONTROL, f"r{i}", d) for i, d in enumerate(bar_diffs)],
+            "bulge_core_09": [
+                self.contrast("bulge_core_09", f"r{i}", d) for i, d in enumerate(design_diffs)
+            ],
+        }
+        paired = {k: Paired(k, tuple(c.mean for c in v)) for k, v in by_design.items()}
+        cohort = Cohort.of({k: [c.sem for c in v] for k, v in by_design.items()}, paired)
+        row = WildtypeRow(
+            design="bulge_core_09",
+            differences=paired["bulge_core_09"],
+            cohort=cohort,
+            bar=paired[CONTROL],
+        )
+        assert row.versus_bar == expected
+
+    def test_the_published_row_carries_the_bar_it_was_judged_against(self):
+        """`versus_bar` is not reproducible from the file unless the bar's mean, its error and
+        the number of invocations behind it all travel with the row."""
+        by_design = {
+            CONTROL: [self.contrast(CONTROL, f"r{i}", d) for i, d in enumerate((0.003, 0.002))],
+            "hub_01": [self.contrast("hub_01", f"r{i}", d) for i, d in enumerate((0.030, 0.031))],
+        }
+        paired = {k: Paired(k, tuple(c.mean for c in v)) for k, v in by_design.items()}
+        cohort = Cohort.of({k: [c.sem for c in v] for k, v in by_design.items()}, paired)
+        row = WildtypeRow(
+            design="hub_01", differences=paired["hub_01"], cohort=cohort, bar=paired[CONTROL]
+        ).row
+        assert {"control_bar", "control_bar_sem", "control_bar_runs"} <= set(row)
+        assert row["control_bar_runs"] == 2
+        assert row["variant"] == "hub"
+        assert row["sem_basis"] == COHORT_BASIS
+
+    def test_the_cohort_denominator_is_condition_agnostic(self):
+        """`Cohort.of` takes the within-run errors as numbers, so the drop and the tier-1
+        difference borrow one pooling rule instead of each growing its own."""
+        paired = {"a": Paired("a", (0.10, 0.12)), "b": Paired("b", (0.20, 0.26))}
+        cohort = Cohort.of({"a": [0.01, 0.01], "b": [0.02, 0.02]}, paired)
+        assert cohort.between_sd == pytest.approx(
+            pooled_between_sd([paired["a"].between_sd, paired["b"].between_sd])
+        )
+        assert cohort.within_sem == pytest.approx(0.015)

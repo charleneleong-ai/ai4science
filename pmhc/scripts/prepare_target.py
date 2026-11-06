@@ -29,7 +29,14 @@ from pathlib import Path
 
 import gemmi
 import typer
-from common import chain_sequence, load, one_letter
+from common import (
+    PEPTIDE_G12D,
+    PEPTIDE_WT,
+    VARIANTS,
+    chain_sequence,
+    load,
+    one_letter,
+)
 
 app = typer.Typer(add_completion=False)
 
@@ -39,10 +46,6 @@ PEPTIDE_CHAIN = "C"
 
 MUTANT_ID = "7OW6"
 
-# The two epitopes, as the challenge states them. Asserted against the written target rather
-# than trusted, because every hotspot index is a position in this string.
-PEPTIDE_G12D = "VVVGADGVGK"
-PEPTIDE_WT = "VVVGAGGVGK"
 
 # Expected chain lengths in the carved complex, so a renamed or re-deposited chain fails here
 # rather than after nine GPU-hours against the wrong surface.
@@ -55,13 +58,6 @@ EXPECTED_LENGTHS = {HLA_CHAIN: 276, B2M_CHAIN: 99, PEPTIDE_CHAIN: 10}
 # known to bind it and to discriminate the mutation.
 TCR_CHAINS = ("D", "E")
 
-# Hotspot variants, as 1-based peptide positions. See the module docstring for why they sit here.
-VARIANTS: dict[str, tuple[int, ...]] = {
-    "bulge_core": (5, 6, 7),
-    "bulge_wide": (4, 5, 6, 7, 8),
-    "mut_proximal": (5, 6),
-    "hub": (7, 8),
-}
 
 
 def sequence_of(structure: gemmi.Structure, chain: str) -> str:
