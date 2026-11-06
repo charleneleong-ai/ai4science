@@ -70,7 +70,7 @@ One correction to how they were first reported. The escape cone was initially qu
 **0.02% of 4096 rays**, which is a single surviving ray — the sampling floor, not a measurement,
 and the most pessimistic corner of a probe × reach grid that had not been run. The grid has since
 been run at 262,144 rays: the value is 0.013% (34 rays), the result is robust across probes
-1.40–2.00 Å, and the reach dependence has a 165-fold cliff between 6 and 7 Å that locates the
+1.40–2.00 Å, and the reach dependence has a 161-fold cliff between 6 and 7 Å that locates the
 carboxylate at the bottom of a pocket about 6 Å deep. The conclusion did not change; the evidence
 for it did. `reachability.py` now reports `free_rays` beside the fraction, so a number resting on
 one ray cannot be quoted again without that being visible in the table.
@@ -243,9 +243,11 @@ from the pool it is the bar for, so the bar cannot widen its own margin.
 
 ### Ranking tier 1 is inverted, not merely unresolved
 
-Paired within each invocation, the control scores **wild type above G12D by +0.0027 ± 0.0005**
-over ten runs, positive in seven of the eight small-batch runs. The receptor known to
-discriminate these peptides is scored as preferring the peptide it does not recognise. The
+Paired within each invocation, the control scores **wild type above G12D by +0.0027 ± 0.0006**
+over the eight invocations that predicted `complex_wt`, positive in seven of the eight. (The
+bar's ten invocations include the two cohort runs, which carried no wild-type condition, so tier
+1 rests on eight and not on ten.) The receptor known to discriminate these peptides is scored as
+preferring the peptide it does not recognise. The
 sub-ångström backbone shift predicted that tier 1 would be unreachable; this says the scoring
 function is not blind to it but anti-correlated with it, so no selectivity a design shows in
 this column can be read as signal in either direction.
@@ -264,6 +266,45 @@ this column can be read as signal in either direction.
 is the 10-run +0.106 or the +0.101 that excludes the degraded-pose run, which is the most that
 can be said for it. All 20 slots are used: the cap is 20, the admissible field is 78, and a
 submission of 20 with 4 tied and 0 above is reported as exactly that.
+
+### The finalists against the wild-type peptide
+
+All 20 submitted designs were co-folded against `VVVGAGGVGK`. **Both peptide conditions are
+written into a single invocation** for every finalist and for the control, and the whole pass was
+run twice as independent invocations — 420 predictions, 0 failures. The pairing is the point: the
+control's bar is formed inside one invocation, so a design's difference has to be formed the same
+way or the run offset does not cancel out of it.
+
+The control's own difference is **+0.0018 ± 0.0065 over the 2 invocations** (+0.0030, +0.0007).
+Still positive — the predictor prefers the peptide the receptor does not recognise — but tied
+zero at this sample size, so the bar is weak and so is any ranking against it. Of 20 finalists,
+3 sit below it, 13 are tied and 4 are above; 7 of 20 are negative in raw sign. The cohort
+averages **+0.0090 ± 0.0058**, a spread over designs rather than over runs. Between-run SD is
+0.0092 against a within-run 0.0093, leaving a run effect of ~0.
+
+**The earlier, unpaired pass's headline did not reproduce, and that is the finding.** Its
+difference took the wild-type mean from one invocation and the G12D mean from others. Measured
+that way, `bulge_core` — the variant whose interface was placed over peptide positions 5–8, the
+bulge itself — looked 4 of 4 negative at mean −0.0149, Fisher exact p = 0.0072 against 3 of 16
+elsewhere. Paired, the same four designs average **+0.0115** at **p = 0.1011**, because
+`bulge_core_27` moves across zero to +0.0767.
+
+| variant | hotspots | n | mean wt − G12D (paired) | unpaired claim |
+| --- | --- | --- | --- | --- |
+| `mut_proximal` | 5, 6 | 5 | −0.0012 | −0.0073 |
+| `bulge_wide` | 4, 5, 6, 7, 8 | 8 | +0.0106 | +0.0052 |
+| `bulge_core` | 5, 6, 7 | 4 | **+0.0115** | **−0.0149** |
+| `hub` | 7, 8 | 3 | +0.0183 | +0.0209 |
+
+The measured order is `mut_proximal` < `bulge_wide` < `bulge_core` < `hub`, not the
+pre-registered one. The only ordinal fact that survives is that `hub`, which puts the least area
+on the peptide, is the most positive group (0 of 3 negative).
+
+**This is not evidence of selectivity, and no design was re-ranked on it.** The bar's sign is
+inverted on the only molecule known to discriminate these peptides; the bar is tied zero on two
+invocations; and the variant grouping was chosen after reading the per-design table, so it is
+post-hoc either way. What the replication bought was the retraction of a result that looked
+mechanistic and was an artifact of its own denominator.
 
 ### The bias the replicate was run to test
 
@@ -301,3 +342,6 @@ returned +0.112 twice, `mut_proximal_26` fell from +0.109 to +0.081.
   0.106 ipTM when the peptide is removed establishes the scale a design is judged against. It
   does not establish that a design matching that number binds the peptide the way the receptor
   does, and no design was shown to exceed it.
+- **The wild-type pass was never replicated.** One invocation, so the tier-1 column has no
+  between-run denominator — the single thing the peptide-dependence drop needed before its own
+  verdicts could be trusted.

@@ -1,0 +1,392 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+\newcommand{\drop}{\ensuremath{\Delta\text{ipTM}}}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.15}
+
+\title{A binder for the KRAS G12D neoepitope on HLA-A*11:01:\\
+what twenty designs rest on, and what they do not}
+\author{Anthropic $\times$ Adaptyv Protein Design Competition, Challenge 5}
+\date{6 November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+The challenge asks for a protein that binds the KRAS G12D peptide \texttt{VVVGADGVGK}
+presented on HLA-A*11:01 and not the wild-type \texttt{VVVGAGGVGK} on the same allele, ranked
+on mutation specificity first. We report that the first tier is not reachable with the tools
+available, and we report it as a measurement rather than as a difficulty. The one atom that
+chemically distinguishes the two targets, the G12D carboxylate oxygen OD1, has a
+\textbf{0.013\%} escape cone at 8\,\AA\ reach --- 34 of 262{,}144 rays --- so no designed
+side chain can touch it. The discrimination that remains is indirect: a 0.85/0.73/0.48\,\AA\
+backbone shift at peptide positions 6/7/8, against a 0.337\,\AA\ superposition residual, which
+is below the coordinate error of the co-fold predictors used. Measured on the one receptor known
+to discriminate these peptides, the predictor's wild-type-versus-mutant sign is not merely
+unresolved but \emph{inverted}, by $+0.0027 \pm 0.0006$ over eight independent invocations.
+
+We therefore designed for the geometry that is reachable --- the conformational bulge at peptide
+positions 5--8 --- and ranked on peptide-\emph{dependence}: how much a predicted interface
+degrades when the peptide is removed from the groove. Calibrated against the 7OW6 receptor over
+ten independent invocations the bar is $+0.106$. Of the 78 screened designs, measured twice
+independently at five diffusion samples per condition, \textbf{0 are above that bar, 4 are tied
+with it, and 74 are below}; 14 of 78 clear zero. Twenty designs are submitted, which is the cap.
+We state the funnel with every denominator, declare which filters were fixed after seeing
+results, and list what is not established --- including that only one co-fold predictor was
+used, so the project's own multi-method requirement is unmet.
+\end{abstract}
+
+\section{The target, measured before anything was designed}
+
+The inputs were frozen from three depositions of the same system: \href{https://www.rcsb.org/structure/7OW6}{7OW6}
+(G12D ternary complex, HLA heavy chain A, $\beta_2$m B, peptide C, TCR D/E),
+\href{https://www.rcsb.org/structure/7OW5}{7OW5} (wild type), and
+\href{https://www.rcsb.org/structure/7OW4}{7OW4} (receptor-free). The TCR chains were deleted for
+the generation target. One heavy chain and one $\beta_2$m serve all three co-fold conditions,
+which differ only in the peptide: the two depositions disagree by a leading construct residue
+(276 against 275), and carrying that difference into the comparison would have placed a sequence
+change inside the exact contrast selectivity is read from.
+
+\begin{table}[h]
+\centering
+\caption{Decisive target measurements, all taken before any design was generated.}
+\small
+\begin{tabular}{p{5.8cm}p{4.3cm}r}
+\toprule
+Quantity & Condition & Value \\
+\midrule
+Peptide share of complex accessible surface & --- & 1.2\% (239.5 of 19{,}612\,\AA$^2$) \\
+Position-6 side-chain SASA (mutant) & --- & 8.8\,\AA$^2$ (OD1 6.43, OD2 0.00) \\
+Escape cone over OD1 & 8\,\AA\ reach, 1.55\,\AA\ probe & \textbf{0.013\%} (34 / 262{,}144 rays) \\
+Escape cone over OD1 & 3 / 4 / 5 / 6 / 7\,\AA & 41.0 / 21.9 / 7.1 / 2.9 / 0.018\% \\
+Escape cone, position-7 carbonyl & 8\,\AA\ (probe control) & 39.1\% \\
+Escape cone, position-4 carbonyl & 8\,\AA\ (probe control) & 0.00\% \\
+TCR contacts to position 6 & 5.5\,\AA & 17, \emph{all} to backbone \\
+TCR interface split & 4.5\,\AA & 55 peptide / 220 HLA (share 0.200) \\
+Peptide backbone shift, mutant vs.\ wild type & C$\alpha$, positions 6/7/8 & 0.85 / 0.73 / 0.48\,\AA \\
+HLA superposition residual & the baseline that shift sits against & 0.337\,\AA \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two of these are load-bearing. The 161-fold collapse of the escape cone between 6 and 7\,\AA\
+locates the carboxylate at the bottom of a pocket about 6\,\AA\ deep; the probe controls behaved
+as a working measurement should, with an exposed neighbouring carbonyl at 39.1\% and a buried one
+at 0.00\%. And the 0.85\,\AA\ backbone shift sits only 2.5 times above the residual of the
+superposition used to measure it, so a predictor whose coordinate error is of that order cannot
+be expected to resolve it.
+
+An earlier version of the escape-cone number was quoted as 0.02\% of 4096 rays. That is a single
+surviving ray --- the sampling floor, not a measurement --- and it was the most pessimistic
+corner of a probe $\times$ reach grid that had not been run. The grid has since been run: the
+conclusion did not change, but the evidence for it did, and the tool now reports the surviving
+ray count beside the fraction so a result resting on one ray cannot be quoted again without
+that being visible.
+
+\section{What the first ranking tier would require, and why it fails}
+
+Mutation specificity is the competition's first tier. The strongest available test of whether any
+co-fold predictor can supply it is to run the test on a molecule whose answer is known: the TCR
+in 7OW6, which was crystallised bound to the G12D complex and is specific by construction. If the
+predictor scores that receptor higher against the mutant peptide than against the wild type, a
+design's score in the same column means something. If not, it does not.
+
+Paired within each of the eight independent invocations that predicted the wild-type condition,
+the receptor scores \textbf{wild type above G12D by $+0.0027 \pm 0.0006$}, positive in seven of
+the eight. The sign is wrong. This is a stronger statement than ``unresolved'': the scoring
+function is anti-correlated with the quantity tier 1 asks for, on the one molecule that can
+calibrate it. Every subsequent use of the wild-type column in this work is therefore reported
+and never gated.
+
+\section{Method}
+
+Generation used BoltzGen 0.1.4 against the intact complex, in four hotspot variants of 64 designs
+each --- \texttt{bulge\_core} (peptide positions 5,6,7), \texttt{bulge\_wide} (4--8),
+\texttt{mut\_proximal} (5,6) and \texttt{hub} (7,8). The denominator stays \textbf{256} in every
+funnel below, including designs rejected for not being designs.
+
+Verification is Boltz 2.2.1, independent of the generator's own folding, in three conditions per
+design: \texttt{complex\_g12d} (binder + HLA + $\beta_2$m + mutant peptide), \texttt{apo\_hla}
+(the same without the peptide) and \texttt{complex\_wt}. The ranked quantity is
+\begin{equation}
+\drop \;=\; \text{ipTM}(\texttt{complex\_g12d}) - \text{ipTM}(\texttt{apo\_hla}),
+\end{equation}
+the degradation of the predicted interface when the peptide leaves the groove. It is a proxy for
+peptide-dependent binding, the competition's second tier, and it is explicitly not affinity.
+
+\subsection{The filters, and when each was fixed}
+
+\begin{table}[h]
+\centering
+\caption{Gates in order of application. ``After'' means the criterion was set after results were
+seen; no statistic derived from such a gate is presented as pre-registered.}
+\small
+\begin{tabular}{p{2.5cm}p{7.6cm}p{3.1cm}}
+\toprule
+Gate & Criterion & Fixed \\
+\midrule
+novelty & $<30\%$ of the design is a verbatim copy of a target or TCR chain, by local alignment & after \\
+fold novelty & top FoldSeek hit is neither a known protein at high identity nor the target's own immunoglobulin $\beta$-sandwich class & after \\
+engagement & peptide share $\geq 0.200$ and every nominated hotspot touched & criterion before; threshold calibrated on the 7OW6 receptor \\
+peptide-dependence & \drop\ measured at five samples per condition & before \\
+selectivity & \texttt{complex\_wt} & \textbf{reported, not gated} \\
+ranking denominator & the cohort's pooled between-run SD, not a design's own two runs & after \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The engagement threshold is the one that is genuinely calibrated rather than chosen: 0.200 is the
+peptide's share of the 7OW6 receptor's own interface, measured with the same code on the same
+cutoff. A design that puts less area on the peptide than the natural receptor does cannot be
+reading the peptide.
+
+\subsection{The novelty incident, and a claim withdrawn}
+
+A two-design pilot against a \emph{truncated} target returned $\beta_2$-microglobulin --- a chain
+of the target itself --- at 90.5\% and 85.7\% identity. Truncation had left $\beta_2$m's own
+interface vacant and the generator filled it with the protein that belongs there. Generation moved
+to the intact complex, which reduced the rate from 2 of 2 to 17 of 256 but did not eliminate it,
+so novelty is a hard gate applied before selection rather than a precaution.
+
+The gate itself was wrong when first shipped. It used a global alignment normalised by the shorter
+sequence, which cannot represent a truncated copy at all: a verbatim 40-residue slice of the
+276-residue heavy chain scored \textbf{0.000}, and a 60-residue slice of the TCR $\beta$ chain,
+the receptor the rules forbid modifying, also scored 0.000. Both would have passed as novel. The
+replacement is the fraction of the design that is a verbatim copy of some target chain by local
+alignment, normalised by the design's own length; on the same controls it scores 1.000. It was
+chosen on synthetic controls alone, independent of the cohort, and the superseded value is kept in
+the output so the change is auditable.
+
+One justification offered for gating novelty first was that ipTM rewards plagiarism threefold, so
+a score-first ranking would select inadmissible designs preferentially. Measured on the pilot's
+four designs that was true; measured over all 256 it is not. The ratio of medians is
+\textbf{0.83$\times$} --- the $\beta_2$m copies score slightly \emph{worse} than admissible
+designs, 39 of 188 admissible designs beat the best plagiarised one. The threefold effect was real
+but local to target preparation. The claim is withdrawn; novelty still gates first, on
+correctness rather than on bias.
+
+\section{The funnel}
+
+\begin{table}[h]
+\centering
+\caption{Every denominator. The campaign's result is this table, not its first row.}
+\small
+\begin{tabular}{lrp{8.4cm}}
+\toprule
+Stage & Surviving & Removed by \\
+\midrule
+generated (4 variants $\times$ 64) & 256 & --- \\
+sequence novelty & 239 & 17 verbatim $\beta_2$m copies, 30.3--92.6\% copied \\
+fold novelty & 188 & 16 copies of other known proteins (TM 0.93--0.98), 35 immunoglobulin folds \\
+engagement & 78 & 110 below the receptor's 0.200 peptide share, or missing a hotspot \\
+co-folded twice, 5 samples & 78 & --- (318 of 318 predictions scored, 0 failures) \\
+clears zero on \drop & 14 & 64 whose dependence is indistinguishable from none \\
+at or above the receptor's bar & \textbf{4} & 10 below the bar but above zero \\
+submitted & \textbf{20} & cap is 20; slots 5--20 are the best of the remainder \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All twenty slots are used. Four designs are tied with the bar and none is above it, so sixteen of
+the twenty are submitted as the best available rather than as designs that met a criterion. That
+is stated here rather than left to be inferred from a ranked list.
+
+\section{The measurement of record}
+
+The first ranking used one diffusion sample per condition. A 26-design probe at five samples
+\emph{reversed the sign} of two of its top four, which is what a difference of two single draws
+should be expected to do, so that screen is retrospectively a pilot. Everything below is five
+samples per condition, and the whole 159-spec cohort pass was run twice independently.
+
+\subsection{The bar, over ten independent invocations}
+
+\begin{table}[h]
+\centering
+\caption{The 7OW6 receptor's \drop, measured ten times from byte-identical specifications. Boltz
+seeds once per process, so samples within one invocation share that state; separate invocations
+are the only way to observe between-run variation.}
+\small
+\begin{tabular}{lr}
+\toprule
+Measurement & \drop \\
+\midrule
+8 small-batch invocations & $+0.101$, spread 0.004 (span $+0.095$ to $+0.108$) \\
+26-spec probe & $+0.104$ \\
+159-spec cohort, run 1 & $\mathbf{+0.150}$ \\
+159-spec cohort, run 2 & $+0.101$ \\
+\midrule
+pooled over all ten & $\mathbf{+0.106}$, spread 0.016 \\
+nine, excluding run 1's control & $+0.101$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Nine of ten measurements of the same molecule agree and one does not. That run is excluded from
+the $+0.101$ figure on a \emph{structural} criterion measured independently of its score, not on
+the score itself: its peptide-free prediction scored pTM 0.836 against 0.877 and
+receptor-to-HLA pair ipTM 0.710 against 0.786, while pLDDT barely moved and the complex condition
+reproduced to three decimal places. It is a docking failure in one condition of one run.
+
+Pairing each design against its own run's control would have been the obvious alternative to
+excluding it, and it was tested rather than assumed. Across the twelve designs present in both
+runs, design apo scores moved $+0.0006 \pm 0.0150$ while the control's fell 0.045. The shift was
+not shared, so pairing would have charged every design for one bad prediction.
+
+\subsection{Two variance components, and the one that is not there}
+
+A set of run means has a variance that \emph{already contains} the within-run sampling error, so
+the two subtract rather than add:
+\begin{equation}
+\sigma_{\text{run}} \;=\; \sqrt{\max\!\left(0,\; \sigma^2_{\text{between}} - \mathrm{SEM}^2_{\text{within}}\right)}.
+\end{equation}
+On the control, $\sigma_{\text{between}} = 0.004$ against $\mathrm{SEM}_{\text{within}} = 0.007$
+gives a negative variance, and a 20{,}000-draw permutation test over the pooled samples puts the
+observed spread at the \textbf{4th percentile} of the no-run-effect null. There is no resolved
+between-run component for the control, and its single-run standard error is if anything
+conservative. An earlier version of this analysis combined the two in quadrature; that
+double-counted and is withdrawn.
+
+Designs behave differently: pooled between-run SD \textbf{0.018} against a within-run error of
+0.015, leaving a run effect of 0.009. Every per-design verdict divides by the pooled figure over
+$\sqrt{\text{runs}}$, because two runs cannot estimate one design's own spread --- the estimate
+carries roughly 70\% relative error, and a pair that happens to agree reports 0.000, which would
+make a $+0.011$ drop read as significant and a reproducible $+0.112$ read as infinitely so. The
+control is excluded from the pool it is the bar for, so the bar cannot widen its own margin.
+
+\subsection{The result}
+
+\begin{table}[h]
+\centering
+\caption{Peptide-dependence, pooled over two independent invocations.}
+\small
+\begin{tabular}{lrl}
+\toprule
+ & \drop & per-run values \\
+\midrule
+\texttt{mut\_proximal\_16} & $\mathbf{+0.112}$ & $+0.112$, $+0.112$ (between-run SD 0.0001) \\
+\texttt{mut\_proximal\_26} & $+0.095$ & $+0.109$, $+0.081$ \\
+the 7OW6 receptor, ten runs & $+0.106$ & --- \\
+median of 78 & $-0.010$ & --- \\
+worst of 78 & $-0.093$ & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{0 designs above the bar, 4 tied, 74 below. 14 of 78 clear zero.} The verdict is
+unchanged whether the bar is the ten-run $+0.106$ or the $+0.101$ that excludes the degraded-pose
+run, which is the most that can be said in its favour.
+
+\subsection{The bias the replicate was run to test}
+
+An unlucky peptide-free pose \emph{inflates} a drop, because the drop is complex minus apo. The
+top of this ranking is therefore enriched for apo-prediction failures as well as for genuine
+peptide reading, and the apo term carries 4--10$\times$ the complex term's spread, precisely
+because removing the peptide leaves the binder's placement underdetermined. Replication is the
+test: artifacts regress toward the middle and real signal does not. The two leaders split on it.
+\texttt{mut\_proximal\_16} returned $+0.112$ twice; \texttt{mut\_proximal\_26} fell from $+0.109$
+to $+0.081$ and is ranked on the pooled mean.
+
+\section{The finalists against the wild-type peptide}
+
+All twenty submitted designs were co-folded against \texttt{VVVGAGGVGK}. Both peptide conditions
+are written into a \emph{single} invocation for every finalist and for the control, and the whole
+pass was run twice as independent invocations: 420 predictions, 0 failures. The pairing is the
+point. The control's bar is formed inside one invocation, so a design's difference has to be
+formed the same way, or the run offset stays in the difference and out of the error bar.
+
+The control's own difference is $+0.0018 \pm 0.0065$ over the two invocations ($+0.0030$,
+$+0.0007$). It is still positive --- the predictor prefers the peptide the receptor does not
+recognise --- but it is tied with zero at this sample size, so the bar is weak and so is any
+ranking against it. Three of twenty finalists sit below it, thirteen are tied, four are above;
+seven of twenty are negative in raw sign. Across designs the difference averages
+$+0.0090 \pm 0.0058$, a spread over designs rather than over runs. The between-run SD is $0.0092$
+against a within-run $0.0093$, leaving a run effect of approximately zero.
+
+\subsection*{The unpaired pass did not reproduce}
+
+An earlier pass over the same twenty designs was completed and then withdrawn before it was
+reported. Its difference took the wild-type mean from one invocation and the G12D mean from
+others. Measured that way, \texttt{bulge\_core} --- the variant whose interface was placed over
+peptide positions 5--8, the conformational bulge itself --- appeared 4 of 4 negative at a mean of
+$-0.0149$, with Fisher exact $p = 0.0072$ against 3 of 16 elsewhere. That was the one result in
+this campaign that looked mechanistic rather than incidental.
+
+Paired, the same four designs average $+0.0115$ at $p = 0.1011$, because \texttt{bulge\_core\_27}
+moves across zero to $+0.0767$.
+
+\begin{table}[h]
+\centering
+\caption{Grouped by generation variant, paired against the unpaired claim. The grouping was
+chosen after reading the per-design table and is post-hoc in both columns.}
+\small
+\begin{tabular}{llrrr}
+\toprule
+Variant & Hotspots & $n$ & Mean wt $-$ G12D (paired) & Unpaired claim \\
+\midrule
+\texttt{mut\_proximal} & 5, 6 & 5 & $-0.0012$ & $-0.0073$ \\
+\texttt{bulge\_wide} & 4, 5, 6, 7, 8 & 8 & $+0.0106$ & $+0.0052$ \\
+\texttt{bulge\_core} & 5, 6, 7 & 4 & $\mathbf{+0.0115}$ & $\mathbf{-0.0149}$ \\
+\texttt{hub} & 7, 8 & 3 & $+0.0183$ & $+0.0209$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The measured order is \texttt{mut\_proximal} $<$ \texttt{bulge\_wide} $<$ \texttt{bulge\_core}
+$<$ \texttt{hub}, not the pre-registered one. The only ordinal fact that survives is that
+\texttt{hub}, which puts the least area on the peptide, is the most positive group (0 of 3
+negative).
+
+\textbf{This is not evidence of selectivity, and no design was re-ranked on it.} The bar's sign
+is inverted on the only molecule known to discriminate these peptides; the bar is tied with zero
+on two invocations; and the grouping is post-hoc. What the replication bought was the retraction
+of a result that looked mechanistic and was an artifact of its own denominator --- the same
+lesson the peptide-dependence ranking had already learned, applied one level deeper.
+
+
+\section{What is not established}
+
+\begin{itemize}\itemsep2pt
+\item \textbf{Selectivity is sampled, not engineered.} The only chemically distinguishing atom has
+a 0.013\% escape cone; the available discrimination is a sub-\AA ngstr\"om backbone shift below the
+predictors' coordinate error.
+\item \textbf{Only one co-fold predictor was used.} The standing discipline on this project is
+that every load-bearing claim gets an independent second method, and that is not met: the Chai-1
+container was never located, so the consensus pass did not run. Every number here is Boltz 2.2.1
+scoring structures Boltz 2.2.1 predicted. Replication --- ten invocations of the bar, two of the
+cohort --- bounds sampling and run-to-run error but cannot detect a systematic error shared by
+every run, and the tier-1 inversion is exactly such a case.
+\item \textbf{The wild-type pass was never replicated.} One invocation, so the tier-1 column has
+no between-run denominator --- the one thing the drop needed before its own verdicts could be
+trusted.
+\item \textbf{The aspartate rotamer any design must read has never been observed unliganded.}
+7OW4, the receptor-free crystal, has no coordinates for peptide positions 5 and 6; 7OW6 holds the
+peptide in a conformation a TCR selected. Every design is built against a receptor-shaped
+conformation.
+\item \textbf{Affinity is not addressed.} The measured quantity is peptide-\emph{dependence}. No
+$K_D$ is predicted and nothing ranks by binding strength; a design tied with the control on
+dependence may bind far more weakly.
+\item \textbf{No wet-lab measurement of anything.} No $K_D$, no expression, no sensorgram.
+\item \textbf{No design was shown to exceed the control on any tier.} That the receptor loses
+0.106 ipTM when the peptide is removed establishes the scale a design is judged against. It does
+not establish that a design matching that number binds the peptide the way the receptor does.
+\end{itemize}
+
+\section*{Reproducing the numbers}
+
+\sloppy
+Every figure in this report is read from a committed file, not retyped:
+\texttt{data/cofold\_replicates.csv} (per-invocation rows),
+\texttt{data/cofold\_spread\_pooled.csv} (the ranking table of record),
+\texttt{data/cofold\_wildtype.csv} (the tier-1 column),
+\texttt{submission/pmhc\_submission\_evidence.csv} (the twenty submitted designs with their
+evidence) and \texttt{docs/experiments/pmhc/verdicts.yaml} (one row per experiment, with its
+gate and verdict). The commands that regenerate them are in the project README.
+
+\end{document}
