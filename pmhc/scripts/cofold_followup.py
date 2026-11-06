@@ -31,6 +31,13 @@ this predictor's sign is not merely unresolved but inverted, and no selectivity 
 in this column could mean anything. The column exists so the claim is auditable rather than
 asserted.
 
+**Which table the submission ranks on.** `report-spread` reads one pass; `pool-replicates`
+reads several and writes the same column shape, so `submission.py` consumes either without
+knowing which. That is deliberate: the measurement of record is whatever the best available
+table is, and making the pooled one a *file* keeps it an artifact a reader can check rather
+than arithmetic hidden inside the submission step. The columns mean different things between
+the two tables -- see `Pooled` -- which is the price of the single format.
+
 **The bar is reproducible, and the within-run error bar is already honest.** Two 5-sample runs
 of a byte-identical control spec gave drops of +0.104 (26-spec probe) and +0.150 (159-spec
 cohort), so the bar the campaign is calibrated against appeared to move by four times its own
@@ -78,6 +85,11 @@ app = typer.Typer(add_completion=False)
 # Two, so the claim is roughly 95% rather than "the means differ", which at these spreads they
 # always do.
 SIGMA = 2.0
+
+# What a table's `drop_sem` is the standard error *of*, written into every row so that a
+# consumer reading one CSV never has to know which command produced it.
+OWN_BASIS = "own_samples"
+COHORT_BASIS = "cohort_between_runs"
 
 
 def comparison(mean_a: float, sem_a: float, mean_b: float, sem_b: float) -> str:
@@ -182,11 +194,17 @@ def spanning(designs: list[tuple[str, float]], count: int, head: int = 0) -> lis
     return [designs[i][0] for i in sorted(picked)]
 
 
-def ranked_designs(dependence: Path) -> list[tuple[str, float]]:
-    """Designs by peptide-dependence drop, best first, with the control left out."""
+def ranked_designs(dependence: Path, column: str = "drop_mean") -> list[tuple[str, float]]:
+    """Designs by peptide-dependence drop, best first, with the control left out.
+
+    The column is named because the campaign has two table shapes: the pilot screen wrote
+    `peptide_dependence_drop` per design, and every pass since writes `drop_mean` over repeated
+    samples. Defaulting to the latter means a caller that forgets gets the measurement of
+    record, and the one retired caller says which it wants.
+    """
     ranked = sorted(
         (
-            (design, float(row["peptide_dependence_drop"]))
+            (design, float(row[column]))
             for design, row in rows_by(dependence, "design").items()
             if design != CONTROL
         ),
@@ -207,7 +225,7 @@ def select_noise(
     count: int = typer.Option(12, help="designs to re-run, spanning the drop ranking"),
     head: int = typer.Option(4, help="how many of the top-ranked to include regardless"),
 ) -> None:
-    ranked = ranked_designs(dependence)
+    ranked = ranked_designs(dependence, column="peptide_dependence_drop")
     chosen = spanning(ranked, count, head)
     drops = dict(ranked)
     conditions = conditions_from(targets)
@@ -310,6 +328,7 @@ class Spread:
             "drop_mean": round(self.drop_mean, 4),
             "drop_sd": round(self.drop_sd, 4),
             "drop_sem": round(self.drop_sem, 4),
+            "sem_basis": OWN_BASIS,
             "drop_significant": self.drop_significant,
             "drop_min": round(self.drop_min, 4),
             "drop_max": round(self.drop_max, 4),
@@ -347,7 +366,10 @@ def select_control(
 
 @app.command()
 def select_wildtype(
-    dependence: Path = typer.Option(Path("cofold_dependence.csv")),
+    dependence: Path = typer.Option(
+        Path("cofold_spread_pooled.csv"),
+        help="the measurement of record, whose column ranked_designs defaults to",
+    ),
     targets: Path = typer.Option(Path("targets/cofold_targets.json")),
     gen_out: Path = typer.Option(Path("gen_out")),
     out: Path = typer.Option(Path("cofold_wt_specs")),
@@ -526,16 +548,10 @@ def report_replicates(
     ),
     out: Path = typer.Option(Path("cofold_replicates.csv")),
 ) -> None:
-    walk = run_rows(out_dir)
-    by_design = repeated(walk.rows)
-    if not by_design:
-        raise typer.BadParameter(
-            f"no design appears in more than one of {[str(d) for d in out_dir]};"
-            " a between-run spread needs at least two independent invocations"
-        )
-    invocations = len({row.replicate for row in walk.rows})
+    found = Replicated.of(out_dir, "a between-run spread needs two independent invocations")
+    walk, by_design = found.walk, found.by_design
     typer.echo(
-        f"{walk.directories} prediction directories over {invocations} invocations:"
+        f"{walk.directories} prediction directories over {found.invocations} invocations:"
         f" {len(walk.rows)} design-runs scored, {walk.unscored} with no samples,"
         f" {walk.unnamed} unrecognised names"
     )
@@ -545,8 +561,7 @@ def report_replicates(
         f" {singles} appear in one invocation only and are excluded"
     )
 
-    paired = paired_drops(by_design)
-    cohort = Cohort.of(by_design, paired)
+    paired, cohort = found.paired, found.cohort
     echo_replicate_table(by_design, paired, cohort)
     echo_bar(by_design, paired, cohort)
     echo_wildtype(walk.rows)
@@ -608,6 +623,102 @@ def echo_wildtype(rows: Sequence[RunRow]) -> None:
         " Positive means this predictor scores the peptide the control does NOT recognise"
         " higher, so its sign carries no information about a design's selectivity"
     )
+
+
+@dataclass(frozen=True)
+class Replicated:
+    """Every design measured by more than one invocation, with the denominator they share.
+
+    Both replicate commands open with the same five steps and the same refusal, so they are
+    established once here: a change to how the cohort is pooled cannot then apply to one
+    command and not the other.
+    """
+
+    walk: Walk
+    by_design: dict[str, list[RunRow]]
+    paired: dict[str, Paired]
+    cohort: Cohort
+
+    @classmethod
+    def of(cls, out_dirs: Sequence[Path], advice: str) -> Replicated:
+        walk = run_rows(out_dirs)
+        by_design = repeated(walk.rows)
+        if not by_design:
+            raise typer.BadParameter(
+                f"no design appears in more than one of {[str(d) for d in out_dirs]}; {advice}"
+            )
+        paired = paired_drops(by_design)
+        return cls(
+            walk=walk,
+            by_design=by_design,
+            paired=paired,
+            cohort=Cohort.of(by_design, paired),
+        )
+
+    @property
+    def invocations(self) -> int:
+        return len({row.replicate for row in self.walk.rows})
+
+
+@dataclass(frozen=True)
+class Pooled:
+    """One design's drop over every invocation, in the shape `report-spread` writes.
+
+    `drop_sd` keeps that table's column name because `submission.candidates` reads it, and
+    keeping it means `drop_sem == drop_sd / sqrt(n)` still holds -- but it holds the cohort's
+    between-run spread, so it is **the same constant on every row** here. `sem_basis` says so in
+    the data rather than leaving a reader to infer it from which command wrote the file.
+
+    `drop_own_sd` is the design's own spread across invocations, carried for audit and never
+    divided by: at two runs it is what `Cohort` exists to stop anyone trusting. It is also the
+    headline for a design that reproduces -- 0.0001 on the leader -- which is why it travels as
+    far as the evidence file instead of stopping at `cofold_replicates.csv`.
+
+    The control row gets the designs' pooled scale like every other row, not its own 10-run
+    spread of 0.016. That spread is inflated by the one run whose apo pose degraded, and using
+    it would make the table's error bars incommensurable between rows; it moves the margin by
+    1.4% and flips no verdict.
+    """
+
+    design: str
+    drops: Paired
+    cohort: Cohort
+
+    @property
+    def row(self) -> dict[str, object]:
+        return {
+            "design": self.design,
+            "runs": self.drops.runs,
+            "drop_mean": round(self.drops.mean, 4),
+            "drop_sd": round(self.cohort.between_sd, 4),
+            "drop_sem": round(self.cohort.sem(self.drops.runs), 4),
+            "sem_basis": COHORT_BASIS,
+            "drop_significant": self.cohort.verdict(self.drops) == "above",
+            "drop_own_sd": round(self.drops.between_sd, 4),
+            "drop_min": round(min(self.drops.values), 4),
+            "drop_max": round(max(self.drops.values), 4),
+        }
+
+
+@app.command()
+def pool_replicates(
+    out_dir: list[Path] = typer.Option(
+        [Path("cofold_full5_out")],
+        help="repeatable: every pass whose runs should be pooled into one ranking",
+    ),
+    out: Path = typer.Option(Path("cofold_spread_pooled.csv")),
+) -> None:
+    """Pool repeated invocations into the table the submission ranks on."""
+    found = Replicated.of(out_dir, "rank on report-spread's single-pass table instead")
+    rows = sorted(
+        (Pooled(design, drops, found.cohort) for design, drops in found.paired.items()),
+        key=lambda pooled: -pooled.drops.mean,
+    )
+    typer.echo(
+        f"pooled {len(rows)} designs over {found.invocations} invocations;"
+        f" every drop_sem is the cohort's {found.cohort.between_sd:.3f} spread over sqrt(runs)"
+    )
+    typer.echo(wrote(out, write_rows(rows, out)))
 
 
 @app.command()

@@ -15,6 +15,9 @@
 # isolation, the spec-count precheck, the gate's timeout fallback and the evidence count below.
 # `cofold_followup.py select-control` writes the control-only spec directory it takes.
 #
+# After two or more passes over the same specs, `cofold_followup.py pool-replicates` turns them
+# into the one table the submission ranks on; a single pass is read by `report-spread` instead.
+#
 # The cohort pass is the measurement of record: the probe over a 26-spec subset showed that a
 # single diffusion sample reverses the sign of a design's peptide-dependence drop, so the whole
 # cohort is re-run at five and the one-sample pass is retrospectively a pilot.

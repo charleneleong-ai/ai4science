@@ -12,7 +12,9 @@ from cofold_followup import (
     Paired,
     Spread,
     comparison,
+    COHORT_BASIS,
     Cohort,
+    Pooled,
     invocation_predictions,
     paired_drops,
     pooled_between_sd,
@@ -90,9 +92,19 @@ def submission_row(**changes: str) -> dict[str, str]:
 
 
 def spread_rows(drops: dict[str, tuple[float, float]]) -> dict[str, dict[str, str]]:
-    """A spread table as `report-spread` writes it, keyed by design, from (drop_mean, drop_sem)."""
+    """A spread table as `report-spread` writes it, keyed by design, from (drop_mean, drop_sem).
+
+    `drop_sd` is deliberately not equal to `drop_sem` -- they were once the same value here, and
+    while they were, nothing could tell which column the consumer actually divided by.
+    """
     return {
-        design: {"design": design, "drop_mean": str(mean), "drop_sd": str(sem), "drop_sem": str(sem)}
+        design: {
+            "design": design,
+            "drop_mean": str(mean),
+            "drop_sd": str(round(sem * math.sqrt(5), 6)),
+            "drop_sem": str(sem),
+            "sem_basis": "own_samples",
+        }
         for design, (mean, sem) in drops.items()
     }
 
@@ -498,3 +510,43 @@ class TestCohortDenominator:
         # The control's two runs differ by 0.05, the design's by 0.02; only the design counts.
         assert cohort.between_sd == pytest.approx(paired["d"].between_sd, abs=1e-9)
         assert cohort.between_sd < paired[CONTROL].between_sd
+
+
+class TestPooledTable:
+    """The pooled table the submission ranks on, and the scale it declares in its own rows."""
+
+    @staticmethod
+    def pooled(drops: tuple[float, ...], between: float = 0.018) -> Pooled:
+        return Pooled("d", Paired("d", drops), Cohort(between_sd=between, within_sem=0.015))
+
+    def test_the_spread_column_is_the_cohorts_not_the_designs(self):
+        """Two runs that agree report 0.000; ranking on that is the failure Cohort prevents."""
+        row = self.pooled((0.112, 0.112)).row
+        assert row["drop_sd"] == pytest.approx(0.018)
+        assert row["drop_own_sd"] == pytest.approx(0.0)
+        assert row["drop_sd"] != row["drop_own_sd"]
+
+    def test_the_invariant_the_consumer_relies_on_still_holds(self):
+        """`submission` reads drop_sd and drop_sem separately, so sem must stay sd/sqrt(n)."""
+        row = self.pooled((0.10, 0.12)).row
+        assert row["drop_sem"] == pytest.approx(row["drop_sd"] / math.sqrt(2), abs=1e-4)
+
+    def test_every_row_names_the_scale_it_was_measured_on(self):
+        """Otherwise a reader of the published CSV has to know which command wrote it."""
+        assert self.pooled((0.10, 0.12)).row["sem_basis"] == COHORT_BASIS
+        assert Spread(design="d", complexed=(0.9, 0.8), apo=(0.7, 0.6)).row["sem_basis"] != COHORT_BASIS
+
+    def test_both_producers_write_the_keys_the_submission_reads(self):
+        """The one contract candidates() depends on, asserted for both tables that can feed it."""
+        needed = {"design", "drop_mean", "drop_sd", "drop_sem"}
+        assert needed <= set(self.pooled((0.10, 0.12)).row)
+        assert needed <= set(Spread(design="d", complexed=(0.9, 0.8), apo=(0.7, 0.6)).row)
+
+    def test_the_two_routes_to_significance_agree(self):
+        """`Pooled` decides via Cohort and `Candidate` recomputes from the columns; the module
+        docstring promises the printed table and the uploaded file cannot disagree, so that must
+        hold by test rather than by arithmetic coincidence."""
+        row = self.pooled((0.112, 0.112)).row
+        assert row["drop_significant"] is one_candidate(
+            float(row["drop_mean"]), float(row["drop_sem"])
+        ).drop_significant
