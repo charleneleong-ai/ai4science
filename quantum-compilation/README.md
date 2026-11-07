@@ -33,6 +33,13 @@ rank candidates without spending submissions.
 | Median | **22.659** — half the field sits between 22.66 and 23.23 |
 | Cleared 25 | **9 teams** |
 
+**2026-11-07 — the newest public notebook already scores 24.94165 here.** Heliosli's
+`the-dataset-is-public-now-enjoy` (v20) output re-verifies locally at 24.94165, all three PASS, and beats
+our parts on every task: dfthcsos (8, 143, 44) at lambda_eff 46.893, T 14,966, Q 427 (−11.3% cost,
+ratio 11.198 vs 9.934); dqi −6.8%; invsqrt −2.9%. The rumoured (9, 143, 40) shape is a raw
+intermediate, not a submission. Its chemistry weights descend from a dataset licensed "other", so
+reuse is unresolved — see `r5` in [`verdicts.yaml`](docs/experiments/verdicts.yaml).
+
 Read off the competition's own public leaderboard, snapshotted at
 [`docs/experiments/leaderboard-2026-10-31.json`](docs/experiments/leaderboard-2026-10-31.json)
 (scores only; team names omitted). **The field is bimodal**: half of it is packed into a
