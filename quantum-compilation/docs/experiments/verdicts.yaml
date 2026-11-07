@@ -343,3 +343,40 @@ experiments:
       compute.
     verdict: KEEP
     pr: 104
+  - name: r4-cheaper-j5-loader-synthesis
+    date: 2026-11-06
+    baseline: >-
+      the plateau's J=5 ANGLE family, 4,168 Toffolis per pass: per circuit an 80-AND monomial
+      cache plus 178 / 199 / 221 product Toffolis (odd k >= 5 / even k >= 4 / k = 0..3)
+    gate: >-
+      a family cheaper than 4,168 per pass, exact by our own GF(2) simulation forward, in
+      reverse and from a zeroed register, with every screened chemistry constraint passing
+    result: >-
+      **The construction is public and the plateau is its tuned output.** The SOTA sweep traced
+      the loaders to Lera's (marculera) `tensorqrom.py` (Apache-2.0): the low 4 address bits'
+      monomials (11 ANDs) and the high bits' (69) are cached, and each product Toffoli covers a
+      rank-2 term of the word table's mixed ANF tensor (15 x 76 x 35), fanned out to an output
+      set by CNOTs. Five probes, none of which clears the gate:
+      (1) **No redundant AND**: none of the 4,168 products is in the XOR span of the qubits live
+      when it fires, over all 2,048 selection values or over only the 1,220 legal ones.
+      (2) **The plateau sits at the generic count**: a rank-2 product has ~212 degrees of
+      freedom, so a generic 39,900-entry tensor needs ~188 products; the plateau uses 178 on
+      odd circuits. A 60-second Kauers-Moosbauer flip walk took rank 425 to 419 only.
+      (3) **The vendored planner gives 277 ANDs on circuit 13 against the plateau's 258**,
+      exact under our simulator -- the plateau's 19 extra ANDs of tuning come from kernel
+      relations and search we have not reproduced.
+      (4) **A wider low cache is far worse**: lowbits 5 gives 495 and lowbits 6 gives 958 on
+      circuit 13; the planner's sharing heuristic does not survive the larger feature space.
+      (5) **The product counts are set by coded bits**: deltas k >= 4 have bit 0 affine on
+      every 16-address block, odd k >= 5 bit 1 too, worth ~22 products per plane. Extending
+      bit 0 to circuits 1..3 flips 4,382 of 18,300 entries by one LSB and is **rejected by the
+      screen: Hamiltonian error 1.046 against 0.02**, lambda_eff 48.29 -> 60.25 -- batches 0..2
+      hold the Givens tree's root edges.
+      Dead angle words (rotations acting on zero amplitude, replayed from the verifier's own
+      recurrence) are 1,654 of 91,500 entries, scattered single cells; the public trend for
+      exploiting them is -1 to -7 Toffolis per circuit.
+      Not established: what the plateau's kernel-relation search does exactly, or whether a
+      decomposition search seeded from its own circuits finds products the planner missed.
+      Cost: ~4 CPU-hours, no submissions.
+    verdict: DISCARD
+    pr: 105
