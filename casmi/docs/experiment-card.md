@@ -1,7 +1,7 @@
 # Experiment card — CASMI 2026 molecule identification
 
 Pattern: [*A generated protein is not a result*](https://rewirebio.io/blog/a-generated-protein-is-not-a-result/),
-applied to a retrieve-and-rank campaign. Status as of 2026-11-02 (AEDT): the current best (0.479, inside the noise of
+applied to a retrieve-and-rank campaign. Status as of 2026-11-07 (AEDT): the current best (0.479, inside the noise of
 0.477) is an unchanged fork of alex chilton's public 0.479 notebook, [`notebooks/fork479/fork479.ipynb`](../notebooks/fork479/fork479.ipynb);
 the base before it (0.477) is an unchanged fork of Busya PRIME's public 0.477 notebook, [`notebooks/fork477/merged_fork.ipynb`](../notebooks/fork477/merged_fork.ipynb);
 before it (0.465) is an unchanged fork of dmitriigluzdov's public notebook at version 26, [`notebooks/fork464/data_fork.ipynb`](../notebooks/fork464/data_fork.ipynb);
@@ -36,6 +36,16 @@ before it (0.446), an unchanged fork of the public E006 notebook,
 The settings were fixed by the notebook's authors before we ran it; we chose none of them. The source's own table
 shows the same code about 0.002 apart between runs, and two notebooks reported at 0.478 rescored 0.468 and 0.476, so
 0.479 is numerically our highest public score but not distinguishable from 0.477.
+
+## Discarded — seed-blend, public MRR@25 0.463 (fork479 kernel version 2)
+
+| | |
+|---|---|
+| change | on ranks 2–25, the neural score is the mean per-molecule z-score of four scorers: the public v1 spectrum model and three retrains of it; the other neural columns are averaged and a candidate keeps a neural score only where all four scored it ([`b9627b0`](https://github.com/charleneleong-ai/ai4science/commit/b9627b0)) |
+| retrains | sanpier's public kit `casmi_spectrum_model_v1` read in full, run unchanged except the shipped `normalized_smiles` alias fix and the seed (20261101–3); 16 × 500 steps holdout then a 16-epoch refit, on the shared A100 (about 1 h 26 min each, 2,430,328 spectra, 273,833 molecules); holdout 0.481 / 0.487 / 0.465 against the public model's 0.484; private dataset `charyeezy/casmi26-seed-scorers` |
+| run | submission 58046573 (2026-11-06 16:14 AEDT), scored by 21:03 AEDT; gate passed (all three seeds ran, one `SEED BLEND applied` line, no fallback); 400 molecules, 688 exported rows, 300 with every member scoring; Spearman to the public scorer 0.913 / 0.933 / 0.928 |
+| result | 0.463, −0.016 against 0.479, beyond the ±0.010 noise: DISCARD |
+| fixed before seeing the score | equal weights, the shipped schedule (longer schedules had scored 0.453 and 0.460 in public), the gate |
 
 ## Previous best — merged-fork, public MRR@25 0.477
 
@@ -236,7 +246,7 @@ fragment check has none.
 
 ## Budget — every attempt in the denominator
 
-- **30 submissions, 30 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
+- **31 submissions, 31 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
   to measure noise (0.353 vs 0.356); every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including those not kept
   (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise), v19 (0.356, kept), v20 (0.354) and v21 (0.333) in
@@ -248,13 +258,16 @@ fragment check has none.
   data-fork (0.465, 57588653, kernel version 1, promoted). One from the 0.466 neural re-rank notebook:
   neural-fork (0.444, 57615727, kernel version 1, discarded). One from the 0.477 notebook: merged-fork
   (0.477, 57822991, kernel version 1, promoted); its kernel version 2, analogue-fork (0.477, 57826104, discarded).
-  One from the 0.479 notebook: dedup-fork (0.479, 57867559, kernel version 1, kept within the noise).
+  Two from the 0.479 notebook: dedup-fork (0.479, 57867559, kernel version 1, kept within the noise) and its kernel
+  version 2, seed-blend (0.463, 58046573, discarded).
 - **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
   molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
   it finished because an empty mass window would have crashed it).
-- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork, 1 of the 0.451 notebook, 1 of the 0.456 notebook, 1 of the version-26 notebook, 1 of the 0.466 neural re-rank notebook, 2 of the 0.477 notebook and 1 of the 0.479 notebook; of our own pipeline's, the 3 not submitted were setup or reproducibility runs
+- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork, 1 of the 0.451 notebook, 1 of the 0.456 notebook, 1 of the version-26 notebook, 1 of the 0.466 neural re-rank notebook, 2 of the 0.477 notebook and 2 of the 0.479 notebook; of our own pipeline's, the 3 not submitted were setup or reproducibility runs
   (a missing RDKit wheel, a push-from-repo check). The E006 fork's version 1 ran on the CPU image
   its source's metadata names, failed the notebook's GPU preflight and was not submitted.
+- **Three spectrum-model retrains** on the shared A100 (seeds 20261101–3, about 4 h 20 min in all, plus a smoke
+  run on 30,000 rows); all three finished and all three were used.
 - **Four offline experiments, not submissions:** FRIGID de novo (50 molecules, 3819 generations of
   which 3588 valid, all 50 in the denominator), the FPNet encoder check (50 held-out molecules), the
   MIST `msg_aug` probe (50 FRIGID molecules, 0.385 against the 0.40 gate) and the external-library reach
@@ -288,6 +301,7 @@ fragment check has none.
 | neural re-rank weight 0.50 (neural-fork) | **before** it was submitted | one setting per submission; scored 0.444, discarded |
 | the merged fork's settings (re-rank weights 0.25 / 0.75, fragment check, `[P0, V0]` leader merge) | by its authors, before we ran it | not ours; each change was scored on the public leaderboard (0.472 each) |
 | the dedup fork's settings (prior weights 0.10 / 0.05 / 0.02, library gate 0.87, leader pin, InChIKey14 dedup) | by its authors, before we ran it | not ours; scored on the public leaderboard upstream (0.479) |
+| seed blend: equal weights, shipped schedule, three seeds | **before** the retrains (2026-11-03) | one change per submission; scored 0.463, discarded |
 | MIST `msg_aug` gate: mean Tanimoto ≥ 0.40 on the 50 FRIGID molecules | **before** the run (2026-11-01) | pre-registered; 0.385 fails it, so no FRIGID decode was run |
 | external-library reach: cosine ≥ 0.5, 20 ppm, same ion mode, structures absent from train | **before** the count | a reach check; 0 / 400, so no submission |
 | analogue propagation (fork477 v3: anchor ≥ 0.87, cosine ≥ 0.70, λ 0.10, rank 1 frozen) | **before** it was submitted | its reach (113 / 400) checked first; no offline panel can score it; scored 0.477, no change, discarded |
@@ -313,6 +327,8 @@ of identical runs — were treated as no change.
   PubChem and COCONUT is the SOTA sweep's estimate, not a measurement on the hidden test.
 - **Whether the 0.479 layer helps at all.** +0.002 over 0.477 is inside the source's ~0.002 run-to-run spread; the
   layer's effect on its own (documentation prior, leader pin, dedup) is not measured by us.
+- **Why the seed blend lost.** Untested: the seeds agree closely with the public scorer and two of three validate
+  lower, so equal weights may just dilute it; other weights, or seeds from a different recipe, were not run.
 - **What `msg_aug` would do to ranking.** At Tanimoto 0.26 FRIGID found 0 / 50; whether 0.385 gives any hits, or helps
   as an FPNet replacement or a re-ranking feature, was not run.
 - **What in the 0.477 notebook earns its +0.012.** We ran it unchanged; the split between the leader-safe

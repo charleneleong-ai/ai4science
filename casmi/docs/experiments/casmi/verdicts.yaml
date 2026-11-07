@@ -76,4 +76,7 @@ submissions:
   - {version: 1, label: dedup-fork, outputs: fork479-v1, ref: 57867559, date: 2026-11-01, family: rebase, commit: a719425,
      score: 0.479, verdict: KEEP,
      change: "the public 0.479 notebook (alexchilton / baidalinadilzhan) unchanged: the 0.477 merge + PubChem/library/NP documentation prior on ranks 2-25, old leader pinned at rank 2, metric-exact InChIKey14 dedup; +0.002 is inside run-to-run noise, kept as the base"}
+  - {version: 2, label: seed-blend, outputs: fork479-v2, ref: 58046573, date: 2026-11-06, family: ensemble, commit: b9627b0,
+     score: 0.463, verdict: DISCARD,
+     change: "fork479 + ranks 2-25 neural score = mean per-molecule z of the public v1 scorer and three same-recipe seed retrains (seeds 20261101-3, holdout 0.481/0.487/0.465 vs 0.484; Spearman vs public 0.91-0.93); -0.016"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==

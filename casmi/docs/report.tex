@@ -39,7 +39,8 @@ replace rank 1, scored 0.477 as our kernel, $+0.012$ over the 0.465 fork, the la
 test molecules on top of it scored the same 0.477 and was discarded. A ninth, alex chilton's public 0.479 notebook,
 which adds a documentation prior and InChIKey14 deduplication on ranks 2--25, scored 0.479: our highest public score,
 but $+0.002$ is inside the run-to-run noise, so it is kept as the base, not counted as a gain. Two offline probes, a
-newer MIST encoder and an external spectral library, were closed without a submission. 30 submissions were made and all were
+newer MIST encoder and an external spectral library, were closed without a submission. Blending the public neural scorer with
+three seed retrains of it scored 0.463 and was discarded. 31 submissions were made and all were
 scored. No calibrated local estimate of the score exists.
 \end{abstract}
 
@@ -188,6 +189,7 @@ neural-fork & the public 0.466 neural re-rank, weight 0.50 (not kept) & 0.444 \\
 merged-fork & the public 0.477 notebook, unchanged & 0.477 \\
 analogue-fork & + analogue propagation on ranks 2--25 (not kept) & 0.477 \\
 dedup-fork & the public 0.479 notebook, unchanged (inside the noise) & \textbf{0.479} \\
+seed-blend & + three seed retrains in the ranks 2--25 neural score (not kept) & 0.463 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -279,6 +281,15 @@ score but not a measured gain; it is kept (KEEP) as the base because it is the c
 710{,}701 pool records and reordered 12 of 12 smoke lists, with 0 dedup swaps, 0 outsider fills and no
 neutral-prior fallback.
 
+\textbf{Seed ensemble of the neural scorer (seed-blend, 6 November).} We retrained sanpier's public spectrum model three
+times with its own recipe (16 $\times$ 500 steps, then a 16-epoch refit), changing only the seed, on the shared A100:
+about 1\,h\,26\,min each, holdout scores 0.481, 0.487 and 0.465 against the public model's 0.484. Kernel version 2 of
+the dedup fork replaced the ranks 2--25 neural score with the mean per-molecule $z$-score of the public model and the
+three seeds, at equal weight. The gate passed (all three seeds ran on all 400 molecules; 300 had every member scoring;
+Spearman to the public scorer 0.913, 0.933, 0.928). It scored 0.463 (submission 58046573), $-0.016$, beyond the noise:
+discarded. The seeds rank much like the public model and two of three validate lower, so equal weights likely dilute it;
+that explanation is untested.
+
 \textbf{Two offline checks, 1 November, no submission.} The MIST \texttt{msg\_aug} encoder
 (Zenodo 23303289), run on an A100, reached mean fingerprint Tanimoto 0.385 on the 50 FRIGID molecules below
 (median 0.336, SE 0.022) against a gate of 0.40 fixed before the run; the old \texttt{mist\_msg.pt} gave 0.261.
@@ -331,12 +342,10 @@ its fingerprints reach Tanimoto 0.245 in its own 10{,}226-bit space and 0.180 ma
     $[\mathrm{M{+}H}]^+$ only (v16), popularity weight 0.15 (v8): inside the noise or below it.
 \end{itemize}
 
-\textbf{Next.} The base is now the 0.479 dedup fork (inside the noise of 0.477). No leader has published a method,
-and no public notebook sits between 0.479 and the leaders. The one resource no public notebook uses is the ICEBERG
-PubChem atlas (predicted spectra for 91.4M PubChem structures), which the host allowed as a private dataset on
-28 October (discussion 745134); free open pre-built datasets are allowed generally (753662). It is the next
-candidate, 1--2 days: measure its InChIKey14 coverage of answers below rank 1 first, and submit only if the reach
-clears the noise. Analogue propagation on the 0.477 base scored 0.477 (no change). Before it, single settings of the E006 family look tuned
+\textbf{Next.} The base is still the 0.479 dedup fork (inside the noise of 0.477). No leader has published a method;
+public notebooks claim up to 0.482 (7 November), inside the noise of 0.479, and the seed blend closed the same-model
+ensemble route. The ICEBERG PubChem atlas, allowed by the host on 28 October, was reviewed on 3 November and skipped.
+A daily watch of public notebooks runs until 10 November and flags any claim of 0.485 or more. Analogue propagation on the 0.477 base scored 0.477 (no change). Before it, single settings of the E006 family look tuned
 (promotion threshold swept upstream, engine-2 weight 0.8 lost 0.009, forward models already at 1.0, a neural re-rank at
 weight 0.50 lost 0.021) and the de novo route failed offline, while the public lineage gained $+0.044$ in a week (0.421 to
 0.465), then $+0.012$ more to 0.477. The cheapest lever left is a daily check of new public notebooks,
