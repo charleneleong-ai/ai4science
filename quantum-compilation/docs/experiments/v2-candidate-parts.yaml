@@ -1,0 +1,35 @@
+# Provenance for candidate v2, assembled byte-for-byte from maoxin123's public notebook output and
+# re-scored locally with the official verifiers (seed 0). Hand-written: unlike 57834335-parts.yaml
+# there is no parts manifest to generate it from. We wrote none of these circuits or weights.
+source_notebook_url: https://www.kaggle.com/code/maoxin123/lb-24-94-chem-weight-refit-on-syed-loaders
+source_notebook_version: '2'
+source_last_run: '2026-11-04T22:42:47Z'
+source_statement: "The code and weights here are Apache-2.0. Each circuit keeps its authors' terms."
+local_zip: ~/quantum-compilation-data/submissions/v2/submission.zip
+local_score_seed0: 24.94110
+parts:
+  invsqrt:
+    file_sha256: c17971aff984830dc68f4f1459cdc549fd2637dc656bc7d3d70aeabc7c8eb775
+    author: yoyobar
+    source: https://www.kaggle.com/code/yoyobar/lb-22-99-invsqrt-101-62-qubits
+    licence: public Kaggle notebook (Apache-2.0 under Kaggle's terms for public notebooks)
+    qubits: 62
+    our_measurement: {status: PASS, cost: 97746.848, ratio: 21.2465}
+  dqi:
+    file_sha256: b4bbf86d504e2452c8185ec882e0cf7a8ba9401a4bfa69f71f18b4fc6d9c599c
+    author: Syed Asad Ali's decoder with MAIDANG's (daifanhao) retained-product chains
+    source: https://www.kaggle.com/code/daifanhao/lb-24-94096-c44-and-exact-dqi-product-reuse
+    licence: public Kaggle notebook (Apache-2.0 under Kaggle's terms for public notebooks)
+    qubits: 892
+    our_measurement: {status: PASS, cost: 3.7476772e+11, ratio: 65.2123}
+  dfthcsos:
+    shape: {R: 8, B: 143, C: 44, brot: 8}
+    author: syed3000's table, words and 15 angle circuits; W and H2_I refit by maoxin123 from Isabe11aM00re's weights
+    source: https://www.kaggle.com/code/syed3000/vqcc-own-circuit-portfolio-notebook (Apache-2.0)
+    licence: Apache-2.0 (circuits per syed3000; weights per maoxin123's statement)
+    qubits: 427
+    our_measurement: {status: PASS, cost: 2.9966734e+08, ratio: 11.1977}
+    source_reported_lambda_eff: 46.8927604  # our `vqcc chem` refuses this npz: it omits `brot`, which the verifier defaults
+not_used: >-
+  Heliosli's 24.94165 portfolio, +0.00055 over this one, takes all three parts through
+  ahmedberatozer/vqcc-v23-portfolio, a dataset licensed "other"; this candidate avoids that hop.

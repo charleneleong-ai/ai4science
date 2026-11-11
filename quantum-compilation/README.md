@@ -39,6 +39,9 @@ our parts on every task: dfthcsos (8, 143, 44) at lambda_eff 46.893, T 14,966, Q
 ratio 11.198 vs 9.934); dqi −6.8%; invsqrt −2.9%. The rumoured (9, 143, 40) shape is a raw
 intermediate, not a submission. Its chemistry weights descend from a dataset licensed "other", so
 reuse is unresolved — see `r5` in [`verdicts.yaml`](docs/experiments/verdicts.yaml).
+The same portfolio on an all-Apache-2.0 path, maoxin123's notebook output, is assembled as candidate
+v2 at **24.94110** locally (×1.0759 over our 23.18119), not yet submitted — provenance in
+[`v2-candidate-parts.yaml`](docs/experiments/v2-candidate-parts.yaml), verdict `r6`.
 
 Read off the competition's own public leaderboard, snapshotted at
 [`docs/experiments/leaderboard-2026-10-31.json`](docs/experiments/leaderboard-2026-10-31.json)

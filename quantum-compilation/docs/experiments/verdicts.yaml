@@ -406,3 +406,23 @@ experiments:
       Cost: ~3 CPU-minutes, no submissions.
     verdict: KEEP
     pr: 105
+  - name: r6-assemble-the-apache-public-best
+    date: 2026-11-08
+    baseline: our submitted 23.18119 blend (submission 57834335)
+    gate: >-
+      every part traced to a source that states Apache-2.0 (or is a public Kaggle notebook), byte
+      hashes matching the source's own, all three official verifiers PASS locally, and a local
+      blend above ours by more than seed noise
+    result: >-
+      **Assembled at 24.94110 locally (x1.0759 over 23.18119), every part on an Apache-2.0 path.**
+      Licence check: Heliosli's dataset is Apache-2.0, but its notebook routes all three parts
+      through ahmedberatozer/vqcc-v23-portfolio (licence "other"); maoxin123's notebook, the
+      upstream those parts were refit from, states "The code and weights here are Apache-2.0" and
+      builds only on public notebooks (syed3000 Apache-2.0, yoyobar, daifanhao). Its output
+      re-verifies here at 24.94110 against its own 24.94109: invsqrt c17971af 21.2465, dqi
+      b4bbf86d 65.2123, dfthcsos (8, 143, 44) 11.1977. Heliosli's +0.00055 is not worth the
+      "other" hop. Provenance in v2-candidate-parts.yaml. The competition rules allow public
+      external data and code shared with all participants. Not submitted yet.
+      Not established: the leaderboard score (maoxin123's notebook title reports LB 24.94).
+    verdict: KEEP
+    pr: 105
