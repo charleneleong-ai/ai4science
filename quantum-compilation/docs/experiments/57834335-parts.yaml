@@ -4,8 +4,11 @@
 # do not hand-edit.
 #
 # We wrote none of these circuits. `author` published the part and `core_author` records the
-# lineage behind it. Only `our_measurement` and `constraint_margins` are ours -- every other
-# per-part field is copied from the dataset's manifest and is the part author's own report.
+# lineage behind it. Only `our_measurement`, `constraint_margins` and `J` are ours -- every
+# other per-part field is copied from the dataset's manifest and is the part author's own
+# report. `J`, the angle-word register count, is the one shape field a manifest may omit, so
+# it is read from our own verifier report, which states it as `batch_size` and again as
+# `angles_persistent_qubits = J * brot`; a manifest that does state it must agree.
 #
 # In `constraint_margins`, `fraction_of_limit_used` is closeness-to-rejection in both
 # directions, so 1.0 means sitting exactly on the limit whether it is a cap or a floor.
@@ -62,6 +65,7 @@ parts:
     R: 8
     B: 143
     C: 60
+    J: 5
     brot: 8
     KEEP_BITS: 10
     Lambda: 299.8235492197524

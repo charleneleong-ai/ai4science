@@ -1,5 +1,6 @@
 import json
 import math
+from functools import partial
 from itertools import pairwise
 from pathlib import Path
 from typing import Any
@@ -9,7 +10,12 @@ import yaml
 from quantum_compilation.cost import (
     BASELINE_FACTORIZATION,
     DEFAULT_CALIBRATION,
+    ESCAPE_SCORE,
+    AngleFamily,
+    AngleFloorSweep,
+    and_counting_floor,
     DFTHCSOS_CONSTRAINTS,
+    FEMOCO_C0,
     MAX_ANGLE_QUBITS,
     MAX_DQI_FAILURE_RATE,
     MAX_HAMILTONIAN_ERROR_HA,
@@ -24,15 +30,25 @@ from quantum_compilation.cost import (
     dfthcsos_rejections,
     dqi_cost,
     dqi_repetition_factor,
+    ShapeResources,
+    blend_factor,
+    cost_cut_for_blend,
     lambda_eff,
+    marginal_blend_per_unit,
+    lambda_eff_floor,
     lcu_vectors,
+    min_lcu_lambda,
     require_task,
     rotation_t_count,
     score,
+    word_registers,
     toffoli_equivalents,
 )
 
 AT_REFERENCE = dict(DEFAULT_CALIBRATION.reference_costs)
+
+# The plateau submission's leaderboard blend, which several classes price against.
+PLATEAU_BLEND = 23.18119
 
 
 EXPERIMENTS_DIR = Path(__file__).parents[1] / "docs" / "experiments"
@@ -49,10 +65,24 @@ def failed_shots(seed: dict[str, Any], shots: int) -> int:
     return round(seed["dqi_detail"]["empirical_error_rate"] * shots)
 
 
+def reference_report(task: str) -> dict:
+    """One shipped verifier's own output, as captured on `sample_submission/`."""
+    return json.loads((Path(__file__).parent / "data" / f"reference_{task}.json").read_text())
+
+
 @pytest.fixture(scope="module")
 def dqi_report() -> dict:
-    """The official dqi verifier's own output, as captured on `sample_submission/`."""
-    return json.loads((Path(__file__).parent / "data" / "reference_dqi.json").read_text())
+    return reference_report("dqi")
+
+
+@pytest.fixture(scope="module")
+def dfthcsos_report() -> dict:
+    return reference_report("dfthcsos")
+
+
+@pytest.fixture(scope="module")
+def reference_resources(dfthcsos_report) -> ShapeResources:
+    return ShapeResources.from_report(dfthcsos_report)
 
 
 class TestRotationPricing:
@@ -158,6 +188,29 @@ class TestCostFunctions:
         assert dfthcsos_cost(430, 2e5, 4.0, 50.0) == pytest.approx(2 * base)
 
 
+class TestLambdaEffFloor:
+    """`D >= -c0`, so `lambda_eff` has a floor -- the bound that closed the refit."""
+
+    def test_the_femoco_floor(self):
+        assert lambda_eff_floor(FEMOCO_C0) == pytest.approx(46.786180, abs=1e-6)
+
+    def test_the_derived_bound_puts_D_at_minus_c0(self):
+        """What makes the floor a floor: at `min_lcu_lambda`, `D` sits exactly at `-c0`."""
+        assert 2 * min_lcu_lambda(FEMOCO_C0) - MIN_E_GAP_HA == pytest.approx(
+            -FEMOCO_C0, rel=1e-15
+        )
+
+    @pytest.mark.parametrize(
+        ("c0", "expected"),
+        [
+            (FEMOCO_C0, 281.523686),  # the derived bound dominates, 5.7x MIN_LAMBDA
+            (-50.0, MIN_LAMBDA),  # a shallow c0 leaves the verifier's rule binding instead
+        ],
+    )
+    def test_the_one_norm_floor_takes_whichever_bound_binds(self, c0, expected):
+        assert min_lcu_lambda(c0) == pytest.approx(expected, abs=1e-6)
+
+
 class TestScore:
     """The geometric mean of the three per-task cost ratios."""
 
@@ -199,6 +252,50 @@ class TestScore:
             score(AT_REFERENCE | {"dqi": cost}, DEFAULT_CALIBRATION)
 
 
+class TestBlendPricing:
+    """Pricing one task's cost change without the other two, and inverting it."""
+
+    def test_agrees_with_the_full_score(self):
+        moved = AT_REFERENCE | {"dqi": AT_REFERENCE["dqi"] / 1.37}
+        direct = score(moved, DEFAULT_CALIBRATION)
+        assert direct == pytest.approx(
+            score(AT_REFERENCE, DEFAULT_CALIBRATION)
+            * blend_factor(moved["dqi"], AT_REFERENCE["dqi"])
+        )
+
+    @pytest.mark.parametrize(
+        ("blend", "target"),
+        [(PLATEAU_BLEND, 25.0), (1.0, 2.0), (40.0, 41.0), (25.0, PLATEAU_BLEND)],
+    )
+    def test_the_cut_it_names_lands_on_the_target(self, blend, target):
+        cut = cost_cut_for_blend(blend, target)
+        assert blend * blend_factor(1.0 - cut, 1.0) == pytest.approx(target)
+        assert (cut < 0) == (target < blend)
+
+    def test_the_per_unit_price_is_the_slope_of_the_factor(self):
+        """What `shape` prints per Toffoli, against the finite difference it approximates."""
+        total = 16266.0
+        step = PLATEAU_BLEND * (blend_factor(total - 1, total) - 1)
+        assert marginal_blend_per_unit(PLATEAU_BLEND, total) == pytest.approx(
+            step, rel=1e-4
+        )
+
+    @pytest.mark.parametrize(
+        ("fn", "args"),
+        [
+            (blend_factor, (0.0, 1.0)),
+            (blend_factor, (1.0, -1.0)),
+            (cost_cut_for_blend, (0.0, 1.0)),
+            (cost_cut_for_blend, (1.0, -1.0)),
+            (marginal_blend_per_unit, (0.0, 1.0)),
+            (marginal_blend_per_unit, (1.0, -1.0)),
+        ],
+    )
+    def test_rejects_non_positive_inputs(self, fn, args):
+        with pytest.raises(ValueError, match="must be positive"):
+            fn(*args)
+
+
 class TestRequireTask:
     """One canonical rejection of an unknown task name, shared by every lookup."""
 
@@ -209,6 +306,50 @@ class TestRequireTask:
 
     def test_returns_the_task_so_it_can_wrap_a_lookup(self):
         assert require_task("dqi") == "dqi"
+
+
+class TestShapeResourcesFromReport:
+    """The T/Q split against the reference submission's own verifier report.
+
+    Runs on a bare clone: the report is committed, so this is the agreement check the
+    closed-form path in `chemistry` cannot make without the 122 MB FCIDUMP.
+    """
+
+    @pytest.mark.parametrize("field", ["toffoli", "qubits", "heuristic_toffoli"])
+    def test_reproduces_the_reported_total(self, reference_resources, dfthcsos_report, field):
+        assert getattr(reference_resources, field) == dfthcsos_report["resources"][field]
+
+    def test_the_angle_share_is_most_of_the_references_toffolis(self, reference_resources):
+        """85% here against 51% for the plateau: the share is a property of the shape."""
+        assert reference_resources.angle_share == pytest.approx(0.8525, abs=5e-4)
+
+    def test_the_workspace_is_a_max_not_a_sum(self, reference_resources):
+        """Both families' temporaries are reported; `Q` counts the larger once."""
+        res = reference_resources
+        assert res.angle_temporary_qubits < res.heuristic_temporary_qubits
+        assert res.qubits < (
+            res.heuristic_persistent_qubits
+            + res.angle_word_qubits
+            + res.heuristic_temporary_qubits
+            + res.angle_temporary_qubits
+        )
+
+    def test_J_is_recovered_from_the_reported_total(self, reference_resources, dfthcsos_report):
+        """`word_registers` inverts `Q_total`; the report states J directly, so it is checkable."""
+        res, resources = reference_resources, dfthcsos_report["resources"]
+        recovered = word_registers(
+            resources["qubits"],
+            res.heuristic_persistent_qubits,
+            res.heuristic_temporary_qubits,
+            resources["brot"],
+        )
+        assert recovered == dfthcsos_report["batch_size"]
+        assert recovered * resources["brot"] == res.angle_word_qubits
+
+    @pytest.mark.parametrize("qubits_total", [90, 731])
+    def test_an_undecomposable_total_is_rejected(self, qubits_total):
+        with pytest.raises(ValueError, match="word registers"):
+            word_registers(qubits_total, 90, 544, 12)
 
 
 class TestChemistryRejections:
@@ -309,10 +450,7 @@ class TestChemistryConstraintMargins:
         assert margins["hamiltonian_error_ha"]["value"] == 19e-3
 
     def test_the_reference_submission_has_headroom_on_every_constraint(self):
-        detail = json.loads(
-            (Path(__file__).parent / "data" / "reference_dfthcsos.json").read_text()
-        )
-        margins = dfthcsos_constraint_margins(detail)
+        margins = dfthcsos_constraint_margins(reference_report("dfthcsos"))
         assert all(0 < m["fraction_of_limit_used"] < 1 for m in margins.values())
         # Lambda is the one constraint nowhere near binding -- the distinction that makes
         # MIN_LAMBDA a Lambda floor rather than a lambda_eff floor.
@@ -389,3 +527,138 @@ class TestSeedNoiseRecord:
         assert set(blends) == {0, 1}, "both a clean and a failed seed are needed to compare"
         assert len(blends[0]) == 1, "zero-failure seeds disagree on the blend"
         assert blends[0] != blends[1], "the failed seed scored the same as the clean ones"
+
+
+# The plateau submission 57834335. The heuristic split is not in the parts record, so those
+# five terms are transcribed -- but the three totals they must reproduce are, and
+# `test_the_fixture_still_matches_the_record` is what catches drift in either direction.
+def output_bit_floor(input_bits: int, num_addresses: int, output_bits: int) -> int:
+    """`and_counting_floor` with its arguments ordered for a sweep over the output width."""
+    return and_counting_floor(output_bits, input_bits + output_bits, num_addresses)
+
+
+PARTS = yaml.safe_load((EXPERIMENTS_DIR / "57834335-parts.yaml").read_text())["parts"]["dfthcsos"]
+INCUMBENT = ShapeResources(
+    outer_toffoli=369,
+    inner_toffoli=5311,
+    givens_toffoli=2250,
+    heuristic_persistent_qubits=86,
+    heuristic_temporary_qubits=304,
+    angle_toffoli=float(PARTS["T_angles"]),
+    angle_word_qubits=40,
+    angle_temporary_qubits=75,
+)
+SUBMITTED_FAMILY = AngleFamily.from_resources(
+    INCUMBENT, int(PARTS["brot"]), lcu_vectors(int(PARTS["R"]), int(PARTS["B"]))
+)
+SUBMITTED_ANDS = SUBMITTED_FAMILY.ands_for_toffoli(INCUMBENT.angle_toffoli)
+
+
+# The sweep as the CLI builds it, off the five transcribed heuristic terms, and as the artifact
+# builder builds it, off the committed record alone. They must agree to the last digit: the
+# page has no verifier on its path and so cannot check its own numbers.
+SWEEP = AngleFloorSweep.over(
+    INCUMBENT, int(PARTS["brot"]), SUBMITTED_FAMILY.num_addresses, PLATEAU_BLEND
+)
+RECORD_SWEEP = AngleFloorSweep.over(
+    ShapeResources.from_parts_record(PARTS),
+    int(PARTS["brot"]),
+    SUBMITTED_FAMILY.num_addresses,
+    PLATEAU_BLEND,
+)
+
+
+class TestAngleLoaderFloor:
+    """The counting floor on the loaders, and the batch size it turns into a lever."""
+
+    def test_the_fixture_still_matches_the_record(self):
+        """The five transcribed heuristic terms, checked against the totals that are recorded."""
+        assert INCUMBENT.toffoli == PARTS["T_total"]
+        assert INCUMBENT.qubits == PARTS["Q_total"]
+        assert SUBMITTED_FAMILY.num_circuits == 15
+        assert SUBMITTED_FAMILY.address_bits == 11
+
+    def test_the_recorded_batch_size_agrees_with_what_the_total_implies(self):
+        """`J` is ours, written by the generator, so the third party's `Q_total` audits it."""
+        assert int(PARTS["J"]) == SUBMITTED_FAMILY.batch_size
+        assert int(PARTS["J"]) == word_registers(
+            int(PARTS["Q_total"]),
+            INCUMBENT.heuristic_persistent_qubits,
+            INCUMBENT.heuristic_temporary_qubits,
+            int(PARTS["brot"]),
+        )
+
+    def test_the_submitted_loaders_sit_above_the_floor_but_well_under_twice_it(self):
+        """What makes this a floor worth quoting: the loaders are already close to it."""
+        assert SUBMITTED_FAMILY.and_floor == 157
+        assert 1.0 < SWEEP.rate < 2.0
+
+    def test_granting_the_word_registers_as_inputs_lowers_the_floor(self):
+        """They arrive holding a function of the address, so a bound must allow their use."""
+        assert SUBMITTED_FAMILY.and_floor < SUBMITTED_FAMILY.address_only_floor == 191
+
+    @pytest.mark.parametrize(
+        ("floor_of", "sizes"),
+        [
+            (partial(and_counting_floor, 40, 51), range(200, 2001, 200)),
+            (partial(output_bit_floor, 11, 1220), range(8, 129, 8)),
+        ],
+        ids=["addresses", "output_bits"],
+    )
+    def test_the_floor_grows_with_the_table_it_has_to_encode(self, floor_of, sizes):
+        assert all(a < b for a, b in pairwise([floor_of(n) for n in sizes]))
+
+    @pytest.mark.parametrize("bits", [(0, 11, 1220), (40, 0, 1220), (40, 11, 0), (-40, 11, 1220)])
+    def test_a_degenerate_shape_is_rejected_rather_than_returning_a_floor(self, bits):
+        with pytest.raises(ValueError, match="positive"):
+            and_counting_floor(*bits)
+
+    def test_the_width_cap_is_what_bounds_the_batch_size(self):
+        """J=14 is the widest legal batching at brot=8: 11 + 112 fits 128, J=15 does not."""
+        brot, addresses = SUBMITTED_FAMILY.brot, SUBMITTED_FAMILY.num_addresses
+        assert AngleFamily(14, brot, addresses).feasible
+        assert not AngleFamily(15, brot, addresses).feasible
+        assert [row.batch_size for row in SWEEP.rows] == list(range(1, 15))
+
+    def test_re_batching_the_submission_into_its_own_family_changes_nothing(self):
+        """The round trip that keeps the projection honest, exact on every resource term."""
+        same = INCUMBENT.with_angle_family(
+            SUBMITTED_FAMILY, SUBMITTED_ANDS, INCUMBENT.angle_temporary_qubits
+        )
+        assert same == INCUMBENT
+        assert SWEEP.at(SUBMITTED_FAMILY.batch_size).at_model == pytest.approx(PLATEAU_BLEND)
+
+    def test_the_floor_permits_the_escape_score_once_the_word_inputs_are_granted(self):
+        """The verdict r3 turns on: the loaders are not closed off from the escape band."""
+        assert SWEEP.permits_target
+        assert SWEEP.best_floor.batch_size == 11
+        assert SWEEP.best_floor.at_floor == pytest.approx(25.684, abs=5e-4)
+        assert SWEEP.best_floor.at_floor > ESCAPE_SCORE
+
+    def test_the_pool_model_leaves_re_batching_no_lever(self):
+        """The width cap shrinks the pool as J grows, so re-batching alone is no lever.
+
+        r3 priced J=13 at the submitted multiple of the counting floor and read +1.04 off it;
+        the floor ignores width, and at J=13 the cap leaves 13 workspace qubits for the pool.
+        """
+        assert SUBMITTED_FAMILY.pool_model_ands == pytest.approx(354.3, abs=0.05)
+        assert SWEEP.calibration == pytest.approx(0.784, abs=5e-4)
+        assert SWEEP.best_model.batch_size in {4, SUBMITTED_FAMILY.batch_size}
+        assert SWEEP.best_model.at_model - PLATEAU_BLEND < 0.05
+        assert SWEEP.at(13).at_model - PLATEAU_BLEND < -5
+
+    def test_the_record_alone_prices_the_sweep_exactly_as_the_split_does(self):
+        """What licenses the artifact page: it has no verifier, so the lumping must be free.
+
+        Folding the heuristic workspace into the persistent count is faithful only while that
+        workspace is the larger side of the `max` in `qubits`, which the ANGLE width cap
+        guarantees -- so the second assertion is the reason the first one holds.
+        """
+        for lumped, split in zip(RECORD_SWEEP.rows, SWEEP.rows, strict=True):
+            assert lumped.batch_size == split.batch_size
+            assert lumped.at_floor == pytest.approx(split.at_floor, abs=1e-12)
+            assert lumped.at_model == pytest.approx(split.at_model, abs=1e-12)
+            assert lumped.ands_for_target == pytest.approx(split.ands_for_target, abs=1e-9)
+        assert max(row.family.free_workspace for row in SWEEP.rows) < (
+            INCUMBENT.heuristic_temporary_qubits
+        )

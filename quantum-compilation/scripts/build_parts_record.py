@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -38,8 +39,11 @@ HEADER = """\
 # do not hand-edit.
 #
 # We wrote none of these circuits. `author` published the part and `core_author` records the
-# lineage behind it. Only `our_measurement` and `constraint_margins` are ours -- every other
-# per-part field is copied from the dataset's manifest and is the part author's own report.
+# lineage behind it. Only `our_measurement`, `constraint_margins` and `J` are ours -- every
+# other per-part field is copied from the dataset's manifest and is the part author's own
+# report. `J`, the angle-word register count, is the one shape field a manifest may omit, so
+# it is read from our own verifier report, which states it as `batch_size` and again as
+# `angles_persistent_qubits = J * brot`; a manifest that does state it must agree.
 #
 # In `constraint_margins`, `fraction_of_limit_used` is closeness-to-rejection in both
 # directions, so 1.0 means sitting exactly on the limit whether it is a cap or a floor.
@@ -94,6 +98,25 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def angle_batch_size(detail: Mapping[str, Any]) -> int:
+    """`J`, the angle-word register count, from the verifier's own report.
+
+    Stated twice there -- as `batch_size`, and as `angles_persistent_qubits = J * brot` -- so
+    taking the first and checking it against the second gives the field a witness. Everything
+    downstream that prices a re-batching needs `J` and cannot recover it from a manifest that
+    does not report it.
+    """
+    resources = detail["resources"]
+    batch, brot = int(detail["batch_size"]), int(resources["brot"])
+    words = int(resources["angles_persistent_qubits"])
+    if batch * brot != words:
+        raise ValueError(
+            f"report says batch_size={batch} and brot={brot}, so {batch * brot} angle-word "
+            f"qubits, but angles_persistent_qubits is {words}"
+        )
+    return batch
+
+
 def part_record(row: dict[str, str], verdict: dict[str, Any], task: str, file_sha: str) -> dict[str, Any]:
     # For the single-circuit tasks the verifier hashed the same bytes we just did, so a
     # mismatch means the record would describe a file the verifier never saw.
@@ -104,6 +127,11 @@ def part_record(row: dict[str, str], verdict: dict[str, Any], task: str, file_sh
         )
     record: dict[str, Any] = {"submitted_file_sha256": file_sha}
     fields = CARRY + (CHEM_EXTRA if task == "dfthcsos" else ())
+    if task == "dfthcsos":
+        measured = angle_batch_size(verdict["detail"])
+        if (stated := row.get("J", "").strip()) and int(stated) != measured:
+            raise ValueError(f"manifest reports J={stated}, our verifier run measured {measured}")
+        row = row | {"J": str(measured)}
     record |= {f: typed(f, row[f]) for f in fields if row.get(f, "").strip()}
     record["our_measurement"] = {
         "status": verdict["status"],

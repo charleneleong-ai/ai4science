@@ -12,25 +12,45 @@ from __future__ import annotations
 import time
 from collections.abc import Iterator, Sequence
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import kickmix as km
 import typer
+import yaml
 from rich.console import Console
 from rich.progress import Progress
 from rich.table import Table
 
 from quantum_compilation import verify as verifier
+from quantum_compilation.chemistry import ChemistryMetrics, ChemistryScreen
 from quantum_compilation.cost import (
     DEFAULT_CALIBRATION,
+    ESCAPE_SCORE,
+    FEMOCO_C0,
+    MAX_ANGLE_QUBITS,
+    MAX_BROT,
+    MIN_BROT,
     TASKS,
+    AngleFamily,
+    AngleFloorSweep,
     MetricCalibration,
+    ShapeResources,
+    blend_factor,
+    cost_cut_for_blend,
     dfthcsos_rejections,
+    lambda_eff_floor,
+    lcu_vectors,
+    marginal_blend_per_unit,
     require_task,
     score,
     task_ratio,
 )
-from quantum_compilation.submission import CIRCUIT_SUFFIXES, Resources, SubmissionAudit
+from quantum_compilation.submission import (
+    CHEMISTRY_DIR,
+    CIRCUIT_SUFFIXES,
+    Resources,
+    SubmissionAudit,
+)
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 console = Console()
@@ -113,6 +133,131 @@ def print_costs(costs: dict[str, float], calibration: MetricCalibration) -> None
         console.print(f"\n[bold]score {score(costs, calibration):.5f}[/]")
     else:
         console.print(f"[yellow]no score[/] -- needs all of {TASKS}, have {sorted(costs)}")
+
+
+def share_table(
+    unit: str, whole: str, total: float, rows: Sequence[tuple[str, float, str]]
+) -> Table:
+    """A term/value/share-of-total table, closed by the bolded total itself.
+
+    Shared by the `T` and `Q` tables, which were otherwise the same loop twice. The two
+    float-valued share tables above stay as they are: routing them through here would cost a
+    value-format and an optional-column parameter, which is more than the repetition.
+    """
+    table = Table("term", unit, f"share of {whole}", "bought with")
+    for name, value, note in rows:
+        table.add_row(name, f"{value:,.0f}", f"{value / total:.2%}", note)
+    table.add_row(f"[bold]{whole}_total[/]", f"[bold]{total:,.0f}[/]", "", "")
+    return table
+
+
+def print_chem_metrics(metrics: ChemistryMetrics) -> None:
+    """The screened metrics, then the terms behind `Lambda` and the gap."""
+    table = Table("metric", "value", "reads")
+    for name, value, reads in (
+        ("error_1", f"{metrics.error_1:.9f}", "one-body residual"),
+        ("error_2", f"{metrics.error_2:.9f}", "two-body Frobenius residual"),
+        ("E_gap", f"{metrics.e_gap:.9f}", "E_upper - E_SOS"),
+        ("Lambda", f"{metrics.one_norm:.6f}", "LCU one-norm"),
+        ("lambda_eff", f"{metrics.lambda_eff:.6f}", "sqrt(E_gap * D)"),
+        ("D = 2*Lambda - E_gap", f"{metrics.gap_product:.6f}", "what the score turns on"),
+        ("0.5 * sum(W^2)", f"{metrics.half_sum_w2:.6f}", "raises E_gap, lowers D"),
+        ("c0", f"{metrics.c0:.6f}", "fixed by the reference Hamiltonian"),
+    ):
+        table.add_row(name, value, reads)
+    console.print(table)
+
+    split = Table("term of Lambda", "value", "share")
+    for name, value in (
+        ("lambda_h2", metrics.lambda_h2),
+        ("positive eigen mass", metrics.positive_mass),
+        ("negative eigen mass", metrics.negative_mass),
+    ):
+        split.add_row(name, f"{value:.6f}", f"{value / metrics.one_norm:.2%}")
+    console.print(split)
+
+
+def print_chem_headroom(metrics: ChemistryMetrics) -> None:
+    """How much of `D` a factorization search can actually move.
+
+    `D = 2P + 2 * two_body_excess - c0` with both leading terms non-negative, so `-c0` is a
+    floor no refit can cross. Printed on every screen because it is the number that decides
+    whether a candidate chemistry direction is worth any compute at all.
+    """
+    table = Table("term of D", "value", "share")
+    for name, value in (
+        ("movable: 2P + 2*excess", metrics.movable_mass),
+        ("fixed: -c0", -metrics.c0),
+    ):
+        table.add_row(name, f"{value:.6f}", f"{value / metrics.gap_product:.2%}")
+    console.print(table)
+    console.print(
+        f"lambda_eff floor [bold]{lambda_eff_floor(metrics.c0):.6f}[/] against "
+        f"{metrics.lambda_eff:.6f} -- the whole factorization search is worth "
+        f"[bold]{metrics.lambda_eff_headroom:.3%}[/]"
+    )
+
+
+def read_parts(
+    parts: Path, verifiers: Path
+) -> tuple[dict[str, Any], ChemistryScreen, ShapeResources]:
+    """A submission's chemistry record, a screen over the verifier, and the priced resources.
+
+    The `["parts"][CHEMISTRY_DIR]` key path and the order of these three steps are the same
+    for every command that prices a recorded submission, so they live here rather than in each.
+    """
+    part = yaml.safe_load(parts.read_text())["parts"][CHEMISTRY_DIR]
+    screen = ChemistryScreen(verifiers)
+    return part, screen, screen.resources_from_record(part)
+
+
+def print_shape_resources(res: ShapeResources, blend: float, target: float) -> None:
+    """Where `T` and `Q` go, then what a point of blend costs in each.
+
+    Printed together on purpose: the shares say which of the two is worth attacking, and the
+    prices say whether the attack can reach a stated target at all.
+    """
+    shape, free = "the shape (R, B, C)", "nothing -- submitted circuits"
+    console.print(
+        share_table(
+            "Toffolis",
+            "T",
+            res.toffoli,
+            [
+                ("ANGLE circuits", res.angle_toffoli, free),
+                ("inner state prep", res.inner_toffoli, shape),
+                ("Givens rotations", res.givens_toffoli, "brot"),
+                ("outer state prep", res.outer_toffoli, shape),
+            ],
+        )
+    )
+    console.print(
+        share_table(
+            "qubits",
+            "Q",
+            res.qubits,
+            [
+                ("shared workspace", res.heuristic_temporary_qubits, shape),
+                ("persistent state prep", res.heuristic_persistent_qubits, shape),
+                ("angle-word registers", res.angle_word_qubits, "brot"),
+            ],
+        )
+    )
+
+    cut = cost_cut_for_blend(blend, target)
+    console.print(
+        f"\none Toffoli [bold]{marginal_blend_per_unit(blend, res.toffoli):+.6f}[/] blend, "
+        f"one qubit [bold]{marginal_blend_per_unit(blend, res.qubits):+.6f}[/]"
+    )
+    console.print(
+        f"{blend:.5f} -> {target:g} needs [bold]{cut:.2%}[/] off the chemistry cost: "
+        f"{res.toffoli * cut:,.0f} Toffolis, or {res.qubits * cut:,.1f} qubits, or both"
+    )
+    reach = res.angle_cut_for(cut)
+    verdict = "reachable" if reach <= 1 else "[red]out of reach[/]"
+    console.print(
+        f"from the free share alone: ANGLE loaders [bold]{reach:.2%}[/] cheaper -- {verdict}"
+    )
 
 
 def agreement_cell(result: verifier.Verification) -> str:
@@ -312,6 +457,159 @@ def blend(
     calibration = load_calibration(calibration_path)
     print_costs({"invsqrt": invsqrt, "dqi": dqi, "dfthcsos": dfthcsos}, calibration)
     warn_if_unmeasured(calibration)
+
+
+@app.command()
+def chem(
+    factorization: Annotated[Path, typer.Argument(help="A dfthcsos `submission.npz`.")],
+    verifiers: VerifiersOption,
+    toffolis: Annotated[
+        float | None, typer.Option(help="T from a verifier run, to turn lambda_eff into a cost.")
+    ] = None,
+    qubits: Annotated[int | None, typer.Option(help="Q from a verifier run.")] = None,
+) -> None:
+    """Screen a chemistry factorization's constraints without building its circuits.
+
+    Fast enough to search with -- under a second a candidate rather than a minute -- because
+    it reads the submitted angle words instead of recovering them from a simulation. That is
+    also its limit: the verifier scores the words it recovers, and it cannot know T or Q, so
+    this reports a cost only when given them.
+    """
+    metrics = ChemistryScreen(verifiers).evaluate(factorization)
+    print_chem_metrics(metrics)
+    print_chem_headroom(metrics)
+    for reason in metrics.rejected_for:
+        console.print(f"[red]reject[/] {reason}")
+    if not metrics.rejected_for:
+        console.print(
+            "[green]screened constraints ok[/] -- ANGLE widths need the circuits, "
+            "see `vqcc check`"
+        )
+    if toffolis is not None and qubits is not None:
+        cost = fmt_cost(metrics.cost(toffolis, qubits))
+        console.print(f"cost with T={toffolis:,.0f} Q={qubits}: {cost}")
+
+
+@app.command()
+def shape(
+    parts: Annotated[
+        Path, typer.Argument(help="A submission's parts record, e.g. docs/experiments/*-parts.yaml.")
+    ],
+    verifiers: VerifiersOption,
+    blend: Annotated[float, typer.Option(help="The blend this submission scores.")],
+    target: Annotated[float, typer.Option(help="The blend to price the gap to.")] = ESCAPE_SCORE,
+    sweep_brot: Annotated[
+        bool, typer.Option("--sweep-brot", help="Also cost every brot the model admits.")
+    ] = False,
+) -> None:
+    """Split `T` and `Q` into the part a factorization buys and the part it compiles for free.
+
+    Reads the shape, `brot` and the ANGLE Toffoli mean from the record of what was submitted,
+    and derives the word-register count `J` from its `Q_total`. Only the heuristic half is
+    modelled, so `--sweep-brot` costs nothing.
+    """
+    part, screen, here = read_parts(parts, verifiers)
+    print_shape_resources(here, blend, target)
+    if not sweep_brot:
+        return
+
+    # lambda_eff and the ANGLE mean are both held fixed -- the first drops out of a ratio of
+    # costs, the second is a property of the loaders rather than of the model -- so this ranks
+    # the heuristic half alone, with no chemistry and no circuits.
+    shape_args = (int(part["R"]), int(part["B"]), int(part["C"]))
+    table = Table("brot", "T", "Q", "workspace", "blend", "delta")
+    for candidate in range(MIN_BROT, MAX_BROT + 1):
+        try:
+            res = screen.resources(
+                *shape_args,
+                candidate,
+                angle_toffoli=here.angle_toffoli,
+                angle_word_registers=here.angle_word_qubits // int(part["brot"]),
+            )
+        except ValueError as exc:
+            table.add_row(str(candidate), f"[yellow]{exc}[/]", "", "", "", "")
+            continue
+        moved = res.blend_from(blend, here)
+        table.add_row(
+            str(candidate),
+            f"{res.toffoli:,.0f}",
+            f"{res.qubits:,}",
+            f"{res.heuristic_temporary_qubits:,}",
+            f"{moved:.5f}",
+            f"{moved - blend:+.4f}",
+        )
+    console.print(table)
+
+
+@app.command("angle-floor")
+def angle_floor(
+    parts: Annotated[
+        Path, typer.Argument(help="A submission's parts record, e.g. docs/experiments/*-parts.yaml.")
+    ],
+    verifiers: VerifiersOption,
+    blend: Annotated[float, typer.Option(help="The blend this submission scores.")],
+    target: Annotated[float, typer.Option(help="The blend to test the loaders against.")] = ESCAPE_SCORE,
+    max_batch: Annotated[int, typer.Option(help="Largest batch size J to cost.")] = 16,
+) -> None:
+    """What the ANGLE loaders can cost at each batch size, against the AND counting floor.
+
+    Three readings per batching, because they answer different questions. `at floor` is the
+    counting bound, which nothing can beat. `at model` prices the construction the submitted
+    loaders use, calibrated to their measured AND count, whose pool the width cap shrinks as
+    `J` grows -- what re-batching alone would buy. `for target` is the rate a family would
+    have to reach instead. Only the three ANGLE resource terms move, so no accuracy changes
+    and no verifier runs.
+    """
+    part, _, here = read_parts(parts, verifiers)
+    addresses = lcu_vectors(int(part["R"]), int(part["B"]))
+    brot = int(part["brot"])
+    sweep = AngleFloorSweep.over(here, brot, addresses, blend, target, max_batch)
+    submitted = sweep.submitted
+    console.print(
+        f"submitted: J={submitted.batch_size}, {submitted.num_circuits} circuits over "
+        f"{addresses:,} addresses, {sweep.measured_ands:,.1f} AND gates each against a floor "
+        f"of {submitted.and_floor} = [bold]{sweep.rate:.3f}x[/] the counting bound"
+    )
+
+    columns = ("J", "K", "ws", "floor", "at floor", "at model", "gain", f"ANDs for {target:g}")
+    table = Table(*columns)
+    for size in range(1, max_batch + 1):
+        head = [str(size), str(AngleFamily(size, brot, addresses).num_circuits)]
+        row = sweep.at(size)
+        if row is None:
+            reason = f"[yellow]over {MAX_ANGLE_QUBITS} qubits[/]"
+            table.add_row(*head, reason, *[""] * (len(columns) - len(head) - 1))
+            continue
+        table.add_row(
+            *head,
+            f"{row.family.free_workspace:,}",
+            f"{row.family.and_floor:,}",
+            f"{row.at_floor:.5f}",
+            f"{row.at_model:.5f}",
+            f"{row.at_model - blend:+.4f}",
+            f"{row.ands_for_target:,.0f} = {row.target_over_floor:.2f}x"
+            if row.reaches_target
+            else "[yellow]unreachable[/]",
+        )
+    console.print(table)
+
+    best_floor, best_model = sweep.best_floor, sweep.best_model
+    verdict = "permits" if sweep.permits_target else "rules out"
+    console.print(
+        f"\nthe floor {verdict} {target:g}: best is J={best_floor.batch_size} at "
+        f"[bold]{best_floor.at_floor:.5f}[/] ({best_floor.at_floor - target:+.4f})"
+    )
+    console.print(
+        f"re-batching alone, by the pool model ({sweep.calibration:.3f}x calibrated): "
+        f"J={best_model.batch_size} -> [bold]{best_model.at_model:.5f}[/] "
+        f"({best_model.at_model - blend:+.4f})"
+    )
+    floored = best_floor.at_floor * blend_factor(
+        lambda_eff_floor(FEMOCO_C0), float(part["lambda_eff"])
+    )
+    console.print(
+        f"with lambda_eff also at its floor: {floored:.5f} ({floored - target:+.4f} vs {target:g})"
+    )
 
 
 @app.command()

@@ -22,6 +22,7 @@ import html
 import json
 import math
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
@@ -31,14 +32,25 @@ import yaml
 from autoresearch.render import render
 
 from quantum_compilation.cost import (
+    AngleFloorSweep,
     clopper_pearson_upper_bound,
     BASELINE_FACTORIZATION,
     DEFAULT_CALIBRATION,
+    ESCAPE_SCORE,
+    FEMOCO_C0,
+    MAX_ANGLE_QUBITS,
     MAX_DQI_FAILURE_RATE,
+    NUM_ANGLE_WORDS,
     TASKS,
+    ShapeResources,
+    blend_factor,
+    cost_cut_for_blend,
     dfthcsos_constraint_margins,
     dqi_repetition_factor,
+    marginal_blend_per_unit,
+    lambda_eff_floor,
     lcu_vectors,
+    min_lcu_lambda,
     rotation_t_count,
     score,
     task_ratio,
@@ -54,16 +66,30 @@ SEED_RECORD_PATH = EXPERIMENTS_DIR / "57834335-seeds.yaml"
 OUTPUT_PATH = PROJECT_ROOT / "docs" / "artifact" / "index.html"
 PROGRESS_PATH = PROJECT_ROOT / "experiments" / "progress" / "vqcc" / "progress.png"
 
-STATUS_DATE = "2026-10-31"
+STATUS_DATE = "2026-11-02"
 # A bar within this fraction of its limit counts as pinned, for the chart's colouring and for
 # the count the prose quotes. One constant so the two cannot disagree.
 PINNED_FRACTION = 0.999
-# The score that marks the far side of the cliff, for the count of teams that cleared it.
-ESCAPE_SCORE = 25.0
+
 
 # Wall-clock minutes per verifier on 10 CPU cores, and the competition's daily submission
 # budget. Neither is in any result file; the footer declares them as recorded by hand.
 HAND_RECORDED = {"minutes": {"invsqrt": 5.7, "dqi": 2.4, "dfthcsos": 1.0}, "submissions_per_day": 5}
+
+# Read off the submitted ANGLE circuits and off two rebuilds of the same `angle_words`, none of
+# which any result file records: the gate histogram of `angle_k_13.kmb` and the register each
+# of its CX gates targets, and the Toffolis per pass that kickmix's own `init_lookup` and the
+# starter kit's segment-tree QROM cost for that same table. Declared here rather than written
+# into the prose, so the page, the README and the `r3-crack-the-angle-loaders` verdict row
+# quote one source; every ratio between them is computed.
+LOADER_REBUILDS = {
+    "init_lookup_toffoli": 30_690,
+    "qrom_toffoli": 18_270,
+    "circuit_cx": 33_540,
+    "selection_cx": 27_444,
+    "cheapest_circuit_toffoli": 258,
+    "extra_workspace_qubits": 65,
+}
 
 # Self-reported by a competitor in Kaggle discussion topic 754174 on 2026-10-30 and
 # re-verified by them, not by us. Five significant figures, which bounds how finely the
@@ -241,11 +267,30 @@ def is_pinned(margin: dict[str, Any]) -> bool:
     return margin["fraction_of_limit_used"] > PINNED_FRACTION
 
 
+def binding_margin(key: str, margin: dict[str, Any]) -> dict[str, Any]:
+    """`margin`, with `lcu_lambda` re-based onto the floor that actually binds it.
+
+    The constraint table carries `MIN_LAMBDA = 49.0` because that is the verifier's rejection
+    rule, and `dfthcsos_rejections` must mirror the verifier. But it never binds: `cost`'s
+    `min_lcu_lambda` is 281.52 for this reference, so plotting against 49.0 draws the one-norm
+    with 84% headroom when it has 6.1% -- the least of the four, not the most.
+    """
+    if key != "lcu_lambda":
+        return margin
+    floor = min_lcu_lambda(FEMOCO_C0)
+    return margin | {
+        "limit": floor,
+        "fraction_of_limit_used": floor / margin["value"],
+        "note": f"derived; the {margin['limit']:g} rule never binds",
+    }
+
+
 def constraint_label(key: str, margin: dict[str, Any]) -> str:
     """"E_gap vs 3.914898 floor" -- the limit and its direction read off the record itself."""
     word = "cap" if margin["sense"] == "at_or_below" else "floor"
     limit = margin["limit"]
-    return f"{QUANTITY_LABELS[key]} vs {limit:g} {word}"
+    note = f" ({margin['note']})" if "note" in margin else ""
+    return f"{QUANTITY_LABELS[key]} vs {limit:.6g} {word}{note}"
 
 
 def svg(width: int, height: int, aria: str, body: str) -> str:
@@ -318,10 +363,12 @@ def field_svg(standing: Standing) -> str:
 def headroom_svg(margins: dict[str, dict[str, Any]]) -> str:
     """How much of each hard constraint the plateau's chemistry parameterisation already spends.
 
-    Two bars sit on their limit and a third is two qubits from its cap, which is the finding:
-    there is very little left to tune inside this factorization, so a further gain has to come
-    from a different one.
+    Two bars sit on their limit, a third is two qubits from its cap, and the fourth -- the
+    one-norm, which looked like the exception -- is at 93.9% of the floor that actually binds
+    it. Nothing is left to tune inside this factorization, and `r1-price-the-factorization-
+    refit` showed a different one cannot pay either: the gain has to come from `T` and `Q`.
     """
+    margins = {key: binding_margin(key, margin) for key, margin in margins.items()}
     order = sorted(margins, key=lambda key: -margins[key]["fraction_of_limit_used"])
     width = 680
     pad_l, pad_r, pad_t, row_h = 300, 86, 30, 46
@@ -414,6 +461,118 @@ def repetition_svg(dqi: TaskReport) -> str:
     )
 
 
+def toffoli_split_svg(entries: Sequence[tuple[str, float, float]]) -> str:
+    """One stacked bar per submission: the ANGLE Toffolis, then the heuristic ones.
+
+    Both on a shared scale, because the comparison that matters is absolute -- the plateau did
+    not merely shift the ratio, it cut the total by 5.7x. The ANGLE segment is the accented one
+    because it is the only part a submission can lower without spending accuracy.
+    """
+    width, bar_h, gap, pad_l, pad_r = 680, 46, 52, 150, 150
+    plot = width - pad_l - pad_r
+    scale = plot / max(free + bought for _, free, bought in entries)
+    rows = []
+    for index, (label, free, bought) in enumerate(entries):
+        y = index * (bar_h + gap) + 20
+        w_free, w_bought = free * scale, bought * scale
+        rows.append(
+            f'<text x="{pad_l - 14}" y="{y + 28}" text-anchor="end" class="cl">{label}</text>'
+            f'<rect x="{pad_l}" y="{y}" width="{w_free:.1f}" height="{bar_h}" rx="4" '
+            f'fill="var(--accent)"/>'
+            f'<rect x="{pad_l + w_free:.1f}" y="{y}" width="{w_bought:.1f}" height="{bar_h}" '
+            f'rx="4" fill="var(--neutral-mark)" fill-opacity="0.45"/>'
+            f'<text x="{pad_l + 12}" y="{y + 29}" class="cvi">{free / (free + bought):.0%}</text>'
+            f'<text x="{pad_l + w_free + w_bought + 12:.1f}" y="{y + 21}" class="cv">'
+            f"{free + bought:,.0f}</text>"
+            f'<text x="{pad_l + w_free + w_bought + 12:.1f}" y="{y + 39}" class="ct">'
+            f"{free:,.0f} free + {bought:,.0f} bought</text>"
+        )
+    legend = (
+        f'<text x="{pad_l}" y="{len(entries) * (bar_h + gap) + 14}" class="ct">'
+        "accented: ANGLE circuits, which cost no accuracy &#183; grey: fixed by the shape and brot"
+        "</text>"
+    )
+    return svg(
+        width,
+        len(entries) * (bar_h + gap) + 24,
+        "Half of the plateau submission's Toffoli count is ANGLE circuits, which cost no "
+        "accuracy budget",
+        "".join(rows) + legend,
+    )
+
+
+def angle_floor_svg(sweep: AngleFloorSweep) -> str:
+    """Blend against batch size, at the AND counting floor and by the calibrated pool model.
+
+    Two lines on one scale because they diverge: the floor ignores width and rises with `J`,
+    while the construction the loaders use loses its pool to the word registers and falls.
+    The window is taken from the data, including the two reference rules, so nothing plotted
+    can fall outside it.
+    """
+    width, height = 680, 360
+    pad_l, pad_r, pad_t, pad_b = 66, 26, 26, 62
+    plot_w, plot_h = width - pad_l - pad_r, height - pad_t - pad_b
+    plotted = [v for row in sweep.rows for v in (row.at_floor, row.at_model)]
+    y_lo = math.floor(min(*plotted, sweep.blend, sweep.target) * 2) / 2
+    y_hi = math.ceil(max(*plotted, sweep.blend, sweep.target) * 2) / 2
+    x_lo, x_hi = sweep.rows[0].batch_size, sweep.rows[-1].batch_size
+
+    def place(batch: int, value: float) -> tuple[float, float]:
+        return (
+            pad_l + (batch - x_lo) / (x_hi - x_lo) * plot_w,
+            pad_t + plot_h - (value - y_lo) / (y_hi - y_lo) * plot_h,
+        )
+
+    def line(points: Sequence[tuple[float, float]], colour: str) -> str:
+        path = " ".join(
+            f"{'M' if step == 0 else 'L'}{x:.1f} {y:.1f}" for step, (x, y) in enumerate(points)
+        )
+        dots = "".join(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="{colour}"/>' for x, y in points
+        )
+        return f'<path d="{path}" fill="none" stroke="{colour}" stroke-width="3"/>{dots}'
+
+    x_right = pad_l + plot_w
+    target_y, blend_y = place(x_lo, sweep.target)[1], place(x_lo, sweep.blend)[1]
+    best = sweep.best_floor
+    bx, by = place(best.batch_size, best.at_floor)
+    grid = "".join(
+        hgrid(pad_l, x_right, place(x_lo, tick)[1], f"{tick:.0f}")
+        for tick in range(math.ceil(y_lo), math.floor(y_hi) + 1)
+    )
+    ticks = "".join(
+        f'<text x="{place(row.batch_size, y_lo)[0]:.1f}" y="{height - 34}" '
+        f'text-anchor="middle" class="ct">{row.batch_size}</text>'
+        for row in sweep.rows
+    )
+    return svg(
+        width,
+        height,
+        "Blend against the ANGLE batch size, at the AND counting floor and by the calibrated "
+        "pool model, with the escape score marked",
+        grid
+        + ticks
+        + f'<line x1="{pad_l}" y1="{target_y:.1f}" x2="{x_right}" y2="{target_y:.1f}" '
+        'class="pole"/>'
+        + f'<text x="{x_right - 6:.1f}" y="{target_y + 19:.1f}" text-anchor="end" class="cl2">'
+        f"escape band, {sweep.target:g}</text>"
+        + f'<line x1="{pad_l}" y1="{blend_y:.1f}" x2="{x_right}" y2="{blend_y:.1f}" '
+        'class="marker"/>'
+        + f'<text x="{x_right - 6:.1f}" y="{blend_y + 18:.1f}" text-anchor="end" class="ct">'
+        f"submitted, {sweep.blend:.2f}</text>"
+        + line([place(row.batch_size, row.at_floor) for row in sweep.rows], "var(--accent)")
+        + line([place(row.batch_size, row.at_model) for row in sweep.rows], "var(--warn)")
+        + f'<text x="{bx + 10:.1f}" y="{by - 8:.1f}" class="cv">'
+        f"J={best.batch_size}, {best.at_floor:.2f}</text>"
+        + "".join(
+            f'<text x="{pad_l + 8}" y="{pad_t + plot_h - 9 - 18 * row:.1f}" class="ct">{label}</text>'
+            for row, label in enumerate(("warm: pool model, calibrated", "accent: counting floor"))
+        )
+        + f'<text x="{pad_l + plot_w / 2:.0f}" y="{height - 8}" text-anchor="middle" '
+        'class="cax">J, angle-word registers per circuit</text>',
+    )
+
+
 def angle_share_svg(report: TaskReport) -> str:
     """Two true partitions: what the ANGLE circuits are of the Toffolis, and of the width.
 
@@ -422,18 +581,13 @@ def angle_share_svg(report: TaskReport) -> str:
     bars show the Toffoli partition and the persistent-qubit partition, and the prose below
     carries the max.
     """
-    resources = report.detail["resources"]
+    res = ShapeResources.from_report(report.detail)
     bars = [
-        (
-            "Toffolis",
-            float(resources["angles_toffoli"]),
-            float(resources["toffoli"]),
-            "of all Toffolis",
-        ),
+        ("Toffolis", res.angle_toffoli, res.toffoli, "of all Toffolis"),
         (
             "Persistent qubits",
-            float(resources["angles_persistent_qubits"]),
-            float(resources["persistent_qubits"]),
+            float(res.angle_word_qubits),
+            float(res.heuristic_persistent_qubits + res.angle_word_qubits),
             "of persistent width",
         ),
     ]
@@ -907,12 +1061,12 @@ class Artifact:
       limit, measured by our own verifier over the submitted files and recorded in
       <code>{PARTS_PATH.name}</code>. Amber is pinned, meaning within
       {(1 - PINNED_FRACTION) * 100:.1f}% of the limit: {" and ".join(pinned)}. The
-      ANGLE width has {int(angle["limit"]) - int(angle["value"])} qubits of room and the
-      one-norm Λ has a great deal, sitting {lcu["value"] / lcu["limit"]:.1f}× its floor — which
-      incidentally settles that
-      <code>MIN_LAMBDA</code> floors Λ and not λ_eff, since this submission&rsquo;s λ_eff of
-      {plateau["lambda_eff"]:.3f} is below that {lcu["limit"]:g} and still
-      passes.</figcaption>
+      ANGLE width has {int(angle["limit"]) - int(angle["value"])} qubits of room. The one-norm
+      is plotted against the floor that binds it, {min_lcu_lambda(FEMOCO_C0):.2f}, and not
+      against <code>MIN_LAMBDA</code>: that rule floors Λ rather than λ_eff — this
+      submission&rsquo;s λ_eff of {plateau["lambda_eff"]:.3f} is below
+      {lcu["limit"]:g} and still passes — but at {lcu["limit"]:g} it never binds, and plotting
+      it there drew Λ with 84% of room it does not have.</figcaption>
     </figure>
     <p>The move this part made is now legible. Its shape is <strong>R={r}, B={b}, C={c}</strong>
     — its author&rsquo;s report, and the shape of the arrays in the <code>submission.npz</code>
@@ -926,9 +1080,12 @@ class Artifact:
     {capacity:,} — and the chart above is where that shows: the accuracy cap the reference
     clears at {ref_error * 100:.0f}% is the one this part is sitting on.
     <strong>Low rank is what the plateau found, and the accuracy cap is what stops it going
-    lower.</strong> Whether a shape exists that is cheaper than R·B&nbsp;=&nbsp;{r * b:,} and
-    still under the cap is unmeasured; reproducing the cost–precision atlas to find out is the
-    next experiment.</p>
+    lower.</strong> Searching for a cheaper shape than R·B&nbsp;=&nbsp;{r * b:,} was to be the
+    next experiment. It is closed: λ_eff cannot fall below
+    {lambda_eff_floor(FEMOCO_C0):.3f} for <em>any</em> factorization, against this
+    submission&rsquo;s {plateau["lambda_eff"]:.3f} — so the whole search is worth
+    {(1 - lambda_eff_floor(FEMOCO_C0) / plateau["lambda_eff"]) * 100:.2f}% of one of three cost
+    factors, about +0.24 of the +1.82 the blend needs. Why, and what is left, is below.</p>
 """
 
     def what_the_page_omits(self) -> str:
@@ -996,6 +1153,12 @@ class Artifact:
             reference["hamiltonian_error_ha"],
             reference["e_gap_ha"],
         )
+        reference_res = ShapeResources.from_report(dfthcsos.detail)
+        plateau = self.parts["parts"]["dfthcsos"]
+        plateau_free = float(plateau["T_angles"])
+        plateau_bought = float(plateau["T_total"]) - plateau_free
+        blend = self.our_score
+        cut = cost_cut_for_blend(blend, ESCAPE_SCORE)
         return f"""
     <h2>What a chemistry submission actually controls</h2>
     <p class="finding">The ANGLE circuits a submission ships are
@@ -1016,6 +1179,47 @@ class Artifact:
       {resources["outer_state_prep_temporary_qubits"]},
       {resources["inner_state_prep_temporary_qubits"]}).</figcaption>
     </figure>
+    <h2>What one Toffoli is worth, and which ones are for sale</h2>
+    <p class="finding">Driving the verifier&rsquo;s own cost model at the plateau&rsquo;s shape
+    reproduces its recorded T and Q exactly, and splits them: <strong>{plateau_free:,.0f} of the
+    {plateau["T_total"]:,.0f} Toffolis ({plateau_free / plateau["T_total"]:.1%}) are ANGLE
+    circuits</strong>, which a submission writes and so can make cheaper at <em>identical</em>
+    accuracy. The rest is closed-form in <code>(R, B, C)</code> and <code>brot</code>, payable
+    only in accuracy &mdash; and the accuracy is spent, the binding residual at
+    {plateau["constraint_margins"]["hamiltonian_error_ha"]["fraction_of_limit_used"] * 100:.3f}%
+    of its cap.</p>
+    <figure>
+      {toffoli_split_svg([
+          ("reference", reference_res.angle_toffoli, float(reference_res.heuristic_toffoli)),
+          ("plateau (submitted)", plateau_free, plateau_bought),
+      ])}
+      <figcaption>The plateau cut the total 5.7&times; and, in doing so, cut the free share from
+      {reference_res.angle_share:.0%} to {plateau_free / plateau["T_total"]:.0%} &mdash; the
+      heuristic half shrank faster than the loaders did. Reference split read from its own
+      verifier report; the plateau&rsquo;s from
+      <code>T_angles</code>&nbsp;/&nbsp;<code>T_total</code> in its parts record.</figcaption>
+    </figure>
+    <p>At this cost, one Toffoli is worth
+    <strong>{marginal_blend_per_unit(blend, plateau["T_total"]):+.6f}</strong> blend and
+    one qubit {marginal_blend_per_unit(blend, plateau["Q_total"]):+.6f} &mdash; a qubit
+    is worth {plateau["T_total"] / plateau["Q_total"]:.0f} Toffolis purely because Q is that much
+    smaller. Reaching {ESCAPE_SCORE:g} needs
+    <strong>{cut:.2%}</strong> off this cost:
+    {plateau["T_total"] * cut:,.0f} Toffolis, or
+    {plateau["Q_total"] * cut:,.0f} qubits, or any
+    mix. <strong>Out of the free share alone that is loaders
+    {plateau["T_total"] * cut / plateau_free:.0%}
+    cheaper</strong> &mdash; large, and the only direction left that costs no accuracy. What
+    those circuits turn out to be is what changes that number&rsquo;s meaning.</p>
+    <p class="note">Every way of buying the bought half is closed, measured rather than argued.
+    <code>brot</code> cannot go down: re-rounding the submitted angles onto the
+    <code>brot&nbsp;=&nbsp;7</code> grid breaches the 20&nbsp;mHa cap by <strong>118&times;</strong>
+    on <code>error_1</code>, and they already sit on that cap at 8, so a fresh fit at half the
+    grid spacing would have to beat re-rounding by two orders of magnitude.
+    <code>brot</code> cannot go up: at 9 the inner preparation&rsquo;s QROAM jumps to a branch
+    taking the shared workspace from 304 to 607 qubits, costing <strong>&minus;3.27 blend</strong>
+    despite 1,316 fewer Toffolis. And the shape cannot be re-split: at a constant
+    R&middot;B&nbsp;=&nbsp;1,144 the submitted (8,&nbsp;143) beats all 16 integer factor pairs.</p>
     <p class="note">The reference sits close to three cliffs, all of which reject outright rather
     than gracefully: the widest ANGLE circuit at {int(angle["value"])} qubits against the
     {int(angle["limit"])} cap ({angle["fraction_of_limit_used"] * 100:.0f}% of it), the binding
@@ -1025,6 +1229,84 @@ class Artifact:
     (+{(e_gap["value"] / e_gap["limit"] - 1) * 100:.1f}%). Those are the
     <em>reference&rsquo;s</em> margins, read off the same constraint table; the chart above
     measures the same three for the plateau part, which has spent nearly all of them.</p>
+"""
+
+    def loader_floor(self) -> str:
+        plateau = self.parts["parts"]["dfthcsos"]
+        addresses = lcu_vectors(int(plateau["R"]), int(plateau["B"]))
+        resources = ShapeResources.from_parts_record(plateau)
+        sweep = AngleFloorSweep.over(
+            resources, int(plateau["brot"]), addresses, self.our_score
+        )
+        submitted, per_pass = sweep.submitted, resources.angle_toffoli / 2
+        best_floor, best_model = sweep.best_floor, sweep.best_model
+        here, wide = sweep.at(submitted.batch_size), sweep.at(13)
+        paired = best_floor.at_floor * blend_factor(
+            lambda_eff_floor(FEMOCO_C0), float(plateau["lambda_eff"])
+        )
+        return f"""
+    <h2>The loaders are Boolean circuits, and the width cap pins their batch size</h2>
+    <p class="finding">The free half is not a lookup table. Each <code>ANGLE_k</code> is a GF(2)
+    circuit: a ladder of AND-ancillas, {LOADER_REBUILDS["circuit_cx"]:,} CNOTs fanning their
+    products into the word bits &mdash;
+    <strong>{LOADER_REBUILDS["selection_cx"]:,} of them targeting the selection register
+    itself</strong>, used in place as a linear scratchpad and restored by the end &mdash; then
+    measurement and a conditioned <code>CZ</code> clearing every ancilla. The verifier charges
+    Toffoli-like gates only, and a conditioned gate only on the shots whose bit is set, so
+    <strong>XOR costs nothing and the AND gates are the whole bill</strong>. A loader&rsquo;s
+    price is the multiplicative complexity of its word table, not its address count &mdash;
+    which is why {addresses:,} addresses cost
+    {LOADER_REBUILDS["cheapest_circuit_toffoli"]} Toffolis and not {addresses - 1:,}.</p>
+    <p>Rebuilding the same <code>angle_words</code> three ways sizes the construction:
+    kickmix&rsquo;s own <code>init_lookup</code> costs
+    <strong>{LOADER_REBUILDS["init_lookup_toffoli"]:,}</strong> Toffolis per pass over the
+    family, the starter kit&rsquo;s segment-tree QROM
+    <strong>{LOADER_REBUILDS["qrom_toffoli"]:,}</strong>, and the submitted family
+    <strong>{per_pass:,.0f}</strong> &mdash;
+    <strong>{LOADER_REBUILDS["init_lookup_toffoli"] / per_pass:.1f}&times; cheaper than the
+    library primitive</strong> and {LOADER_REBUILDS["qrom_toffoli"] / per_pass:.1f}&times;
+    cheaper than the starter kit, bought with
+    {LOADER_REBUILDS["extra_workspace_qubits"]} extra workspace qubits. It is nobody&rsquo;s
+    default.</p>
+    <figure>
+      {angle_floor_svg(sweep)}
+      <figcaption>A straight-line GF(2) circuit with <em>n</em> inputs, <em>A</em> ANDs and
+      <em>b</em> outputs realises at most 2<sup>2An+A&sup2;+A+b(n+A+1)</sup> maps, and must hit a
+      given <em>b</em>-bit word on each of {addresses:,} addresses, so almost every table needs
+      A&nbsp;&ge;&nbsp;{submitted.and_floor} here. <em>n</em> is {submitted.public_qubits}, not
+      {submitted.address_bits}: each circuit starts with its word registers holding the previous
+      batch, itself a function of the address, and a floor must allow every input a
+      construction may use. Withheld, the bound is {submitted.address_only_floor}.</figcaption>
+    </figure>
+    <p>The submitted mean of {sweep.measured_ands:,.1f} ANDs per circuit is
+    {sweep.rate:.3f}&times; that floor, and <code>J</code> &mdash; the batch size &mdash; is
+    free: the contract fixes only that a family covers all {NUM_ANGLE_WORDS} angles and that
+    no circuit exceeds {MAX_ANGLE_QUBITS} qubits. The floor rises with <em>J</em>, since
+    <em>K</em> falls as 1/<em>J</em> while a circuit&rsquo;s floor grows only as
+    &radic;<em>J</em>. <strong>The construction does not.</strong> Simulated gate by gate, every
+    loader keeps a pool of address functions in its workspace &mdash; selection bits plus an
+    AND ladder &mdash; and writes each output bit as a sum of products of two pool
+    combinations, about {addresses:,}&nbsp;/&nbsp;(2&nbsp;&times;&nbsp;pool) per bit. That
+    model, calibrated once ({sweep.calibration:.3f}&times;) to the measured family, prices every
+    batching. The word registers eat the pool: J={wide.batch_size} leaves {wide.family.free_workspace}
+    workspace qubits, and the model puts it at <strong>{wide.at_model:.2f},
+    {wide.at_model - sweep.blend:+.2f}</strong>. The best batching is
+    J={best_model.batch_size} at {best_model.at_model - sweep.blend:+.3f}, inside the
+    model&rsquo;s error, so <strong>re-batching is no lever</strong> and J={submitted.batch_size}
+    is where the width cap puts it.</p>
+    <p class="note">This corrects an earlier revision of the page, which held the submitted
+    multiple of the floor fixed across <em>J</em> and read +1.04 off J=13 &mdash; the floor
+    ignores width, and that rate is unreachable once the pool is gone. Two more facts bound
+    what is left. The circuits never read the word registers as inputs: zeroed, they still
+    add exactly the right delta, so they work against {submitted.address_only_floor}, not
+    {submitted.and_floor}, at {sweep.measured_ands / submitted.address_only_floor:.2f}&times;.
+    And {sweep.target:g} at J={submitted.batch_size} needs
+    <strong>{here.ands_for_target:,.0f} ANDs per circuit, below that
+    {submitted.address_only_floor}</strong>: no address-only construction reaches the band. The
+    floor&rsquo;s {best_floor.at_floor:.3f} at J={best_floor.batch_size}, and {paired:.2f} with
+    <code>lambda_eff</code> at its floor too, need a loader that reads the word registers and
+    adds the same delta whether they hold the previous batch or this one, as the reverse pass
+    requires. Whether one exists is not established.</p>
 """
 
     def cost_anatomy(self) -> str:
@@ -1136,6 +1418,7 @@ class Artifact:
 """
 
     def not_established(self) -> str:
+        plateau = self.parts["parts"]["dfthcsos"]
         return f"""
     <h2>Not established</h2>
     <ul>
@@ -1156,13 +1439,15 @@ class Artifact:
       The leaderboard scores and the {self.standing.teams:,} team count are the competition&rsquo;s
       own. So are the <code>R</code>/<code>B</code>/<code>C</code> and λ_eff figures in
       <code>{PARTS_PATH.name}</code> — those are each part author&rsquo;s own report, copied from
-      the dataset manifest; only <code>our_measurement</code> and the constraint margins are
-      ours.</li>
-      <li><strong>Whether a cheaper factorization exists at all is unmeasured.</strong> The
-      plateau&rsquo;s headroom is now measured, but that only rules out tuning
-      <em>this</em> shape — it says nothing about which other shape to try, and we have not
-      reproduced the cost–precision atlas or fitted a factorization ourselves. Nothing here
-      shows a shape exists that is both under 20 mHa and cheaper.</li>
+      the dataset manifest; only <code>our_measurement</code>, the constraint margins and
+      <code>J</code> are ours.</li>
+      <li><strong>Whether <code>T</code> and <code>Q</code> have any headroom is
+      unmeasured.</strong> The λ_eff floor says where the chemistry score is <em>not</em> — no
+      factorization, of any shape, moves that factor by more than
+      {(1 - lambda_eff_floor(FEMOCO_C0) / plateau["lambda_eff"]) * 100:.2f}% — but it says
+      nothing about the loaders, whose own floor is a counting bound on almost every table
+      rather than a statement about this one. Whether a construction reaching it exists is the
+      open measurement, and it may come back out of reach.</li>
       <li><strong>Two leaderboard readings, neither on a circuit we designed.</strong> The loop
       agreed with the leaderboard on the reference and on this assembly of published circuits.
       Agreement there does not prove agreement on a candidate our own search produces.</li>
@@ -1182,21 +1467,23 @@ class Artifact:
     <code>docs/experiments/</code>, and the formulas and constants imported from
     <code>quantum_compilation.cost</code>. The three wall-clock run times and the
     {HAND_RECORDED["submissions_per_day"]}-a-day submission budget are recorded by hand and live
-    in <code>HAND_RECORDED</code>; third-party figures are labelled where they appear. Status
+    in <code>HAND_RECORDED</code>, the ANGLE circuit readings and loader rebuilds in
+    <code>LOADER_REBUILDS</code>; every ratio between them is computed, and third-party figures
+    are labelled where they appear. Status
     {STATUS_DATE}.
   </footer>
 """
 
     def html(self) -> str:
         # Everything between the header and the footer is a <section>, so the tag is written
-        # once here rather than at both ends of all twelve.
+        # once here rather than at both ends of all thirteen.
         body = "".join(
             f"\n  <section>{section()}  </section>\n"
             for section in (
                 self.strip, self.where_we_stand, self.why_the_plateau_is_a_wall,
                 self.what_the_page_omits, self.repetition_floor, self.what_chemistry_controls,
-                self.cost_anatomy, self.local_loop_cost, self.seed_noise, self.blend_check,
-                self.verdict_ledger,
+                self.loader_floor, self.cost_anatomy, self.local_loop_cost,
+                self.seed_noise, self.blend_check, self.verdict_ledger,
                 self.not_established,
             )
         )
