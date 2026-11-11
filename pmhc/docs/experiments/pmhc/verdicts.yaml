@@ -1,0 +1,188 @@
+# One row per experiment. Both the LaTeX report and the artifact render from this file, so a
+# verdict is recorded once and cannot drift between them.
+#
+# Gates, defined once:
+#   G1  the design's peptide-dependence drop clears zero at 2 sigma on the cohort's pooled
+#       between-run SD (0.018 over sqrt(runs)), not on its own two runs
+#   G2  the drop is at or above the 7OW6 receptor's, measured over 10 independent invocations
+#       (+0.106), by the same rule
+#   G3  the measurement reproduces across independent Boltz invocations of a byte-identical spec
+#   G4  a tier-1 (wild type vs G12D) difference clears the control's OWN wild-type bias, which
+#       is +0.0027 +- 0.0006 and in the wrong direction, by the same 2-sigma rule
+
+task: KRAS G12D pMHC binder, Anthropic x Adaptyv Challenge 5
+updated: 2026-11-06
+submission_deadline: 2026-11-08T23:59 AoE  # 2026-11-09 22:59 Australia/Sydney
+
+experiments:
+  - id: escape-cone
+    what: whether the G12D aspartate is chemically reachable at all
+    baseline: none — this is a property of the target
+    gate: none (a measurement, not a candidate)
+    result: >
+      OD1 has a 0.013% escape cone at 8 A reach (34 of 262,144 rays), collapsing 161-fold
+      between 6 and 7 A. Probe controls behaved: position-7 carbonyl 39.1%, position-4 0.00%.
+    verdict: KEEP
+    consequence: set the whole strategy — target the bulge at positions 5-8, not the mutation
+    pr: 103
+
+  - id: tier1-resolvability
+    what: can any co-fold predictor separate complex_g12d from complex_wt
+    baseline: the 7OW6 receptor, which is G12D-specific by construction
+    gate: G3 plus a sign in the correct direction on the control
+    result: >
+      Paired within each of the 8 invocations that predicted complex_wt, the control scores
+      WILD TYPE ABOVE G12D by +0.0027 +- 0.0006, positive in 7 of the 8. Not unresolved —
+      inverted. (The bar's 10 invocations include the two cohort runs, which had no complex_wt
+      condition, so tier 1 rests on 8 and not on 10.)
+      Backbone shift is 0.85/0.73/0.48 A at positions 6/7/8 against a 0.337 A superposition
+      residual, i.e. below Boltz-2 coordinate error as predicted.
+    verdict: DISCARD
+    consequence: complex_wt is reported, never gated; selectivity is declared sampled
+    pr: 103
+
+  - id: novelty-gate-metric
+    what: global-alignment identity vs copied-fraction by local alignment
+    baseline: the shipped global metric
+    gate: must score a verbatim truncated slice of a target chain at 1.000
+    result: >
+      The global metric scored a 40-residue slice of the 276-residue HLA heavy chain at 0.000
+      and a 60-residue TCR-beta slice at 0.000 — both would have passed as novel. The
+      replacement scores both 1.000. Chosen on synthetic controls alone, independent of the
+      cohort; threshold left at the 30% already declared.
+    verdict: PROMOTE
+    consequence: 17 of 256 rejected, every one beta-2 microglobulin at 30.3-92.6% copied
+    pr: 103
+
+  - id: iptm-plagiarism-bias
+    what: does ipTM reward handing back the target's own chains
+    baseline: admissible de novo designs, median ipTM 0.180 over n=188
+    gate: plagiarised designs must out-score admissible ones to justify a score-first ranking
+    result: >
+      Ratio of medians 0.83x — the beta2m copies score slightly WORSE. 39 of 188 admissible
+      designs beat the best plagiarised one. The 3x effect measured on the 4-design pilot was
+      real but local to target preparation: a vacant natural interface is what the copy slots
+      into.
+    verdict: DISCARD
+    consequence: claim withdrawn; novelty still gates first, on correctness not bias
+    pr: 103
+
+  - id: one-sample-screen
+    what: rank 78 designs on one diffusion sample per condition
+    baseline: none — the first ranking attempt
+    gate: G3
+    result: >
+      A 26-design probe at five samples REVERSED THE SIGN of two of the screen's top four.
+      The drop is a difference of two sampled scores and carries both conditions' variance.
+    verdict: DISCARD
+    consequence: the screen is retrospectively a pilot; everything since is 5 samples
+    pr: 103
+
+  - id: bar-reproducibility
+    what: is the control's peptide-dependence drop reproducible across invocations
+    baseline: the probe's +0.104 against the cohort run 1's +0.150
+    gate: G3
+    result: >
+      8 independent invocations gave +0.101, spread 0.004 — SMALLER than the 0.007 each run
+      reports internally, and at the 4th percentile of a 20,000-draw no-run-effect null. So no
+      resolved between-run component for the control, and within-run error was already honest.
+      The hypothesis that launched the run was wrong. An earlier quadrature combination of the
+      two components double-counted and is withdrawn.
+    verdict: PROMOTE
+    consequence: the bar is +0.106 over 10 invocations (+0.101 over the 9 clean ones)
+    pr: 103
+
+  - id: cohort-outlier-diagnosis
+    what: why cohort run 1 scored the control at +0.150
+    baseline: 9 other measurements of the same byte-identical spec
+    gate: G3
+    result: >
+      Not run-to-run noise. Spec hashes and processed-structure hashes identical, flags
+      identical. Only the PEPTIDE-FREE pose degraded — pTM 0.836 vs 0.877, receptor-HLA pair
+      ipTM 0.710 vs 0.786 — while pLDDT held and the complex condition reproduced to 3 dp.
+      Not a run-level offset either: the 12 designs in both runs moved apo by +0.0006 +- 0.0150
+      while the control fell 0.045.
+    verdict: KEEP
+    consequence: that run's control excluded from the bar on a structural criterion, not on its score
+    pr: 103
+
+  - id: per-design-denominator
+    what: a design's own between-run SD vs the cohort's pooled SD
+    baseline: the design's own two runs
+    gate: must not report a reproducible drop as infinitely significant
+    result: >
+      Two runs cannot estimate a per-design spread (~70% relative error; a pair that agrees
+      reports 0.000). Taken at face value a +0.011 drop read "above" zero and mut_proximal_16's
+      +0.112 read as zero-error. Pooled across designs: 0.018 against a within-run 0.015,
+      leaving a run effect of 0.009. The control is excluded from the pool it is the bar for.
+    verdict: PROMOTE
+    consequence: every per-design verdict now divides by pooled_sd / sqrt(runs)
+    pr: 103
+
+  - id: cohort-replicate
+    what: replicate the whole 159-spec cohort pass to test the apo-artifact bias
+    baseline: cohort run 1
+    gate: G1, G2, G3
+    result: >
+      318 of 318 predictions scored, 0 failures. Control's second draw at the real batch size
+      came back +0.101, confirming run 1's control as the outlier. Leaders split on the artifact
+      test: mut_proximal_16 returned +0.112 in BOTH runs (between-run SD 0.0001) while
+      mut_proximal_26 fell +0.109 -> +0.081.
+      Final: 0 designs above the bar, 4 tied, 74 below; 14 of 78 clear zero.
+    verdict: PROMOTE
+    consequence: the submission ranks on the pooled two-run means
+    pr: 103
+
+  - id: chai-consensus
+    what: second independent co-fold predictor over the finalists
+    baseline: Boltz 2.2.1
+    gate: G3 across predictors, not merely across runs of one
+    result: NOT RUN — the chai.sif container was never located on the host.
+    verdict: running
+    consequence: >
+      The project's multi-method discipline is NOT met. Every number is Boltz scoring structures
+      Boltz predicted; replication bounds sampling and run-to-run error but cannot detect a
+      systematic error shared by every run. The tier-1 inversion is precisely such a case.
+    pr: 103
+
+  - id: wildtype-finalists
+    what: the 20 submitted finalists scored against the wild-type peptide, paired and replicated
+    baseline: the control's own wild-type difference, paired inside the same invocations
+    gate: G4 — and it cannot be a promotion gate, because G4's bar points the wrong way
+    result: >
+      420 predictions, 0 failures, both conditions written into each invocation and the pass run
+      twice. The control's bar is +0.0018 +- 0.0065 over the 2 invocations (+0.0030, +0.0007) —
+      positive, but tied zero at this sample size, so "below the bar" is a weak classification.
+      3 of 20 finalists sit below it, 13 tied, 4 above; 7 of 20 are negative in raw sign; the
+      cohort averages +0.0090 +- 0.0058 over designs. Between-run SD 0.0092 against within-run
+      0.0093, so the run effect is ~0.
+      THE WITHDRAWN PASS'S HEADLINE DID NOT REPRODUCE. Unpaired, bulge_core — the variant placed
+      over the bulge — looked 4 of 4 negative at mean -0.0149, Fisher p = 0.0072. Paired, its
+      mean is +0.0115 and the Fisher p is 0.1011, because bulge_core_27 moves from negative to
+      +0.0767. The measured ordering is mut_proximal (-0.0012) < bulge_wide (+0.0106) <
+      bulge_core (+0.0115) < hub (+0.0183), not the pre-registered one.
+    verdict: KEEP
+    consequence: >
+      Reported, never gated, and no design was re-ranked on it — the submission is unchanged.
+      The one result the unpaired pass called worth a second predictor was an artifact of its
+      own denominator: taking the two conditions from different invocations left the run offset
+      in the difference and out of the error bar. The only ordinal fact that survives is that
+      hub, which puts the least area on the peptide, is the most positive group (0 of 3
+      negative). Selectivity in this submission is sampled, not engineered.
+    pr: 103
+
+not_established:
+  - No wet-lab measurement of anything — no KD, no expression, no sensorgram.
+  - Tier 3 (affinity) is not addressed; peptide-dependence is not binding strength.
+  - Only one co-fold predictor was used (see chai-consensus).
+  - >-
+    The aspartate rotamer any design must read has never been observed unliganded: 7OW4 has
+    no coordinates for peptide positions 5 and 6.
+  - No design was shown to exceed the control on any tier.
+  - >-
+    The tier-1 bar is now replicated but weak: the control's own wild-type difference is
+    +0.0018 +- 0.0065 over 2 invocations, tied zero, so "below the bar" separates almost
+    nothing. Two invocations bound the run effect; they do not make the bar sharp.
+  - >-
+    No selectivity mechanism is established. The per-variant ordering that would have been one
+    did not survive pairing, and the grouping was post-hoc in the first place.

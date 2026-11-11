@@ -1,0 +1,35 @@
+[project]
+name = "pmhc"
+version = "0.0.1"
+description = "Selective KRAS G12D pMHC binder design for Adaptyv Challenge 5"
+requires-python = ">=3.11"
+# The scripts themselves run on the design host against the environment that holds BoltzGen and
+# FoldSeek, so this file is not how they are deployed. It exists so the admissibility gates'
+# tests run in CI, which is the only place they are guaranteed to run at all: those gates are
+# what stand between a plagiarised design and a disqualified submission.
+dependencies = ["biopython>=1.85", "gemmi>=0.6.5", "numpy>=1.26", "typer>=0.12"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pyyaml>=6.0"]
+# The progress page and the LaTeX report both render from the committed result files, so the
+# builder needs a YAML reader that the measurement scripts themselves do not.
+artifact = ["pyyaml>=6.0"]
+# Logging the ledger to W&B is a separate extra: it is the one step that needs credentials and
+# a network, and nothing else in this repo should pull the client in. The report's section
+# editing and verdict table come from autoresearch rather than a per-project copy.
+wandb = [
+    "pyyaml>=6.0",
+    "wandb>=0.18",
+    # Imported directly by build_wandb_report.py, so it is declared here rather than relied on
+    # as a transitive of autoresearch[wandb].
+    "wandb-workspaces>=0.1",
+    "autoresearch[wandb] @ git+ssh://git@github.com/charleneleong-ai/autoresearch@v0.35.0",
+]
+
+# Flat scripts importing each other by name, not an installable package; tests/conftest.py puts
+# scripts/ on sys.path.
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

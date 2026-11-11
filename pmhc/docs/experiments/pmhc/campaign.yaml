@@ -1,0 +1,137 @@
+# The campaign's measured numbers that are not already a row in a CSV. The artifact page and the
+# LaTeX report both render from this file, so a number is recorded once and cannot drift between
+# them. Every value here was printed by the script named beside it.
+
+task: KRAS G12D pMHC binder, Anthropic x Adaptyv Challenge 5
+updated: 2026-11-06
+deadline_aoe: 2026-11-08T23:59
+deadline_sydney: 2026-11-09T22:59
+
+# Why ranking tier 1 was abandoned as a gate: the one atom that chemically distinguishes the two
+# targets has no approach vector. Fractions are of 262,144 rays, 1.55 A probe. reachability.py
+escape_cone:
+  atom: G12D OD1 (the carboxylate oxygen)
+  rays: 262144
+  by_reach_angstrom:
+    3: 41.0
+    4: 21.9
+    5: 7.1
+    6: 2.9
+    7: 0.018
+    8: 0.013
+  controls:
+    position-7 carbonyl (exposed): 39.1
+    position-4 carbonyl (buried): 0.00
+  free_rays_at_8A: 34
+
+# The alternative discrimination, and the baseline it has to clear. compare_conformers.py
+indirect_readout:
+  backbone_shift_angstrom: {6: 0.85, 7: 0.73, 8: 0.48}
+  flanking_positions_max: 0.21
+  superposition_residual: 0.337
+
+# Every denominator, in order. The campaign's result is this list, not its first row.
+funnel:
+  - stage: generated
+    surviving: 256
+    removed: 0
+    reason: 4 hotspot variants x 64 designs, against the intact complex
+  - stage: sequence novelty
+    surviving: 239
+    removed: 17
+    reason: verbatim beta-2 microglobulin copies, 30.3-92.6% of the design
+  - stage: fold novelty
+    surviving: 188
+    removed: 51
+    reason: 16 copies of other known proteins at TM 0.93-0.98, plus 35 immunoglobulin folds
+  - stage: engagement
+    surviving: 78
+    removed: 110
+    reason: peptide share below the 7OW6 receptor's 0.200, or a nominated hotspot untouched
+  - stage: clears zero on the drop
+    surviving: 14
+    removed: 64
+    reason: peptide-dependence indistinguishable from none
+  - stage: at or above the receptor's bar
+    surviving: 4
+    removed: 10
+    reason: below the bar but above zero
+  - stage: submitted
+    surviving: 20
+    removed: 0
+    reason: the cap is 20, so slots 5-20 are the best of the remainder
+
+# The bar the whole ranking is calibrated against: the 7OW6 receptor's own peptide-dependence
+# drop, from byte-identical specs. cofold_followup.py report-replicates / report-spread
+bar:
+  invocations: 10
+  pooled: 0.106
+  pooled_spread: 0.016
+  clean_9: 0.101
+  small_batch_8: {mean: 0.101, spread: 0.004, span: [0.095, 0.108]}
+  probe_26spec: 0.104
+  cohort_run1: 0.150
+  cohort_run2: 0.101
+  excluded_run: >-
+    cohort run 1, on a structural criterion measured independently of its score: its
+    peptide-free prediction scored pTM 0.836 against 0.877 and receptor-to-HLA pair ipTM 0.710
+    against 0.786, while pLDDT barely moved and the complex condition reproduced to 3 dp.
+
+variance:
+  control: {between_sd: 0.004, within_sem: 0.007, permutation_percentile: 4}
+  designs: {between_sd: 0.018, within_sem: 0.015, run_effect: 0.009}
+
+# The replicated, paired tier-1 pass: both peptide conditions written into one invocation for
+# every finalist and for the control, run twice as independent invocations.
+# cofold_followup.py report-wildtype
+tier1_paired:
+  invocations: 2
+  predictions: 420
+  failures: 0
+  control_bar: 0.0018
+  control_bar_sem: 0.0065
+  control_bar_per_run: [0.0030, 0.0007]
+  cohort_mean: 0.0090
+  cohort_sem: 0.0058          # a spread over designs, not over runs
+  below_bar: 3
+  tied_bar: 13
+  above_bar: 4
+  negative_overall: 7
+  between_sd: 0.0092
+  within_sem: 0.0093
+  run_effect: 0.0000
+  by_variant_mean:            # ordered as measured, not as predicted
+    mut_proximal: -0.0012
+    bulge_wide: 0.0106
+    bulge_core: 0.0115
+    hub: 0.0183
+  # What the withdrawn unpaired pass had claimed, kept so the retraction is legible.
+  withdrawn_claim:
+    bulge_core_mean: -0.0149
+    bulge_core_fisher_p: 0.0072
+  paired_result:
+    bulge_core_mean: 0.0115
+    bulge_core_fisher_p: 0.1011
+    driven_by: bulge_core_27 at +0.0767
+
+headline:
+  best_design: mut_proximal_16
+  best_drop: 0.112
+  best_per_run: [0.112, 0.112]
+  best_own_sd: 0.0001
+  bar: 0.106
+  above_bar: 0
+  tied_bar: 4
+  below_bar: 74
+  clear_zero: 14
+  # "admissible" elsewhere in this repo means the 188 that cleared both novelty gates; the
+  # cohort that was actually screened is the 78 that then cleared engagement. Both are named.
+  novelty_admissible: 188
+  screened: 78
+  submitted: 20
+  median_drop: -0.010
+  worst_drop: -0.093
+  # The metric that has not moved, and the reason tier 1 is reported rather than gated.
+  tier1_control_bias: 0.0027
+  tier1_control_bias_sem: 0.0006
+  tier1_control_invocations: 8

@@ -10,6 +10,7 @@ __pycache__/
 .venv/
 venv/
 .ipynb_checkpoints/
+.pytest_cache/
 
 # Data / model artefacts (regenerable)
 *.parquet
@@ -24,6 +25,11 @@ data/
 # what pin its cost model to the real metric
 !quantum-compilation/tests/data/
 !quantum-compilation/tests/data/**
+# ...and pmhc commits the result tables its deliverables render from: the artifact page, the
+# LaTeX report and the W&B report all claim every figure is read from a committed file, and that
+# claim is only true if they are tracked. 22 KB.
+!pmhc/data/
+!pmhc/data/*.csv
 
 # Local scratch / staging for GPU-box runs — duplicates tracked inputs, not an artefact of record
 materialhack/
@@ -51,3 +57,22 @@ tfr1/data/*
 !tfr1/data/targets/
 tfr1/data/targets/*
 !tfr1/data/targets/hotspots.json
+# pmhc: generator and verifier outputs, regenerable from the committed scripts
+pmhc/gen_out/
+pmhc/smoke*/
+pmhc/fold_work*/
+pmhc/cohort_poses/
+pmhc/cofold_specs/
+pmhc/cofold_out/
+pmhc/cofold_*_out/
+pmhc/logs/
+pmhc/data/*.cif
+pmhc/targets/
+pmhc/cofold_wt_specs/
+
+# LaTeX build products. The PDF is committed; everything else pdflatex writes is not.
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
