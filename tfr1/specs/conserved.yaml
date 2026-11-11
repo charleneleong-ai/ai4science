@@ -1,0 +1,22 @@
+# TfR1 binder screen: conserved
+# most conserved patch clear of both the transferrin site and the glycans
+# Patch 529 (protease-like): 90% conserved human/mouse,
+# 12.3 A from the transferrin site, 33.5 A from the nearest N-glycan.
+# Carboxylates in the patch (UniProt numbering): [525, 533]
+# Scan thresholds: patch_radius=12.0 min_patch_size=10
+#   surface_min_rsa=0.25 transferrin_clearance=6.0
+#   glycan_clearance=12.0  (size and clearance loosened post hoc; see docs/target.md)
+# Hotspots [523, 525, 527, 530, 533] in UniProt numbering. `binding` below is 1-BASED
+# CHAIN POSITIONS in conserved.pdb, computed by prepare_target.py and verified by
+# re-reading the written file -- NOT UniProt numbers.
+entities:
+  - protein:
+      id: X
+      sequence: 60..95
+  - file:
+      path: /home/ubuntu/tfr1/targets/conserved.pdb
+      include:
+        - chain: {id: R}
+      binding_types:
+        - chain: {id: R, binding: "43,45,47,50,53"}
+      structure_groups: "all"
