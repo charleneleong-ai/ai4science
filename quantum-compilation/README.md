@@ -15,7 +15,7 @@ This is the `ai4science` thesis with the two halves handed over pre-separated �
 verifier that cannot be gamed, and an unbounded generator space. The only question is how
 well the search loop around it is built.
 
-## Status — 2026-11-02
+## Status — 2026-11-12
 
 **We are on the plateau, by assembly rather than by compression; no compression of our own
 has been attempted yet.** The measurement loop is validated twice over — all three official
@@ -27,11 +27,11 @@ rank candidates without spending submissions.
 
 | | |
 | --- | --- |
-| Best submitted score | **23.18119** — an assembly of public parts, not our own circuits (submission `57834335`, local verifier 23.1811976) |
-| Our rank | **249–252 of 1,756** — four other teams share the exact score; up from the 81-team block at 1.00000 (1,671–1,751) |
-| Leader | **26.76409** — ×1.15 on score, ×1.53 on the product of the three cost ratios |
-| Median | **22.659** — half the field sits between 22.66 and 23.23 |
-| Cleared 25 | **9 teams** |
+| Best submitted score | **25.36626** — an assembly of public Apache-2.0 parts, not our own circuits (submission `58252192`, local verifier 25.36626) |
+| Our rank | **232–248 of 2,869** — 17 teams share the exact score; up from 249–252 of 1,756 at 23.18119 |
+| Leader | **29.45296** — ×1.16 on score, ×1.57 on the product of the three cost ratios |
+| Median | **24.594** |
+| Cleared 25 | **1,157 teams** — 25 is no longer an escape band |
 
 **2026-11-07 — the newest public notebook already scores 24.94165 here.** Heliosli's
 `the-dataset-is-public-now-enjoy` (v20) output re-verifies locally at 24.94165, all three PASS, and beats
@@ -40,8 +40,10 @@ ratio 11.198 vs 9.934); dqi −6.8%; invsqrt −2.9%. The rumoured (9, 143, 40) 
 intermediate, not a submission. Its chemistry weights descend from a dataset licensed "other", so
 reuse is unresolved — see `r5` in [`verdicts.yaml`](docs/experiments/verdicts.yaml).
 The same portfolio on an all-Apache-2.0 path, maoxin123's notebook output, is assembled as candidate
-v2 at **24.94110** locally (×1.0759 over our 23.18119), not yet submitted — provenance in
+v2 at **24.94110** locally (×1.0759 over our 23.18119); superseded before submitting by v3, below — provenance in
 [`v2-candidate-parts.yaml`](docs/experiments/v2-candidate-parts.yaml), verdict `r6`.
+
+**2026-11-12 — submitted v3: leaderboard 25.36626, matching the local verifier exactly.** The cheapest Apache-2.0 file per task from the parts dataset: invsqrt `6c6a734d`, dqi `bb4287e7`, chemistry `e0a80288`. Provenance in [`58252192-parts.yaml`](docs/experiments/58252192-parts.yaml), verdict `v3-apache-parts-frontier`.
 
 Read off the competition's own public leaderboard, snapshotted at
 [`docs/experiments/leaderboard-2026-10-31.json`](docs/experiments/leaderboard-2026-10-31.json)
