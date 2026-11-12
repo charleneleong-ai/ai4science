@@ -79,4 +79,7 @@ submissions:
   - {version: 2, label: seed-blend, outputs: fork479-v2, ref: 58046573, date: 2026-11-06, family: ensemble, commit: b9627b0,
      score: 0.463, verdict: DISCARD,
      change: "fork479 + ranks 2-25 neural score = mean per-molecule z of the public v1 scorer and three same-recipe seed retrains (seeds 20261101-3, holdout 0.481/0.487/0.465 vs 0.484; Spearman vs public 0.91-0.93); -0.016"}
+  - {version: 3, label: mass-prior, outputs: fork479-v3, ref: 58107187, date: 2026-11-07, family: prior, commit: 5f8cfb6,
+     score: 0.479, verdict: DISCARD,
+     change: "fork479 v1 + romanrozen's timsTOF precursor-mass prior from Gold Apex V22 (ranks 2-25 lose up to 0.15 beyond 3 ppm of -1.5 ppm, full at 8; in-band rank 2-3 takes rank 1 from a leader > 5 ppm off below library 0.9); 0.479, no change"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==

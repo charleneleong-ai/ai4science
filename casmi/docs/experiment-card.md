@@ -37,6 +37,16 @@ The settings were fixed by the notebook's authors before we ran it; we chose non
 shows the same code about 0.002 apart between runs, and two notebooks reported at 0.478 rescored 0.468 and 0.476, so
 0.479 is numerically our highest public score but not distinguishable from 0.477.
 
+## Discarded — mass-prior, public MRR@25 0.479 (fork479 kernel version 3)
+
+| | |
+|---|---|
+| change | romanrozen's timsTOF precursor-mass prior from popwenman's public [Gold Apex V22](https://www.kaggle.com/code/popwenman/casmi26-0482-gold-apex-v22), alone on the v1 notebook, constants unchanged ([`5f8cfb6`](https://github.com/charleneleong-ai/ai4science/commit/5f8cfb6)): ppm = (exact − neutral) / neutral, neutral = median precursor m/z − adduct; ranks 2–25 lose 0.15 · min(1, (\|ppm + 1.5\| − 3) / 5) beyond 3 ppm; an in-band rank 2–3 takes rank 1 from a leader more than 5 ppm off when the best library match is below 0.9. V22's scorer blend, prior weights and LOTUS backfill left out |
+| checked before | on 2,138 timsTOF train spectra the true structure sits at median −1.9 ppm, 99.3% within 3 ppm of −1.5, 0.14% beyond 5; on the 12 smoke lists of v1's commit run 59 of 288 rank 2–25 candidates fall outside the band (6 / 12 lists), the rank-1 rule moved none |
+| run | submission 58107187 (2026-11-08 10:29 AEDT), scored by 14:52 AEDT; gate `gate_fork479_v3.py` passed (fork479 gate, `MASS PRIOR` on with lists touched, `MASS LEAD` ran, no fallback); rank-1 rule 0 moves on the commit run |
+| result | 0.479, no change against 0.479: DISCARD |
+| fixed before seeing the score | V22's constants, the gate, the bar (≥ 0.485) |
+
 ## Discarded — seed-blend, public MRR@25 0.463 (fork479 kernel version 2)
 
 | | |
@@ -258,8 +268,8 @@ fragment check has none.
   data-fork (0.465, 57588653, kernel version 1, promoted). One from the 0.466 neural re-rank notebook:
   neural-fork (0.444, 57615727, kernel version 1, discarded). One from the 0.477 notebook: merged-fork
   (0.477, 57822991, kernel version 1, promoted); its kernel version 2, analogue-fork (0.477, 57826104, discarded).
-  Two from the 0.479 notebook: dedup-fork (0.479, 57867559, kernel version 1, kept within the noise) and its kernel
-  version 2, seed-blend (0.463, 58046573, discarded).
+  Three from the 0.479 notebook: dedup-fork (0.479, 57867559, kernel version 1, kept within the noise), its kernel
+  version 2, seed-blend (0.463, 58046573, discarded), and kernel version 3, mass-prior (0.479, 58107187, discarded).
 - **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
   molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
   it finished because an empty mass window would have crashed it).
@@ -302,6 +312,7 @@ fragment check has none.
 | the merged fork's settings (re-rank weights 0.25 / 0.75, fragment check, `[P0, V0]` leader merge) | by its authors, before we ran it | not ours; each change was scored on the public leaderboard (0.472 each) |
 | the dedup fork's settings (prior weights 0.10 / 0.05 / 0.02, library gate 0.87, leader pin, InChIKey14 dedup) | by its authors, before we ran it | not ours; scored on the public leaderboard upstream (0.479) |
 | seed blend: equal weights, shipped schedule, three seeds | **before** the retrains (2026-11-03) | one change per submission; scored 0.463, discarded |
+| mass prior: V22's constants (centre −1.5 ppm, free 3, full 8, weight 0.15; rank-1 rule at 5 ppm, library < 0.9) | by its authors; adopted **before** our run (2026-11-08) | one change per submission; band checked on train first; scored 0.479, discarded |
 | MIST `msg_aug` gate: mean Tanimoto ≥ 0.40 on the 50 FRIGID molecules | **before** the run (2026-11-01) | pre-registered; 0.385 fails it, so no FRIGID decode was run |
 | external-library reach: cosine ≥ 0.5, 20 ppm, same ion mode, structures absent from train | **before** the count | a reach check; 0 / 400, so no submission |
 | analogue propagation (fork477 v3: anchor ≥ 0.87, cosine ≥ 0.70, λ 0.10, rank 1 frozen) | **before** it was submitted | its reach (113 / 400) checked first; no offline panel can score it; scored 0.477, no change, discarded |
@@ -329,6 +340,8 @@ of identical runs — were treated as no change.
   layer's effect on its own (documentation prior, leader pin, dedup) is not measured by us.
 - **Why the seed blend lost.** Untested: the seeds agree closely with the public scorer and two of three validate
   lower, so equal weights may just dilute it; other weights, or seeds from a different recipe, were not run.
+- **How many hidden-test answers the mass prior reached.** The commit run scores only the 12 smoke molecules; its
+  effect on the public split is a measured zero, but the split between the ranks 2–25 penalty and the rank-1 rule is not.
 - **What `msg_aug` would do to ranking.** At Tanimoto 0.26 FRIGID found 0 / 50; whether 0.385 gives any hits, or helps
   as an FPNet replacement or a re-ranking feature, was not run.
 - **What in the 0.477 notebook earns its +0.012.** We ran it unchanged; the split between the leader-safe

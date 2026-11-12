@@ -40,7 +40,8 @@ test molecules on top of it scored the same 0.477 and was discarded. A ninth, al
 which adds a documentation prior and InChIKey14 deduplication on ranks 2--25, scored 0.479: our highest public score,
 but $+0.002$ is inside the run-to-run noise, so it is kept as the base, not counted as a gain. Two offline probes, a
 newer MIST encoder and an external spectral library, were closed without a submission. Blending the public neural scorer with
-three seed retrains of it scored 0.463 and was discarded. 31 submissions were made and all were
+three seed retrains of it scored 0.463, and the public Gold Apex V22 timsTOF mass prior added alone scored 0.479 (no
+change); both were discarded. 32 submissions were made and all were
 scored. No calibrated local estimate of the score exists.
 \end{abstract}
 
@@ -190,6 +191,7 @@ merged-fork & the public 0.477 notebook, unchanged & 0.477 \\
 analogue-fork & + analogue propagation on ranks 2--25 (not kept) & 0.477 \\
 dedup-fork & the public 0.479 notebook, unchanged (inside the noise) & \textbf{0.479} \\
 seed-blend & + three seed retrains in the ranks 2--25 neural score (not kept) & 0.463 \\
+mass-prior & + timsTOF precursor-mass prior and mass rank-1 rule (not kept) & 0.479 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -290,6 +292,13 @@ Spearman to the public scorer 0.913, 0.933, 0.928). It scored 0.463 (submission 
 discarded. The seeds rank much like the public model and two of three validate lower, so equal weights likely dilute it;
 that explanation is untested.
 
+\textbf{Precursor-mass prior (mass-prior, 7 November).} Kernel version 3 adds, alone, romanrozen's timsTOF mass
+prior from popwenman's public Gold Apex V22 notebook with its constants: on ranks 2--25 a candidate loses up to 0.15
+when its exact mass sits more than 3\,ppm from $-1.5$\,ppm of the neutral precursor mass (full at 8\,ppm), and an
+in-band rank 2--3 candidate replaces a leader more than 5\,ppm off when the best library match is below 0.9. On 2{,}138
+timsTOF train spectra the true structure sits at median $-1.9$\,ppm, 99.3\% inside the band. The gate passed; it
+scored 0.479 (submission 58107187), no change: discarded.
+
 \textbf{Two offline checks, 1 November, no submission.} The MIST \texttt{msg\_aug} encoder
 (Zenodo 23303289), run on an A100, reached mean fingerprint Tanimoto 0.385 on the 50 FRIGID molecules below
 (median 0.336, SE 0.022) against a gate of 0.40 fixed before the run; the old \texttt{mist\_msg.pt} gave 0.261.
@@ -343,8 +352,8 @@ its fingerprints reach Tanimoto 0.245 in its own 10{,}226-bit space and 0.180 ma
 \end{itemize}
 
 \textbf{Next.} The base is still the 0.479 dedup fork (inside the noise of 0.477). No leader has published a method;
-public notebooks claim up to 0.482 (7 November), inside the noise of 0.479, and the seed blend closed the same-model
-ensemble route. The ICEBERG PubChem atlas, allowed by the host on 28 October, was reviewed on 3 November and skipped.
+public notebooks claim up to 0.482 (8 November), inside the noise of 0.479; the seed blend closed the same-model
+ensemble route and the Gold Apex mass prior alone did not move the score. The ICEBERG PubChem atlas, allowed by the host on 28 October, was reviewed on 3 November and skipped.
 A daily watch of public notebooks runs until 10 November and flags any claim of 0.485 or more. Analogue propagation on the 0.477 base scored 0.477 (no change). Before it, single settings of the E006 family look tuned
 (promotion threshold swept upstream, engine-2 weight 0.8 lost 0.009, forward models already at 1.0, a neural re-rank at
 weight 0.50 lost 0.021) and the de novo route failed offline, while the public lineage gained $+0.044$ in a week (0.421 to

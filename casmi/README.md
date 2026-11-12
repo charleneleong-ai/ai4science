@@ -11,7 +11,7 @@ Kaggle dataset.
 popularity, spectral-library and natural-product bonuses), the old leader pinned at rank 2 and InChIKey14
 deduplication. Its +0.002 over 0.477 is inside run-to-run noise, so it is kept as the base (KEEP), not counted as a
 measured gain. A blend of the public neural scorer with three seed retrains of it scored 0.463 (2026-11-06,
-discarded). The 0.477 pipeline ([`fork477`](notebooks/fork477), Busya PRIME's public notebook) runs the 0.465
+discarded), and the public Gold Apex V22 timsTOF mass prior added alone scored 0.479 (2026-11-07, no change). The 0.477 pipeline ([`fork477`](notebooks/fork477), Busya PRIME's public notebook) runs the 0.465
 pipeline below, then a leader-safe neural re-rank (spectrum model at weight 0.25 for rank 1 and 0.75 for ranks 2–25)
 and a fragment check that may replace rank 1.
 The 0.465 pipeline is dmitriigluzdov's public notebook, version 26 ([`fork464`](notebooks/fork464)). It builds on the 0.456 PubChemLite notebook ([`fork456`](notebooks/fork456)):

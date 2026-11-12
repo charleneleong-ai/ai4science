@@ -70,7 +70,7 @@ details[open] summary { margin-bottom: 12px; }
 
 <div class="wrap">
   <header class="head">
-    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 7 Nov 2026 (AEDT)</div>
+    <div class="eyebrow">CASMI 2026 · molecule identification from MS/MS · status 8 Nov 2026 (AEDT)</div>
     <h1>From 0.115 to 0.479, one change per submission</h1>
     <p>Rank candidate structures for 400 molecules from their tandem mass spectra, scored by MRR@25 on the InChIKey connectivity block. Every number on this page is a public leaderboard score: the first local estimate said 0.664 and the leaderboard said 0.115, so nothing local is trusted. The current best is alex chilton's public notebook “CASMI26 LB 0.479 | MIDX Exact Dedup Fill” run unchanged on our account: 0.479, +0.002 over 0.477 and so inside the run-to-run noise, kept as the base rather than counted as a gain; before it, Busya PRIME's “LB 0.477 · Two 0.472 Fixes, Merged the Right Way” scored 0.477, dmitriigluzdov's “CASMI 26: The Data Behind Spectra to Structures” (version 26) scored 0.465, the fork of Hongbin Gu's 0.456 notebook reproduced 0.456 exactly, the E006 fork scored 0.446, the fork of the 0.421 notebook 0.415, and our own pipeline peaked at 0.356.</p>
     <div class="figures">
@@ -80,14 +80,14 @@ details[open] summary { margin-bottom: 12px; }
       <div class="fig"><b>0.415</b><span>first fork · fork-v1 of the 0.421 notebook</span></div>
       <div class="fig"><b>0.356</b><span>our own pipeline's best · v19</span></div>
       <div class="fig"><b>0.115</b><span>first submission · v1</span></div>
-      <div class="fig"><b>31 / 31</b><span>submissions scored, none omitted</span></div>
+      <div class="fig"><b>32 / 32</b><span>submissions scored, none omitted</span></div>
     </div>
   </header>
 
   <section aria-labelledby="spec-h">
     <h2 id="spec-h">Every submission, drawn as a spectrum</h2>
-    <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.521 leaderboard top (1 November); the e006-fork and pubchemlite-fork sticks reproduce their notebooks' public 0.446 and 0.456 exactly. The dotted rule is the rebase onto public notebooks; “spec” is spectra-fork, “pcl” pubchemlite-fork, “nrl” neural-fork, “mrg” merged-fork, “ana” analogue-fork, “ddp” dedup-fork and “sdb” seed-blend; merged-fork set the last measured gain at 0.477, +0.012 over data-fork's 0.465, analogue-fork scored the same 0.477, and the last stick, dedup-fork, scored 0.479, our highest but inside the ±0.005 noise.</p>
-    <div class="chart"><svg id="spectrum" viewBox="0 0 760 326" role="img" aria-label="Stick chart of 30 submission scores (31 submissions, the v19 re-run folded in) rising from 0.115 to a best of 0.479"></svg>
+    <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.521 leaderboard top (1 November); the e006-fork and pubchemlite-fork sticks reproduce their notebooks' public 0.446 and 0.456 exactly. The dotted rule is the rebase onto public notebooks; “spec” is spectra-fork, “pcl” pubchemlite-fork, “nrl” neural-fork, “mrg” merged-fork, “ana” analogue-fork, “ddp” dedup-fork, “sdb” seed-blend and “msp” mass-prior; merged-fork set the last measured gain at 0.477, +0.012 over data-fork's 0.465, analogue-fork scored the same 0.477, and the last stick, dedup-fork, scored 0.479, our highest but inside the ±0.005 noise.</p>
+    <div class="chart"><svg id="spectrum" viewBox="0 0 760 326" role="img" aria-label="Stick chart of 31 submission scores (32 submissions, the v19 re-run folded in) rising from 0.115 to a best of 0.479"></svg>
       <div class="legend"><span><i class="key" style="background:var(--peak)"></i>kept</span><span><i class="key" style="background:var(--dim)"></i>not kept</span><span><i class="key" style="background:var(--ref)"></i>reference scores</span></div>
     </div>
   </section>
@@ -176,6 +176,16 @@ flowchart TD
       <thead><tr><th>v</th><th>change</th><th style="text-align:right">MRR@25</th><th>verdict</th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
+  </section>
+
+  <section aria-labelledby="nov7-h">
+    <h2 id="nov7-h">What changed on 7–8 November</h2>
+    <p>The precursor-mass prior that every 0.481–0.482 public notebook carries did not move our score: 0.479 against 0.479.</p>
+    <ul class="limits">
+      <li><b>Mass prior: DISCARD, no change.</b> romanrozen's layer from popwenman's public Gold Apex V22, alone on our base with its constants: on ranks 2–25 a candidate loses up to 0.15 when its exact mass sits more than 3 ppm from −1.5 ppm of the neutral precursor mass (full at 8 ppm), and an in-band rank 2–3 candidate replaces a leader more than 5 ppm off when the best library match is below 0.9. Kernel version 3 of casmi-fork479; gate passed; scored 0.479 (submission 58107187, 8 November 14:52 AEDT).</li>
+      <li><b>It is safe, but reaches too little.</b> On 2,138 timsTOF train spectra the true structure sits at median −1.9 ppm, 99.3% inside the band. On the 12 smoke lists 59 of 288 rank 2–25 candidates fall outside it; the rank-1 rule moved none. V22's other changes (scorer blend, prior weights, LOTUS backfill) were not tried; its +0.002–0.003 is inside the noise.</li>
+      <li><b>Final picks</b> (two, by 14 December 23:59 UTC): the dedup fork and the merged fork, the two lines that reproduced. One public notebook puts the public split at about 125 molecules, ±0.016 between submissions by chance (unverified).</li>
+    </ul>
   </section>
 
   <section aria-labelledby="nov6-h">
@@ -333,8 +343,9 @@ const SUBS = [
   ["analogue-fork", "merged fork + analogue propagation across test molecules on ranks 2–25 (anchors library ≥ 0.87, cosine ≥ 0.70, λ 0.10)", 0.477, "DISCARD"],
   ["dedup-fork", "the public 0.479 notebook (alex chilton / Baidalin Adilzhan) unchanged: the 0.477 merge + documentation prior on ranks 2–25, old leader pinned at rank 2, InChIKey14 dedup; inside the noise, kept as the base", 0.479, "KEEP"],
   ["seed-blend", "dedup fork + ranks 2–25 neural score = mean per-molecule z of the public scorer and three same-recipe seed retrains; −0.016", 0.463, "DISCARD"],
+  ["mass-prior", "dedup fork + the Gold Apex V22 timsTOF precursor-mass prior on ranks 2–25 and its mass rank-1 rule; no change", 0.479, "DISCARD"],
 ];
-const SHORT = { "spectra-fork": "spec-fork", "pubchemlite-fork": "pcl-fork", "neural-fork": "nrl-fork", "merged-fork": "mrg-fork", "analogue-fork": "ana-fork", "dedup-fork": "ddp-fork", "seed-blend": "sdb-fork" };
+const SHORT = { "spectra-fork": "spec-fork", "pubchemlite-fork": "pcl-fork", "neural-fork": "nrl-fork", "merged-fork": "mrg-fork", "analogue-fork": "ana-fork", "dedup-fork": "ddp-fork", "seed-blend": "sdb-fork", "mass-prior": "msp-fork" };
 const bestScore = Math.max(...SUBS.filter(s => s[3] !== "DISCARD").map(s => s[2]));
 const bestIdx = SUBS.findIndex(s => s[3] !== "DISCARD" && s[2] === bestScore);
 const firstFork = SUBS.findIndex(s => s[0].includes("fork"));

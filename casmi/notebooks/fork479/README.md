@@ -25,6 +25,7 @@ inside the noise.
 |---|---|---|
 | 1 | none: upstream as of 2026-11-01 | **0.479** (ref 57867559, 2026-11-01; reproduces upstream; KEEP, +0.002 over 0.477 is inside the noise) |
 | 2 | ranks 2–25 neural score = mean per-molecule z of the public scorer and three seed retrains of it ([`b9627b0`](https://github.com/charleneleong-ai/ai4science/commit/b9627b0)); private dataset `charyeezy/casmi26-seed-scorers` | 0.463 (ref 58046573, 2026-11-06; DISCARD, −0.016) |
+| 3 | v1 + romanrozen's timsTOF precursor-mass prior from popwenman's Gold Apex V22, constants unchanged: ranks 2–25 lose up to 0.15 beyond 3 ppm of −1.5 ppm (full at 8 ppm); an in-band rank 2–3 takes rank 1 from a leader > 5 ppm off when the best library match is below 0.9 ([`5f8cfb6`](https://github.com/charleneleong-ai/ai4science/commit/5f8cfb6)); gate `gate_fork479_v3.py` | 0.479 (ref 58107187, 2026-11-07; DISCARD, no change) |
 
 Run with [`scripts/kaggle_chain.sh`](../../scripts/kaggle_chain.sh). The gate is `~/casmi-data/gates/gate_fork479.py`:
 the `fork477` gate, plus the final layer's own log lines, and no `Note: ... exception` line. Those lines are how the
