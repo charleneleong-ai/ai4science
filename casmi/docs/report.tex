@@ -6,7 +6,7 @@
 
 \title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.479}
 \author{Charlene Leong}
-\date{2 November 2026}
+\date{13 November 2026}
 
 \begin{document}
 \maketitle
@@ -41,7 +41,9 @@ which adds a documentation prior and InChIKey14 deduplication on ranks 2--25, sc
 but $+0.002$ is inside the run-to-run noise, so it is kept as the base, not counted as a gain. Two offline probes, a
 newer MIST encoder and an external spectral library, were closed without a submission. Blending the public neural scorer with
 three seed retrains of it scored 0.463, and the public Gold Apex V22 timsTOF mass prior added alone scored 0.479 (no
-change); both were discarded. 32 submissions were made and all were
+change); both were discarded. A tenth fork, Hongbin Gu's public 0.487 notebook (Gold Apex V22 with a two-scorer
+neural ensemble and 324{,}884 external library spectra for rank-1 promotion), reproduced 0.487: the new base, though
+$+0.008$ over 0.479 is inside the $\pm0.016$ between submissions. 33 submissions were made and all were
 scored. No calibrated local estimate of the score exists.
 \end{abstract}
 
@@ -189,9 +191,10 @@ data-fork & the public 0.464 notebook (v26), unchanged & 0.465 \\
 neural-fork & the public 0.466 neural re-rank, weight 0.50 (not kept) & 0.444 \\
 merged-fork & the public 0.477 notebook, unchanged & 0.477 \\
 analogue-fork & + analogue propagation on ranks 2--25 (not kept) & 0.477 \\
-dedup-fork & the public 0.479 notebook, unchanged (inside the noise) & \textbf{0.479} \\
+dedup-fork & the public 0.479 notebook, unchanged (inside the noise) & 0.479 \\
 seed-blend & + three seed retrains in the ranks 2--25 neural score (not kept) & 0.463 \\
 mass-prior & + timsTOF precursor-mass prior and mass rank-1 rule (not kept) & 0.479 \\
+extlib-fork & the public 0.487 notebook, unchanged (inside the noise) & \textbf{0.487} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -292,6 +295,15 @@ Spearman to the public scorer 0.913, 0.933, 0.928). It scored 0.463 (submission 
 discarded. The seeds rank much like the public model and two of three validate lower, so equal weights likely dilute it;
 that explanation is untested.
 
+\textbf{The extlib fork (extlib-fork, 12 November).} Hongbin Gu's public notebook
+\emph{casmi26-v589-alex0484-extlib}, which another user ran unchanged for 0.487, forked with one change: the commit run
+executes every stage on the 12 visible molecules (\texttt{COMMIT\_MODE = 'smoke'}) so the gate can check them. It is
+popwenman's Gold Apex V22 with the public spectrum model and an 80-epoch retrain combined as
+$0.5\,z_\text{public} + 0.5\,z_\text{ours}$, the timsTOF mass prior, a documentation prior, and rank-1 promotion from
+324{,}884 external library spectra (Takumu Hata's extlib plus harmonised MassBank) at cosine $\ge 0.8$. The gate
+passed; it scored 0.487 (submission 58272211), $+0.008$ over 0.479, one to two molecules: promoted as the base, not a
+measured gain. Its kernel version 2 turns on the notebook's learned isomer reranker at weight 0.20 and is running.
+
 \textbf{Precursor-mass prior (mass-prior, 7 November).} Kernel version 3 adds, alone, romanrozen's timsTOF mass
 prior from popwenman's public Gold Apex V22 notebook with its constants: on ranks 2--25 a candidate loses up to 0.15
 when its exact mass sits more than 3\,ppm from $-1.5$\,ppm of the neutral precursor mass (full at 8\,ppm), and an
@@ -351,14 +363,14 @@ its fingerprints reach Tanimoto 0.245 in its own 10{,}226-bit space and 0.180 ma
     $[\mathrm{M{+}H}]^+$ only (v16), popularity weight 0.15 (v8): inside the noise or below it.
 \end{itemize}
 
-\textbf{Next.} The base is still the 0.479 dedup fork (inside the noise of 0.477). No leader has published a method;
-public notebooks claim up to 0.482 (8 November), inside the noise of 0.479; the seed blend closed the same-model
+\textbf{Next.} The base is now the 0.487 extlib fork; its isomer-reranker variant is running. Final picks (two, by 14
+December 23:59 UTC): the extlib fork and a diverse line, the 0.479 dedup fork or the 0.477 merged fork. No leader has published a method; the seed blend closed the same-model
 ensemble route and the Gold Apex mass prior alone did not move the score. The ICEBERG PubChem atlas, allowed by the host on 28 October, was reviewed on 3 November and skipped.
-A daily watch of public notebooks runs until 10 November and flags any claim of 0.485 or more. Analogue propagation on the 0.477 base scored 0.477 (no change). Before it, single settings of the E006 family look tuned
+A daily watch of public notebooks runs until the deadline and flags any claim of 0.485 or more. Analogue propagation on the 0.477 base scored 0.477 (no change). Before it, single settings of the E006 family look tuned
 (promotion threshold swept upstream, engine-2 weight 0.8 lost 0.009, forward models already at 1.0, a neural re-rank at
 weight 0.50 lost 0.021) and the de novo route failed offline, while the public lineage gained $+0.044$ in a week (0.421 to
 0.465), then $+0.012$ more to 0.477. The cheapest lever left is a daily check of new public notebooks,
-forking any credible improvement that reproduces; it gave the 0.479 rebase. The leaderboard top is 0.521 (1 November).
+forking any credible improvement that reproduces; it gave the 0.479 and 0.487 rebases. The leaderboard top is 0.540 (12 November).
 
 \section{What is not established}
 \begin{itemize}

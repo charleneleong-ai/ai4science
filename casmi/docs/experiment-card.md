@@ -1,8 +1,9 @@
 # Experiment card — CASMI 2026 molecule identification
 
 Pattern: [*A generated protein is not a result*](https://rewirebio.io/blog/a-generated-protein-is-not-a-result/),
-applied to a retrieve-and-rank campaign. Status as of 2026-11-07 (AEDT): the current best (0.479, inside the noise of
-0.477) is an unchanged fork of alex chilton's public 0.479 notebook, [`notebooks/fork479/fork479.ipynb`](../notebooks/fork479/fork479.ipynb);
+applied to a retrieve-and-rank campaign. Status as of 2026-11-13 (AEDT): the current best (0.487, inside the noise of
+0.479) is a fork of Hongbin Gu's public 0.487 notebook, unchanged except for a smoke commit run, [`notebooks/fork487/fork487.ipynb`](../notebooks/fork487/fork487.ipynb);
+the base before it (0.479, inside the noise of 0.477) is an unchanged fork of alex chilton's public 0.479 notebook, [`notebooks/fork479/fork479.ipynb`](../notebooks/fork479/fork479.ipynb);
 the base before it (0.477) is an unchanged fork of Busya PRIME's public 0.477 notebook, [`notebooks/fork477/merged_fork.ipynb`](../notebooks/fork477/merged_fork.ipynb);
 before it (0.465) is an unchanged fork of dmitriigluzdov's public notebook at version 26, [`notebooks/fork464/data_fork.ipynb`](../notebooks/fork464/data_fork.ipynb);
 before it (0.456), an unchanged fork of Hongbin Gu's public 0.456 notebook, [`notebooks/fork456/pubchemlite_fork.ipynb`](../notebooks/fork456/pubchemlite_fork.ipynb);
@@ -22,7 +23,21 @@ before it (0.446), an unchanged fork of the public E006 notebook,
 | scored on | the **public** leaderboard split only; the private split is not visible until the competition closes |
 | rules | code competition: notebook only, internet off; about 5 submissions a day |
 
-## Current best — dedup-fork, public MRR@25 0.479 (KEEP, inside the noise)
+## Current best — extlib-fork, public MRR@25 0.487 (PROMOTE, inside the noise)
+
+| | |
+|---|---|
+| kernel | `charyeezy/casmi-fork487` (private), kernel version 1, submission 58272211 (2026-11-12 23:06 AEDT, scored by 03:43 AEDT 13 November), commit [`2dc7d19`](https://github.com/charleneleong-ai/ai4science/commit/2dc7d19); reproduces the source's public 0.487; +0.008 over dedup-fork, one to two molecules of the ~124-molecule public split and inside the ±0.016 between submissions, so PROMOTE as the new base, not a measured gain |
+| source | [casmi26-v589-alex0484-extlib](https://www.kaggle.com/code/guhongbin/casmi26-v589-alex0484-extlib) (Hongbin Gu), run unchanged by huichieh for 0.487 (submission 58185447, 2026-11-10); md5 of the source `ec45cc46672d00245bdb6bb0c39712f7`; one change, `COMMIT_MODE = 'smoke'` (was `'fast'`), so the commit run executes every stage on the 12 visible molecules; the scoring rerun is full either way. See [`notebooks/fork487/README.md`](../notebooks/fork487/README.md) |
+| method | popwenman's Gold Apex V22, with: the public spectrum model and an 80-epoch retrain (popwenman's public `casmi26-scorer-train-v80` kernel) combined as 0.5·z(public) + 0.5·z(ours); romanrozen's timsTOF mass prior; a documentation prior on ranks 2–25 with a LOTUS backfill; external-library rank-1 promotion (cosine ≥ 0.8, K = 4) against Takumu Hata's extlib (200,724 spectra) plus harmonised MassBank, 324,884 in all |
+| datasets | 10 plus one kernel source, as listed in [`kernel-metadata.json`](../notebooks/fork487/kernel-metadata.json); the source's `id_no` and `keywords` removed (a copied `id_no` overrides `id` and makes the push fail with 403) |
+| runtime | image `gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461`, NVIDIA T4, internet off |
+| run evidence | gate `~/casmi-data/gates/gate_fork487.py` (outside the repo) passed on the commit run: the fork477 gate, plus `OURS BUNDLE READY`, the ensemble line, mass prior on (394 / 400 lists touched, 447 candidates penalised), documentation prior reordered 12 rows, extlib loaded 324,884 spectra with 0 matches and 0 promotions (the smoke molecules are train copies), no fallback or unexpected `Note: ... exception` line. Outputs: `~/casmi-data/kernel_outputs/fork487-v1` |
+| next | kernel version 2 ([`28c5ce3`](https://github.com/charleneleong-ai/ai4science/commit/28c5ce3)): the learned isomer reranker on (`V8 = 'BOTH'`, `RR8_ALPHA = 0.20`), gate `gate_fork487_v2.py` adds the reranker's `"status": "ran"`; running |
+
+The settings were fixed by the notebook's authors before we ran it; we chose none of them.
+
+## Kept — dedup-fork, public MRR@25 0.479 (KEEP, inside the noise)
 
 | | |
 |---|---|
@@ -256,7 +271,7 @@ fragment check has none.
 
 ## Budget — every attempt in the denominator
 
-- **31 submissions, 31 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
+- **33 submissions, 33 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
   to measure noise (0.353 vs 0.356); every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including those not kept
   (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise), v19 (0.356, kept), v20 (0.354) and v21 (0.333) in
@@ -269,7 +284,8 @@ fragment check has none.
   neural-fork (0.444, 57615727, kernel version 1, discarded). One from the 0.477 notebook: merged-fork
   (0.477, 57822991, kernel version 1, promoted); its kernel version 2, analogue-fork (0.477, 57826104, discarded).
   Three from the 0.479 notebook: dedup-fork (0.479, 57867559, kernel version 1, kept within the noise), its kernel
-  version 2, seed-blend (0.463, 58046573, discarded), and kernel version 3, mass-prior (0.479, 58107187, discarded).
+  version 2, seed-blend (0.463, 58046573, discarded), and kernel version 3, mass-prior (0.479, 58107187, discarded). One from the 0.487 notebook: extlib-fork (0.487,
+  58272211, kernel version 1, promoted).
 - **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
   molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
   it finished because an empty mass window would have crashed it).
@@ -313,6 +329,8 @@ fragment check has none.
 | the dedup fork's settings (prior weights 0.10 / 0.05 / 0.02, library gate 0.87, leader pin, InChIKey14 dedup) | by its authors, before we ran it | not ours; scored on the public leaderboard upstream (0.479) |
 | seed blend: equal weights, shipped schedule, three seeds | **before** the retrains (2026-11-03) | one change per submission; scored 0.463, discarded |
 | mass prior: V22's constants (centre −1.5 ppm, free 3, full 8, weight 0.15; rank-1 rule at 5 ppm, library < 0.9) | by its authors; adopted **before** our run (2026-11-08) | one change per submission; band checked on train first; scored 0.479, discarded |
+| the extlib fork's settings (scorer ensemble 0.5 / 0.5, mass prior, documentation prior, extlib cosine 0.8, K = 4) | by its authors, before we ran it | not ours; scored on the public leaderboard upstream (0.487) |
+| isomer reranker for v2: `V8 = 'BOTH'`, `RR8_ALPHA = 0.20` | **before** its run (2026-11-13) | one change per submission; small weight chosen so it can only reorder same-formula isomers; pending |
 | MIST `msg_aug` gate: mean Tanimoto ≥ 0.40 on the 50 FRIGID molecules | **before** the run (2026-11-01) | pre-registered; 0.385 fails it, so no FRIGID decode was run |
 | external-library reach: cosine ≥ 0.5, 20 ppm, same ion mode, structures absent from train | **before** the count | a reach check; 0 / 400, so no submission |
 | analogue propagation (fork477 v3: anchor ≥ 0.87, cosine ≥ 0.70, λ 0.10, rank 1 frozen) | **before** it was submitted | its reach (113 / 400) checked first; no offline panel can score it; scored 0.477, no change, discarded |
@@ -340,6 +358,9 @@ of identical runs — were treated as no change.
   layer's effect on its own (documentation prior, leader pin, dedup) is not measured by us.
 - **Why the seed blend lost.** Untested: the seeds agree closely with the public scorer and two of three validate
   lower, so equal weights may just dilute it; other weights, or seeds from a different recipe, were not run.
+- **What in the 0.487 notebook earns its +0.008.** We ran it unchanged; the split between the scorer ensemble, the
+  external-library promotion and the other layers is not measured, and +0.008 itself is inside the noise. How many
+  hidden-test molecules the 324,884 external spectra promote is not visible: the smoke run's molecules are train copies.
 - **How many hidden-test answers the mass prior reached.** The commit run scores only the 12 smoke molecules; its
   effect on the public split is a measured zero, but the split between the ranks 2–25 penalty and the rank-1 rule is not.
 - **What `msg_aug` would do to ranking.** At Tanimoto 0.26 FRIGID found 0 / 50; whether 0.385 gives any hits, or helps

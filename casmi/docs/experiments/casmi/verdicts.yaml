@@ -82,4 +82,7 @@ submissions:
   - {version: 3, label: mass-prior, outputs: fork479-v3, ref: 58107187, date: 2026-11-07, family: prior, commit: 5f8cfb6,
      score: 0.479, verdict: DISCARD,
      change: "fork479 v1 + romanrozen's timsTOF precursor-mass prior from Gold Apex V22 (ranks 2-25 lose up to 0.15 beyond 3 ppm of -1.5 ppm, full at 8; in-band rank 2-3 takes rank 1 from a leader > 5 ppm off below library 0.9); 0.479, no change"}
+  - {version: 1, label: extlib-fork, outputs: fork487-v1, ref: 58272211, date: 2026-11-12, family: rebase, commit: 2dc7d19,
+     score: 0.487, verdict: PROMOTE,
+     change: "the public 0.487 notebook (guhongbin casmi26-v589-alex0484-extlib) unchanged except COMMIT_MODE smoke: Gold Apex V22 base + 80-epoch OURS scorer ensembled 0.5/0.5 z with the public scorer + timsTOF mass prior + documentation prior + external spectral libraries (takumuhata extlib 200,724 + MassBank harmonized = 324,884 spectra) for rank-1 promotion; +0.008 over 0.479 is one to two molecules, inside the +/-0.016 between-submission noise"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==
