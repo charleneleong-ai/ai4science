@@ -7,14 +7,12 @@ from typing import Any
 
 import pytest
 import yaml
+
 from quantum_compilation.cost import (
     BASELINE_FACTORIZATION,
     DEFAULT_CALIBRATION,
-    ESCAPE_SCORE,
-    AngleFamily,
-    AngleFloorSweep,
-    and_counting_floor,
     DFTHCSOS_CONSTRAINTS,
+    ESCAPE_SCORE,
     FEMOCO_C0,
     MAX_ANGLE_QUBITS,
     MAX_DQI_FAILURE_RATE,
@@ -23,26 +21,30 @@ from quantum_compilation.cost import (
     MIN_LAMBDA,
     MODEL_AGREEMENT_REL,
     TASKS,
+    AngleFamily,
+    AngleFloorSweep,
     MetricCalibration,
+    ShapeResources,
+    and_counting_floor,
+    blend_factor,
     clopper_pearson_upper_bound,
+    cost_cut_for_blend,
     dfthcsos_constraint_margins,
     dfthcsos_cost,
     dfthcsos_rejections,
     dqi_cost,
     dqi_repetition_factor,
-    ShapeResources,
-    blend_factor,
-    cost_cut_for_blend,
     lambda_eff,
-    marginal_blend_per_unit,
     lambda_eff_floor,
     lcu_vectors,
+    marginal_blend_per_unit,
     min_lcu_lambda,
     require_task,
+    rotation_eps,
     rotation_t_count,
     score,
-    word_registers,
     toffoli_equivalents,
+    word_registers,
 )
 
 AT_REFERENCE = dict(DEFAULT_CALIBRATION.reference_costs)
@@ -98,6 +100,17 @@ class TestRotationPricing:
     def test_rejects_an_error_outside_the_unit_interval(self, eps):
         with pytest.raises(ValueError, match="synthesis error"):
             rotation_t_count(eps)
+
+    def test_eps_from_a_measured_margin_matches_the_verifiers_own_choice(self):
+        # Two independent sources for circuit 6c6a734d: our per-x error profile measured its
+        # smallest margin as 58,597,850 units of 2^-64 turns, and the official verifier
+        # reported eps 2.434041480874084e-13 for its 41 rotations.
+        assert rotation_eps(58_597_850, 41) == pytest.approx(2.434041480874084e-13, rel=1e-12)
+
+    @pytest.mark.parametrize(("margin", "count"), [(0, 41), (-5, 41), (100, 0)])
+    def test_eps_needs_a_positive_margin_and_rotation_count(self, margin, count):
+        with pytest.raises(ValueError, match="positive margin"):
+            rotation_eps(margin, count)
 
 
 class TestToffoliEquivalents:

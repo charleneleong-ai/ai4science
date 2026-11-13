@@ -16,7 +16,7 @@ from typing import Annotated
 import kickmix as km
 import typer
 
-from quantum_compilation.cost import T_PER_TOFFOLI_EQUIVALENT, rotation_t_count
+from quantum_compilation.cost import rotation_t_count, toffoli_equivalents
 from quantum_compilation.submission import Resources
 from quantum_compilation.verify import VerificationRun
 
@@ -84,7 +84,7 @@ def main(
     detail = VerificationRun.read_rows(rows)["invsqrt"]["detail"]
     t_per_rotation = rotation_t_count(detail["rotation_eps"])
     c = detail["toffoli_equivalent"]
-    rotation_c = detail["rotation_count"] * t_per_rotation / T_PER_TOFFOLI_EQUIVALENT
+    rotation_c = toffoli_equivalents(0, 0, detail["rotation_count"], detail["rotation_eps"])
     typer.echo(
         f"verifier: Q {detail['num_qubits']}, C {c:.2f} = Toffoli {detail['toffoli_count']:.2f} "
         f"+ rotations {rotation_c:.2f} ({rotation_c / c:.1%}); {t_per_rotation:.2f} T per rotation at "

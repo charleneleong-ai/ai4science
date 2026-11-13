@@ -44,20 +44,32 @@ Static stage map (instruction index; Toffoli-like counts are static, not per-sho
 
 25.1x needs cost 82,740: **a 11.85% cut**. Each 1% of invsqrt cost is +0.336% on the blend.
 
-| lever | size if it works | share of cost | status |
-| --- | ---: | ---: | --- |
-| merge the 8 repeated-weight rotations (add the two terms before kicking) | -57.5 C, plus the adder | up to 3.8% | untested; the adder costs Toffolis and maybe qubits |
-| free accuracy margin so `eps` grows (each doubling saves 5.74 C) | 9.5 doublings to reach 50% slack at x=161 | up to 3.6% | upper bound: other inputs may bind first, and accuracy costs Toffolis |
-| one fewer qubit (62 → 61) | 1/62 | 1.6% | worth up to ~25 extra Toffolis |
-| shifter from 46 CSWAPs to the high-30s counting bound ([thread 757030](https://www.kaggle.com/competitions/google-verifiable-quantum-circuit-compilation/discussion/757030)) | -8 C | 0.5% | SAT did not resolve w=21 publicly |
+| lever | measured | verdict |
+| --- | --- | --- |
+| free accuracy margin so `eps` grows | **0.44% at most** (fixing the 1,000 tightest inputs frees 6.6 C) | closed |
+| merge the 8 repeated-weight rotations | saves 57.5 C, but needs ~8 qubits held for ~7,800 instructions (~24 C each) | closed unless idle qubits exist then |
+| one fewer qubit (62 → 61) | 1.6%, worth up to ~25 extra Toffolis | open |
+| shifter from 46 CSWAPs to the high-30s counting bound ([thread 757030](https://www.kaggle.com/competitions/google-verifiable-quantum-circuit-compilation/discussion/757030)) | 0.5% | open, small |
 
-Together these are about 9.5% and **not additive** — the first two pull against each other through the
-accuracy budget. They do not reach 11.85% on their own, so 25.1x most likely comes from a structural
-change (fewer arithmetic Toffolis or several fewer qubits), not from trimming this design.
+**The margin is spent everywhere, not at one input.** [`scripts/invsqrt_error_profile.py`](../scripts/invsqrt_error_profile.py)
+reruns the verifier's own shot loop over all 3,133,452 inputs and keeps each signed error. It reproduces
+the verifier's `eps` (2.434e-13) exactly, and the error is deterministic per input (no input varies with
+measurement outcomes). The smallest margin, 3.177e-12 turns, is shared by at least 30 inputs; 168,010
+inputs use more than half their tolerance and 184 more than 90%. Freeing margin means more accurate
+arithmetic everywhere, which costs Toffolis.
+
+**The repeated weights are two kick passes, not one doubled bit.** Pass 1 (instructions 8.6k–9.0k) kicks
+exponents 2^-17 .. 2^-3; pass 2 (16.4k–16.7k) kicks 2^-35 .. 2^-10. Each kick loads a bit into `q28` with a
+Toffoli (`CX q28 q4; CCX q21 q4 q28; CX q28 q4`, cycling a 4-qubit window q4–q7), rotates, and erases it
+with `HMR`. So the phase is the sum of two terms computed ~7,800 instructions apart.
+
+**Conclusion: trimming this design is closed.** The open levers (rows 3-4) total ~2%, against 11.85%
+for 25.1x. That gap needs a structural change — fewer arithmetic Toffolis in the two ~500-Toffoli sections, or
+several fewer qubits — not tuning of the kick or the margin.
 
 ## What is not established
 
 - Per-shot (not static) Toffoli counts per stage: needs a stage-tagged simulation.
-- The error profile over all `x`, which decides how much the margin lever is really worth.
-- What the repeated-weight terms are, and whether adding them first fits in 62 qubits.
+- Which qubits sit idle between the two kick passes (would reopen the merge lever).
+- What the two phase terms are mathematically (likely a coarse estimate plus a correction).
 - Whether mikelou1's 25.1x is real; it is a forum claim with no method.
