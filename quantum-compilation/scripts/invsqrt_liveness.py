@@ -16,6 +16,7 @@ import typer
 from rich.progress import track
 
 from quantum_compilation.cli import VerifiersOption
+from quantum_compilation.invsqrt import sample_inputs
 from quantum_compilation.submission import Op
 from quantum_compilation.verify import load_verifier
 
@@ -50,18 +51,6 @@ class Steps:
                 if not op.conditioned and op.name != "HMR":
                     used[s, list(op.qubits)] = True
         return used
-
-
-def sample_inputs(max_x: int, count: int, seed: int) -> np.ndarray:
-    """Every x up to 4096, both neighbours of each power of two, and the rest uniform.
-
-    Not the verifier's `sample_shots` sweep: occupancy is a max over inputs, so the edge cases
-    of the normalising shift matter more than matching its order.
-    """
-    edges = [v for k in range(1, max_x.bit_length()) for v in (2**k - 1, 2**k, 2**k + 1)]
-    fixed = np.unique(np.r_[np.arange(1, 4097), edges, max_x].clip(1, max_x))
-    rest = np.random.default_rng(seed).integers(1, max_x + 1, max(count - len(fixed), 0))
-    return np.r_[fixed, rest].astype(np.uint64)
 
 
 def occupancy(

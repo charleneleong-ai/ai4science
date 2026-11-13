@@ -199,3 +199,10 @@ class TestOpParsing:
 
     def test_qubits_skip_bits_and_keywords(self):
         assert [op.qubits for op in Op.parse(km.Circuit(CONDITIONED))][::2] == [(0,), (1, 2), (3,)]
+
+    @pytest.mark.parametrize(
+        ("line", "fine"),
+        [("Z_POW q0 0.125", True), ("Z_POW q0 0.75", False), ("Z_POW q0 0.5", False), ("CX q0 q1", False)],
+    )
+    def test_only_rotations_finer_than_t_are_fine(self, line, fine):
+        assert Op.parse(km.Circuit(line))[0].is_fine_rotation is fine

@@ -37,12 +37,7 @@ def timeline(ops: list[Op], window: int) -> list[tuple[int, Counter[str], int]]:
 
 
 def fine_rotations(ops: list[Op]) -> list[tuple[str, float]]:
-    """`Z_POW`s whose exponent is not a multiple of T's (Z^0.25), i.e. the ones needing synthesis."""
-    return [
-        (op.args[0], a)
-        for op in ops
-        if op.name == "Z_POW" and not (4 * (a := float(op.args[1]))).is_integer()
-    ]
+    return [(op.args[0], float(op.args[1])) for op in ops if op.is_fine_rotation]
 
 
 def main(

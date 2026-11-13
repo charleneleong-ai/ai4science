@@ -95,6 +95,11 @@ class Op:
         return tuple(int(a[1:]) for a in self.args if a.startswith("q"))
 
     @property
+    def is_fine_rotation(self) -> bool:
+        """A `Z_POW` whose exponent is not a multiple of T's (Z^0.25), so it needs synthesis."""
+        return self.name == "Z_POW" and not (4 * float(self.args[1])).is_integer()
+
+    @property
     def text(self) -> str:
         return " ".join((self.name, *self.args))
 

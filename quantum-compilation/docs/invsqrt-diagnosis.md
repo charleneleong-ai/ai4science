@@ -40,6 +40,26 @@ Static stage map (instruction index; Toffoli-like counts are static, not per-sho
 | 25.5k – 33k | Clifford only | ~1 |
 | 33k – 37k | tail uncompute, mostly conditioned | ~145 |
 
+## What the circuit computes
+
+[`scripts/invsqrt_decompose.py`](../scripts/invsqrt_decompose.py) reads the lookup's outputs and
+the bit on `q28` before each fine rotation over 16,384 inputs. Write `x = 2^e · M` with `M` in
+[1, 2):
+
+1. **Shifter** (0 – 1.5k): normalises `x` by a power of two; `q23` keeps the parity of `e`, which
+   is why it cannot be recomputed later.
+2. **Lookup** (1.7k – 7.5k): a 256-entry table on the 7 mantissa bits after the leading one plus
+   that parity. It has 38 output bits, no collisions at 7 bits, 128 at 6; the outputs are not
+   a linear (XOR) encoding of samples of `1/sqrt(M)`, so the coefficients are not decoded bit by bit.
+3. **Pass 1** (8.6k – 9.0k): kicks a seed, about 8 bits of `1/sqrt(x)` (x = 100: 0.099609 of
+   0.1), scaled by `2^-floor(e/2)`.
+4. **Arithmetic and pass 2** (to 16.7k): kicks the correction. Per segment it is a **quadratic in
+   the 14 low mantissa bits**: a degree-2 fit leaves 0.69x tolerance at worst, degree 1 leaves
+   70x, and degree 3 gains nothing (0.70x), so the remainder is fixed-point rounding.
+
+So this is a seed-plus-quadratic design: 256 segments, two multiplies by a 14-bit `u`, and the
+seed kicked and erased before the multiplies need the room.
+
 ## Qubit liveness
 
 [`scripts/invsqrt_liveness.py`](../scripts/invsqrt_liveness.py) steps the circuit one gate (or
@@ -49,8 +69,9 @@ count reachable by relabelling alone. A qubit is *parked* where it is occupied w
 unconditioned use; HMR uncompute and its phase fixups touch qubits without using them.
 
 **The peak is the declared 62, held in 12 runs of 50+ steps; relabelling frees nothing.** The long
-run, instructions 1,663–7,493 (5,831 steps), writes a Boolean function of the top 8 normalised bits
-(`q14`–`q21`) into 39 outputs (`q22`–`q61`) with 5,627 CX and 129 CCX; the outputs are first used
+run, instructions 1,663–7,493 (5,831 steps), is the lookup (step 2 above): the 8 address qubits
+`q14`–`q21` and 38 outputs in `q22`–`q61`, written with 5,627 CX and 129 CCX and a scratch `q41`
+erased at 7,493; the outputs are first used
 together at 8,034–8,074, so they cannot be loaded lazily. The short runs sit in kick pass 1
 (8.6k–10.8k) and pass 2 (16.5k–16.7k).
 
@@ -58,7 +79,7 @@ together at 8,034–8,074, so they cannot be loaded lazily. The short runs sit i
 9.8k–10.8k the same 15 qubits are parked: the low input bits `q0`–`q13` (last used ~700, next
 ~8,570) and `q23`. `q23` starts as `NOT(x20 XOR x21)` and steers the shifter, and by 1,663 it is
 not recomputable: 23 states of the other 61 qubits occur with both of its values. So the long run
-holds 14 input bits, 1 shift bit, 8 address bits and 39 lookup outputs, all needed at once.
+holds 14 input bits, the parity bit, 8 address bits, 38 lookup outputs and 1 scratch bit: 62.
 
 ## Levers, priced
 
@@ -90,6 +111,5 @@ several fewer qubits, which only a narrower lookup can give — not tuning of th
 ## What is not established
 
 - Per-shot (not static) Toffoli counts per stage: needs a stage-tagged simulation.
-- What the 39 lookup outputs encode (likely piecewise-polynomial coefficients over 256 segments), so a narrower lookup can be priced.
-- What the two phase terms are mathematically (likely a coarse estimate plus a correction).
+- How the 38 lookup bits split between the seed and the quadratic's coefficients, and how wide each multiply is; needed to price a narrower lookup or a different segment count.
 - Whether mikelou1's 25.1x is real; it is a forum claim with no method.
