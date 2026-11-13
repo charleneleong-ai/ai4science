@@ -40,6 +40,26 @@ Static stage map (instruction index; Toffoli-like counts are static, not per-sho
 | 25.5k – 33k | Clifford only | ~1 |
 | 33k – 37k | tail uncompute, mostly conditioned | ~145 |
 
+## Qubit liveness
+
+[`scripts/invsqrt_liveness.py`](../scripts/invsqrt_liveness.py) steps the circuit one gate (or
+condition block) at a time over 16,384 inputs and records which qubits are nonzero. Each qubit is a
+definite bit per shot, so its occupied stretches are intervals and the peak overlap is the qubit
+count reachable by relabelling alone. A qubit is *parked* where it is occupied with no
+unconditioned use; HMR uncompute and its phase fixups touch qubits without using them.
+
+**The peak is the declared 62, held in 12 runs of 50+ steps; relabelling frees nothing.** The long
+run, instructions 1,663–7,493 (5,831 steps), writes a Boolean function of the top 8 normalised bits
+(`q14`–`q21`) into 39 outputs (`q22`–`q61`) with 5,627 CX and 129 CCX; the outputs are first used
+together at 8,034–8,074, so they cannot be loaded lazily. The short runs sit in kick pass 1
+(8.6k–10.8k) and pass 2 (16.5k–16.7k).
+
+**What fills it is information, not slack.** Through the long run and the five pass-1 runs at
+9.8k–10.8k the same 15 qubits are parked: the low input bits `q0`–`q13` (last used ~700, next
+~8,570) and `q23`. `q23` starts as `NOT(x20 XOR x21)` and steers the shifter, and by 1,663 it is
+not recomputable: 23 states of the other 61 qubits occur with both of its values. So the long run
+holds 14 input bits, 1 shift bit, 8 address bits and 39 lookup outputs, all needed at once.
+
 ## Levers, priced
 
 25.1x needs cost 82,740: **a 11.85% cut**. Each 1% of invsqrt cost is +0.336% on the blend.
@@ -47,8 +67,8 @@ Static stage map (instruction index; Toffoli-like counts are static, not per-sho
 | lever | measured | verdict |
 | --- | --- | --- |
 | free accuracy margin so `eps` grows | **0.44% at most** (fixing the 1,000 tightest inputs frees 6.6 C) | closed |
-| merge the 8 repeated-weight rotations | saves 57.5 C, but needs ~8 qubits held for ~7,800 instructions (~24 C each) | closed unless idle qubits exist then |
-| one fewer qubit (62 → 61) | 1.6%, worth up to ~25 extra Toffolis | open |
+| merge the 8 repeated-weight rotations | saves 57.5 C, but the 8 bits would cross 62-qubit stretches between the passes | closed |
+| one fewer qubit (62 → 61) | 1.6%, worth up to ~25 extra Toffolis; no free qubit exists (above), so all 12 peak runs must drop one | needs a narrower lookup |
 | shifter from 46 CSWAPs to the high-30s counting bound ([thread 757030](https://www.kaggle.com/competitions/google-verifiable-quantum-circuit-compilation/discussion/757030)) | 0.5% | open, small |
 
 **The margin is spent everywhere, not at one input.** [`scripts/invsqrt_error_profile.py`](../scripts/invsqrt_error_profile.py)
@@ -65,11 +85,11 @@ with `HMR`. So the phase is the sum of two terms computed ~7,800 instructions ap
 
 **Conclusion: trimming this design is closed.** The open levers (rows 3-4) total ~2%, against 11.85%
 for 25.1x. That gap needs a structural change — fewer arithmetic Toffolis in the two ~500-Toffoli sections, or
-several fewer qubits — not tuning of the kick or the margin.
+several fewer qubits, which only a narrower lookup can give — not tuning of the kick or the margin.
 
 ## What is not established
 
 - Per-shot (not static) Toffoli counts per stage: needs a stage-tagged simulation.
-- Which qubits sit idle between the two kick passes (would reopen the merge lever).
+- What the 39 lookup outputs encode (likely piecewise-polynomial coefficients over 256 segments), so a narrower lookup can be priced.
 - What the two phase terms are mathematically (likely a coarse estimate plus a correction).
 - Whether mikelou1's 25.1x is real; it is a forum claim with no method.

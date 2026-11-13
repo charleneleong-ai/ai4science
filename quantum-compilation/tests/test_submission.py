@@ -3,7 +3,7 @@
 import kickmix as km
 import numpy as np
 import pytest
-from quantum_compilation.submission import NPZ_ARRAYS, Resources, SubmissionAudit
+from quantum_compilation.submission import NPZ_ARRAYS, Op, Resources, SubmissionAudit
 
 TINY = "CCX q0 q1 q2"
 
@@ -171,3 +171,31 @@ class TestResourceExtraction:
     def test_is_hashable_so_candidates_can_be_deduped(self, mixed, mixed_circuit):
         # frozen=True has to mean it: a search loop dedupes thousands of these in a set.
         assert len({mixed, Resources.from_circuit(mixed_circuit)}) == 1
+
+
+# A measured bit gating a block, an inline-conditioned fixup, and plain gates either side.
+CONDITIONED = """
+    HMR q0 b0
+    PUSH_CONDITION if b0
+    CX q1 q2
+    POP_CONDITION
+    Z q3 if b0
+    CX q0 q1
+"""
+
+
+class TestOpParsing:
+    """Reading ops, their qubits and whether a condition gates them, from circuit text."""
+
+    def test_ops_index_like_the_circuit_text_and_close_every_block(self):
+        circuit = km.Circuit(CONDITIONED)
+        ops = Op.parse(circuit)
+        assert [op.text for op in ops] == str(circuit).splitlines()
+        assert ops[-1].depth == 0
+
+    def test_block_ops_and_inline_ifs_are_conditioned_and_nothing_else(self):
+        flags = [op.conditioned for op in Op.parse(km.Circuit(CONDITIONED))]
+        assert flags == [False, True, True, True, True, False]
+
+    def test_qubits_skip_bits_and_keywords(self):
+        assert [op.qubits for op in Op.parse(km.Circuit(CONDITIONED))][::2] == [(0,), (1, 2), (3,)]

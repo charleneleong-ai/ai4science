@@ -8,7 +8,6 @@ each x's error where the verifier keeps just the worst ratio and the smallest ma
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Annotated
@@ -25,17 +24,7 @@ from quantum_compilation.cost import (
     toffoli_equivalents,
 )
 from quantum_compilation.submission import Resources
-from quantum_compilation.verify import verifier_script
-
-
-def load_verifier(verifiers: Path) -> ModuleType:
-    directory = str(verifier_script(verifiers, "invsqrt").parent)
-    if directory not in sys.path:
-        sys.path.insert(0, directory)
-    # Imported here: the verifier lives in the competition download, located at run time.
-    import verify_submission_invsqrt
-
-    return verify_submission_invsqrt
+from quantum_compilation.verify import load_verifier
 
 
 def profile(
@@ -89,7 +78,7 @@ def main(
     ] = 1,
     batch_size: Annotated[int, typer.Option()] = 256,
 ) -> None:
-    vf = load_verifier(verifiers)
+    vf = load_verifier(verifiers, "invsqrt")
     circuit = km.Circuit.from_file(str(circuit_path), format="kmb")
     worst, first, varies, tol = profile(circuit, vf, batch_size, shots_per_x)
     np.savez_compressed(out, worst=worst, first=first, varies=varies, tol=tol)

@@ -76,6 +76,42 @@ class Resources:
 
 
 @dataclass(frozen=True)
+class Op:
+    """One instruction of a circuit's text form, the only op-level view kickmix exposes."""
+
+    name: str
+    args: tuple[str, ...]
+    depth: int  # condition blocks open after this op
+
+    DECLARATIONS = ("APPEND_TO_REGISTER", "REGISTER")
+
+    @property
+    def conditioned(self) -> bool:
+        """Inside a `PUSH_CONDITION` block (its own PUSH and POP included) or carrying an `if`."""
+        return self.depth > 0 or self.name == "POP_CONDITION" or "if" in self.args
+
+    @property
+    def qubits(self) -> tuple[int, ...]:
+        return tuple(int(a[1:]) for a in self.args if a.startswith("q"))
+
+    @property
+    def text(self) -> str:
+        return " ".join((self.name, *self.args))
+
+    @staticmethod
+    def parse(circuit: km.Circuit) -> list[Op]:
+        """Every instruction, indexed like the lines of `str(circuit)`."""
+        ops, depth = [], 0
+        for line in str(circuit).splitlines():
+            if not line.strip():
+                continue
+            name, *args = line.split()
+            depth += (name == "PUSH_CONDITION") - (name == "POP_CONDITION")
+            ops.append(Op(name, tuple(args), depth))
+        return ops
+
+
+@dataclass(frozen=True)
 class SubmissionAudit:
     """What a submission directory holds, and every way its layout is wrong."""
 

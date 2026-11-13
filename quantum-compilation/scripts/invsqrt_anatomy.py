@@ -17,33 +17,31 @@ import kickmix as km
 import typer
 
 from quantum_compilation.cost import rotation_t_count, toffoli_equivalents
-from quantum_compilation.submission import Resources
+from quantum_compilation.submission import Op, Resources
 from quantum_compilation.verify import VerificationRun
 
 TOFFOLI_LIKE = ("CCX", "CCZ", "CSWAP")
 TRACKED = (*TOFFOLI_LIKE, "HMR", "Z_POW")
 
 
-def timeline(ops: list[list[str]], window: int) -> list[tuple[int, Counter[str], int]]:
-    rows, current, conditioned, depth = [], Counter(), 0, 0
+def timeline(ops: list[Op], window: int) -> list[tuple[int, Counter[str], int]]:
+    rows, current, conditioned = [], Counter(), 0
     for i, op in enumerate(ops, start=1):
-        name = op[0]
-        depth += (name == "PUSH_CONDITION") - (name == "POP_CONDITION")
-        if name in TRACKED:
-            current[name] += 1
-            conditioned += bool(depth) and name in TOFFOLI_LIKE
+        if op.name in TRACKED:
+            current[op.name] += 1
+            conditioned += op.conditioned and op.name in TOFFOLI_LIKE
         if i % window == 0 or i == len(ops):
             rows.append((i, current, conditioned))
             current, conditioned = Counter(), 0
     return rows
 
 
-def fine_rotations(ops: list[list[str]]) -> list[tuple[str, float]]:
+def fine_rotations(ops: list[Op]) -> list[tuple[str, float]]:
     """`Z_POW`s whose exponent is not a multiple of T's (Z^0.25), i.e. the ones needing synthesis."""
     return [
-        (op[1], a)
+        (op.args[0], a)
         for op in ops
-        if op[0] == "Z_POW" and not (4 * (a := float(op[2]))).is_integer()
+        if op.name == "Z_POW" and not (4 * (a := float(op.args[1]))).is_integer()
     ]
 
 
@@ -55,7 +53,7 @@ def main(
     window: Annotated[int, typer.Option(help="Instructions per timeline row.")] = 1500,
 ) -> None:
     circuit = km.Circuit.from_file(str(circuit_path), format="kmb")
-    ops = [line.split() for line in str(circuit).splitlines() if line.strip()]
+    ops = Op.parse(circuit)
     typer.echo(
         f"{'upto':>6} " + " ".join(f"{k:>6}" for k in TRACKED) + "  conditioned_toffoli"
     )
