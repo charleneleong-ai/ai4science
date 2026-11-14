@@ -108,8 +108,45 @@ with `HMR`. So the phase is the sum of two terms computed ~7,800 instructions ap
 for 25.1x. That gap needs a structural change — fewer arithmetic Toffolis in the two ~500-Toffoli sections, or
 several fewer qubits, which only a narrower lookup can give — not tuning of the kick or the margin.
 
+## Redesign cost model
+
+[`invsqrt_model.py`](../src/quantum_compilation/invsqrt_model.py) models the seed-plus-series
+family bit-exactly: seed `y0` from a table on `A` mantissa bits plus parity, `eps = 1 - y0^2 v`,
+then `y = y0 (1 + eps/2 + 3 eps^2/8 + ...)` with every product floored at `2^-F` and the phase
+floored at `2^-K` turns. Each variant is scored on all 3,133,452 inputs against the verifier's own
+target and tolerance, so feasibility is exact. Cost is not: Toffolis are partial products of
+truncated multipliers and adder widths, with two constants the circuit does not pin down
+(Toffolis per partial product, lookup Toffolis per entry). The model's nearest feasible twin of
+`6c6a734d` (A 7, 8-bit seed, 3 terms, F 27, K 36) calibrates it: the measured 1,218.83 Toffolis
+and the 62-qubit arithmetic peak are matched by offsets applied to every variant.
+
+[`scripts/invsqrt_design_search.py`](../scripts/invsqrt_design_search.py) searches 300
+configurations (A 5–9, seed 7–11 bits, 2–3 terms, three table contents, Taylor or fitted
+coefficients) over precision and floor: 2,527 variants pass on every input.
+
+| Toffolis per partial product | lookup per entry | best variant | vs reference |
+| ---: | ---: | --- | ---: |
+| 1.0 | 0.50 | A 8, 10-bit seed, 2 terms, F 26, K 36; Q 58 | −6.0% |
+| 1.0 | 1.00 | A 6, 8-bit seed, 3 terms, F 27, K 36; Q 62 | −5.9% |
+| 1.5 | 0.50 | A 8, 10-bit seed, 2 terms | −9.1% |
+| 1.5 | 1.00 | A 6, 8-bit seed, 3 terms | −5.0% |
+| 2.0 | 0.50 | A 8, 10-bit seed, 2 terms | −12.1% |
+| 2.0 | 1.00 | A 8, 10-bit seed, 2 terms | −4.3% |
+| 3.0 | 0.50 | A 8, 10-bit seed, 2 terms | −18.2% |
+| 3.0 | 1.00 | A 8, 10-bit seed, 2 terms | −10.5% |
+
+**The direction is stable; the size is not.** In 6 of 8 settings the winner is the same: a 512-entry
+table with a 10-bit seed, which shrinks `eps` to ~2^-10 so two Taylor terms suffice. That drops the
+`eps^3` multiply and narrows the `eps` and sum registers (modelled Q 58, from 62), paid for by a
+lookup twice the size. Its modelled gain spans 4–18% and clears the 11.85% needed only when partial
+products cost 2+ Toffolis and lookup entries stay cheap; building it is the only way to know.
+
 ## What is not established
 
-- Per-shot (not static) Toffoli counts per stage: needs a stage-tagged simulation.
-- How the 38 lookup bits split between the seed and the quadratic's coefficients, and how wide each multiply is; needed to price a narrower lookup or a different segment count.
+- Per-shot (not static) Toffoli counts per stage: needs a stage-tagged simulation. It would pin
+  the model's Toffolis per partial product, the constant the redesign verdict hinges on.
+- How the 38 lookup bits split between the seed and the correction, and why `6c6a734d` meets the
+  tolerance with an 8-bit seed and a quadratic where the model needs 3 Taylor terms (likely seeds
+  or coefficients tuned per segment); so the model's reference is a twin, not the circuit.
+- The model's qubit count beyond the lookup peak is calibrated, not derived from a layout.
 - Whether mikelou1's 25.1x is real; it is a forum claim with no method.
