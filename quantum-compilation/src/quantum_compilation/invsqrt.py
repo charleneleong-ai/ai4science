@@ -17,7 +17,7 @@ DENSE_INPUTS = 4096  # every x up to this is always sampled
 # circuit needs its own.
 STAGES = {
     "shifter": 0,
-    "lookup": 1663,
+    "lookup": 688,
     "lookup cleanup": 7494,
     "pass 1": 8590,
     "arithmetic": 8970,
@@ -26,6 +26,22 @@ STAGES = {
     "clifford": 25500,
     "tail": 33000,
 }
+# Toffolis per shot in each stage of 6c6a734d (scripts/invsqrt_stage_counts.py, 131,072 inputs).
+STAGE_TOFFOLIS = {
+    "shifter": 65.00,
+    "lookup": 167.00,
+    "lookup cleanup": 7.00,
+    "pass 1": 51.00,
+    "arithmetic": 371.99,
+    "pass 2": 78.00,
+    "uncompute": 408.84,
+    "clifford": 0.50,
+    "tail": 69.50,
+}
+# 6c6a734d's register layout through the lookup.
+LOW_BITS = 14  # mantissa bits below the lookup address
+LOOKUP_ADDRESS = range(LOW_BITS, MANTISSA_BITS)  # mantissa bits 14..20, the parity in the leading one's place
+PARITY_QUBIT = 23  # a second parity copy, held through the lookup
 
 
 def sample_inputs(max_x: int, count: int, seed: int) -> np.ndarray:
@@ -45,6 +61,22 @@ def normalised(xs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     exponent = np.floor(np.log2(xs.astype(np.float64))).astype(np.int64)
     mantissa = np.ldexp(xs.astype(np.float64), MANTISSA_BITS - 1 - exponent)  # exact below 2^53
     return np.floor(mantissa).astype(np.int64), exponent
+
+
+def anf(truth: np.ndarray) -> np.ndarray:
+    """Algebraic normal form of each column of a `(2^n, k)` 0/1 truth table (row index = input
+    bits): row `m` of the result is the coefficient of the monomial whose variables are `m`'s bits."""
+    coeffs = truth.astype(np.uint8)
+    for i in range((len(coeffs) - 1).bit_length()):
+        blocks = coeffs.reshape(-1, 2, 1 << i, coeffs.shape[1])
+        blocks[:, 1] ^= blocks[:, 0]
+    return coeffs
+
+
+def algebraic_degrees(truth: np.ndarray) -> list[int]:
+    """Degree over GF(2) of each column of a truth table; 0 for a constant."""
+    weight = np.bitwise_count(np.arange(len(truth)))
+    return np.where(anf(truth), weight[:, None], 0).max(axis=0).tolist()
 
 
 def phase_margin(phase: np.ndarray, target: np.ndarray, tolerance: np.ndarray) -> int:

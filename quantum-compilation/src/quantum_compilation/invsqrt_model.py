@@ -19,7 +19,7 @@ from functools import cached_property
 import numpy as np
 
 from .cost import rotation_eps, toffoli_equivalents
-from .invsqrt import MANTISSA_BITS
+from .invsqrt import MANTISSA_BITS, STAGE_TOFFOLIS
 
 GUARD_BITS = 2  # kept below the cut by truncated multipliers, so their error stays under an ulp
 CLIFFORD_KICK_BITS = 3  # phases of 2^-1..2^-3 turns are S/T-level, not fine rotations
@@ -27,8 +27,8 @@ TAYLOR = (1 / 2, 3 / 8, 5 / 16)  # (1 - eps)^(-1/2) = 1 + eps/2 + 3 eps^2/8 + 5 
 CONSTANT_BITS = 16  # fractional bits of the series coefficients
 FIT_NODES = 64
 REGISTER_QUBITS = MANTISSA_BITS + 2  # the input, the exponent parity, one lookup scratch bit
-# 6c6a734d per shot (scripts/invsqrt_stage_counts.py): pass 1, arithmetic, pass 2 and uncompute.
-PRODUCT_STAGE_TOFFOLIS = 51.00 + 371.99 + 78.00 + 408.84
+PRODUCT_STAGE_TOFFOLIS = sum(STAGE_TOFFOLIS[s] for s in ("pass 1", "arithmetic", "pass 2", "uncompute"))
+REFERENCE_ENTRIES = 256  # 6c6a734d's lookup table
 
 
 def ceil_shift(values: np.ndarray, shift: np.ndarray | int) -> np.ndarray:
@@ -161,10 +161,15 @@ class Widths:
 
 @dataclass(frozen=True)
 class CostModel:
-    """Toffolis per partial product and per lookup entry, both measured on 6c6a734d."""
+    """Toffolis per partial product, and a lookup's `per_entry * entries + fixed`; the defaults are
+    measured on 6c6a734d."""
 
     toffolis_per_partial_product: float = 1.44  # `fitted(REFERENCE)`, pinned by a test
-    lookup_toffolis_per_entry: float = 129 / 256  # 6c6a734d's lookup: 129 CCX for 256 entries
+    lookup_toffolis_per_entry: float = STAGE_TOFFOLIS["lookup"] / REFERENCE_ENTRIES
+    lookup_fixed_toffolis: float = 0.0
+
+    def lookup_toffolis(self, entries: int) -> float:
+        return self.lookup_toffolis_per_entry * entries + self.lookup_fixed_toffolis
 
     @classmethod
     def fitted(
@@ -223,7 +228,7 @@ class Evaluation:
         }
         adds = sum(signed_digits(int(c)) for c in d.coefficients) - 1 + d.store_offset
         return {
-            "lookup": model.lookup_toffolis_per_entry * 2 ** (d.address_bits + 1),
+            "lookup": model.lookup_toffolis(2 ** (d.address_bits + 1)),
             **{name: n * model.toffolis_per_partial_product for name, n in products.items()},
             "adds": adds * w.z,
             "kicks": self.rotations,  # one CCX loads each kicked bit
@@ -251,7 +256,10 @@ class Calibration:
     def against(
         cls, reference: Evaluation, model: CostModel, toffolis: float, qubits: int
     ) -> Calibration:
-        modelled = sum(reference.stage_toffolis(model).values())
+        """The offset leaves out the lookup, which is measured, so a model's lookup price moves only
+        the variants built with it."""
+        stages = reference.stage_toffolis(model)
+        modelled = sum(stages.values()) - stages["lookup"] + STAGE_TOFFOLIS["lookup"]
         return cls(model, toffolis - modelled, qubits - reference.work_qubits)
 
     def qubits(self, evaluation: Evaluation) -> int:

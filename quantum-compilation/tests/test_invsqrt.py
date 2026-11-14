@@ -9,6 +9,8 @@ from quantum_compilation.cost import PHASE_UNITS_PER_TURN
 from quantum_compilation.invsqrt import (
     DENSE_INPUTS,
     MANTISSA_BITS,
+    STAGE_TOFFOLIS,
+    algebraic_degrees,
     normalised,
     phase_margin,
     sample_inputs,
@@ -25,6 +27,22 @@ from quantum_compilation.invsqrt_model import (
 )
 
 MAX_X = 3_133_452
+BITS = (np.arange(8)[:, None] >> np.arange(3)) & 1  # truth-table rows: inputs x0, x1, x2
+
+
+@pytest.mark.parametrize(
+    ("column", "degree"),
+    [
+        (np.zeros(8), 0),
+        (np.ones(8), 0),
+        (BITS[:, 1], 1),
+        (BITS[:, 0] ^ BITS[:, 2] ^ 1, 1),
+        (BITS[:, 0] & BITS[:, 1] ^ BITS[:, 2], 2),
+        (BITS[:, 0] | BITS[:, 1] | BITS[:, 2], 3),
+    ],
+)
+def test_algebraic_degrees(column: np.ndarray, degree: int) -> None:
+    assert algebraic_degrees(np.stack([column, BITS[:, 0]], axis=1)) == [degree, 1]
 
 
 def reference_values(xs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -107,3 +125,15 @@ class TestSeriesDesign:
         calibration = Calibration.against(evaluation, CostModel(), toffolis=1218.83, qubits=62)
         cost = calibration.cost(evaluation, margin(REFERENCE, sample))
         assert cost["toffolis"] == pytest.approx(1218.83) and cost["qubits"] == 62
+
+    def test_the_stages_sum_to_the_verifiers_count(self):
+        assert sum(STAGE_TOFFOLIS.values()) == pytest.approx(1218.83)
+
+    def test_calibration_leaves_out_the_measured_lookup(self, sample):
+        evaluation, _ = REFERENCE.evaluate(*sample[0])
+        generic = dataclasses.replace(CostModel(), lookup_toffolis_per_entry=1.0, lookup_fixed_toffolis=-2.0)
+        offsets = [
+            Calibration.against(evaluation, m, toffolis=1218.83, qubits=62).toffolis
+            for m in (CostModel(), generic)
+        ]
+        assert offsets[0] == pytest.approx(offsets[1])

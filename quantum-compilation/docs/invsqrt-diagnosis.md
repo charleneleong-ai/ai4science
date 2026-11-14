@@ -70,9 +70,9 @@ count reachable by relabelling alone. A qubit is *parked* where it is occupied w
 unconditioned use; HMR uncompute and its phase fixups touch qubits without using them.
 
 **The peak is the declared 62, held in 12 runs of 50+ steps; relabelling frees nothing.** The long
-run, instructions 1,663–7,493 (5,831 steps), is the lookup (step 2 above): the 8 address qubits
-`q14`–`q21` and 38 outputs in `q22`–`q61`, written with 5,627 CX and 129 CCX and a scratch `q41`
-erased at 7,493; the outputs are first used
+run, instructions 1,663–7,493 (5,831 steps), is the bulk of the lookup (step 2 above, which starts
+at 688): the 8 address qubits `q14`–`q21` and 38 outputs in `q22`–`q61`, written with CX and 167
+CCX and a scratch `q41` erased at 7,493; the outputs are first used
 together at 8,034–8,074, so they cannot be loaded lazily. The short runs sit in kick pass 1
 (8.6k–10.8k) and pass 2 (16.5k–16.7k).
 
@@ -129,8 +129,8 @@ counted only when their condition holds). The stages sum to the verifier's 1,218
 
 | stage | Toffolis per shot |
 | --- | ---: |
-| shifter | 103.00 |
-| lookup | 129.00 |
+| shifter | 65.00 |
+| lookup | 167.00 |
 | lookup cleanup | 7.00 |
 | pass 1 kick | 51.00 |
 | arithmetic | 371.99 |
@@ -139,11 +139,7 @@ counted only when their condition holds). The stages sum to the verifier's 1,218
 | Clifford kicks | 0.50 |
 | tail | 69.50 |
 
-- **Lookup: 0.504 Toffolis per entry** (129 for 256 entries), the cheap end of the earlier range.
-  This is `6c6a734d`'s own construction, not a generic one: kickmix's `init_lookup` costs
-  2^a − 2 Toffolis (1.0 per entry) whatever the table holds, and the table is not sparse in its
-  algebraic normal form (247 of 247 nonlinear terms used, like a random table). How it reaches 0.5
-  is not decoded; see "What is not established".
+- **Lookup: 0.652 Toffolis per entry** (167 for 256 entries; see "How the lookup works" below).
 - **Uncompute costs more than the forward arithmetic** (409 vs 372). It scales with the
   arithmetic, so it belongs in the per-product constant, not in the fixed offset.
 - **1.44 Toffolis per partial product**: pass 1, arithmetic, pass 2 and uncompute (910), less the
@@ -157,23 +153,28 @@ counted only when their condition holds). The stages sum to the verifier's 1,218
 configurations (A 5–9, seed 7–11 bits, 2–3 terms, three table contents, Taylor or fitted
 coefficients) over precision and floor: 2,527 variants pass on every input.
 
-| Toffolis per partial product | lookup per entry | best variant | vs reference |
-| ---: | ---: | --- | ---: |
-| 1.00 | 0.50 | A 8, 10-bit seed, 2 terms, F 26, K 36; Q 58 | −6.0% |
-| 1.24 | 0.50 | A 8, 10-bit seed, 2 terms | −7.4% |
-| **1.44** | **0.50** | **A 8, 10-bit seed, 2 terms; Q 58, C 1,492** | **−8.7%** |
-| 2.00 | 0.50 | A 8, 10-bit seed, 2 terms | −12.1% |
-| 1.44 | 1.00 | A 6, 8-bit seed, 3 terms, F 27, K 36; Q 62 | −5.1% |
-| 2.00 | 1.00 | A 8, 10-bit seed, 2 terms | −4.3% |
+The lookup is priced two ways: at `6c6a734d`'s synthesised 0.652 per entry, or as kickmix's
+`init_lookup` (2^a − 2 for 2^a entries). The calibration offset leaves the measured lookup out, so
+`6c6a734d` keeps its own 167 under both.
 
-**At the measured constants the redesign models at −8.7%, short of the −11.85% that 25.1x needs.**
-That figure prices the redesign's 512-entry table at 0.504 per entry (258 Toffolis). Built with
-kickmix's lookup it costs 510, and the redesign models about 7% *worse* than `6c6a734d`
-(Q 58, C ≈ 1,744); it pays only with a lookup as cheap as `6c6a734d`'s.
+| Toffolis per partial product | lookup | best variant | vs reference |
+| ---: | --- | --- | ---: |
+| 1.00 | synthesised | A 8, 10-bit seed, 2 terms, F 26, K 36; Q 58 | −3.7% |
+| 1.24 | synthesised | A 8, 10-bit seed, 2 terms | −5.1% |
+| **1.44** | **synthesised** | **A 8, 10-bit seed, 2 terms; Q 58, C 1,530** | **−6.3%** |
+| 2.00 | synthesised | A 8, 10-bit seed, 2 terms | −9.8% |
+| 1.00 | `init_lookup` | A 6, 8-bit seed, 3 terms, F 27, K 36; Q 62 | −0.2% |
+| 1.44 | `init_lookup` | A 6, 8-bit seed, 3 terms; Q 62, C 1,537 | +0.6% |
+| 2.00 | `init_lookup` | A 8, 10-bit seed, 2 terms; Q 58 | +1.0% |
+
+**At the measured constants the redesign models at −6.3%, about half the −11.85% that 25.1x
+needs.** That prices its 512-entry table at 0.652 per entry (334 Toffolis), which only a
+synthesis like `6c6a734d`'s could reach (below). Built with `init_lookup` no variant beats
+`6c6a734d` at the measured constants.
 The winner is a 512-entry table with a 10-bit seed, which shrinks `eps` to ~2^-10 so two Taylor
 terms suffice. That drops the `eps^3` multiply and narrows the `eps` and sum registers (modelled
-Q 58, from 62), paid for by a lookup twice the size. At −8.7% the invsqrt ratio would rise from
-22.13 to about 24.2, lifting the overall score by about 3% (the score is a geometric mean over three
+Q 58, from 62), paid for by a lookup twice the size. At −6.3% the invsqrt ratio would rise from
+22.13 to about 23.6, lifting the overall score by about 2% (the score is a geometric mean over three
 tasks). Closing the rest needs a cheaper multiplier or uncompute than `6c6a734d`'s, not a different
 series.
 
@@ -221,10 +222,29 @@ more stages), as does whole-state matching (no uncompute state but the first equ
 So there is no slack in the uncompute as built. Cutting it means computing fewer measured-away
 ANDs in the forward, which the redesign's narrower products already model.
 
+## How the lookup works
+
+[`scripts/invsqrt_lookup_decode.py`](../scripts/invsqrt_lookup_decode.py) runs one input per entry
+through instructions 688–7,494.
+
+- **Address:** at 688, `q14`–`q20` hold mantissa bits 14–20 and `q21` the exponent parity, plainly
+  (degree 1, all 256 values distinct); the 65 Toffolis before it are the shifter's.
+- **Not a QROM:** 167 CCX, of which 166 write directly into the 38 output qubits and 1 into the
+  scratch `q41`; no ancilla tree and no measurement-based uncompute (one HMR, erasing `q41`). CX
+  networks rewrite the address register between them (it reaches degree 8 mid-lookup) and restore
+  it by the end. No CCX is conditioned, so every shot costs 167.
+- **The table is not simple:** 20 outputs have algebraic degree 7 and 18 degree 8 in the address,
+  and all 247 nonlinear monomials appear across them. So 4.4 ANDs per output bit is bought by
+  sharing ANDs across outputs in place, a multiplicative-complexity-minimised XOR-AND circuit
+  that a logic-synthesis tool would emit, not by structure in the seeds.
+
+A generic `init_lookup` would cost 254 here, so the synthesis saves 87 Toffolis (7% of 1,218.83). It
+cannot be reused for another table; a redesign must be synthesised afresh.
+
 ## What is not established
 
-- How `6c6a734d`'s lookup serves 256 entries for 129 Toffolis at single output width (it rewrites
-  its address qubits in place and never touches the parity copy in `q23`). The redesign depends on it.
+- What a synthesis like `6c6a734d`'s would cost on the redesign's 512 × 29-bit table: the
+  0.652-per-entry rate is one measurement on one table, not a scaling law.
 - Whether the 12.4 OR-gated fixup Toffolis (under 1% of C) can be avoided. Even if all of them
   could, the redesign would still be ~2.5% short of 11.85%.
 - Whether a built 512-entry design matches its modelled gain: the per-product constant is

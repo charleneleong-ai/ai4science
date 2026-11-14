@@ -17,12 +17,10 @@ import typer
 
 from quantum_compilation.cli import VerifiersOption
 from quantum_compilation.cost import PHASE_UNITS_PER_TURN
-from quantum_compilation.invsqrt import MANTISSA_BITS, normalised, sample_inputs
+from quantum_compilation.invsqrt import LOW_BITS, MANTISSA_BITS, PARITY_QUBIT, normalised, sample_inputs
 from quantum_compilation.submission import Op
 from quantum_compilation.verify import load_verifier
 
-LOW_BITS = 14  # mantissa bits below the lookup address, read from 6c6a734d
-PARITY_QUBIT = 23  # holds the exponent's parity through the lookup (see the doc)
 MIN_FIT_SURPLUS = 3  # samples beyond the coefficient count before a segment is fitted
 
 
