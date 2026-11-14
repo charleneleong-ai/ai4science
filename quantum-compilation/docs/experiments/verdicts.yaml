@@ -343,3 +343,109 @@ experiments:
       compute.
     verdict: KEEP
     pr: 104
+  - name: r4-cheaper-j5-loader-synthesis
+    date: 2026-11-06
+    baseline: >-
+      the plateau's J=5 ANGLE family, 4,168 Toffolis per pass: per circuit an 80-AND monomial
+      cache plus 178 / 199 / 221 product Toffolis (odd k >= 5 / even k >= 4 / k = 0..3)
+    gate: >-
+      a family cheaper than 4,168 per pass, exact by our own GF(2) simulation forward, in
+      reverse and from a zeroed register, with every screened chemistry constraint passing
+    result: >-
+      **The construction is public and the plateau is its tuned output.** The SOTA sweep traced
+      the loaders to Lera's (marculera) `tensorqrom.py` (Apache-2.0): the low 4 address bits'
+      monomials (11 ANDs) and the high bits' (69) are cached, and each product Toffoli covers a
+      rank-2 term of the word table's mixed ANF tensor (15 x 76 x 35), fanned out to an output
+      set by CNOTs. Five probes, none of which clears the gate:
+      (1) **No redundant AND**: none of the 4,168 products is in the XOR span of the qubits live
+      when it fires, over all 2,048 selection values or over only the 1,220 legal ones.
+      (2) **The plateau sits at the generic count**: a rank-2 product has ~212 degrees of
+      freedom, so a generic 39,900-entry tensor needs ~188 products; the plateau uses 178 on
+      odd circuits. A 60-second Kauers-Moosbauer flip walk took rank 425 to 419 only.
+      (3) **The vendored planner gives 277 ANDs on circuit 13 against the plateau's 258**,
+      exact under our simulator -- the plateau's 19 extra ANDs of tuning come from kernel
+      relations and search we have not reproduced.
+      (4) **A wider low cache is far worse**: lowbits 5 gives 495 and lowbits 6 gives 958 on
+      circuit 13; the planner's sharing heuristic does not survive the larger feature space.
+      (5) **The product counts are set by coded bits**: deltas k >= 4 have bit 0 affine on
+      every 16-address block, odd k >= 5 bit 1 too, worth ~22 products per plane. Extending
+      bit 0 to circuits 1..3 flips 4,382 of 18,300 entries by one LSB and is **rejected by the
+      screen: Hamiltonian error 1.046 against 0.02**, lambda_eff 48.29 -> 60.25 -- batches 0..2
+      hold the Givens tree's root edges.
+      Dead angle words (rotations acting on zero amplitude, replayed from the verifier's own
+      recurrence) are 1,654 of 91,500 entries, scattered single cells; the public trend for
+      exploiting them is -1 to -7 Toffolis per circuit.
+      Not established: what the plateau's kernel-relation search does exactly, or whether a
+      decomposition search seeded from its own circuits finds products the planner missed.
+      Cost: ~4 CPU-hours, no submissions.
+    verdict: DISCARD
+    pr: 105
+  - name: r5-price-the-public-best-shape
+    date: 2026-11-07
+    baseline: >-
+      our submitted 23.18119 blend; dfthcsos (R, B, C) = (8, 143, 60) at lambda_eff 48.293,
+      T 16,266 (loaders 8,336), Q 430, cost 3.3778e8 (ratio 9.934)
+    gate: >-
+      a shape whose dfthcsos cost, measured by the official verifier on real circuits rather than
+      modelled, is below ours by more than seed noise
+    result: >-
+      **The public best is not (9, 143, 40): it is (8, 143, 44), and it beats us on every
+      task.** The (9, 143, 40) file in the compact-pipeline release is a raw intermediate (U and W,
+      no angle words); priced from the heuristic alone it needs lambda_eff <= 49.5-50.8 to beat
+      ours. Heliosli's public notebook output (`the-dataset-is-public-now-enjoy` v20) re-verified
+      here at **24.94165**, all three PASS: dfthcsos lambda_eff 46.893 (error_1 and error_2 both at
+      the 0.02 bound), T 14,966 = heuristic 6,662 + loaders 8,304, Q 427, cost 2.9967e8 (ratio
+      11.198, -11.3% vs ours); invsqrt 97,745 (21.247, -2.9%); dqi 3.7475e11 (65.215, -6.8%).
+      Swapping one part alone: dfthcsos 24.125, dqi 23.730, invsqrt 23.412. The chemistry gain is
+      C = 44 against 60 (heuristic T -1,268) and lambda_eff -2.9%; the loaders are 32 Toffolis
+      cheaper only. Provenance per the notebook: dfthcsos table and circuits from syed3000's
+      Apache-2.0 notebook, weights refined from ozertuu's v5, which come from a dataset whose
+      licence is "other" -- unresolved before any reuse.
+      Not established: whether 25.0 is reachable from 24.94 (0.23% in blend, a 0.7% cut in the product of the three costs) or what
+      licence the refined weights carry.
+      Cost: ~3 CPU-minutes, no submissions.
+    verdict: KEEP
+    pr: 105
+  - name: r6-assemble-the-apache-public-best
+    date: 2026-11-08
+    baseline: our submitted 23.18119 blend (submission 57834335)
+    gate: >-
+      every part traced to a source that states Apache-2.0 (or is a public Kaggle notebook), byte
+      hashes matching the source's own, all three official verifiers PASS locally, and a local
+      blend above ours by more than seed noise
+    result: >-
+      **Assembled at 24.94110 locally (x1.0759 over 23.18119), every part on an Apache-2.0 path.**
+      Licence check: Heliosli's dataset is Apache-2.0, but its notebook routes all three parts
+      through ahmedberatozer/vqcc-v23-portfolio (licence "other"); maoxin123's notebook, the
+      upstream those parts were refit from, states "The code and weights here are Apache-2.0" and
+      builds only on public notebooks (syed3000 Apache-2.0, yoyobar, daifanhao). Its output
+      re-verifies here at 24.94110 against its own 24.94109: invsqrt c17971af 21.2465, dqi
+      b4bbf86d 65.2123, dfthcsos (8, 143, 44) 11.1977. Heliosli's +0.00055 is not worth the
+      "other" hop. Provenance in v2-candidate-parts.yaml. The competition rules allow public
+      external data and code shared with all participants. Not submitted yet.
+      Not established: the leaderboard score (maoxin123's notebook title reports LB 24.94).
+    verdict: KEEP
+    pr: 105
+  - name: v3-apache-parts-frontier
+    date: 2026-11-12
+    score: 25.36626
+    submission: 58252192
+    baseline: our 23.18119 (submission 57834335), rank 249-252 of 1,756 on 2026-10-31
+    gate: >-
+      every part Apache-2.0 with licence evidence in the parts manifest, byte hashes matching it,
+      all three official verifiers PASS locally with costs equal to the manifest's, and a local
+      blend above our best by more than seed noise
+    result: >-
+      **Leaderboard 25.36626, exactly the local verifier's 25.36626 (x1.0943 over 23.18119).**
+      Before submitting, a check of the newest public notebooks showed the 2026-11-04 candidate
+      (r6, 24.94110) was stale: public notebooks now claim up to LB 25.367. Rather than copy one,
+      we took the cheapest file per task from manwithacat/vqcc-apache-public-circuits (Apache-2.0,
+      updated 2026-11-11, per-part licence evidence): invsqrt 6c6a734d (manwithacat HW-25, 22.1255),
+      dqi bb4287e7 (Atakan Aldemir, 65.4149), chemistry e0a80288 (prvsiyan's refit on maoxin123's
+      v22 loaders, 11.2771; the npz f21b8a87 is the one Asterios Panoras's 25.367 notebook uses).
+      Rank 232-248 of 2,869 (17 teams share the score); leader 29.45296 (x1.16 on score, x1.57 on
+      the product of the cost ratios); median 24.594; 1,157 teams above 25, so 25 is no longer an
+      escape band. Provenance in 58252192-parts.yaml. As before, none of these circuits are ours.
+      Not established: what the teams above 27 do that is not public.
+    verdict: PROMOTE
+    pr: 105

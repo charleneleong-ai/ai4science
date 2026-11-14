@@ -39,6 +39,8 @@ T_PER_TOFFOLI_EQUIVALENT = 4
 # Mixed fallback synthesis, arXiv:2203.10064, as priced by the invsqrt verifier.
 ROTATION_T_SLOPE = 0.56
 ROTATION_T_OFFSET = 5.3
+# The invsqrt verifier compares phases in 64-bit fixed point.
+PHASE_UNITS_PER_TURN = 2**64
 
 # The dqi verifier's confidence for the Clopper-Pearson bound: delta = 2^-128.
 DEFAULT_LOG2_DELTA = -128.0
@@ -182,6 +184,14 @@ def rotation_t_count(eps: float) -> float:
     if not 0 < eps < 1:
         raise ValueError(f"synthesis error must be in (0, 1), got {eps}")
     return ROTATION_T_SLOPE * math.log2(1 / eps) + ROTATION_T_OFFSET
+
+
+def rotation_eps(min_margin_units: int, rotation_count: float) -> float:
+    """The synthesis error the invsqrt verifier picks: `n_rot * 2 eps` radians fill the smallest
+    leftover margin `tol(x) - |error(x)|`, given in its phase units of 2^-64 turns."""
+    if min_margin_units <= 0 or rotation_count <= 0:
+        raise ValueError(f"need a positive margin and rotation count, got {min_margin_units}, {rotation_count}")
+    return math.pi * min_margin_units / PHASE_UNITS_PER_TURN / rotation_count
 
 
 def toffoli_equivalents(
