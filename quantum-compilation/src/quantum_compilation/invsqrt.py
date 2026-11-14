@@ -13,6 +13,19 @@ from .verify import load_verifier
 
 MANTISSA_BITS = 22  # x normalised by a power of two to [2^21, 2^22)
 DENSE_INPUTS = 4096  # every x up to this is always sampled
+# Stage starts (instruction index) decoded for 6c6a734d only (docs/invsqrt-diagnosis.md); any other
+# circuit needs its own.
+STAGES = {
+    "shifter": 0,
+    "lookup": 1663,
+    "lookup cleanup": 7494,
+    "pass 1": 8590,
+    "arithmetic": 8970,
+    "pass 2": 16430,
+    "uncompute": 16750,
+    "clifford": 25500,
+    "tail": 33000,
+}
 
 
 def sample_inputs(max_x: int, count: int, seed: int) -> np.ndarray:

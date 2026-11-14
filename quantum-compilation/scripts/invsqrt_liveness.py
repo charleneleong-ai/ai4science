@@ -27,18 +27,9 @@ class Steps:
     def __init__(self, circuit: km.Circuit) -> None:
         ops = Op.parse(circuit)
         self.num_qubits = circuit.num_qubits
-        self.groups: list[list[Op]] = []
-        self.instructions: list[int] = []  # each step's first op, indexed like `str(circuit)`
-        current: list[Op] = []
-        for i, op in enumerate(ops):
-            if op.name in Op.DECLARATIONS:
-                continue
-            if not current:
-                self.instructions.append(i)
-            current.append(op)
-            if op.depth == 0:
-                self.groups.append(current)
-                current = []
+        steps = Op.steps(ops, Op.body_start(ops), len(ops))
+        self.groups: list[list[Op]] = [ops[a:b] for a, b in steps]
+        self.instructions: list[int] = [a for a, _ in steps]  # indexed like `str(circuit)`
 
     def pieces(self) -> list[km.Circuit]:
         return [Op.circuit(group) for group in self.groups]

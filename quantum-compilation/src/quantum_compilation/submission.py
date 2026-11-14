@@ -133,6 +133,19 @@ class Op:
             at += 1
         return at
 
+    @staticmethod
+    def steps(ops: list[Op], start: int, stop: int) -> list[tuple[int, int]]:
+        """`[first, last)` op ranges covering `start..stop`: one op, or one whole condition block.
+        `start` must not fall inside a block."""
+        steps, at = [], start
+        while at < stop:
+            end = at + 1
+            while ops[end - 1].depth:
+                end += 1
+            steps.append((at, end))
+            at = end
+        return steps
+
 
 @dataclass(frozen=True)
 class SubmissionAudit:

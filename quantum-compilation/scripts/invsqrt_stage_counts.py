@@ -19,20 +19,9 @@ import typer
 from rich.progress import track
 
 from quantum_compilation.cli import VerifiersOption
+from quantum_compilation.invsqrt import STAGES
 from quantum_compilation.submission import Op
 from quantum_compilation.verify import load_verifier
-
-STAGES = {  # name: first instruction, as decoded for 6c6a734d
-    "shifter": 0,
-    "lookup": 1663,
-    "lookup cleanup": 7494,
-    "pass 1": 8590,
-    "arithmetic": 8970,
-    "pass 2": 16430,
-    "uncompute": 16750,
-    "clifford": 25500,
-    "tail": 33000,
-}
 
 
 def stage_circuits(ops: list[Op]) -> dict[str, km.Circuit]:

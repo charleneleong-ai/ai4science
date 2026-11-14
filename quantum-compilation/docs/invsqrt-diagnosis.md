@@ -170,8 +170,40 @@ Q 58, from 62), paid for by a lookup twice the size. At −8.7% the invsqrt rati
 tasks). Closing the rest needs a cheaper multiplier or uncompute than `6c6a734d`'s, not a different
 series.
 
+## Where the uncompute goes
+
+The multipliers already use measurement-based uncomputation (temporary ANDs undone by `HMR` plus a
+conditioned `CZ`, [arXiv:1709.06648](https://arxiv.org/abs/1709.06648)): the arithmetic and
+uncompute hold 588 `HMR` and ~2,900 conditioned `CZ`.
+
+[`scripts/invsqrt_uncompute_rewind.py`](../scripts/invsqrt_uncompute_rewind.py) fingerprints every
+qubit's value across 1,024 shots after every step, and tracks the latest forward value the
+uncompute still holds. Per-qubit attribution fails here (qubits 14–61 are each rewritten in four or
+more stages), as does whole-state matching (no uncompute state but the first equals a forward one).
+
+| uncompute Toffolis spent | rewound to forward op | forward Toffolis undone |
+| ---: | ---: | ---: |
+| 0 | 16,417 (pass 2 undone free) | 81 |
+| 161 | 15,024 | 229 |
+| 323 | 13,268 | 344 |
+| 404 | 12,689 | 407 |
+| 409 | 8,577 (all of the arithmetic) | 502 |
+
+- **It is a full reversal.** The uncompute walks back steadily to op 12,689, then releases the
+  arithmetic's first 3,700 ops by measurement for ~5 Toffolis.
+- **The reversal is a mirror, within 3%.** Undoing a measurement-based circuit recomputes each AND
+  the forward measured away, so a mirror costs the forward `HMR` count over the span it rewinds,
+  not its Toffolis: 332.0 unconditioned uncompute Toffolis against 323 `HMR` in ops 8,577–16,417.
+- **The only non-mirror cost is 76.8 conditioned Toffolis** (107 static, gated on `HMR`
+  outcomes): phase fixups for measured-out values that are not single ANDs, 5% of C.
+
+So there is no slack in the uncompute as built. Cutting it means computing fewer measured-away
+ANDs in the forward, which the redesign's narrower products already model.
+
 ## What is not established
 
+- What the 77 conditioned uncompute Toffolis fix up, and whether a cheaper fixup exists; the
+  remaining gap to 11.85% after the redesign is ~3%, about 50 Toffolis.
 - Whether a built 512-entry design matches its modelled gain: the per-product constant is
   measured on `6c6a734d`'s multipliers, whose layout a new design may not share.
 - How the 38 lookup bits split between the seed and the correction, and why `6c6a734d` meets the
