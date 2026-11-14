@@ -91,6 +91,19 @@ class Op:
         return self.depth > 0 or self.name == "POP_CONDITION" or "if" in self.args
 
     @property
+    def condition_bit(self) -> str | None:
+        """The bit an inline `if` (or a `PUSH_CONDITION`) is keyed on."""
+        return self.args[self.args.index("if") + 1] if "if" in self.args else None
+
+    @property
+    def bits_written(self) -> tuple[str, ...]:
+        """Classical bits this op sets: an `HMR`'s outcome, or a `BIT_*` op's target."""
+        if self.name == "HMR" or self.name.startswith("BIT_"):
+            head = self.args[: self.args.index("if")] if "if" in self.args else self.args
+            return tuple(a for a in head if a.startswith("b"))
+        return ()
+
+    @property
     def qubits(self) -> tuple[int, ...]:
         return tuple(int(a[1:]) for a in self.args if a.startswith("q"))
 
@@ -132,6 +145,28 @@ class Op:
         while at > 0 and ops[at - 1].depth:
             at += 1
         return at
+
+    @staticmethod
+    def condition_sources(ops: list[Op], stop: int) -> dict[int, frozenset[int]]:
+        """For every `PUSH_CONDITION` before `stop`, the `HMR` ops (by index) whose outcomes its bit
+        depends on, through any chain of classical `BIT_*` combinations and enclosing conditions."""
+        sources: dict[str, frozenset[int]] = {}
+        enclosing: list[str] = []  # condition bits of the open blocks
+        found: dict[int, frozenset[int]] = {}
+        for i, op in enumerate(ops[:stop]):
+            if op.name == "PUSH_CONDITION":
+                found[i] = sources.get(op.condition_bit, frozenset())
+                enclosing.append(op.condition_bit)
+            elif op.name == "POP_CONDITION":
+                enclosing.pop()
+            elif op.bits_written:
+                conditions = [*enclosing, *filter(None, [op.condition_bit])]
+                gate = frozenset().union(*(sources.get(b, frozenset()) for b in conditions))
+                fresh = frozenset({i}) if op.name == "HMR" else frozenset()
+                keeps_old = bool(conditions) or op.name == "BIT_INVERT"
+                for bit in op.bits_written:
+                    sources[bit] = fresh | gate | (sources.get(bit, frozenset()) if keeps_old else frozenset())
+        return found
 
     @staticmethod
     def steps(ops: list[Op], start: int, stop: int) -> list[tuple[int, int]]:

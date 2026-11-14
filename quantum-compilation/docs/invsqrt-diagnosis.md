@@ -194,16 +194,30 @@ more stages), as does whole-state matching (no uncompute state but the first equ
 - **The reversal is a mirror, within 3%.** Undoing a measurement-based circuit recomputes each AND
   the forward measured away, so a mirror costs the forward `HMR` count over the span it rewinds,
   not its Toffolis: 332.0 unconditioned uncompute Toffolis against 323 `HMR` in ops 8,577–16,417.
-- **The only non-mirror cost is 76.8 conditioned Toffolis** (107 static, gated on `HMR`
-  outcomes): phase fixups for measured-out values that are not single ANDs, 5% of C.
+- **The only non-mirror cost is 76.8 conditioned Toffolis** (5% of C): phase fixups for bits
+  measured out in the X basis whose value is not a single AND.
+  [`scripts/invsqrt_fixups.py`](../scripts/invsqrt_fixups.py) costs each of the 65 blocks and
+  traces its condition bit back to the measurement outcomes it depends on:
+
+  | condition bit | blocks | fired per shot | fires |
+  | --- | ---: | ---: | ---: |
+  | one outcome | 45 | 60.1 | ~half |
+  | parity of 4–8 outcomes | 8 | 4.5 | ~half |
+  | OR of 2–29 outcomes | 12 | 12.4 | 76–100% |
+
+  The single-outcome blocks are ripple-carry chains (`CX, CX, CCX` majority steps with `Z` kicks):
+  a measured-out sum bit depends on the carry from every lower bit, so fixing its phase rebuilds
+  that carry. A fair coin decides whether each fires, which is the halving measurement-based
+  uncomputation buys. The OR-gated blocks, mostly one CCX each, fire as 1 − 2^-n for n outcomes,
+  so their condition saves almost nothing.
 
 So there is no slack in the uncompute as built. Cutting it means computing fewer measured-away
 ANDs in the forward, which the redesign's narrower products already model.
 
 ## What is not established
 
-- What the 77 conditioned uncompute Toffolis fix up, and whether a cheaper fixup exists; the
-  remaining gap to 11.85% after the redesign is ~3%, about 50 Toffolis.
+- Whether the 12.4 OR-gated fixup Toffolis (under 1% of C) can be avoided. Even if all of them
+  could, the redesign would still be ~2.5% short of 11.85%.
 - Whether a built 512-entry design matches its modelled gain: the per-product constant is
   measured on `6c6a734d`'s multipliers, whose layout a new design may not share.
 - How the 38 lookup bits split between the seed and the correction, and why `6c6a734d` meets the
