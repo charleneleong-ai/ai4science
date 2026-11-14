@@ -140,6 +140,10 @@ counted only when their condition holds). The stages sum to the verifier's 1,218
 | tail | 69.50 |
 
 - **Lookup: 0.504 Toffolis per entry** (129 for 256 entries), the cheap end of the earlier range.
+  This is `6c6a734d`'s own construction, not a generic one: kickmix's `init_lookup` costs
+  2^a − 2 Toffolis (1.0 per entry) whatever the table holds, and the table is not sparse in its
+  algebraic normal form (247 of 247 nonlinear terms used, like a random table). How it reaches 0.5
+  is not decoded; see "What is not established".
 - **Uncompute costs more than the forward arithmetic** (409 vs 372). It scales with the
   arithmetic, so it belongs in the per-product constant, not in the fixed offset.
 - **1.44 Toffolis per partial product**: pass 1, arithmetic, pass 2 and uncompute (910), less the
@@ -163,6 +167,9 @@ coefficients) over precision and floor: 2,527 variants pass on every input.
 | 2.00 | 1.00 | A 8, 10-bit seed, 2 terms | −4.3% |
 
 **At the measured constants the redesign models at −8.7%, short of the −11.85% that 25.1x needs.**
+That figure prices the redesign's 512-entry table at 0.504 per entry (258 Toffolis). Built with
+kickmix's lookup it costs 510, and the redesign models about 7% *worse* than `6c6a734d`
+(Q 58, C ≈ 1,744); it pays only with a lookup as cheap as `6c6a734d`'s.
 The winner is a 512-entry table with a 10-bit seed, which shrinks `eps` to ~2^-10 so two Taylor
 terms suffice. That drops the `eps^3` multiply and narrows the `eps` and sum registers (modelled
 Q 58, from 62), paid for by a lookup twice the size. At −8.7% the invsqrt ratio would rise from
@@ -216,6 +223,8 @@ ANDs in the forward, which the redesign's narrower products already model.
 
 ## What is not established
 
+- How `6c6a734d`'s lookup serves 256 entries for 129 Toffolis at single output width (it rewrites
+  its address qubits in place and never touches the parity copy in `q23`). The redesign depends on it.
 - Whether the 12.4 OR-gated fixup Toffolis (under 1% of C) can be avoided. Even if all of them
   could, the redesign would still be ~2.5% short of 11.85%.
 - Whether a built 512-entry design matches its modelled gain: the per-product constant is
