@@ -97,6 +97,11 @@ class TestSeriesDesign:
     def test_taylor_coefficients_are_exact(self):
         assert REFERENCE.coefficients.tolist() == [2**15, 3 * 2**13, 5 * 2**12]
 
+    def test_the_default_per_product_constant_is_fitted_to_the_reference(self, sample):
+        evaluation, _ = REFERENCE.evaluate(*sample[0])
+        fitted = CostModel.fitted(evaluation).toffolis_per_partial_product
+        assert fitted == pytest.approx(CostModel().toffolis_per_partial_product, abs=0.005)
+
     def test_calibration_reproduces_the_measured_circuit(self, sample):
         evaluation, _ = REFERENCE.evaluate(*sample[0])
         calibration = Calibration.against(evaluation, CostModel(), toffolis=1218.83, qubits=62)

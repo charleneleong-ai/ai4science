@@ -115,6 +115,24 @@ class Op:
             ops.append(Op(name, tuple(args), depth))
         return ops
 
+    @staticmethod
+    def circuit(ops: list[Op]) -> km.Circuit:
+        return km.Circuit("\n".join(op.text for op in ops))
+
+    @staticmethod
+    def body_start(ops: list[Op]) -> int:
+        """The first instruction after the register declarations, which come first."""
+        return sum(op.name in Op.DECLARATIONS for op in ops)
+
+    @staticmethod
+    def cut_after(ops: list[Op], at: int) -> int:
+        """The first cut at or after `at` that neither splits a condition block nor falls among
+        the declarations."""
+        at = max(at, Op.body_start(ops))
+        while at > 0 and ops[at - 1].depth:
+            at += 1
+        return at
+
 
 @dataclass(frozen=True)
 class SubmissionAudit:

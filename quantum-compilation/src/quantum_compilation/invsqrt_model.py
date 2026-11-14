@@ -27,6 +27,8 @@ TAYLOR = (1 / 2, 3 / 8, 5 / 16)  # (1 - eps)^(-1/2) = 1 + eps/2 + 3 eps^2/8 + 5 
 CONSTANT_BITS = 16  # fractional bits of the series coefficients
 FIT_NODES = 64
 REGISTER_QUBITS = MANTISSA_BITS + 2  # the input, the exponent parity, one lookup scratch bit
+# 6c6a734d per shot (scripts/invsqrt_stage_counts.py): pass 1, arithmetic, pass 2 and uncompute.
+PRODUCT_STAGE_TOFFOLIS = 51.00 + 371.99 + 78.00 + 408.84
 
 
 def ceil_shift(values: np.ndarray, shift: np.ndarray | int) -> np.ndarray:
@@ -159,10 +161,21 @@ class Widths:
 
 @dataclass(frozen=True)
 class CostModel:
-    """The two constants the circuit does not pin down; the search reports how much they matter."""
+    """Toffolis per partial product and per lookup entry, both measured on 6c6a734d."""
 
-    toffolis_per_partial_product: float = 2.0  # an AND to form it plus an adder Toffoli
+    toffolis_per_partial_product: float = 1.44  # `fitted(REFERENCE)`, pinned by a test
     lookup_toffolis_per_entry: float = 129 / 256  # 6c6a734d's lookup: 129 CCX for 256 entries
+
+    @classmethod
+    def fitted(
+        cls, reference: Evaluation, measured: float = PRODUCT_STAGE_TOFFOLIS, uncomputed_adds: bool = False
+    ) -> CostModel:
+        """The per-product constant that makes `reference`'s products, adds and kicks cost
+        `measured` Toffolis; `uncomputed_adds` charges the adds twice."""
+        stages = reference.stage_toffolis(cls(toffolis_per_partial_product=1.0))
+        products = sum(n for name, n in stages.items() if name not in ("lookup", "adds", "kicks"))
+        adds = stages["adds"] * (1 + uncomputed_adds)
+        return cls((measured - stages["kicks"] - adds) / products)
 
 
 @dataclass(frozen=True)

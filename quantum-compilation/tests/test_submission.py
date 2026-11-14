@@ -206,3 +206,7 @@ class TestOpParsing:
     )
     def test_only_rotations_finer_than_t_are_fine(self, line, fine):
         assert Op.parse(km.Circuit(line))[0].is_fine_rotation is fine
+
+    @pytest.mark.parametrize(("at", "cut"), [(0, 0), (1, 1), (2, 4), (3, 4), (4, 4), (5, 5)])
+    def test_cuts_move_past_open_blocks(self, at, cut):
+        assert Op.cut_after(Op.parse(km.Circuit(CONDITIONED)), at) == cut

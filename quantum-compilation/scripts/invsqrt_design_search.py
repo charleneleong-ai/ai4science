@@ -40,13 +40,20 @@ TERMS = (2, 3)
 FRAC_BITS = range(22, 33)
 KICK_FLOORS = range(35, 40)
 EXTRA_FRAC_BITS = 2  # also keep this many bits above the smallest feasible precision
-COST_MODELS = [
-    CostModel(per_product, per_entry)
-    for per_product, per_entry in itertools.product(
-        (1.0, 1.5, 2.0, 3.0), (CostModel().lookup_toffolis_per_entry, 1.0)
-    )
-]
 DEFAULT_CACHE = Path("~/quantum-compilation-data/runs/invsqrt-model/reference_values.npz")
+
+
+def cost_models(reference: Evaluation) -> list[CostModel]:
+    """The measured constants (adds uncomputed or not), bracketed by 1 and 2 per product, each with
+    the measured lookup and a lookup twice as dear."""
+    per_product = (
+        1.0,
+        CostModel.fitted(reference, uncomputed_adds=True).toffolis_per_partial_product,
+        CostModel.fitted(reference).toffolis_per_partial_product,
+        2.0,
+    )
+    per_entry = (CostModel().lookup_toffolis_per_entry, 1.0)
+    return [CostModel(*pair) for pair in itertools.product(per_product, per_entry)]
 
 
 def score(design: SeriesDesign, values: ReferenceValues) -> list[tuple[Evaluation, int]]:
@@ -109,7 +116,7 @@ def main(
     found = search(cache, verifiers, workers)
     typer.echo(f"{len(found)} feasible variants; reference {label(REFERENCE)}, measured Q {qubits}")
 
-    default = Calibration.against(reference[0], CostModel(), toffolis, qubits)
+    default = Calibration.against(reference[0], CostModel.fitted(reference[0]), toffolis, qubits)
     table = [{**dataclasses.asdict(ev.design), **default.cost(ev, m)} for ev, m in found]
     with out.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(table[0]))
@@ -117,13 +124,13 @@ def main(
         writer.writerows(table)
 
     typer.echo("best variant under each cost model (Toffolis per partial product, per lookup entry):")
-    for model in COST_MODELS:
+    for model in cost_models(reference[0]):
         calibration = Calibration.against(reference[0], model, toffolis, qubits)
         ref_cost = calibration.cost(*reference)["cost"]
         ev, margin = min(found, key=lambda pair: calibration.cost(*pair)["cost"])
         best = calibration.cost(ev, margin)
         typer.echo(
-            f"  {model.toffolis_per_partial_product:.1f}, {model.lookup_toffolis_per_entry:.2f}: "
+            f"  {model.toffolis_per_partial_product:.2f}, {model.lookup_toffolis_per_entry:.2f}: "
             f"{label(ev.design)} -> Q {best['qubits']} C {best['C']:.0f}, "
             f"{best['cost'] / ref_cost - 1:+.1%} vs reference"
         )

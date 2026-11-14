@@ -49,11 +49,11 @@ def simulate(
         raise ValueError("cuts must follow the lookup and fall outside condition blocks")
     sim = km.Simulator(batch_size=x_bits.shape[1], debug_print=False, seed=0)
     sim.write_across_shots(x_reg, x_bits)
-    start = sum(op.name in Op.DECLARATIONS for op in ops)
+    start = Op.body_start(ops)
 
     def run_to(stop: int) -> None:
         nonlocal start
-        sim.do(km.Circuit("\n".join(op.text for op in ops[start:stop])))
+        sim.do(Op.circuit(ops[start:stop]))
         start = stop
 
     run_to(lookup_end)

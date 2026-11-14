@@ -41,7 +41,7 @@ class Steps:
                 current = []
 
     def pieces(self) -> list[km.Circuit]:
-        return [km.Circuit("\n".join(op.text for op in group)) for group in self.groups]
+        return [Op.circuit(group) for group in self.groups]
 
     def real_uses(self) -> np.ndarray:
         """`used[s, q]`: an unconditioned gate other than HMR uncompute acts on q at step s."""
