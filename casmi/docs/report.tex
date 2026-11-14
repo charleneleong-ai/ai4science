@@ -6,7 +6,7 @@
 
 \title{Molecule identification from MS/MS for CASMI 2026:\\ one change per submission, from 0.115 to 0.479}
 \author{Charlene Leong}
-\date{13 November 2026}
+\date{14 November 2026}
 
 \begin{document}
 \maketitle
@@ -43,7 +43,7 @@ newer MIST encoder and an external spectral library, were closed without a submi
 three seed retrains of it scored 0.463, and the public Gold Apex V22 timsTOF mass prior added alone scored 0.479 (no
 change); both were discarded. A tenth fork, Hongbin Gu's public 0.487 notebook (Gold Apex V22 with a two-scorer
 neural ensemble and 324{,}884 external library spectra for rank-1 promotion), reproduced 0.487: the new base, though
-$+0.008$ over 0.479 is inside the $\pm0.016$ between submissions. A learned isomer reranker on top of it also scored 0.487. 34 submissions were made and all were
+$+0.008$ over 0.479 is inside the $\pm0.016$ between submissions. A learned isomer reranker on top of it scored 0.487 at weights 0.20 and 0.15. 35 submissions were made and all were
 scored. No calibrated local estimate of the score exists.
 \end{abstract}
 
@@ -196,6 +196,7 @@ seed-blend & + three seed retrains in the ranks 2--25 neural score (not kept) & 
 mass-prior & + timsTOF precursor-mass prior and mass rank-1 rule (not kept) & 0.479 \\
 extlib-fork & the public 0.487 notebook, unchanged (inside the noise) & \textbf{0.487} \\
 isomer-rerank & + learned isomer reranker, weight 0.20 (not kept) & 0.487 \\
+rerank-alpha015 & + learned isomer reranker, weight 0.15 (not kept) & 0.487 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -305,8 +306,8 @@ $0.5\,z_\text{public} + 0.5\,z_\text{ours}$, the timsTOF mass prior, a documenta
 passed; it scored 0.487 (submission 58272211), $+0.008$ over 0.479, one to two molecules: promoted as the base, not a
 measured gain. Its kernel version 2 turns on the notebook's learned isomer reranker at weight 0.20 (it reorders same-formula isomers
 on lists whose library match is below 0.9); the reranker ran on all 400 commit-run lists but reranked none of the 12
-library-matched smoke lists, and the submission (58292050) scored 0.487, no change: discarded. Version 3, weight 0.15,
-is running.
+library-matched smoke lists, and the submission (58292050) scored 0.487, no change: discarded. Version 3, weight 0.15
+(58304138), also scored 0.487: the reranker's weight is not a lever at public-split resolution, and the line is closed.
 
 \textbf{Precursor-mass prior (mass-prior, 7 November).} Kernel version 3 adds, alone, romanrozen's timsTOF mass
 prior from popwenman's public Gold Apex V22 notebook with its constants: on ranks 2--25 a candidate loses up to 0.15
@@ -367,7 +368,7 @@ its fingerprints reach Tanimoto 0.245 in its own 10{,}226-bit space and 0.180 ma
     $[\mathrm{M{+}H}]^+$ only (v16), popularity weight 0.15 (v8): inside the noise or below it.
 \end{itemize}
 
-\textbf{Next.} The base is now the 0.487 extlib fork; its isomer reranker at weight 0.20 scored 0.487 (no change), and weight 0.15 is running. Final picks (two, by 14
+\textbf{Next.} The base is now the 0.487 extlib fork; its isomer reranker at weight 0.20 scored 0.487 (no change), and so did weight 0.15; the reranker line is closed. Final picks (two, by 14
 December 23:59 UTC): the extlib fork and a diverse line, the 0.479 dedup fork or the 0.477 merged fork. No leader has published a method; the seed blend closed the same-model
 ensemble route and the Gold Apex mass prior alone did not move the score. The ICEBERG PubChem atlas, allowed by the host on 28 October, was reviewed on 3 November and skipped.
 A daily watch of public notebooks runs until the deadline and flags any claim of 0.485 or more. Analogue propagation on the 0.477 base scored 0.477 (no change). Before it, single settings of the E006 family look tuned

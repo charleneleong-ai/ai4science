@@ -88,4 +88,7 @@ submissions:
   - {version: 2, label: isomer-rerank, outputs: fork487-v2, ref: 58292050, date: 2026-11-13, family: fusion, commit: 28c5ce3,
      score: 0.487, verdict: DISCARD,
      change: "fork487 v1 + the notebook's learned isomer reranker (V8 BOTH, RR8_ALPHA 0.20; reorders same-formula isomers on lists below library 0.9); commit run RR ran on 400 lists, 12 skipped as library matches (train-copy smoke molecules), 0 reranked, so reach was not visible; 0.487, no change"}
+  - {version: 3, label: rerank-alpha015, outputs: fork487-v3, ref: 58304138, date: 2026-11-13, family: fusion, commit: 62b95fb,
+     score: 0.487, verdict: DISCARD,
+     change: "fork487 v2 with RR8_ALPHA 0.15 instead of 0.20; commit run RR ran on 400 lists, 12 skipped as library matches, 0 reranked; 0.487, no change. Reranker off, 0.20 and 0.15 all score 0.487: the weight is not a lever at public-split resolution, line closed"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==

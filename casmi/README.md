@@ -11,7 +11,8 @@ kernel [`casmi-fork487`](notebooks/fork487), unchanged except for a smoke commit
 with an 80-epoch retrained spectrum model ensembled with the public one, the timsTOF mass prior, a documentation prior
 and 324,884 external library spectra for rank-1 promotion. Its +0.008 over 0.479 is one to two molecules, inside the
 ±0.016 between submissions, so it is the new base (PROMOTE), not a measured gain. Its kernel version 2, the learned
-isomer reranker at weight 0.20, also scored 0.487 (no change, discarded); version 3, weight 0.15, is running.
+isomer reranker at weight 0.20, also scored 0.487 (no change, discarded), and version 3 at weight 0.15 scored 0.487 too: the reranker's weight is
+not a lever at public-split resolution, so that line is closed.
 
 Before it, **0.479** (2026-11-01: alex chilton's public 0.479 notebook run unchanged as our private kernel
 [`casmi-fork479`](notebooks/fork479)). It is the 0.477 pipeline plus a documentation prior on ranks 2–25 (PubChem

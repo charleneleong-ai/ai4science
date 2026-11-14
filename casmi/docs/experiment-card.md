@@ -1,7 +1,7 @@
 # Experiment card — CASMI 2026 molecule identification
 
 Pattern: [*A generated protein is not a result*](https://rewirebio.io/blog/a-generated-protein-is-not-a-result/),
-applied to a retrieve-and-rank campaign. Status as of 2026-11-13 (AEDT): the current best (0.487, inside the noise of
+applied to a retrieve-and-rank campaign. Status as of 2026-11-14 (AEDT): the current best (0.487, inside the noise of
 0.479) is a fork of Hongbin Gu's public 0.487 notebook, unchanged except for a smoke commit run, [`notebooks/fork487/fork487.ipynb`](../notebooks/fork487/fork487.ipynb);
 the base before it (0.479, inside the noise of 0.477) is an unchanged fork of alex chilton's public 0.479 notebook, [`notebooks/fork479/fork479.ipynb`](../notebooks/fork479/fork479.ipynb);
 the base before it (0.477) is an unchanged fork of Busya PRIME's public 0.477 notebook, [`notebooks/fork477/merged_fork.ipynb`](../notebooks/fork477/merged_fork.ipynb);
@@ -33,7 +33,7 @@ before it (0.446), an unchanged fork of the public E006 notebook,
 | datasets | 10 plus one kernel source, as listed in [`kernel-metadata.json`](../notebooks/fork487/kernel-metadata.json); the source's `id_no` and `keywords` removed (a copied `id_no` overrides `id` and makes the push fail with 403) |
 | runtime | image `gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461`, NVIDIA T4, internet off |
 | run evidence | gate `~/casmi-data/gates/gate_fork487.py` (outside the repo) passed on the commit run: the fork477 gate, plus `OURS BUNDLE READY`, the ensemble line, mass prior on (394 / 400 lists touched, 447 candidates penalised), documentation prior reordered 12 rows, extlib loaded 324,884 spectra with 0 matches and 0 promotions (the smoke molecules are train copies), no fallback or unexpected `Note: ... exception` line. Outputs: `~/casmi-data/kernel_outputs/fork487-v1` |
-| next | kernel version 2 ([`28c5ce3`](https://github.com/charleneleong-ai/ai4science/commit/28c5ce3)), the learned isomer reranker on (`V8 = 'BOTH'`, `RR8_ALPHA = 0.20`), gate `gate_fork487_v2.py`: 0.487 (58292050), no change, discarded; kernel version 3 ([`62b95fb`](https://github.com/charleneleong-ai/ai4science/commit/62b95fb)), `RR8_ALPHA = 0.15`, running |
+| next | kernel version 2 ([`28c5ce3`](https://github.com/charleneleong-ai/ai4science/commit/28c5ce3)), the learned isomer reranker on (`V8 = 'BOTH'`, `RR8_ALPHA = 0.20`), gate `gate_fork487_v2.py`: 0.487 (58292050), no change, discarded; kernel version 3 ([`62b95fb`](https://github.com/charleneleong-ai/ai4science/commit/62b95fb)), `RR8_ALPHA = 0.15`: 0.487 (58304138), no change, discarded; the reranker line is closed |
 
 The settings were fixed by the notebook's authors before we ran it; we chose none of them.
 
@@ -271,7 +271,7 @@ fragment check has none.
 
 ## Budget — every attempt in the denominator
 
-- **34 submissions, 34 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
+- **35 submissions, 35 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
   to measure noise (0.353 vs 0.356); every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including those not kept
   (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise), v19 (0.356, kept), v20 (0.354) and v21 (0.333) in
@@ -285,7 +285,7 @@ fragment check has none.
   (0.477, 57822991, kernel version 1, promoted); its kernel version 2, analogue-fork (0.477, 57826104, discarded).
   Three from the 0.479 notebook: dedup-fork (0.479, 57867559, kernel version 1, kept within the noise), its kernel
   version 2, seed-blend (0.463, 58046573, discarded), and kernel version 3, mass-prior (0.479, 58107187, discarded). One from the 0.487 notebook: extlib-fork (0.487,
-  58272211, kernel version 1, promoted) and isomer-rerank (0.487, 58292050, kernel version 2, discarded).
+  58272211, kernel version 1, promoted) and isomer-rerank (0.487, 58292050, kernel version 2, discarded) and rerank-alpha015 (0.487, 58304138, kernel version 3, discarded).
 - **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
   molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
   it finished because an empty mass window would have crashed it).
@@ -330,7 +330,7 @@ fragment check has none.
 | seed blend: equal weights, shipped schedule, three seeds | **before** the retrains (2026-11-03) | one change per submission; scored 0.463, discarded |
 | mass prior: V22's constants (centre −1.5 ppm, free 3, full 8, weight 0.15; rank-1 rule at 5 ppm, library < 0.9) | by its authors; adopted **before** our run (2026-11-08) | one change per submission; band checked on train first; scored 0.479, discarded |
 | the extlib fork's settings (scorer ensemble 0.5 / 0.5, mass prior, documentation prior, extlib cosine 0.8, K = 4) | by its authors, before we ran it | not ours; scored on the public leaderboard upstream (0.487) |
-| isomer reranker for v2: `V8 = 'BOTH'`, `RR8_ALPHA = 0.20` | **before** its run (2026-11-13) | one change per submission; small weight chosen so it can only reorder same-formula isomers; 0.487, no change; v3 lowers it to 0.15 (fixed before its run), running |
+| isomer reranker for v2: `V8 = 'BOTH'`, `RR8_ALPHA = 0.20` | **before** its run (2026-11-13) | one change per submission; small weight chosen so it can only reorder same-formula isomers; 0.487, no change; v3 lowers it to 0.15 (fixed before its run): 0.487, no change; closed |
 | MIST `msg_aug` gate: mean Tanimoto ≥ 0.40 on the 50 FRIGID molecules | **before** the run (2026-11-01) | pre-registered; 0.385 fails it, so no FRIGID decode was run |
 | external-library reach: cosine ≥ 0.5, 20 ppm, same ion mode, structures absent from train | **before** the count | a reach check; 0 / 400, so no submission |
 | analogue propagation (fork477 v3: anchor ≥ 0.87, cosine ≥ 0.70, λ 0.10, rank 1 frozen) | **before** it was submitted | its reach (113 / 400) checked first; no offline panel can score it; scored 0.477, no change, discarded |

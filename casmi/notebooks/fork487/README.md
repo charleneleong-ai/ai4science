@@ -26,7 +26,7 @@ that two submissions differ by chance, so it is the new base (PROMOTE), not a me
 |---|---|---|
 | 1 | none, apart from `COMMIT_MODE = 'smoke'` ([`2dc7d19`](https://github.com/charleneleong-ai/ai4science/commit/2dc7d19)) | **0.487** (ref 58272211, submitted 2026-11-12 23:06 AEDT; reproduces upstream; PROMOTE, +0.008 over 0.479, inside the noise) |
 | 2 | v1 with the learned isomer reranker on: `V8 = 'BOTH'`, `RR8_ALPHA = 0.20` ([`28c5ce3`](https://github.com/charleneleong-ai/ai4science/commit/28c5ce3)); gate `gate_fork487_v2.py` | 0.487 (ref 58292050, submitted 2026-11-13 13:14 AEDT; DISCARD, no change; the commit run's reranker ran on 400 lists, skipped the 12 smoke lists as library matches and reranked 0, so its reach on the hidden test was not visible) |
-| 3 | v2 with `RR8_ALPHA = 0.15` ([`62b95fb`](https://github.com/charleneleong-ai/ai4science/commit/62b95fb)); same gate | running |
+| 3 | v2 with `RR8_ALPHA = 0.15` ([`62b95fb`](https://github.com/charleneleong-ai/ai4science/commit/62b95fb)); same gate | 0.487 (ref 58304138, submitted 2026-11-13 20:34 AEDT; DISCARD, no change; the commit run's reranker again ran on 400 lists and reranked 0. Three runs of this notebook, reranker off, α 0.20 and α 0.15, all scored 0.487, so the reranker line is closed) |
 
 Run it with [`scripts/kaggle_chain.sh`](../../scripts/kaggle_chain.sh). The gate is
 `~/casmi-data/gates/gate_fork487.py`, kept outside the repo.
