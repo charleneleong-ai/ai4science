@@ -1,5 +1,6 @@
 """What 6c6a734d's lookup is: its address, its Toffolis, where its CCX gates write, and how
-nonlinear its outputs are in the address.
+nonlinear its outputs are in the address. With --seeds, also what the generic in-place synthesis
+(quantum_compilation.lookup_synth) costs on this table and on REDESIGN's.
 
 One input per table entry: the mantissa bits above LOW_BITS at an even and an odd exponent
 (e = 20, 19, both in range). The lookup spans STAGES["lookup"] to STAGES["lookup cleanup"]
@@ -27,6 +28,8 @@ from quantum_compilation.invsqrt import (
     algebraic_degrees,
     anf,
 )
+from quantum_compilation.invsqrt_model import REDESIGN
+from quantum_compilation.lookup_synth import InPlaceLookup
 from quantum_compilation.submission import Op
 from quantum_compilation.verify import load_verifier
 
@@ -36,6 +39,7 @@ PROBES = 8  # address-register snapshots inside the lookup
 def main(
     circuit_path: Annotated[Path, typer.Argument(help="The invsqrt .kmb file.")],
     verifiers: VerifiersOption,
+    seeds: Annotated[int, typer.Option(help="Synthesis seeds per table; 0 skips synthesis.")] = 0,
 ) -> None:
     vf = load_verifier(verifiers, "invsqrt")
     circuit = km.Circuit.from_file(str(circuit_path), format="kmb")
@@ -91,6 +95,23 @@ def main(
         for q in (op.qubits[-1] for op in lookup if op.name == "CCX")
     )
     typer.echo(f"{names['CCX']} CCX, targets {dict(targets)}; HMR {names['HMR']}")
+    if seeds:
+        report_synthesis({"6c6a734d": truth, "REDESIGN": REDESIGN.table()}, seeds)
+
+
+def report_synthesis(tables: dict[str, np.ndarray], seeds: int) -> None:
+    """Toffolis of the generic in-place synthesis per table, every circuit verified."""
+    for name, table in tables.items():
+        counts = []
+        for seed in range(seeds):
+            synth = InPlaceLookup(table, seed)
+            counts.append(synth.run())
+            assert synth.verify(), f"{name} seed {seed} failed verification"
+        typer.echo(
+            f"synthesis {name}: {len(table)} x {table.shape[1]} outputs in place "
+            f"({len(synth.independent)} need Toffolis), "
+            f"{min(counts)}-{max(counts)} CCX over {seeds} seeds, all verified"
+        )
 
 
 if __name__ == "__main__":

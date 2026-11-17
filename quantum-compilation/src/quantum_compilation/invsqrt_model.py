@@ -119,18 +119,36 @@ class SeriesDesign:
         fit, *_ = np.linalg.lstsq(basis, (1 - eps) ** -0.5 - 1, rcond=None)
         return np.round(fit * 2**CONSTANT_BITS).astype(np.int64)
 
+    @cached_property
+    def offsets(self) -> np.ndarray:
+        """Each entry's `1 - y0^2 v_segment` at 2^-F, rounded so eps stays exact."""
+        segment, parity = self.keys
+        square = self.seeds * self.seeds << parity
+        base = (1 << (MANTISSA_BITS - 1)) + (segment << self.low_bits)
+        return (1 << self.frac_bits) - ceil_shift(square * base, 2 * self.seed_bits + MANTISSA_BITS - 1 - self.frac_bits)
+
+    def table(self) -> np.ndarray:
+        """The lookup as a truth table, `(entries, bits)`: the seed, then the offset if stored
+        (two's complement)."""
+        columns = (self.seeds[:, None] >> np.arange(self.seed_bits)) & 1
+        if self.store_offset:
+            width = bit_width(self.offsets)
+            offset = self.offsets % (1 << width)
+            columns = np.concatenate([columns, (offset[:, None] >> np.arange(width)) & 1], axis=1)
+        return columns.astype(np.uint8)
+
     def evaluate(self, mantissa: np.ndarray, exponent: np.ndarray) -> tuple[Evaluation, np.ndarray]:
         """The value widths, and each input's phase in 2^-64 turns before the kick floor."""
         parity, half = exponent % 2, exponent // 2
         s, f = self.seed_bits, self.frac_bits
         segment = (mantissa >> self.low_bits) & (2**self.address_bits - 1)
-        y0 = self.seeds[segment | parity << self.address_bits]
+        key = segment | parity << self.address_bits
+        y0 = self.seeds[key]
         square = y0 * y0 << parity  # y0^2 2^p at 2^-2S
         shift = 2 * s + MANTISSA_BITS - 1 - f  # v = M 2^p / 2^21; products land at 2^-F
         offset_width = 0
         if self.store_offset:
-            base = (1 << (MANTISSA_BITS - 1)) + (segment << self.low_bits)
-            offset = (1 << f) - ceil_shift(square * base, shift)
+            offset = self.offsets[key]
             eps = offset - (square * (mantissa & (2**self.low_bits - 1)) >> shift)
             offset_width = bit_width(offset)
         else:
@@ -242,6 +260,7 @@ class Evaluation:
 
 
 REFERENCE = SeriesDesign(7, 8, 3, 27, 36, True, False)  # the model's nearest feasible twin of 6c6a734d
+REDESIGN = SeriesDesign(8, 10, 2, 26, 36, True, False)  # the search's best variant (docs/invsqrt-diagnosis.md)
 
 
 @dataclass(frozen=True)

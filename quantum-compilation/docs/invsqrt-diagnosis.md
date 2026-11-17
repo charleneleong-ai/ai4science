@@ -241,10 +241,31 @@ through instructions 688–7,494.
 A generic `init_lookup` would cost 254 here, so the synthesis saves 87 Toffolis (7% of 1,218.83). It
 cannot be reused for another table; a redesign must be synthesised afresh.
 
+## Synthesising the redesign's lookup
+
+A CCX trace of the 167 shows the strategy: about 40 CCX fill every output slot with a nested
+product (the span of the registers reaches its maximum, 47), then ~127 CCX XOR products into slots
+until they span the targets, about 3.7 CCX per target dimension.
+[`lookup_synth.InPlaceLookup`](../src/quantum_compilation/lookup_synth.py) implements that
+strategy generically (address + output qubits only, no ancillas; each product's second factor is
+solved by GF(2) elimination) and every circuit it emits is replayed and checked on all entries.
+`scripts/invsqrt_lookup_decode.py --seeds 5`:
+
+| table | outputs needing qubits | `6c6a734d` | synthesis (5 seeds) | `init_lookup` |
+| --- | ---: | ---: | ---: | ---: |
+| `6c6a734d`'s, 256 entries | 38 | 167 | 225–227 | 254 |
+| `REDESIGN`'s, 512 entries | 28 of 29 (one bit is constant) | — | 515–517 | 510 |
+
+**Calibration fails:** the generic synthesis costs 1.35x `6c6a734d`'s circuit on its own table.
+Scaled by that factor, a `6c6a734d`-grade synthesis of the redesign's table would cost ~380, not the
+334 the search assumed and far above the ~231 that −11.85% needs. At ~380 the redesign models at
+about −2.7% (Q 58, C ≈ 1,575); at the 515 actually built it loses (+5.7%). **The invsqrt redesign
+cannot reach 25.1x and is closed;** the remaining levers are dqi and dfthcsos.
+
 ## What is not established
 
-- What a synthesis like `6c6a734d`'s would cost on the redesign's 512 × 29-bit table: the
-  0.652-per-entry rate is one measurement on one table, not a scaling law.
+- Whether a better synthesis (exact or SAT-based, rather than greedy) beats 1.35x of `6c6a734d`'s
+  rate; even at parity (334) the redesign is −6.3%, half of what 25.1x needs.
 - Whether the 12.4 OR-gated fixup Toffolis (under 1% of C) can be avoided. Even if all of them
   could, the redesign would still be ~2.5% short of 11.85%.
 - Whether a built 512-entry design matches its modelled gain: the per-product constant is

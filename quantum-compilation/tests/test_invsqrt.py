@@ -16,6 +16,7 @@ from quantum_compilation.invsqrt import (
     sample_inputs,
 )
 from quantum_compilation.invsqrt_model import (
+    REDESIGN,
     REFERENCE,
     Calibration,
     CostModel,
@@ -106,7 +107,7 @@ class TestSeriesDesign:
         assert (margin(design, sample) > 0) is passes
 
     def test_a_10_bit_seed_meets_it_with_two(self, sample):
-        assert margin(SeriesDesign(8, 10, 2, 26, 36, store_offset=True, store_square=False), sample) > 0
+        assert margin(REDESIGN, sample) > 0
 
     def test_a_coarser_kick_floor_only_costs_margin(self, sample):
         coarser = dataclasses.replace(REFERENCE, kick_floor=35)
