@@ -114,6 +114,37 @@ It runs whether or not FLARE passes, since it is cheap. If both pass, test a thr
 - Final picks stay fork487 v1 (pick A) plus a diverse line (pick B), unless a scorer blend clears both the holdout
   gate and +0.005 on the board.
 
+## Step 0 result (2026-11-14, gate FAIL)
+
+The holdout ran on the A100 ([`run_calibration.sh`](../scripts/holdout/run_calibration.sh), commit
+[`8cd63df`](https://github.com/charleneleong-ai/ai4science/commit/8cd63df)):
+- training: 271,045 molecules;
+- excluded: 1,038 within Tanimoto 0.7 of a held-out molecule;
+- validation: 1,000;
+- eval: 750 Enveda-180 molecules, of which 727 have same-formula pool lists.
+
+| Scorer vs kit (16 × 500) | Holdout MRR@25 | Δ [95% CI] | Public LB |
+|---|---|---|---|
+| kit | 0.664 | — | 0.472 |
+| long (40 × 2000) | 0.822 | **+0.158** [+0.131, +0.184] | 0.453 (−0.019) |
+| kit + s1 + s2 + s3 z-blend | 0.701 | **+0.037** [+0.022, +0.053] | −0.016 (our fork479 v2) |
+| s1 / s2 / s3 alone | 0.655 / 0.678 / 0.651 | −0.009 / +0.015 / −0.012 (all CIs span 0) | — |
+
+**Both checks fail, by wide margins.** On structure-disjoint Enveda-180 molecules, longer training and seed
+blending are large, significant gains; on the leaderboard both lost. Under the gate fixed beforehand, this holdout
+cannot steer a submission, so FLARE and MIST are not run on its evidence.
+
+What the disagreement does and does not say:
+- The two leaderboard deltas are single submissions, each about one noise SD (±0.016). So the targets themselves
+  are weak. But the holdout's gains are 10× larger than anything the board showed, so noise alone does not reconcile
+  them.
+- Most likely, the scorer's standalone ranking is not what the pipeline's score depends on. The neural term enters
+  only on ranks 2–25 behind library matches and leader rules. And/or the hidden test is not Enveda-180-like: the
+  host describes it as natural products.
+- **Bug:** the natural-product group never reached eval. `build_holdout.py` takes each molecule's first
+  `ingest_lib`, and the 250 `enveda-np-examples` structures probably also appear under `enveda-180` (not checked). A natural-product-only
+  holdout is the obvious follow-up, but it would be chosen *after* this failure, so it is not pre-registered.
+
 ## Not established
 
 - Whether any offline holdout tracks this leaderboard; Step 0 tests it.
