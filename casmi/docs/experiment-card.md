@@ -1,8 +1,9 @@
 # Experiment card — CASMI 2026 molecule identification
 
 Pattern: [*A generated protein is not a result*](https://rewirebio.io/blog/a-generated-protein-is-not-a-result/),
-applied to a retrieve-and-rank campaign. Status as of 2026-11-14 (AEDT): the current best (0.487, inside the noise of
-0.479) is a fork of Hongbin Gu's public 0.487 notebook, unchanged except for a smoke commit run, [`notebooks/fork487/fork487.ipynb`](../notebooks/fork487/fork487.ipynb);
+applied to a retrieve-and-rank campaign. Status as of 2026-11-19 (AEDT): the current best (0.492, inside the noise of
+0.487, final pick A) is a fork of alex chilton's public 0.492 notebook, unchanged except for a smoke commit run, [`notebooks/fork492/fork492.ipynb`](../notebooks/fork492/fork492.ipynb);
+the base before it (0.487, inside the noise of 0.479) is a fork of Hongbin Gu's public 0.487 notebook, unchanged except for a smoke commit run, [`notebooks/fork487/fork487.ipynb`](../notebooks/fork487/fork487.ipynb);
 the base before it (0.479, inside the noise of 0.477) is an unchanged fork of alex chilton's public 0.479 notebook, [`notebooks/fork479/fork479.ipynb`](../notebooks/fork479/fork479.ipynb);
 the base before it (0.477) is an unchanged fork of Busya PRIME's public 0.477 notebook, [`notebooks/fork477/merged_fork.ipynb`](../notebooks/fork477/merged_fork.ipynb);
 before it (0.465) is an unchanged fork of dmitriigluzdov's public notebook at version 26, [`notebooks/fork464/data_fork.ipynb`](../notebooks/fork464/data_fork.ipynb);
@@ -23,7 +24,22 @@ before it (0.446), an unchanged fork of the public E006 notebook,
 | scored on | the **public** leaderboard split only; the private split is not visible until the competition closes |
 | rules | code competition: notebook only, internet off; about 5 submissions a day |
 
-## Current best — extlib-fork, public MRR@25 0.487 (PROMOTE, inside the noise)
+## Current best — network-fork, public MRR@25 0.492 (PROMOTE, inside the noise; final pick A)
+
+| | |
+|---|---|
+| kernel | `charyeezy/casmi-fork492` (private), kernel version 1, submission 58506761 (2026-11-18 22:09 AEDT, scored by 03:43 AEDT 19 November), commit [`d1b2393`](https://github.com/charleneleong-ai/ai4science/commit/d1b2393); reproduces the source's public 0.492; +0.005 over extlib-fork, about one molecule of the ~124-molecule public split, inside the ±0.016 between submissions and not strictly above G1 (> +0.005), so PROMOTE as the new base, not a measured gain |
+| source | [CASMI26 0.492 \| What Moved the Board: 59 Arms](https://www.kaggle.com/code/alexchilton/casmi26-0-492-what-moved-the-board-59-arms) (alex chilton, version 2, running Rogers Johnson's *casmi26-l4-lam035* unchanged; 0.492 on its author's account, submission 58380172); md5 of the source `30890174c63ee5e202ddbb1eaa8b5323`; one change, `COMMIT_MODE = 'smoke'` (was `'fast'`, which skips the pipeline in the commit run and leaves nothing to gate). See [`notebooks/fork492/README.md`](../notebooks/fork492/README.md) |
+| method | the extlib-fork pipeline below plus N-1c, a test-set molecular-network rerank run before the external-library overlay: test spectra linked at modified cosine ≥ 0.6 with ≥ 6 matched peaks; each top-25 candidate gains w⁴ × Tanimoto to its neighbours' top 5; new order z(−log rank) + LAM × z(neighbour score), LAM 0.35; any exception leaves the submission unchanged |
+| datasets | 10 plus one kernel source, as listed in [`kernel-metadata.json`](../notebooks/fork492/kernel-metadata.json); `id_no` and `keywords` removed |
+| runtime | image `gcr.io/kaggle-private-byod/python@sha256:de153e6d303881930c51286216393d56f56b26458d0661350305a1e8144eea01`, NVIDIA T4, internet off |
+| run evidence | gate `~/casmi-data/gates/gate_fork492.py` (outside the repo) passed on the commit run: fork487's gate, plus `[n1c] LAM=0.35 TAU=0.6 molecules 400, with spectra 391, with neighbors 114, edges 109, changed lists 2, top1 changed 0, 80s` and no `[n1c] FAILED`; extlib loaded 324,884 spectra, 0 promotions (train-copy smoke molecules). Outputs: `~/casmi-data/kernel_outputs/fork492-v1` |
+| upstream sweep | LAM 0 / 0.15 / 0.25 / 0.35 / 0.50 scored 0.487 / 0.487 / 0.488 / 0.492 / 0.484 on its authors' account: 0.35 is the best of five, now reproduced on ours |
+| final picks | pick A is this submission (58506761), replacing extlib-fork. Pick B is a different line, the dedup fork (0.479, 57867559) or the merged fork (0.477, 57822991), not yet chosen. The picks are made by ticking the submissions on Kaggle's Submissions page; the CLI cannot select them. Deadline 2026-12-14 23:59 UTC (15 December 10:59 AEDT) |
+
+The settings were fixed by the notebook's authors before we ran it; we chose none of them.
+
+## Kept — extlib-fork, public MRR@25 0.487 (PROMOTE, inside the noise)
 
 | | |
 |---|---|
@@ -271,7 +287,7 @@ fragment check has none.
 
 ## Budget — every attempt in the denominator
 
-- **35 submissions, 35 scored, 0 rejected.** 19 from our own pipeline, one an identical re-run of v19
+- **36 submissions, 36 scored, 0 rejected, plus one refused at submission** (fork495h, below). 19 from our own pipeline, one an identical re-run of v19
   to measure noise (0.353 vs 0.356); every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including those not kept
   (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise), v19 (0.356, kept), v20 (0.354) and v21 (0.333) in
@@ -285,11 +301,19 @@ fragment check has none.
   (0.477, 57822991, kernel version 1, promoted); its kernel version 2, analogue-fork (0.477, 57826104, discarded).
   Three from the 0.479 notebook: dedup-fork (0.479, 57867559, kernel version 1, kept within the noise), its kernel
   version 2, seed-blend (0.463, 58046573, discarded), and kernel version 3, mass-prior (0.479, 58107187, discarded). One from the 0.487 notebook: extlib-fork (0.487,
-  58272211, kernel version 1, promoted) and isomer-rerank (0.487, 58292050, kernel version 2, discarded) and rerank-alpha015 (0.487, 58304138, kernel version 3, discarded).
+  58272211, kernel version 1, promoted) and isomer-rerank (0.487, 58292050, kernel version 2, discarded) and rerank-alpha015 (0.487, 58304138, kernel version 3, discarded). One from the 0.492 notebook: network-fork (0.492,
+  58506761, kernel version 1, promoted, final pick A).
+- **One commit run Kaggle refused to accept as a submission:** fork495h, Heliosli's public "0.495" notebook
+  unchanged (kernel version 1, 2026-11-17). Its commit run passed, with every base stage and overlay done, but
+  `CreateCodeSubmission` returned `FAILED_PRECONDITION`: "Your Notebook uses non-versioned datasets", naming all seven
+  `heliosli/*` datasets. Versioning is the owner's setting, so it is not scored and not counted above. Its gate was
+  rewritten after the run, because the first version checked the older 0.477 log's wording; the evidence is the same.
+  The run's package tree in `/kaggle/working` also outlasted `kaggle_chain.sh`'s download alarm, so the chain now
+  fetches top-level files only.
 - **Two measurement kernels, not submissions:** the ranker training set (2000 held-out train
   molecules, 3 h 37 min) and the second-pass recall probe (300 molecules, 35 min; v1 replaced before
   it finished because an empty mass window would have crashed it).
-- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork, 1 of the 0.451 notebook, 1 of the 0.456 notebook, 1 of the version-26 notebook, 1 of the 0.466 neural re-rank notebook, 2 of the 0.477 notebook and 2 of the 0.479 notebook; of our own pipeline's, the 3 not submitted were setup or reproducibility runs
+- **18 notebook versions of our own pipeline run on Kaggle,** plus 2 of the 0.421 fork, 3 of the E006 fork, 1 of the 0.451 notebook, 1 of the 0.456 notebook, 1 of the version-26 notebook, 1 of the 0.466 neural re-rank notebook, 2 of the 0.477 notebook, 2 of the 0.479 notebook, 3 of the 0.487 notebook, 1 of the 0.492 notebook and 1 of Heliosli's notebook (not submittable); of our own pipeline's, the 3 not submitted were setup or reproducibility runs
   (a missing RDKit wheel, a push-from-repo check). The E006 fork's version 1 ran on the CPU image
   its source's metadata names, failed the notebook's GPU preflight and was not submitted.
 - **Three spectrum-model retrains** on the shared A100 (seeds 20261101–3, about 4 h 20 min in all, plus a smoke
@@ -330,6 +354,8 @@ fragment check has none.
 | seed blend: equal weights, shipped schedule, three seeds | **before** the retrains (2026-11-03) | one change per submission; scored 0.463, discarded |
 | mass prior: V22's constants (centre −1.5 ppm, free 3, full 8, weight 0.15; rank-1 rule at 5 ppm, library < 0.9) | by its authors; adopted **before** our run (2026-11-08) | one change per submission; band checked on train first; scored 0.479, discarded |
 | the extlib fork's settings (scorer ensemble 0.5 / 0.5, mass prior, documentation prior, extlib cosine 0.8, K = 4) | by its authors, before we ran it | not ours; scored on the public leaderboard upstream (0.487) |
+| the network fork's settings (cosine 0.6, ≥ 6 peaks, LAM 0.35) | by its authors; LAM chosen upstream as the best of five public scores | not ours; scored 0.492 upstream and reproduced at 0.492 |
+| fork495h gate: base checked on this notebook's own stage lines | **after** its commit run (2026-11-17) | the first gate's needles were the older log's wording; not scored, so no score depends on it |
 | isomer reranker for v2: `V8 = 'BOTH'`, `RR8_ALPHA = 0.20` | **before** its run (2026-11-13) | one change per submission; small weight chosen so it can only reorder same-formula isomers; 0.487, no change; v3 lowers it to 0.15 (fixed before its run): 0.487, no change; closed |
 | MIST `msg_aug` gate: mean Tanimoto ≥ 0.40 on the 50 FRIGID molecules | **before** the run (2026-11-01) | pre-registered; 0.385 fails it, so no FRIGID decode was run |
 | external-library reach: cosine ≥ 0.5, 20 ppm, same ion mode, structures absent from train | **before** the count | a reach check; 0 / 400, so no submission |
@@ -358,6 +384,10 @@ of identical runs — were treated as no change.
   layer's effect on its own (documentation prior, leader pin, dedup) is not measured by us.
 - **Why the seed blend lost.** Untested: the seeds agree closely with the public scorer and two of three validate
   lower, so equal weights may just dilute it; other weights, or seeds from a different recipe, were not run.
+- **Whether the network rerank helps on the private split.** +0.005 is about one public molecule, and LAM 0.35 was
+  picked upstream as the best of five public scores. It reproduced, but that is the same public split, so the
+  selection is not independent of the score. The commit run changed 2 of the 12 smoke lists and no rank 1; its reach
+  on the hidden test is not visible.
 - **What in the 0.487 notebook earns its +0.008.** We ran it unchanged; the split between the scorer ensemble, the
   external-library promotion and the other layers is not measured, and +0.008 itself is inside the noise. How many
   hidden-test molecules the 324,884 external spectra promote is not visible: the smoke run's molecules are train copies.

@@ -43,7 +43,10 @@ newer MIST encoder and an external spectral library, were closed without a submi
 three seed retrains of it scored 0.463, and the public Gold Apex V22 timsTOF mass prior added alone scored 0.479 (no
 change); both were discarded. A tenth fork, Hongbin Gu's public 0.487 notebook (Gold Apex V22 with a two-scorer
 neural ensemble and 324{,}884 external library spectra for rank-1 promotion), reproduced 0.487: the new base, though
-$+0.008$ over 0.479 is inside the $\pm0.016$ between submissions. A learned isomer reranker on top of it scored 0.487 at weights 0.20 and 0.15. 35 submissions were made and all were
+$+0.008$ over 0.479 is inside the $\pm0.016$ between submissions. A learned isomer reranker on top of it scored 0.487 at weights 0.20 and 0.15. An eleventh, alex chilton's public
+0.492 notebook, adds a test-set molecular-network rerank (network weight 0.35) to the 0.487 pipeline and reproduced 0.492:
+the new base and final pick A, though $+0.005$ is about one molecule and inside the noise. Heliosli's public notebook ran
+cleanly but could not be submitted, because its datasets are not versioned. 36 submissions were made and all were
 scored. No calibrated local estimate of the score exists.
 \end{abstract}
 
@@ -194,9 +197,10 @@ analogue-fork & + analogue propagation on ranks 2--25 (not kept) & 0.477 \\
 dedup-fork & the public 0.479 notebook, unchanged (inside the noise) & 0.479 \\
 seed-blend & + three seed retrains in the ranks 2--25 neural score (not kept) & 0.463 \\
 mass-prior & + timsTOF precursor-mass prior and mass rank-1 rule (not kept) & 0.479 \\
-extlib-fork & the public 0.487 notebook, unchanged (inside the noise) & \textbf{0.487} \\
+extlib-fork & the public 0.487 notebook, unchanged (inside the noise) & 0.487 \\
 isomer-rerank & + learned isomer reranker, weight 0.20 (not kept) & 0.487 \\
 rerank-alpha015 & + learned isomer reranker, weight 0.15 (not kept) & 0.487 \\
+network-fork & the public 0.492 notebook, unchanged (inside the noise) & \textbf{0.492} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -297,6 +301,20 @@ Spearman to the public scorer 0.913, 0.933, 0.928). It scored 0.463 (submission 
 discarded. The seeds rank much like the public model and two of three validate lower, so equal weights likely dilute it;
 that explanation is untested.
 
+\textbf{The network fork (network-fork, 18 November).} alex chilton's public 0.492 notebook, forked with one change,
+\texttt{COMMIT\_MODE = 'smoke'}. It is the extlib fork's pipeline plus a test-set molecular-network rerank. Test spectra
+are linked at modified cosine $\ge 0.6$ with $\ge 6$ matched peaks, and each list is reordered by
+$z(-\log\text{rank}) + 0.35\,z(\text{neighbour score})$. On the 12 smoke molecules it found 114 molecules with neighbours
+and 109 edges, and changed 2 lists and no rank 1. The gate passed, and it scored 0.492 (submission 58506761),
+reproducing the source. That is $+0.005$ over 0.487, about one molecule, not strictly above G1: promoted as the base and
+pick A, not a measured gain. Upstream, the network weight scored 0.487, 0.487, 0.488, 0.492 and 0.484 at 0, 0.15, 0.25,
+0.35 and 0.50, so 0.35 is the best of five on the same public split.
+
+\textbf{Heliosli's notebook (fork495h, 17 November, not submitted).} A byte-identical fork of the public ``0.495''
+notebook, the 0.477 pipeline with de novo candidates, an isomer reranker and a joint ranker on top. Its commit run
+passed, but Kaggle refused the submission: code submissions cannot use datasets whose owner has disabled versioning,
+and all seven of its own datasets are. The 0.495 appears only in its title.
+
 \textbf{The extlib fork (extlib-fork, 12 November).} Hongbin Gu's public notebook
 \emph{casmi26-v589-alex0484-extlib}, which another user ran unchanged for 0.487, forked with one change: the commit run
 executes every stage on the 12 visible molecules (\texttt{COMMIT\_MODE = 'smoke'}) so the gate can check them. It is
@@ -368,14 +386,15 @@ its fingerprints reach Tanimoto 0.245 in its own 10{,}226-bit space and 0.180 ma
     $[\mathrm{M{+}H}]^+$ only (v16), popularity weight 0.15 (v8): inside the noise or below it.
 \end{itemize}
 
-\textbf{Next.} The base is now the 0.487 extlib fork; its isomer reranker at weight 0.20 scored 0.487 (no change), and so did weight 0.15; the reranker line is closed. Final picks (two, by 14
-December 23:59 UTC): the extlib fork and a diverse line, the 0.479 dedup fork or the 0.477 merged fork. No leader has published a method; the seed blend closed the same-model
+\textbf{Next.} The base is now the 0.492 network fork; the extlib fork's isomer reranker at weights 0.20 and 0.15 scored 0.487 (no change), and that line is closed. Final picks (two, by 14
+December 23:59 UTC): pick A is the network fork (0.492, submission 58506761); pick B is a different line, the 0.479 dedup
+fork or the 0.477 merged fork, not yet chosen. The picks are made by ticking the submissions on Kaggle's Submissions page. No leader has published a method; the seed blend closed the same-model
 ensemble route and the Gold Apex mass prior alone did not move the score. The ICEBERG PubChem atlas, allowed by the host on 28 October, was reviewed on 3 November and skipped.
 A daily watch of public notebooks runs until the deadline and flags any claim of 0.485 or more. Analogue propagation on the 0.477 base scored 0.477 (no change). Before it, single settings of the E006 family look tuned
 (promotion threshold swept upstream, engine-2 weight 0.8 lost 0.009, forward models already at 1.0, a neural re-rank at
 weight 0.50 lost 0.021) and the de novo route failed offline, while the public lineage gained $+0.044$ in a week (0.421 to
 0.465), then $+0.012$ more to 0.477. The cheapest lever left is a daily check of new public notebooks,
-forking any credible improvement that reproduces; it gave the 0.479 and 0.487 rebases. The leaderboard top is 0.540 (12 November).
+forking any credible improvement that reproduces; it gave the 0.479, 0.487 and 0.492 rebases. The leaderboard top is 0.549 (17 November).
 
 \section{What is not established}
 \begin{itemize}
@@ -388,6 +407,9 @@ forking any credible improvement that reproduces; it gave the 0.479 and 0.487 re
   \item \textbf{Whether a de novo route could help with a better encoder.} FRIGID found nothing with
     MIST's fingerprints; an encoder fine-tuned on Enveda's spectra is untested. The 39--52\% of the test
     outside PubChem and COCONUT is the SOTA sweep's estimate, not a measurement on the hidden test.
+  \item \textbf{Whether the network rerank helps on the private split.} Its $+0.005$ is about one public molecule,
+    and the weight 0.35 was picked upstream as the best of five scores on the same public split, so the reproduction is
+    not independent of that selection.
   \item \textbf{Whether the 0.479 layer helps at all.} Its $+0.002$ over 0.477 is inside the source's own
     run-to-run spread; the effect of the documentation prior, leader pin and deduplication on their own is not
     measured by us.

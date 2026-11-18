@@ -6,7 +6,22 @@ up to 25 ranked SMILES per test molecule, scored by MRR@25 on the InChIKey conne
 It is a code competition — a notebook, internet off — so every model and database is attached as a
 Kaggle dataset.
 
-**Best: 0.487** (2026-11-12: Hongbin Gu's public 0.487 notebook *casmi26-v589-alex0484-extlib* run as our private
+**Best: 0.492** (2026-11-18: alex chilton's public 0.492 notebook run as our private kernel
+[`casmi-fork492`](notebooks/fork492), unchanged except for a smoke commit run). It is the 0.487 pipeline below plus
+a test-set molecular-network rerank: test spectra with modified cosine ≥ 0.6 on ≥ 6 matched peaks are linked, and each
+list is reordered by z(−log rank) + 0.35 × z(neighbour score). It reproduces the source's 0.492. Its +0.005 over
+0.487 is about one molecule, inside the ±0.016 between submissions and not strictly above gate G1, so it is the new
+base (PROMOTE), not a measured gain. The network weight 0.35 was the best of five tried upstream (0.487–0.492).
+
+**Final picks** (two, by 2026-12-14 23:59 UTC): pick A is fork492 v1 (0.492, submission 58506761). Pick B stays a
+different line, the dedup fork (0.479, 57867559) or the merged fork (0.477, 57822991), not yet chosen. The picks are
+made by ticking the submissions on Kaggle's Submissions page; the CLI cannot select them.
+
+Heliosli's public notebook, forked as [`fork495h`](notebooks/fork495h), ran clean but cannot be submitted: Kaggle
+refuses code submissions that use non-versioned datasets, and all seven of its own datasets are. Its title's 0.495
+is unverified.
+
+Before it, **0.487** (2026-11-12: Hongbin Gu's public 0.487 notebook *casmi26-v589-alex0484-extlib* run as our private
 kernel [`casmi-fork487`](notebooks/fork487), unchanged except for a smoke commit run). It is popwenman's Gold Apex V22
 with an 80-epoch retrained spectrum model ensembled with the public one, the timsTOF mass prior, a documentation prior
 and 324,884 external library spectra for rank-1 promotion. Its +0.008 over 0.479 is one to two molecules, inside the
@@ -26,7 +41,7 @@ The 0.465 pipeline is dmitriigluzdov's public notebook, version 26 ([`fork464`](
 GLACIER proxies kept where ICEBERG scores exist, joint ICEBERG+GLACIER re-ordering, fold-safe FPNets in the PubChem
 channel and a candidate-aware rank-1 PubChem promotion. The E006 lineage before it is
 [`fork446`](notebooks/fork446) (0.446). Our own pipeline's best is
-0.356 (v19, 2026-10-12). The top of the leaderboard is 0.521 (2026-11-01). The first submission scored 0.115 against a local estimate of 0.664; that estimate was
+0.356 (v19, 2026-10-12). The top of the leaderboard is 0.549 (2026-11-17). The first submission scored 0.115 against a local estimate of 0.664; that estimate was
 retracted, and since then only the leaderboard is trusted. The full history, one change per
 submission, is in [PR #80](https://github.com/charleneleong-ai/ai4science/pull/80) and the
 [spike writeup](docs/2026-10-07-casmi-spike.md).

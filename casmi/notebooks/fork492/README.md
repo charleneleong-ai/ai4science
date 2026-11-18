@@ -14,9 +14,12 @@ private kernel id, with `id_no` and `keywords` dropped.
 
 | kernel version | change | public MRR@25 |
 |---|---|---|
-| 1 | `COMMIT_MODE` smoke only | running |
+| 1 | `COMMIT_MODE` smoke only | **0.492** (submission 58506761, 2026-11-18; reproduces the source; final pick A) |
 
 The gate is `~/casmi-data/gates/gate_fork492.py`: `gate_fork487.py`, then the `[n1c] LAM=0.35` line and no
 `[n1c] FAILED`, because N-1c leaves the submission unchanged on any exception.
 
-Launched as the fallback after [fork495h](../fork495h) could not be submitted.
+Launched as the fallback after [fork495h](../fork495h) could not be submitted. The commit run's N-1c line was
+`[n1c] LAM=0.35 TAU=0.6 molecules 400, with spectra 391, with neighbors 114, edges 109, changed lists 2, top1 changed
+0, 80s`. The +0.005 over fork487's 0.487 is about one molecule, inside the ±0.016 noise. It is promoted as the new
+base, not counted as a measured gain.

@@ -1,17 +1,18 @@
 ## Highlights
-**Status 2026-11-14 (AEDT):** best **0.487** (extlib-fork), from 0.115 at the first submission. It is Hongbin Gu's
-public 0.487 notebook *casmi26-v589-alex0484-extlib* run as our private kernel, unchanged except for a smoke commit
-run: popwenman's Gold Apex V22 with an 80-epoch retrained spectrum model ensembled 0.5/0.5 with the public one, the
-timsTOF mass prior, a documentation prior and 324,884 external library spectra (Takumu Hata's extlib plus harmonised
-MassBank) for rank-1 promotion. Its +0.008 over the 0.479 dedup fork is one to two molecules of the ~124-molecule
-public split, inside the ±0.016 between submissions, so it is the new base (PROMOTE), not a measured gain. 35
-submissions scored; its kernel version 2, the same notebook with the learned isomer reranker on (`V8 = 'BOTH'`,
-`RR8_ALPHA = 0.20`), scored 0.487 (no change, discarded), and version 3 (`RR8_ALPHA = 0.15`) scored 0.487 too, so the reranker line is closed. Nothing is running. Two offline probes closed without a submission (MIST `msg_aug` encoder, an external
-GNPS+MassSpecGym library). The leaderboard top is 0.540 (2026-11-12).
+**Status 2026-11-19 (AEDT):** best **0.492** (network-fork), from 0.115 at the first submission. It is alex chilton's
+public 0.492 notebook run as our private kernel, unchanged except for a smoke commit run: the 0.487 extlib pipeline
+plus a test-set molecular-network rerank (N-1c). Test spectra with modified cosine ≥ 0.6 on ≥ 6 matched peaks are
+linked, and each list is reordered by z(−log rank) + 0.35 × z(neighbour score). It reproduces the source's 0.492.
+Its +0.005 over 0.487 is about one molecule of the ~124-molecule public split, inside the ±0.016 between submissions
+and not strictly above G1, so it is the new base (PROMOTE), not a measured gain. Upstream, the network weight was
+swept over five values (0.487–0.492) and 0.35 was the best. 36 submissions scored. Heliosli's public notebook
+(fork495h) ran clean but cannot be submitted: Kaggle refuses code submissions with non-versioned datasets. The
+leaderboard top is 0.549 (2026-11-17). **Final pick A is fork492 v1**; pick B is a different line, not yet chosen.
 
 | | public MRR@25 | submission |
 |---|---|---|
-| current best (inside the noise of 0.479) | **0.487** | extlib-fork |
+| current best (inside the noise of 0.487) | **0.492** | network-fork |
+| extlib fork (inside the noise of 0.479) | 0.487 | extlib-fork |
 | dedup fork (inside the noise of 0.477) | 0.479 | dedup-fork |
 | merged fork | 0.477 | merged-fork |
 | data fork | 0.465 | data-fork |
@@ -27,8 +28,9 @@ GNPS+MassSpecGym library). The leaderboard top is 0.540 (2026-11-12).
 - **A neural re-rank helps only when it cannot move rank 1:** at weight 0.25 for rank 1 and 0.75 below it, plus a
   fragment check on rank 1, it added +0.012 (merged-fork); the same model at a flat 0.50 lost 0.021 (neural-fork).
 - **The public lineage still moves the line:** the 0.487 extlib notebook (two neural scorers, mass prior,
-  documentation prior, 324,884 external library spectra) reproduced at 0.487 (extlib-fork), +0.008 over 0.479; each
-  step is inside the noise, but the public line rose 0.477 → 0.487 in twelve days.
+  documentation prior, 324,884 external library spectra) reproduced at 0.487 (extlib-fork), +0.008 over 0.479, and
+  the 0.492 network notebook (a test-set molecular-network rerank on top) reproduced at 0.492 (network-fork); each
+  step is inside the noise, but the public line rose 0.477 → 0.492 in eighteen days.
 - **More copies of the same neural scorer hurt:** averaging the public spectrum model with three retrains of it
   (same recipe, new seeds) on ranks 2–25 lost 0.016 (seed-blend, 0.463). The seeds rank like the public model
   (Spearman 0.91–0.93) and two of three validate lower (0.481, 0.487, 0.465 against 0.484).
@@ -62,9 +64,10 @@ GNPS+MassSpecGym library). The leaderboard top is 0.540 (2026-11-12).
 | 2026-11-01 | dedup-fork | the public 0.479 notebook (documentation prior + InChIKey14 dedup on ranks 2–25), unchanged; inside the noise | 0.479 |
 | 2026-11-06 | seed-blend | dedup-fork + ranks 2–25 neural score averaged over the public scorer and three seed retrains | 0.463 |
 | 2026-11-07 | mass-prior | dedup-fork + timsTOF precursor-mass prior on ranks 2–25 and a mass rank-1 rule (from Gold Apex V22) | 0.479 |
-| 2026-11-12 | extlib-fork | the public 0.487 notebook (Gold Apex V22 + 80-epoch scorer ensemble + external spectral libraries), unchanged; inside the noise | **0.487** |
+| 2026-11-12 | extlib-fork | the public 0.487 notebook (Gold Apex V22 + 80-epoch scorer ensemble + external spectral libraries), unchanged; inside the noise | 0.487 |
 | 2026-11-13 | isomer-rerank | extlib-fork + learned isomer reranker (`RR8_ALPHA = 0.20`); no change, discarded | 0.487 |
 | 2026-11-13 | rerank-alpha015 | isomer-rerank with `RR8_ALPHA = 0.15`; no change, discarded | 0.487 |
+| 2026-11-18 | network-fork | the public 0.492 notebook (extlib pipeline + test-set network rerank at LAM 0.35), unchanged; inside the noise | **0.492** |
 
 ## Task
 [CASMI 2026](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra): rank
@@ -73,21 +76,33 @@ MRR@25 on the InChIKey connectivity block. Notebook-only, internet off; only the
 visible.
 
 ## Approach
-The current best is an unchanged fork of the public notebook
-[CASMI26 LB 0.479 | MIDX Exact Dedup Fill](https://www.kaggle.com/code/alexchilton/casmi26-lb-0-479-midx-exact-dedup-fill)
-(alex chilton, running Baidalin Adilzhan's *midx exact dedup fill* unchanged),
-[`notebooks/fork479/fork479.ipynb`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork479/fork479.ipynb).
-It is the 0.477 merged notebook
-([`fork477`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork477)) with a
-final layer on ranks 2–25: a documentation prior (PubChem popularity 0.10, a spectral-library bonus 0.05 where the best
-library match reaches 0.87, a natural-product bonus 0.02), the old leader pinned at rank 2 after a fragment-check move,
-and deduplication by the metric's InChIKey14 key, with freed slots filled by scored outside candidates. Underneath, it
-runs the pinned 0.465 pipeline once ([`fork464`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork464)):
-library search of every test spectrum against train with analog propagation, a public LightGBM ranker, PubChem,
-PubChemLite, ChEBI and LipidMaps candidates, a second engine's ranks fused in, ICEBERG and GLACIER re-scoring with
-proxies, fold-safe FPNets and a candidate-aware rank-1 promotion. On top it re-ranks the final 25 with a public
-spectrum model by reciprocal-rank fusion, at weight 0.25 for rank 1 and 0.75 for ranks 2–25, and lets an untrained
-fragment check (Spectral Parallax) replace rank 1, its moves taken from the 0.50 order. Our own pipeline,
+The current best is a fork of the public notebook
+[CASMI26 0.492 | What Moved the Board: 59 Arms](https://www.kaggle.com/code/alexchilton/casmi26-0-492-what-moved-the-board-59-arms)
+(alex chilton, running Rogers Johnson's *casmi26-l4-lam035* unchanged),
+[`notebooks/fork492/fork492.ipynb`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork492/fork492.ipynb),
+unchanged except `COMMIT_MODE = 'smoke'`. It is the 0.487 extlib notebook
+([`fork487`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork487)) plus one
+cell, N-1c, run before the external-library overlay. Test spectra are linked when their modified cosine is ≥ 0.6 on
+≥ 6 matched peaks. Each of a molecule's top 25 candidates gains w⁴ × Tanimoto to its linked neighbours' top 5. The
+new order is z(−log rank) + 0.35 × z(neighbour score). On any exception the submission is left unchanged.
+The 0.487 pipeline is popwenman's Gold Apex V22:
+- the public spectrum model and an 80-epoch retrain combined as 0.5·z(public) + 0.5·z(retrain);
+- romanrozen's timsTOF mass prior;
+- a documentation prior on ranks 2–25 with a LOTUS backfill;
+- rank-1 promotion from 324,884 external library spectra (Takumu Hata's extlib plus harmonised MassBank).
+
+It all sits on the 0.479/0.477 merged line
+([`fork479`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork479),
+[`fork477`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork477)) and the
+pinned 0.465 pipeline
+([`fork464`](https://github.com/charleneleong-ai/ai4science/blob/feat/casmi-fork/casmi/notebooks/fork464)):
+- library search against train with analog propagation;
+- a LightGBM ranker;
+- PubChem, PubChemLite, ChEBI and LipidMaps candidates;
+- ICEBERG and GLACIER re-scoring;
+- a leader-safe neural re-rank and a fragment check on rank 1.
+
+Our own pipeline,
 [`kaggle_submission.py`](https://github.com/charleneleong-ai/ai4science/blob/main/casmi/notebooks/kaggle_submission.py)
 (best 0.356), is the record of what we built before the forks. Inputs and checkpoints:
 [experiment card](https://github.com/charleneleong-ai/ai4science/blob/main/casmi/docs/experiment-card.md);
@@ -108,6 +123,8 @@ Generated by `casmi wandb-sync`.
 | proxy re-ordering, fold-safe FPNets, candidate-aware promotion (pubchemlite-fork → data-fork) | +0.009 |
 | leader-safe neural re-rank + fragment check on rank 1 (data-fork → merged-fork) | +0.012 |
 | documentation prior + leader pin + InChIKey14 dedup on ranks 2–25 (merged-fork → dedup-fork) | +0.002, inside the noise |
+| Gold Apex V22 + scorer ensemble + external-library promotion (dedup-fork → extlib-fork) | +0.008, inside the noise |
+| test-set molecular-network rerank at LAM 0.35 (extlib-fork → network-fork) | +0.005, inside the noise |
 | FPNet in place of fragment explainability | +0.115 |
 | popularity shortlist instead of nearest-mass cut | +0.086 |
 | GLACIER beside ICEBERG | +0.028 |
@@ -149,6 +166,23 @@ Generated by `casmi wandb-sync`.
   off when the best library match is below 0.9. On 2,138 timsTOF train spectra the true structure sits at median
   −1.9 ppm, 99.3% inside the band; on the 12 smoke lists 59 of 288 rank 2–25 candidates fall outside it and the rank-1
   rule moved none. V22's other changes (scorer blend, prior weights, LOTUS backfill) were not tried.
+- The network fork (network-fork, 2026-11-18, 0.492 against 0.487): alex chilton's public notebook, which scored 0.492
+  on its author's account (submission 58380172), forked with one change, `COMMIT_MODE = 'smoke'`, because in `'fast'`
+  the commit run skips the pipeline and leaves nothing to gate. The gate `gate_fork492.py` ran fork487's gate, then
+  required N-1c's own line at LAM 0.35 and no `[n1c] FAILED`. On the 12 smoke molecules: 400 molecules, 391 with
+  spectra, 114 with neighbours, 109 edges, 2 lists changed, rank 1 changed in none. Submission 58506761 reproduced
+  0.492. The upstream sweep scored 0.487 / 0.487 / 0.488 / 0.492 / 0.484 at LAM 0 / 0.15 / 0.25 / 0.35 / 0.50. So 0.35
+  was picked as the best of five, but it has now scored 0.492 on two accounts.
+- Heliosli's public "0.495" notebook (fork495h, 2026-11-17, not submitted): the 0.477 merged pipeline plus FRIGID/E1
+  de novo candidates, an RR3 isomer reranker, a CV-JOINT ranker and an M5 isomer judgement. It was forked
+  byte-identical, and its commit run passed with every stage and overlay done. Kaggle refused the submission
+  (`FAILED_PRECONDITION`: "Your Notebook uses non-versioned datasets") on all seven `heliosli/*` datasets. Code
+  submissions need versioned datasets, which only the owner can set, and the 0.495 appears only in the title. Two
+  fixes came out of the run:
+  - `kaggle_chain.sh` now downloads only top-level outputs, 200 per listing page. The notebook's package tree in
+    `/kaggle/working` had outlasted the download alarm.
+  - This notebook's gate was rewritten after the run, because the first version checked the older 0.477 log's
+    wording.
 - The extlib fork (extlib-fork, 2026-11-12, 0.487 against 0.479): Hongbin Gu's public notebook, which huichieh ran
   unchanged for 0.487 (submission 58185447), forked with one change, `COMMIT_MODE = 'smoke'`, so the gate sees every
   stage on the 12 visible molecules. The gate `gate_fork487.py` checked the OURS bundle and the ensemble line, the mass
@@ -180,13 +214,17 @@ Generated by `casmi wandb-sync`.
   are a property of the visible test (train examples), not the hidden test the leaderboard scores.
 
 ## Next
-The base is now the 0.487 extlib fork. Its kernel version 2 turned on the notebook's learned isomer reranker at a small
-weight (`V8 = 'BOTH'`, `RR8_ALPHA = 0.20`; it reorders only same-formula isomers on lists whose library match is below
-0.9) and scored 0.487, no change; version 3 at weight 0.15 also scored 0.487, so the reranker line is closed and nothing is running. The seed blend (0.463) closed the same-model ensemble route, and the Gold Apex V22 mass prior
+The base is now the 0.492 network fork. **Final picks** (two, by 2026-12-14 23:59 UTC):
+- **pick A: fork492 v1** (0.492, submission 58506761), replacing the extlib fork;
+- **pick B:** a different line, the 0.479 dedup fork (57867559) or the 0.477 merged fork (57822991), not yet chosen,
+  so the two picks share neither the external-library promotion nor the network rerank.
+
+The picks are made by ticking the submissions on Kaggle's Submissions page; the CLI cannot select them. The extlib
+fork's learned isomer reranker scored 0.487 at weights 0.20 and 0.15, so that line is closed. Nothing is running.
+The seed blend (0.463) closed the same-model ensemble route, and the Gold Apex V22 mass prior
 alone scored 0.479 (no change). The daily watch of public notebooks runs until the deadline and flags a claim of 0.485
 or more. One public notebook puts the public split at about 125 molecules, ±0.016 between submissions by chance
-(unverified). Final picks (two, by 2026-12-14 23:59 UTC): the extlib fork (pick A) and a diverse line as pick B, the
-0.479 dedup fork or the 0.477 merged fork, so the two picks do not share the external-library promotion. The ICEBERG atlas was reviewed on
+(unverified). The ICEBERG atlas was reviewed on
 2026-11-03 and skipped. The one resource left unused by
 every public notebook is the [ICEBERG PubChem atlas](https://iceberg-ms.mit.edu/) (predicted spectra for 91.4M PubChem
 structures), which the host allowed as a private dataset on 2026-10-28
@@ -198,5 +236,5 @@ per comparison. Before the 0.477 fork, the base was the 0.465 data fork. Single 
 engine-2 weight 0.8 lost 0.009, forward models already at 1.0, a neural re-rank at weight 0.50 lost 0.021), and the
 de novo route failed offline. The public
 lineage has gained +0.044 in a week (0.421 → 0.465), so a daily check of new public notebooks, forking any credible
-improvement that reproduces, is the cheapest lever left. The leaderboard top is 0.540 (then 0.539 and 0.534, 2026-11-12). A fork costs about
+improvement that reproduces, is the cheapest lever left. The leaderboard top is 0.549 (2026-11-17). A fork costs about
 2.5–3 GPU hours of the weekly 30 h quota, including the scoring rerun.

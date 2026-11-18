@@ -91,4 +91,7 @@ submissions:
   - {version: 3, label: rerank-alpha015, outputs: fork487-v3, ref: 58304138, date: 2026-11-13, family: fusion, commit: 62b95fb,
      score: 0.487, verdict: DISCARD,
      change: "fork487 v2 with RR8_ALPHA 0.15 instead of 0.20; commit run RR ran on 400 lists, 12 skipped as library matches, 0 reranked; 0.487, no change. Reranker off, 0.20 and 0.15 all score 0.487: the weight is not a lever at public-split resolution, line closed"}
+  - {version: 1, label: network-fork, outputs: fork492-v1, ref: 58506761, date: 2026-11-18, family: rebase, commit: d1b2393,
+     score: 0.492, verdict: PROMOTE,
+     change: "the public 0.492 notebook (alexchilton, Rogers Johnson's casmi26-l4-lam035) unchanged except COMMIT_MODE smoke: fork487's pipeline + N-1c test-set molecular-network rerank (modified cosine >= 0.6 on >= 6 peaks; z(-log rank) + LAM 0.35 z(neighbour score)); reproduces the source's 0.492; +0.005 over 0.487 is about one molecule, inside the +/-0.016 noise and not strictly above G1"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==
