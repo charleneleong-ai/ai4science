@@ -15,10 +15,11 @@ This is the `ai4science` thesis with the two halves handed over pre-separated �
 verifier that cannot be gamed, and an unbounded generator space. The only question is how
 well the search loop around it is built.
 
-## Status — 2026-11-12
+## Status — 2026-11-19
 
-**We are on the plateau, by assembly rather than by compression; no compression of our own
-has been attempted yet.** The measurement loop is validated twice over — all three official
+**We are at the public frontier, by assembly rather than by compression.** Our own compression
+attempt, an invsqrt lookup redesign, is closed (verdict `r7`,
+[`docs/invsqrt-diagnosis.md`](docs/invsqrt-diagnosis.md)). The measurement loop is validated twice over — all three official
 verifiers run locally, every cost function here reproduces the verifier's own score to 1e-12
 from the fields it reports, and the local blend has now predicted the leaderboard on both a
 known input (the reference, 1.00000 → 1.00000) and an unseen one (23.1811976 → **23.18119**,
@@ -27,11 +28,17 @@ rank candidates without spending submissions.
 
 | | |
 | --- | --- |
-| Best submitted score | **25.36626** — an assembly of public Apache-2.0 parts, not our own circuits (submission `58252192`, local verifier 25.36626) |
-| Our rank | **232–248 of 2,869** — 17 teams share the exact score; up from 249–252 of 1,756 at 23.18119 |
-| Leader | **29.45296** — ×1.16 on score, ×1.57 on the product of the three cost ratios |
-| Median | **24.594** |
-| Cleared 25 | **1,157 teams** — 25 is no longer an escape band |
+| Best submitted score | **28.18862** — an assembly of public Apache-2.0 parts, not our own circuits (submission `58528892`, local verifier 28.23174; the 1,527 ppm gap is one failed `dqi` shot) |
+| Our rank | not read: the leaderboard API is unauthenticated here |
+| Leader | **31.617** on 2026-11-18 (manwithacat's briefing, [760157](https://www.kaggle.com/competitions/google-verifiable-quantum-circuit-compilation/discussion/760157), third-party) — ×1.12 on score |
+| Gold line / median | **28.753** / **25.150** on 2026-11-18 (same source) |
+
+**2026-11-19 — submitted v4: leaderboard 28.18862 (×1.111 over v3).** The public frontier moved
++11% in a week. Cheapest Apache-2.0 file per task from the parts dataset (v136): invsqrt `d0227f3c`
+(Q 44, ratio 27.91), dqi `e208d350` (Q 890, 70.79), chemistry `6a094aa9` (11.39). Provenance in
+[`58528892-parts.yaml`](docs/experiments/58528892-parts.yaml), verdict `v4-apache-parts-frontier`.
+This week's sweep: [`reports/2026-11-19-vqcc-frontier-delta.md`](reports/2026-11-19-vqcc-frontier-delta.md).
+The dated paragraphs below are the earlier history.
 
 **2026-11-07 — the newest public notebook already scores 24.94165 here.** Heliosli's
 `the-dataset-is-public-now-enjoy` (v20) output re-verifies locally at 24.94165, all three PASS, and beats

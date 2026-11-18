@@ -449,3 +449,40 @@ experiments:
       Not established: what the teams above 27 do that is not public.
     verdict: PROMOTE
     pr: 105
+  - name: r7-invsqrt-lookup-redesign
+    date: 2026-11-18
+    baseline: >-
+      6c6a734d (Q 62, C 1,513.93, cost 93,863), whose 167-Toffoli lookup the redesign model priced
+      at 0.652 per entry
+    gate: >-
+      a calibrated in-place synthesis of the redesign's 512-entry table at <= ~231 Toffolis, the
+      budget for the -11.85% that the forum's 25.1x needs
+    result: >-
+      lookup_synth.InPlaceLookup, the two-phase strategy decoded from 6c6a734d's CCX trace, takes
+      225-227 CCX on 6c6a734d's own table (it uses 167) and 515-517 on REDESIGN's 512 x 29, every
+      circuit replayed on all entries. Even at 6c6a734d's rate the redesign's table costs ~380,
+      so the redesign models at about -2.7% at best and loses (+5.7%) as built. Closes the
+      lookup-redesign route only: the public invsqrt line has since reached Q 44 by another one
+      (v4-apache-parts-frontier). Cost: ~3 CPU-hours, no submissions.
+    verdict: DISCARD
+    pr: 105
+  - name: v4-apache-parts-frontier
+    date: 2026-11-19
+    score: 28.18862
+    submission: 58528892
+    baseline: our 25.36626 (submission 58252192)
+    gate: the same as v3-apache-parts-frontier
+    result: >-
+      **Leaderboard 28.18862 (x1.1113 over 25.36626), against 28.23174 locally.** The public
+      frontier moved +11% in a week (manwithacat's 2026-11-18 briefing, discussion 760157: top
+      31.617, gold line 28.753, median 25.150), so v3 sat below the median. Cheapest Apache-2.0
+      file per task from manwithacat/vqcc-apache-public-circuits v136: invsqrt d0227f3c (maoxin123,
+      Q 44, 74,405.7, ratio 27.91), dqi e208d350 (Ertugrul Ozer, Q 890, 3.4525e11, 70.79), chemistry
+      6a094aa9 (Alex Ahern, (8, 143, 44), T 14,706, 2.9464e8, 11.39). Hashes match the manifest;
+      every verifier cost matches our cost model. The leaderboard sits 1,527 ppm below local,
+      exactly the one-failed-shot dqi step measured earlier, so it is dqi draw noise, not a bad
+      part. Provenance in 58528892-parts.yaml. None of these circuits are ours.
+      Not established: our rank (the leaderboard API is unauthenticated here), and how the
+      leader's x1.12 over public splits across the tasks.
+    verdict: PROMOTE
+    pr: 105
