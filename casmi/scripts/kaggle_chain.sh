@@ -21,7 +21,9 @@ P=$(echo "$p" | grep -oE 'version [0-9]+' | grep -oE '[0-9]+')
 
 sleep 90
 until s=$(k kernels status "$K" 2>&1); echo "$s" | grep -qE 'COMPLETE|ERROR|CANCEL'; do sleep 120; done; echo "$s"
-k kernels output "$K" -p "$D" --file-pattern '\.(log|csv|json)$' >/dev/null 2>&1
+# top-level files only, 200 per listing page: a notebook that leaves a package tree in /kaggle/working
+# (fork495h's frigid_site/) otherwise outlasts the alarm or hits the listing rate limit before submission.csv
+perl -e 'alarm 600; exec @ARGV' uvx kaggle kernels output "$K" -p "$D" --page-size 200 --file-pattern '^[^/]+\.(log|csv|json)$' >/dev/null 2>&1
 echo "$s" | grep -q COMPLETE || {
   grep -ohE '"data": *"[^"]*(Error|Traceback|SystemExit)[^"]*' "$D"/*.log | tail -5
   echo "RUN NOT COMPLETE - not submitting"; exit 1; }
