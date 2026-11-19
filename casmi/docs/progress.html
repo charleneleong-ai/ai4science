@@ -185,7 +185,7 @@ flowchart TD
     <ul class="limits">
       <li><b>Network fork: PROMOTE, inside the noise.</b> alex chilton's “CASMI26 0.492 | What Moved the Board” as private kernel casmi-fork492, with one change: the commit run executes every stage on the 12 visible molecules (it was set to skip them). The gate required the rerank's own line at weight 0.35: 114 of 400 molecules had neighbours, 109 edges, 2 lists changed and no rank 1. Submission 58506761 scored 0.492 (19 November 03:43 AEDT). Upstream, weights 0 / 0.15 / 0.25 / 0.35 / 0.50 scored 0.487 / 0.487 / 0.488 / 0.492 / 0.484, so 0.35 is the best of five on the same public split.</li>
       <li><b>Heliosli's notebook: not submittable.</b> Forked byte-identical as casmi-fork495h; its commit run passed with every stage and overlay done, but Kaggle refused the submission because all seven of the author's datasets have versioning disabled, which only the owner can change. Its 0.495 appears only in the title. The run also showed that the chain's output download timed out on a notebook that leaves a package tree in its working directory; it now fetches top-level files only.</li>
-      <li><b>Final picks</b> (two, by 14 December 23:59 UTC): pick A is the network fork (0.492, 58506761); pick B is a different line, the 0.479 dedup fork (57867559) or the 0.477 merged fork (57822991), not yet chosen. The picks are made by ticking the submissions on Kaggle's Submissions page; the CLI cannot select them.</li>
+      <li><b>Final picks</b> (two, by 14 December 23:59 UTC): pick A is the network fork (0.492, 58506761); pick B is the 0.479 dedup fork, fork479 v1 (57867559), a different line. Both still need ticking on Kaggle's Submissions page; the CLI cannot select them.</li>
     </ul>
   </section>
 

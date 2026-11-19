@@ -35,7 +35,7 @@ before it (0.446), an unchanged fork of the public E006 notebook,
 | runtime | image `gcr.io/kaggle-private-byod/python@sha256:de153e6d303881930c51286216393d56f56b26458d0661350305a1e8144eea01`, NVIDIA T4, internet off |
 | run evidence | gate `~/casmi-data/gates/gate_fork492.py` (outside the repo) passed on the commit run: fork487's gate, plus `[n1c] LAM=0.35 TAU=0.6 molecules 400, with spectra 391, with neighbors 114, edges 109, changed lists 2, top1 changed 0, 80s` and no `[n1c] FAILED`; extlib loaded 324,884 spectra, 0 promotions (train-copy smoke molecules). Outputs: `~/casmi-data/kernel_outputs/fork492-v1` |
 | upstream sweep | LAM 0 / 0.15 / 0.25 / 0.35 / 0.50 scored 0.487 / 0.487 / 0.488 / 0.492 / 0.484 on its authors' account: 0.35 is the best of five, now reproduced on ours |
-| final picks | pick A is this submission (58506761), replacing extlib-fork. Pick B is a different line, the dedup fork (0.479, 57867559) or the merged fork (0.477, 57822991), not yet chosen. The picks are made by ticking the submissions on Kaggle's Submissions page; the CLI cannot select them. Deadline 2026-12-14 23:59 UTC (15 December 10:59 AEDT) |
+| final picks | pick A is this submission (58506761), replacing extlib-fork. Pick B is the dedup fork, fork479 v1 (0.479, submission 57867559), a different line. Both still need ticking on Kaggle's Submissions page; the CLI cannot select them. Deadline 2026-12-14 23:59 UTC (15 December 10:59 AEDT) |
 
 The settings were fixed by the notebook's authors before we ran it; we chose none of them.
 
@@ -53,7 +53,7 @@ The settings were fixed by the notebook's authors before we ran it; we chose non
 
 The settings were fixed by the notebook's authors before we ran it; we chose none of them.
 
-## Kept — dedup-fork, public MRR@25 0.479 (KEEP, inside the noise)
+## Kept — dedup-fork, public MRR@25 0.479 (KEEP, inside the noise; final pick B)
 
 | | |
 |---|---|

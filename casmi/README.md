@@ -13,9 +13,9 @@ list is reordered by z(−log rank) + 0.35 × z(neighbour score). It reproduces 
 0.487 is about one molecule, inside the ±0.016 between submissions and not strictly above gate G1, so it is the new
 base (PROMOTE), not a measured gain. The network weight 0.35 was the best of five tried upstream (0.487–0.492).
 
-**Final picks** (two, by 2026-12-14 23:59 UTC): pick A is fork492 v1 (0.492, submission 58506761). Pick B stays a
-different line, the dedup fork (0.479, 57867559) or the merged fork (0.477, 57822991), not yet chosen. The picks are
-made by ticking the submissions on Kaggle's Submissions page; the CLI cannot select them.
+**Final picks** (two, by 2026-12-14 23:59 UTC): pick A is fork492 v1 (0.492, submission 58506761). Pick B is the dedup
+fork, fork479 v1 (0.479, submission 57867559), a different line that shares neither the external-library promotion nor
+the network rerank. Both still need ticking on Kaggle's Submissions page; the CLI cannot select them.
 
 Heliosli's public notebook, forked as [`fork495h`](notebooks/fork495h), ran clean but cannot be submitted: Kaggle
 refuses code submissions that use non-versioned datasets, and all seven of its own datasets are. Its title's 0.495
