@@ -159,6 +159,21 @@ subset was chosen after the first gate failed, so a pass is exploratory evidence
 - **On a pass:** FLARE is tried on this holdout before any submission.
 - **On a fail:** scorer work is closed.
 
+**Result (2026-11-19, gate FAIL).** Eval came to 984 molecules: 750 Enveda-180 and 234 natural products, 16 of
+which had no same-formula decoys. Training dropped 2,742 near neighbours. On the 226 scored natural-product molecules:
+
+| Scorer vs kit | Holdout MRR@25 | Δ [95% CI] | Public LB |
+|---|---|---|---|
+| kit | 0.311 | — | 0.472 |
+| long | 0.411 | **+0.100** [+0.059, +0.142] | −0.019 |
+| kit + s1 + s2 + s3 | 0.328 | +0.017 [−0.007, +0.041] | −0.016 |
+
+Across all 953 scored eval molecules, long gains +0.138 and the blend +0.030. Natural products are much harder for
+the scorer alone (0.31 against 0.66 on Enveda-180), but the direction is the same as on 14 November and opposite to
+the board. **A same-formula holdout does not predict the leaderboard for this scorer, on either library, so scorer
+work is closed on holdout evidence.** Any further scorer family (MIST, DreaMS) can only be judged by one gated
+submission against the current best.
+
 ## Not established
 
 - Whether any offline holdout tracks this leaderboard; Step 0 tests it.
