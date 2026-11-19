@@ -1,0 +1,24 @@
+# G2 baseline for the shipped dqi part (v4), and the reach of the two discussion-759760 patches.
+# Draws: `uv run python scripts/dqi_draws.py <dqi.kmb> draws.jsonl --draws 48` (salts g2-draw-0..47)
+# against the official verifier; reach: `uv run python -I scripts/dqi_reach.py <dqi.kmb> <work-dir>`
+# (src/quantum_compilation/dqi_ir.py). Raw rows stay outside the repo, in
+# ~/quantum-compilation-data/runs/dqi-patches/e208d350/.
+circuit: e208d35074755c43006298f305b6a2750dfe76b0227075c500df9d9d193096be
+date: 2026-11-19
+draws:
+  count: 48
+  shots_per_draw: 102400
+  default_salt_cost: 345252882080.644  # reproduces the official verifier exactly
+  failed_shots_per_draw: {0: 31, 1: 15, 2: 2}
+  failed_shots: 19
+  kinds: {value: 19}
+  error_weights: {15: 1, 16: 1, 29: 1, 30: 1, 31: 2, 32: 6, 33: 2, 34: 4, 35: 1}
+  failures_with_a_zero_syndrome_word: 0
+  cost: {min: 3.452525e11, median: 3.452530e11, mean: 3.458707e11}
+  expected_failure_penalty: 0.179%  # mean / clean draw - 1: the ceiling for any zero-word guard
+closing_patch:
+  recomputed_products: 330  # CCX whose control pair is unchanged since that pair's previous CCX
+  holdable_on_a_spare_wire: 18  # all on q889; 17 at a 1,659-instruction gap, one at 25,585
+  for_comparison_575b043f: {recomputed_products: 145, holdable_on_a_spare_wire: 0}
+  reach: 18 of 366,216 Toffolis (0.005% of dqi cost, about +0.0005 on the blend)
+  verdict: not submitted; below the +0.017 that moves a single rank band

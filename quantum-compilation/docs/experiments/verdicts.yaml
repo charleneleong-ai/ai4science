@@ -487,3 +487,20 @@ experiments:
       Not established: how the leader's x1.12 over public splits across the tasks.
     verdict: PROMOTE
     pr: 105
+  - name: dqi-closing-holds
+    date: 2026-11-19
+    baseline: >-
+      e208d350 (v4 dqi), 48 G2 draws: 19 failed shots (31 / 15 / 2 draws at 0 / 1 / 2), mean
+      cost 3.458707e11 against 3.452525e11 clean, so failures cost +0.179% in expectation
+    gate: G2, after a reach check
+    result: >-
+      Discussion 759760's open patch -- hold a closing's 15-AND product on a second clean idle
+      wire so its recomputation becomes a CX (686 Toffolis in GrantPrater's 575b043f) -- reaches
+      18 Toffolis in our part. Of 330 CCX that recompute a product with unchanged controls, only
+      18 have a clean wire idle across the gap (all q889); 575b043f has none of its 145. That is
+      0.005% of dqi cost, about +0.0005 on the blend, so no rewrite was built. The other lever,
+      a guard for the lost shots, is capped at the measured +0.179%: all 19 are value errors at
+      weights 15-35 with no zero syndrome word, so the zero word arises inside the forward
+      extractor and a guard needs that step decoded first. Record in e208d350-draws.yaml.
+    verdict: DISCARD
+    pr: 105
