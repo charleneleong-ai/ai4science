@@ -482,7 +482,8 @@ experiments:
       every verifier cost matches our cost model. The leaderboard sits 1,527 ppm below local,
       exactly the one-failed-shot dqi step measured earlier, so it is dqi draw noise, not a bad
       part. Provenance in 58528892-parts.yaml. None of these circuits are ours.
-      Not established: our rank (the leaderboard API is unauthenticated here), and how the
-      leader's x1.12 over public splits across the tasks.
+      Rank 575-588 of 3,355 (14 teams share the score) in the 2026-11-19T00:16Z snapshot
+      (leaderboard-2026-11-19.json): leader 31.620, gold line (rank 16) 28.824, median 25.151.
+      Not established: how the leader's x1.12 over public splits across the tasks.
     verdict: PROMOTE
     pr: 105

@@ -36,7 +36,6 @@ from quantum_compilation.cost import (
     clopper_pearson_upper_bound,
     BASELINE_FACTORIZATION,
     DEFAULT_CALIBRATION,
-    ESCAPE_SCORE,
     FEMOCO_C0,
     MAX_ANGLE_QUBITS,
     MAX_DQI_FAILURE_RATE,
@@ -60,13 +59,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REFERENCE_DIR = PROJECT_ROOT / "tests" / "data"
 EXPERIMENTS_DIR = PROJECT_ROOT / "docs" / "experiments"
 VERDICTS_PATH = EXPERIMENTS_DIR / "verdicts.yaml"
-LEADERBOARD_PATH = EXPERIMENTS_DIR / "leaderboard-2026-10-31.json"
-PARTS_PATH = EXPERIMENTS_DIR / "57834335-parts.yaml"
+# The newest snapshot dates the page; the latest scored ledger entry names its parts record.
+LEADERBOARD_PATH = max(EXPERIMENTS_DIR.glob("leaderboard-*.json"))
 SEED_RECORD_PATH = EXPERIMENTS_DIR / "57834335-seeds.yaml"
 OUTPUT_PATH = PROJECT_ROOT / "docs" / "artifact" / "index.html"
 PROGRESS_PATH = PROJECT_ROOT / "experiments" / "progress" / "vqcc" / "progress.png"
 
-STATUS_DATE = "2026-11-02"
+STATUS_DATE = LEADERBOARD_PATH.stem.removeprefix("leaderboard-")
+GOLD_RANK = 16  # the last gold-medal rank on the public leaderboard
+PR_URL = "https://github.com/charleneleong-ai/ai4science/pull"
 # A bar within this fraction of its limit counts as pinned, for the chart's colouring and for
 # the count the prose quotes. One constant so the two cannot disagree.
 PINNED_FRACTION = 0.999
@@ -90,6 +91,36 @@ LOADER_REBUILDS = {
     "cheapest_circuit_toffoli": 258,
     "extra_workspace_qubits": 65,
 }
+
+# Toffolis per lookup, from `scripts/invsqrt_lookup_decode.py --seeds 5` (2026-11-18): the
+# measured 6c6a734d lookup, our generic in-place synthesis (lookup_synth.InPlaceLookup, min-max
+# over 5 seeds, every circuit replayed on all entries) and kickmix's `init_lookup` (2^a - 2), on
+# 6c6a734d's table and on REDESIGN's; plus the ~231 the redesign's lookup must fit for -11.85%.
+# Verdict `r7-invsqrt-lookup-redesign` quotes the same numbers.
+LOOKUP_SYNTHESIS = {
+    "tables": {
+        "6c6a734d": {
+            "label": "6c6a734d's, 256 × 38",
+            "toffolis": {"6c6a734d": (167, 167), "synthesis": (225, 227), "init_lookup": (254, 254)},
+        },
+        "redesign": {
+            "label": "redesign's, 512 × 29",
+            "toffolis": {"synthesis": (515, 517), "init_lookup": (510, 510)},
+        },
+    },
+    "seeds": 5,
+    "budget": 231,
+}
+
+
+def toffoli_span(lo: int, hi: int) -> str:
+    return f"{lo}" if lo == hi else f"{lo}–{hi}"
+
+
+def synthesis_rate(record: dict[str, Any]) -> float:
+    """Our synthesis's Toffolis per 6c6a734d Toffoli, on 6c6a734d's own table."""
+    own = record["tables"]["6c6a734d"]["toffolis"]
+    return sum(own["synthesis"]) / 2 / own["6c6a734d"][0]
 
 # Self-reported by a competitor in Kaggle discussion topic 754174 on 2026-10-30 and
 # re-verified by them, not by us. Five significant figures, which bounds how finely the
@@ -201,6 +232,15 @@ def scored_submissions(verdicts: dict[str, Any]) -> list[dict[str, Any]]:
     return [e for e in verdicts.get("experiments", []) if e.get("score") is not None]
 
 
+def parts_path_for(submission: str) -> Path:
+    return EXPERIMENTS_DIR / f"{submission}-parts.yaml"
+
+
+def parts_path(verdicts: dict[str, Any]) -> Path:
+    """The parts record behind the latest scored submission."""
+    return parts_path_for(scored_submissions(verdicts)[-1]["submission"])
+
+
 def write_progress_png(verdicts: dict[str, Any]) -> Path:
     """The PR's visual aid: each submission's leaderboard score, with the running best.
 
@@ -281,16 +321,16 @@ def binding_margin(key: str, margin: dict[str, Any]) -> dict[str, Any]:
     return margin | {
         "limit": floor,
         "fraction_of_limit_used": floor / margin["value"],
-        "note": f"derived; the {margin['limit']:g} rule never binds",
     }
 
 
 def constraint_label(key: str, margin: dict[str, Any]) -> str:
     """"E_gap vs 3.914898 floor" -- the limit and its direction read off the record itself."""
     word = "cap" if margin["sense"] == "at_or_below" else "floor"
-    limit = margin["limit"]
-    note = f" ({margin['note']})" if "note" in margin else ""
-    return f"{QUANTITY_LABELS[key]} vs {limit:.6g} {word}{note}"
+    return f"{QUANTITY_LABELS[key]} vs {margin['limit']:.6g} {word}"
+
+
+MONO_CHAR_WIDTH = 11  # viewBox units per character of the 18px mono `.ct` class
 
 
 def svg(width: int, height: int, aria: str, body: str) -> str:
@@ -326,7 +366,7 @@ def field_svg(standing: Standing) -> str:
 
     grid = "".join(
         hgrid(pad_l, pad_l + plot_w, place(1, tick)[1], str(tick))
-        for tick in (0, 5, 10, 15, 20, 25)
+        for tick in range(0, int(y_hi) + 1, 5)
     )
     ticks = "".join(
         f'<text x="{place(rank, 0)[0]:.1f}" y="{height - 34}" text-anchor="middle" '
@@ -339,8 +379,8 @@ def field_svg(standing: Standing) -> str:
     return svg(
         width,
         height,
-        f"All {teams:,} public leaderboard scores in rank order: a dense plateau near 23, a "
-        f"cliff, and our score of {standing.score:.2f} on the plateau's top edge",
+        f"All {teams:,} public leaderboard scores in rank order, and our score of "
+        f"{standing.score:.2f} at rank {standing.best:,}",
         grid
         + f'<rect x="{x_best:.1f}" y="{pad_t}" width="{max(3.0, x_worst - x_best):.1f}" '
         f'height="{plot_h}" fill="var(--warn)" fill-opacity="0.18"/>'
@@ -349,9 +389,9 @@ def field_svg(standing: Standing) -> str:
         + f'<circle cx="{leader_x:.1f}" cy="{leader_y:.1f}" r="7" fill="var(--accent)"/>'
         + f'<text x="{leader_x + 14:.1f}" y="{leader_y + 7:.1f}" class="cv">'
         f"leader {standing.leader:.2f}</text>"
-        + f'<text x="{x_worst + 12:.1f}" y="{our_y - 16:.1f}" class="cv">'
+        + f'<text x="{x_worst + 12:.1f}" y="{our_y + 34:.1f}" class="cv">'
         f"us {standing.score:.2f}</text>"
-        + f'<text x="{x_worst + 12:.1f}" y="{our_y + 4:.1f}" class="ct">'
+        + f'<text x="{x_worst + 12:.1f}" y="{our_y + 54:.1f}" class="ct">'
         f"rank {standing.best:,} of {teams:,}</text>"
         + f'<text x="{pad_l + plot_w / 2:.0f}" y="{height - 8}" text-anchor="middle" '
         f'class="cax">rank, of {teams:,} teams</text>'
@@ -370,8 +410,9 @@ def headroom_svg(margins: dict[str, dict[str, Any]]) -> str:
     """
     margins = {key: binding_margin(key, margin) for key, margin in margins.items()}
     order = sorted(margins, key=lambda key: -margins[key]["fraction_of_limit_used"])
-    width = 680
-    pad_l, pad_r, pad_t, row_h = 300, 86, 30, 46
+    labels = {key: constraint_label(key, margins[key]) for key in order}
+    width, pad_r, pad_t, row_h = 680, 124, 30, 46
+    pad_l = 24 + MONO_CHAR_WIDTH * max(map(len, labels.values()))
     height = pad_t + row_h * len(order) + 44
     plot_w = width - pad_l - pad_r
 
@@ -388,7 +429,7 @@ def headroom_svg(margins: dict[str, dict[str, Any]]) -> str:
         colour = "var(--warn)" if is_pinned(margins[key]) else "var(--accent)"
         body += [
             f'<text x="{pad_l - 14:.1f}" y="{y + 20:.1f}" text-anchor="end" '
-            f'class="ct">{constraint_label(key, margins[key])}</text>',
+            f'class="ct">{labels[key]}</text>',
             f'<rect x="{pad_l:.1f}" y="{y + 6:.1f}" width="{plot_w:.1f}" height="22" '
             f'fill="var(--grid)" fill-opacity="0.35"/>',
             f'<rect x="{pad_l:.1f}" y="{y + 6:.1f}" width="{max(2.0, used * plot_w):.1f}" '
@@ -498,6 +539,46 @@ def toffoli_split_svg(entries: Sequence[tuple[str, float, float]]) -> str:
         "Half of the plateau submission's Toffoli count is ANGLE circuits, which cost no "
         "accuracy budget",
         "".join(rows) + legend,
+    )
+
+
+def lookup_synthesis_svg(record: dict[str, Any]) -> str:
+    """Toffolis per lookup for each construction on each table, one shared scale, with the
+    redesign's budget drawn as a line so the bar that must clear it reads against it."""
+    width, bar_h, gap, group_gap, pad_l, pad_r = 680, 22, 8, 34, 150, 90
+    tables = record["tables"].values()
+    scale = (width - pad_l - pad_r) / max(hi for t in tables for _, hi in t["toffolis"].values())
+    rows, y = [], 24
+    for index, table in enumerate(tables):
+        y += group_gap if index else 0
+        rows.append(
+            f'<text x="{pad_l}" y="{y - 6}" class="ct">{html.escape(table["label"])} table</text>'
+        )
+        for name, (lo, hi) in table["toffolis"].items():
+            fill = "var(--accent)" if name == "synthesis" else "var(--neutral-mark)"
+            opacity = "1" if name == "synthesis" else "0.45"
+            rows.append(
+                f'<text x="{pad_l - 12}" y="{y + 16}" text-anchor="end" class="cl">{name}</text>'
+                f'<rect x="{pad_l}" y="{y}" width="{hi * scale:.1f}" height="{bar_h}" rx="3" '
+                f'fill="{fill}" fill-opacity="{opacity}"/>'
+                f'<text x="{pad_l + hi * scale + 8:.1f}" y="{y + 16}" class="cv">'
+                f"{toffoli_span(lo, hi)}</text>"
+            )
+            y += bar_h + gap
+    budget = record["budget"]
+    x_budget = pad_l + budget * scale
+    rows.append(
+        f'<line x1="{x_budget:.1f}" x2="{x_budget:.1f}" y1="8" y2="{y}" stroke="var(--bad)" '
+        f'stroke-dasharray="4 3"/>'
+        f'<text x="{x_budget + 6:.1f}" y="{y + 14}" class="ct">budget {budget}</text>'
+    )
+    redesign = record["tables"]["redesign"]["toffolis"]["synthesis"][0]
+    return svg(
+        width,
+        y + 24,
+        f"Toffolis per lookup: our synthesis costs {synthesis_rate(record):.2f} times 6c6a734d's "
+        f"on its own table, and the redesign's table costs {redesign / budget:.1f} times its budget",
+        "".join(rows),
     )
 
 
@@ -757,11 +838,12 @@ class Artifact:
                 f"{LEADERBOARD_PATH.name} reports {board['teams']} teams but carries "
                 f"{len(board['scores'])} scores"
             )
+        verdicts = yaml.safe_load(VERDICTS_PATH.read_text())
         return cls(
             reports=load_reports(),
-            verdicts=yaml.safe_load(VERDICTS_PATH.read_text()),
+            verdicts=verdicts,
             board=board,
-            parts=yaml.safe_load(PARTS_PATH.read_text()),
+            parts=yaml.safe_load(parts_path(verdicts).read_text()),
             seed_runs=yaml.safe_load(SEED_RECORD_PATH.read_text()),
         )
 
@@ -794,13 +876,17 @@ class Artifact:
         return self.scores[self.standing.teams // 2]
 
     @property
-    def plateau_hi(self) -> float:
+    def p10(self) -> float:
         """The 10th-percentile score: the top of the band half the field is packed into."""
         return self.scores[int(self.standing.teams * 0.10)]
 
     @property
-    def escaped(self) -> int:
-        return sum(1 for s in self.scores if s >= ESCAPE_SCORE)
+    def parts_name(self) -> str:
+        return f"{self.parts['submission_ref']}-parts.yaml"
+
+    @property
+    def gold_line(self) -> float:
+        return self.scores[GOLD_RANK - 1]
 
     @property
     def part_costs(self) -> dict[str, float]:
@@ -929,7 +1015,7 @@ class Artifact:
             verdict = str(item.get("verdict", "RUNNING"))
             pr = item.get("pr")
             link = (
-                f' · <a href="https://github.com/charleneleong-ai/ai4science/pull/{pr}">'
+                f' · <a href="{PR_URL}/{pr}">'
                 f"PR #{pr}</a>"
                 if pr
                 else ""
@@ -956,16 +1042,16 @@ class Artifact:
         return f"""
   <header>
     <p class="status">GOOGLE QUANTUM AI · VERIFIABLE QUANTUM CIRCUIT COMPILATION · {STATUS_DATE}</p>
-    <h1>On the plateau</h1>
+    <h1>At the public frontier</h1>
     <p class="lede">The cost model is read off the three shipped verifiers rather than the
-    Evaluation page, and every formula reproduces the verifier&rsquo;s own score exactly. That
-    local loop has now predicted the leaderboard twice — on the reference
-    (1.00000&nbsp;→&nbsp;1.00000) and on an input it had never seen
-    ({self.local_blend:.5f}&nbsp;→&nbsp;<strong>{self.our_score:.5f}</strong>, agreeing to every digit
-    either is reported to) — so candidates can be ranked for free against a rationed
-    {HAND_RECORDED["submissions_per_day"]} submissions a day. The score itself is assembled from
-    public Apache-2.0 parts, not from any compression of our own; what it bought is a
-    measurement of why the plateau is where it is.</p>
+    Evaluation page, and every formula reproduces the verifier&rsquo;s own score exactly. The
+    local loop has predicted every leaderboard reading so far: exactly on the reference and on
+    two assemblies, and on this one
+    ({self.local_blend:.5f}&nbsp;→&nbsp;<strong>{self.our_score:.5f}</strong>)
+    to within one failed <code>dqi</code> shot — so candidates can be ranked for free against a
+    rationed {HAND_RECORDED["submissions_per_day"]} submissions a day. The score is still
+    assembled from public Apache-2.0 parts. Our one compression attempt, an
+    <code>invsqrt</code> lookup redesign, is closed below.</p>
   </header>
 """
 
@@ -987,45 +1073,72 @@ class Artifact:
       <div class="tile flag"><span class="k">Gap to leader</span>
         <span class="v">×{gap_score:.2f}</span>
         <span class="n">≈{gap_score**3:,.1f}× on the product of the three cost ratios</span></div>
-      <div class="tile flag"><span class="k">Compression attempted</span>
-        <span class="v">none</span><span class="n">every circuit here is someone else&rsquo;s</span></div>
+      <div class="tile flag"><span class="k">Own compression</span>
+        <span class="v">1 tried, 0 shipped</span><span class="n">every circuit here is someone
+        else&rsquo;s</span></div>
     </div>
     <p class="note">This is an assembly, not a result: the public parts market carries a better
     circuit than the reference for all three tasks, so the best per-task pick was fetched,
     SHA-256 checked against its manifest and scored locally before a submission was spent. It
-    establishes the floor to beat and credits nine authors in
-    <code>docs/experiments/{PARTS_PATH.name}</code>. The ×{gap_score:.2f} still owed to the
-    leader is the whole remaining problem.</p>
+    establishes the floor to beat and credits its authors in
+    <code>docs/experiments/{self.parts_name}</code>. The gold line ({self.gold_line:.3f}, rank
+    {GOLD_RANK}) is ×{self.gold_line / self.our_score:.3f} away and the leader ×{gap_score:.2f};
+    that gap is the whole remaining problem.</p>
 """
 
     def where_we_stand(self) -> str:
         standing = self.standing
         return f"""
     <h2>Where we stand</h2>
-    <p class="finding">The field is bimodal. Half of it is packed between {self.median:.2f} and
-    {self.plateau_hi:.2f} — a band {self.plateau_hi - self.median:.1f} wide — and only
-    {self.escaped} teams have escaped past {ESCAPE_SCORE:g}.
-    We now sit at rank {standing.best:,}–{standing.worst:,} of {standing.teams:,}, sharing our
-    exact score with {standing.tied - 1} other teams, on the top edge of that band rather than
-    below it.</p>
+    <p class="finding">Assembling public parts now puts a team in the top fifth, not near the
+    top: we sit at rank {standing.best:,}–{standing.worst:,} of {standing.teams:,}, sharing our
+    exact score with {standing.tied - 1} other teams. The median is {self.median:.2f}, the 10th
+    percentile {self.p10:.2f}, the gold line {self.gold_line:.3f} and the leader
+    {standing.leader:.3f} — the {standing.best - 1:,} teams above us are the ones with
+    something that is not public.</p>
     <figure>
       {field_svg(standing)}
       <figcaption>Every public score on {STATUS_DATE}, in rank order, from the competition&rsquo;s
       own leaderboard snapshotted in
-      <code>docs/experiments/leaderboard-{STATUS_DATE}.json</code>. The shaded band marks our
+      <code>docs/experiments/{LEADERBOARD_PATH.name}</code>. The shaded band marks our
       position.</figcaption>
     </figure>
-    <p>The crowded plateau is the useful part, and the section below says what it is made of: not
-    a field that merely copied one notebook, but one that has run a single factorization up
-    against every constraint the task has. The {self.escaped} teams above {ESCAPE_SCORE:g} found
-    something that parameterisation cannot reach.</p>
-    <p class="note">Why this assembly scores above the {PUBLIC_BLEND} blend quoted on
-    {STATUS_DATE[:-3]}-30: the parts published since are cheaper on all three tasks —
+    <p class="note">The public parts moved fast. Against the costs quoted on 2026-10-30
+    (blend {PUBLIC_BLEND}), the parts submitted here are cheaper on all three tasks —
     <code>invsqrt</code> {self.part_costs["invsqrt"]:,.0f} against
     {PUBLIC_COST_QUOTED["invsqrt"]}, <code>dqi</code> {fmt(self.part_costs["dqi"])} against
     {PUBLIC_COST_QUOTED["dqi"]}, <code>dfthcsos</code> {fmt(self.part_costs["dfthcsos"])} against
-    {PUBLIC_COST_QUOTED["dfthcsos"]}. Their authors made them cheaper; we picked newer
-    ones.</p>
+    {PUBLIC_COST_QUOTED["dfthcsos"]} — and most of the last week&rsquo;s +11% was one
+    <code>invsqrt</code> circuit at 44 qubits. Their authors made them cheaper; we picked the
+    newest ones.</p>
+"""
+
+    def invsqrt_lookup(self) -> str:
+        record = LOOKUP_SYNTHESIS
+        theirs = record["tables"]["6c6a734d"]["toffolis"]["6c6a734d"][0]
+        redesign = record["tables"]["redesign"]["toffolis"]["synthesis"]
+        rate = synthesis_rate(record)
+        return f"""
+    <h2>Our one compression attempt: an <code>invsqrt</code> lookup redesign</h2>
+    <p class="finding">A bigger table with a two-term series modelled at −6.3% on
+    <code>6c6a734d</code>, but only if its 512-entry lookup could be built as cheaply per entry
+    as that circuit&rsquo;s. <strong>It cannot:</strong> our synthesis, the strategy decoded from
+    <code>6c6a734d</code>&rsquo;s own trace, costs {rate:.2f}× its {theirs} Toffolis on its own
+    table, and {toffoli_span(*redesign)} on the redesign&rsquo;s — about
+    {redesign[0] / rate:,.0f} even at <code>6c6a734d</code>&rsquo;s rate, against a budget of
+    {record["budget"]}.</p>
+    <figure>
+      {lookup_synthesis_svg(record)}
+      <figcaption>Toffolis per lookup. The synthesis uses only the address and output qubits,
+      and every circuit it emitted was replayed on all entries; the range is over {record['seeds']} seeds.
+      <code>init_lookup</code> is kickmix&rsquo;s generic 2<sup>a</sup>&nbsp;−&nbsp;2. The
+      dashed line is what the redesign&rsquo;s lookup must cost to reach the −11.85% the forum&rsquo;s
+      25.1× claim implied. Verdict <code>r7-invsqrt-lookup-redesign</code>;
+      <code>docs/invsqrt-diagnosis.md</code>.</figcaption>
+    </figure>
+    <p class="note">That closes one route, not the task: the public line has since reached 44
+    qubits and cost {self.part_costs["invsqrt"]:,.0f}, a different design entirely, and it is the
+    <code>invsqrt</code> part submitted here.</p>
 """
 
     def why_the_plateau_is_a_wall(self) -> str:
@@ -1045,21 +1158,20 @@ class Artifact:
         ]
         pinned = [QUANTITY_LABELS[key] for key in margins if is_pinned(margins[key])]
         return f"""
-    <h2>Why the plateau is a wall</h2>
+    <h2>Why chemistry is a wall</h2>
     <p class="finding">The chemistry circuits everyone is standing on have <strong>almost no
     headroom left against the constraints that reject outright</strong>: the accuracy term is
     at {error["fraction_of_limit_used"] * 100:.3f}% of the {error["limit"] * 1e3:.0f} mHa cap
     and <code>E_gap</code> clears its strict floor by
-    {e_gap_slack:.2f}&nbsp;×&nbsp;10⁻⁶ Ha — {len(pinned)} of the
+    {e_gap_slack / 1e6:.1e}&nbsp;Ha — {len(pinned)} of the
     {len(margins)} constraints spent to within {(1 - PINNED_FRACTION) * 100:.1f}% of their
     limit — and the widest ANGLE circuit is {int(angle["value"])} of {int(angle["limit"])}
-    qubits, {angle["fraction_of_limit_used"] * 100:.1f}% of its cap. The
-    {self.plateau_hi - self.median:.1f}-wide band is what that leaves.</p>
+    qubits, {angle["fraction_of_limit_used"] * 100:.1f}% of its cap.</p>
     <figure>
       {headroom_svg(margins)}
       <figcaption>Each hard constraint on the <code>dfthcsos</code> task, as a fraction of its
       limit, measured by our own verifier over the submitted files and recorded in
-      <code>{PARTS_PATH.name}</code>. Amber is pinned, meaning within
+      <code>{self.parts_name}</code>. Amber is pinned, meaning within
       {(1 - PINNED_FRACTION) * 100:.1f}% of the limit: {" and ".join(pinned)}. The
       ANGLE width has {int(angle["limit"]) - int(angle["value"])} qubits of room. The one-norm
       is plotted against the floor that binds it, {min_lcu_lambda(FEMOCO_C0):.2f}, and not
@@ -1085,7 +1197,8 @@ class Artifact:
     {lambda_eff_floor(FEMOCO_C0):.3f} for <em>any</em> factorization, against this
     submission&rsquo;s {plateau["lambda_eff"]:.3f} — so the whole search is worth
     {(1 - lambda_eff_floor(FEMOCO_C0) / plateau["lambda_eff"]) * 100:.2f}% of one of three cost
-    factors, about +0.24 of the +1.82 the blend needs. Why, and what is left, is below.</p>
+    factors. The public field reached the same floor independently this week (Kaggle topic
+    760029). Why, and what is left, is below.</p>
 """
 
     def what_the_page_omits(self) -> str:
@@ -1158,7 +1271,7 @@ class Artifact:
         plateau_free = float(plateau["T_angles"])
         plateau_bought = float(plateau["T_total"]) - plateau_free
         blend = self.our_score
-        cut = cost_cut_for_blend(blend, ESCAPE_SCORE)
+        cut = cost_cut_for_blend(blend, self.gold_line)
         return f"""
     <h2>What a chemistry submission actually controls</h2>
     <p class="finding">The ANGLE circuits a submission ships are
@@ -1203,13 +1316,13 @@ class Artifact:
     <strong>{marginal_blend_per_unit(blend, plateau["T_total"]):+.6f}</strong> blend and
     one qubit {marginal_blend_per_unit(blend, plateau["Q_total"]):+.6f} &mdash; a qubit
     is worth {plateau["T_total"] / plateau["Q_total"]:.0f} Toffolis purely because Q is that much
-    smaller. Reaching {ESCAPE_SCORE:g} needs
+    smaller. Reaching the gold line, {self.gold_line:.3f}, from chemistry alone needs
     <strong>{cut:.2%}</strong> off this cost:
     {plateau["T_total"] * cut:,.0f} Toffolis, or
     {plateau["Q_total"] * cut:,.0f} qubits, or any
     mix. <strong>Out of the free share alone that is loaders
     {plateau["T_total"] * cut / plateau_free:.0%}
-    cheaper</strong> &mdash; large, and the only direction left that costs no accuracy. What
+    cheaper</strong> &mdash; the only direction left that costs no accuracy. What
     those circuits turn out to be is what changes that number&rsquo;s meaning.</p>
     <p class="note">Every way of buying the bought half is closed, measured rather than argued.
     <code>brot</code> cannot go down: re-rounding the submitted angles onto the
@@ -1236,7 +1349,7 @@ class Artifact:
         addresses = lcu_vectors(int(plateau["R"]), int(plateau["B"]))
         resources = ShapeResources.from_parts_record(plateau)
         sweep = AngleFloorSweep.over(
-            resources, int(plateau["brot"]), addresses, self.our_score
+            resources, int(plateau["brot"]), addresses, self.our_score, target=self.gold_line
         )
         submitted, per_pass = sweep.submitted, resources.angle_toffoli / 2
         best_floor, best_model = sweep.best_floor, sweep.best_model
@@ -1338,9 +1451,11 @@ class Artifact:
     unlimited — against {HAND_RECORDED["submissions_per_day"]} rationed submissions a day. That
     ratio is the whole reason the dev set is worth building.</p>
     <div class="funnel">{self.run_log_rows()}</div>
-    <p class="note">Not a funnel yet: nothing has been eliminated, because no candidates have been
-    generated. The per-stage denominators this section will carry only exist once a generator is
-    running.</p>
+    <p class="note">Not a funnel yet. The one generator run so far, the lookup synthesis above,
+    emitted {LOOKUP_SYNTHESIS['seeds'] * len(LOOKUP_SYNTHESIS['tables'])} circuits
+    ({LOOKUP_SYNTHESIS['seeds']} seeds on each of {len(LOOKUP_SYNTHESIS['tables'])} tables),
+    all exact and all eliminated on cost
+    before any reached a verifier; no candidate of ours has been submitted.</p>
 """
 
     def seed_noise(self) -> str:
@@ -1422,9 +1537,10 @@ class Artifact:
         return f"""
     <h2>Not established</h2>
     <ul>
-      <li><strong>We have not compressed anything ourselves.</strong> The
-      {self.our_score:.5f} is an assembly of other people&rsquo;s published circuits; everything we
-      built is measurement apparatus. No claim here is a claim about a circuit we designed.</li>
+      <li><strong>Nothing we compressed has shipped.</strong> The {self.our_score:.5f} is an
+      assembly of other people&rsquo;s published circuits; our one attempt, the
+      <code>invsqrt</code> lookup redesign, was closed on cost before it reached a verifier. No
+      claim here is a claim about a circuit we designed.</li>
       <li><strong>How often <code>dqi</code> drops a shot is unmeasured.</strong> Its
       size is now measured — one failed shot, worth
       {self.seed_spread["blend"]["range"]:.4f} blend points — but
@@ -1438,7 +1554,7 @@ class Artifact:
       the blend check above rests entirely on them — if they are wrong, that check says nothing.
       The leaderboard scores and the {self.standing.teams:,} team count are the competition&rsquo;s
       own. So are the <code>R</code>/<code>B</code>/<code>C</code> and λ_eff figures in
-      <code>{PARTS_PATH.name}</code> — those are each part author&rsquo;s own report, copied from
+      <code>{self.parts_name}</code> — those are each part author&rsquo;s own report, copied from
       the dataset manifest; only <code>our_measurement</code>, the constraint margins and
       <code>J</code> are ours.</li>
       <li><strong>Whether <code>T</code> and <code>Q</code> have any headroom is
@@ -1448,13 +1564,13 @@ class Artifact:
       nothing about the loaders, whose own floor is a counting bound on almost every table
       rather than a statement about this one. Whether a construction reaching it exists is the
       open measurement, and it may come back out of reach.</li>
-      <li><strong>Two leaderboard readings, neither on a circuit we designed.</strong> The loop
-      agreed with the leaderboard on the reference and on this assembly of published circuits.
-      Agreement there does not prove agreement on a candidate our own search produces.</li>
-      <li><strong>Which task to commit to is open.</strong> The structural facts above bear on it;
-      the decision does not follow from them.</li>
-      <li><strong>Why {self.escaped} teams cleared {ESCAPE_SCORE:g} while half the field sits near
-      {self.median:.1f}</strong> is unexplained, and which task holds that margin is the most
+      <li><strong>Four leaderboard readings, none on a circuit we designed.</strong> The loop
+      agreed exactly on the reference and on two assemblies, and on this one to within one
+      failed <code>dqi</code> shot. Agreement there does not prove agreement on a candidate our
+      own search produces.</li>
+      <li><strong>What the {self.standing.best - 1:,} teams above us have that is not
+      public</strong> is unexplained, and how the leader&rsquo;s
+      ×{self.standing.leader / self.our_score:.3f} splits across the three tasks is the most
       valuable unknown in the competition.</li>
     </ul>
 """
@@ -1468,7 +1584,8 @@ class Artifact:
     <code>quantum_compilation.cost</code>. The three wall-clock run times and the
     {HAND_RECORDED["submissions_per_day"]}-a-day submission budget are recorded by hand and live
     in <code>HAND_RECORDED</code>, the ANGLE circuit readings and loader rebuilds in
-    <code>LOADER_REBUILDS</code>; every ratio between them is computed, and third-party figures
+    <code>LOADER_REBUILDS</code> (read off the 2026-11-03 family), the lookup synthesis counts in
+    <code>LOOKUP_SYNTHESIS</code>; every ratio between them is computed, and third-party figures
     are labelled where they appear. Status
     {STATUS_DATE}.
   </footer>
@@ -1476,11 +1593,11 @@ class Artifact:
 
     def html(self) -> str:
         # Everything between the header and the footer is a <section>, so the tag is written
-        # once here rather than at both ends of all thirteen.
+        # once here rather than at both ends of all fourteen.
         body = "".join(
             f"\n  <section>{section()}  </section>\n"
             for section in (
-                self.strip, self.where_we_stand, self.why_the_plateau_is_a_wall,
+                self.strip, self.where_we_stand, self.invsqrt_lookup, self.why_the_plateau_is_a_wall,
                 self.what_the_page_omits, self.repetition_floor, self.what_chemistry_controls,
                 self.loader_floor, self.cost_anatomy, self.local_loop_cost,
                 self.seed_noise, self.blend_check, self.verdict_ledger,

@@ -29,9 +29,9 @@ rank candidates without spending submissions.
 | | |
 | --- | --- |
 | Best submitted score | **28.18862** — an assembly of public Apache-2.0 parts, not our own circuits (submission `58528892`, local verifier 28.23174; the 1,527 ppm gap is one failed `dqi` shot) |
-| Our rank | not read: the leaderboard API is unauthenticated here |
-| Leader | **31.617** on 2026-11-18 (manwithacat's briefing, [760157](https://www.kaggle.com/competitions/google-verifiable-quantum-circuit-compilation/discussion/760157), third-party) — ×1.12 on score |
-| Gold line / median | **28.753** / **25.150** on 2026-11-18 (same source) |
+| Our rank | **575–588 of 3,355** — 14 teams share the exact score ([`leaderboard-2026-11-19.json`](docs/experiments/leaderboard-2026-11-19.json), 00:16 UTC) |
+| Leader | **31.620** — ×1.12 on score |
+| Gold line (rank 16) / median | **28.824** (×1.023 away) / **25.151** |
 
 **2026-11-19 — submitted v4: leaderboard 28.18862 (×1.111 over v3).** The public frontier moved
 +11% in a week. Cheapest Apache-2.0 file per task from the parts dataset (v136): invsqrt `d0227f3c`
@@ -197,6 +197,14 @@ ANDs per circuit saved at J=5 is worth about +0.3.
 **Progress artifact:** <https://claude.ai/artifact/EzjSoAxvhTvi9pWgdJDEDq> (private; rebuilt by
 [`scripts/build_artifact.py`](scripts/build_artifact.py) into
 [`docs/artifact/index.html`](docs/artifact/index.html) and republished at each result update).
+
+**W&B report:** [VQCC experiment log](https://forge.coreweave.com/chaleong/vqcc/reports/VQCC-experiment-log--VmlldzoxODMzMjE1Mg==)
+(project `chaleong/vqcc`). One run per row of
+[`verdicts.yaml`](docs/experiments/verdicts.yaml), with per-task costs and ratios for each
+submission, plus a `ledger` run holding the verdict table and progress chart. Re-sync after a
+verdict lands with `uv run --extra tracking python scripts/sync_wandb.py`
+([`scripts/sync_wandb.py`](scripts/sync_wandb.py)): it updates the runs in place and regenerates
+only the report's Results and Full run log sections.
 
 The grounded entry sweep is [`reports/2026-10-31-vqcc-landscape.md`](reports/2026-10-31-vqcc-landscape.md), and
 [`reports/2026-11-02-thc-factorization-sota.md`](reports/2026-11-02-thc-factorization-sota.md)
