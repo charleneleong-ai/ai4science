@@ -23,6 +23,7 @@ else: the cost model, including which fields it reads, lives in `cost`.
 
 from __future__ import annotations
 
+import importlib
 import json
 import math
 import subprocess
@@ -31,6 +32,7 @@ import time
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 from .cost import (
@@ -150,6 +152,14 @@ def verifier_script(verifiers_root: Path | str, task: str) -> Path:
             "`verifiers/` directory from the competition download"
         )
     return script
+
+
+def load_verifier(verifiers_root: Path | str, task: str) -> ModuleType:
+    """Import a task's verifier as a module, for scripts that reuse its spec and helpers."""
+    script = verifier_script(verifiers_root, task)
+    if str(script.parent) not in sys.path:
+        sys.path.insert(0, str(script.parent))
+    return importlib.import_module(script.stem)
 
 
 def parse_verifier_output(

@@ -15,10 +15,11 @@ This is the `ai4science` thesis with the two halves handed over pre-separated �
 verifier that cannot be gamed, and an unbounded generator space. The only question is how
 well the search loop around it is built.
 
-## Status — 2026-11-02
+## Status — 2026-11-19
 
-**We are on the plateau, by assembly rather than by compression; no compression of our own
-has been attempted yet.** The measurement loop is validated twice over — all three official
+**We are at the public frontier, by assembly rather than by compression.** Our own compression
+attempt, an invsqrt lookup redesign, is closed (verdict `r7`,
+[`docs/invsqrt-diagnosis.md`](docs/invsqrt-diagnosis.md)). The measurement loop is validated twice over — all three official
 verifiers run locally, every cost function here reproduces the verifier's own score to 1e-12
 from the fields it reports, and the local blend has now predicted the leaderboard on both a
 known input (the reference, 1.00000 → 1.00000) and an unseen one (23.1811976 → **23.18119**,
@@ -27,11 +28,29 @@ rank candidates without spending submissions.
 
 | | |
 | --- | --- |
-| Best submitted score | **23.18119** — an assembly of public parts, not our own circuits (submission `57834335`, local verifier 23.1811976) |
-| Our rank | **249–252 of 1,756** — four other teams share the exact score; up from the 81-team block at 1.00000 (1,671–1,751) |
-| Leader | **26.76409** — ×1.15 on score, ×1.53 on the product of the three cost ratios |
-| Median | **22.659** — half the field sits between 22.66 and 23.23 |
-| Cleared 25 | **9 teams** |
+| Best submitted score | **28.18862** — an assembly of public Apache-2.0 parts, not our own circuits (submission `58528892`, local verifier 28.23174; the 1,527 ppm gap is one failed `dqi` shot) |
+| Our rank | **575–588 of 3,355** — 14 teams share the exact score ([`leaderboard-2026-11-19.json`](docs/experiments/leaderboard-2026-11-19.json), 00:16 UTC) |
+| Leader | **31.620** — ×1.12 on score |
+| Gold line (rank 16) / median | **28.824** (×1.023 away) / **25.151** |
+
+**2026-11-19 — submitted v4: leaderboard 28.18862 (×1.111 over v3).** The public frontier moved
++11% in a week. Cheapest Apache-2.0 file per task from the parts dataset (v136): invsqrt `d0227f3c`
+(Q 44, ratio 27.91), dqi `e208d350` (Q 890, 70.79), chemistry `6a094aa9` (11.39). Provenance in
+[`58528892-parts.yaml`](docs/experiments/58528892-parts.yaml), verdict `v4-apache-parts-frontier`.
+This week's sweep: [`reports/2026-11-19-vqcc-frontier-delta.md`](reports/2026-11-19-vqcc-frontier-delta.md).
+The dated paragraphs below are the earlier history.
+
+**2026-11-07 — the newest public notebook already scores 24.94165 here.** Heliosli's
+`the-dataset-is-public-now-enjoy` (v20) output re-verifies locally at 24.94165, all three PASS, and beats
+our parts on every task: dfthcsos (8, 143, 44) at lambda_eff 46.893, T 14,966, Q 427 (−11.3% cost,
+ratio 11.198 vs 9.934); dqi −6.8%; invsqrt −2.9%. The rumoured (9, 143, 40) shape is a raw
+intermediate, not a submission. Its chemistry weights descend from a dataset licensed "other", so
+reuse is unresolved — see `r5` in [`verdicts.yaml`](docs/experiments/verdicts.yaml).
+The same portfolio on an all-Apache-2.0 path, maoxin123's notebook output, is assembled as candidate
+v2 at **24.94110** locally (×1.0759 over our 23.18119); superseded before submitting by v3, below — provenance in
+[`v2-candidate-parts.yaml`](docs/experiments/v2-candidate-parts.yaml), verdict `r6`.
+
+**2026-11-12 — submitted v3: leaderboard 25.36626, matching the local verifier exactly.** The cheapest Apache-2.0 file per task from the parts dataset: invsqrt `6c6a734d`, dqi `bb4287e7`, chemistry `e0a80288`. Provenance in [`58252192-parts.yaml`](docs/experiments/58252192-parts.yaml), verdict `v3-apache-parts-frontier`.
 
 Read off the competition's own public leaderboard, snapshotted at
 [`docs/experiments/leaderboard-2026-10-31.json`](docs/experiments/leaderboard-2026-10-31.json)
@@ -178,6 +197,14 @@ ANDs per circuit saved at J=5 is worth about +0.3.
 **Progress artifact:** <https://claude.ai/artifact/EzjSoAxvhTvi9pWgdJDEDq> (private; rebuilt by
 [`scripts/build_artifact.py`](scripts/build_artifact.py) into
 [`docs/artifact/index.html`](docs/artifact/index.html) and republished at each result update).
+
+**W&B report:** [VQCC experiment log](https://forge.coreweave.com/chaleong/vqcc/reports/VQCC-experiment-log--VmlldzoxODMzMjE1Mg==)
+(project `chaleong/vqcc`). One run per row of
+[`verdicts.yaml`](docs/experiments/verdicts.yaml), with per-task costs and ratios for each
+submission, plus a `ledger` run holding the verdict table and progress chart. Re-sync after a
+verdict lands with `uv run --extra tracking python scripts/sync_wandb.py`
+([`scripts/sync_wandb.py`](scripts/sync_wandb.py)): it updates the runs in place and regenerates
+only the report's Results and Full run log sections.
 
 The grounded entry sweep is [`reports/2026-10-31-vqcc-landscape.md`](reports/2026-10-31-vqcc-landscape.md), and
 [`reports/2026-11-02-thc-factorization-sota.md`](reports/2026-11-02-thc-factorization-sota.md)

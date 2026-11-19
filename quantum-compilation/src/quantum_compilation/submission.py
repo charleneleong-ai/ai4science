@@ -76,6 +76,113 @@ class Resources:
 
 
 @dataclass(frozen=True)
+class Op:
+    """One instruction of a circuit's text form, the only op-level view kickmix exposes."""
+
+    name: str
+    args: tuple[str, ...]
+    depth: int  # condition blocks open after this op
+
+    DECLARATIONS = ("APPEND_TO_REGISTER", "REGISTER")
+
+    @property
+    def conditioned(self) -> bool:
+        """Inside a `PUSH_CONDITION` block (its own PUSH and POP included) or carrying an `if`."""
+        return self.depth > 0 or self.name == "POP_CONDITION" or "if" in self.args
+
+    @property
+    def condition_bit(self) -> str | None:
+        """The bit an inline `if` (or a `PUSH_CONDITION`) is keyed on."""
+        return self.args[self.args.index("if") + 1] if "if" in self.args else None
+
+    @property
+    def bits_written(self) -> tuple[str, ...]:
+        """Classical bits this op sets: an `HMR`'s outcome, or a `BIT_*` op's target."""
+        if self.name == "HMR" or self.name.startswith("BIT_"):
+            head = self.args[: self.args.index("if")] if "if" in self.args else self.args
+            return tuple(a for a in head if a.startswith("b"))
+        return ()
+
+    @property
+    def qubits(self) -> tuple[int, ...]:
+        return tuple(int(a[1:]) for a in self.args if a.startswith("q"))
+
+    @property
+    def is_fine_rotation(self) -> bool:
+        """A `Z_POW` whose exponent is not a multiple of T's (Z^0.25), so it needs synthesis."""
+        return self.name == "Z_POW" and not (4 * float(self.args[1])).is_integer()
+
+    @property
+    def text(self) -> str:
+        return " ".join((self.name, *self.args))
+
+    @staticmethod
+    def parse(circuit: km.Circuit) -> list[Op]:
+        """Every instruction, indexed like the lines of `str(circuit)`."""
+        ops, depth = [], 0
+        for line in str(circuit).splitlines():
+            if not line.strip():
+                continue
+            name, *args = line.split()
+            depth += (name == "PUSH_CONDITION") - (name == "POP_CONDITION")
+            ops.append(Op(name, tuple(args), depth))
+        return ops
+
+    @staticmethod
+    def circuit(ops: list[Op]) -> km.Circuit:
+        return km.Circuit("\n".join(op.text for op in ops))
+
+    @staticmethod
+    def body_start(ops: list[Op]) -> int:
+        """The first instruction after the register declarations, which come first."""
+        return sum(op.name in Op.DECLARATIONS for op in ops)
+
+    @staticmethod
+    def cut_after(ops: list[Op], at: int) -> int:
+        """The first cut at or after `at` that neither splits a condition block nor falls among
+        the declarations."""
+        at = max(at, Op.body_start(ops))
+        while at > 0 and ops[at - 1].depth:
+            at += 1
+        return at
+
+    @staticmethod
+    def condition_sources(ops: list[Op], stop: int) -> dict[int, frozenset[int]]:
+        """For every `PUSH_CONDITION` before `stop`, the `HMR` ops (by index) whose outcomes its bit
+        depends on, through any chain of classical `BIT_*` combinations and enclosing conditions."""
+        sources: dict[str, frozenset[int]] = {}
+        enclosing: list[str] = []  # condition bits of the open blocks
+        found: dict[int, frozenset[int]] = {}
+        for i, op in enumerate(ops[:stop]):
+            if op.name == "PUSH_CONDITION":
+                found[i] = sources.get(op.condition_bit, frozenset())
+                enclosing.append(op.condition_bit)
+            elif op.name == "POP_CONDITION":
+                enclosing.pop()
+            elif op.bits_written:
+                conditions = [*enclosing, *filter(None, [op.condition_bit])]
+                gate = frozenset().union(*(sources.get(b, frozenset()) for b in conditions))
+                fresh = frozenset({i}) if op.name == "HMR" else frozenset()
+                keeps_old = bool(conditions) or op.name == "BIT_INVERT"
+                for bit in op.bits_written:
+                    sources[bit] = fresh | gate | (sources.get(bit, frozenset()) if keeps_old else frozenset())
+        return found
+
+    @staticmethod
+    def steps(ops: list[Op], start: int, stop: int) -> list[tuple[int, int]]:
+        """`[first, last)` op ranges covering `start..stop`: one op, or one whole condition block.
+        `start` must not fall inside a block."""
+        steps, at = [], start
+        while at < stop:
+            end = at + 1
+            while ops[end - 1].depth:
+                end += 1
+            steps.append((at, end))
+            at = end
+        return steps
+
+
+@dataclass(frozen=True)
 class SubmissionAudit:
     """What a submission directory holds, and every way its layout is wrong."""
 

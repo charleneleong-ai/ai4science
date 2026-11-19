@@ -3,7 +3,7 @@
 import kickmix as km
 import numpy as np
 import pytest
-from quantum_compilation.submission import NPZ_ARRAYS, Resources, SubmissionAudit
+from quantum_compilation.submission import NPZ_ARRAYS, Op, Resources, SubmissionAudit
 
 TINY = "CCX q0 q1 q2"
 
@@ -171,3 +171,93 @@ class TestResourceExtraction:
     def test_is_hashable_so_candidates_can_be_deduped(self, mixed, mixed_circuit):
         # frozen=True has to mean it: a search loop dedupes thousands of these in a set.
         assert len({mixed, Resources.from_circuit(mixed_circuit)}) == 1
+
+
+# A measured bit gating a block, an inline-conditioned fixup, and plain gates either side.
+CONDITIONED = """
+    HMR q0 b0
+    PUSH_CONDITION if b0
+    CX q1 q2
+    POP_CONDITION
+    Z q3 if b0
+    CX q0 q1
+"""
+
+
+class TestOpParsing:
+    """Reading ops, their qubits and whether a condition gates them, from circuit text."""
+
+    def test_ops_index_like_the_circuit_text_and_close_every_block(self):
+        circuit = km.Circuit(CONDITIONED)
+        ops = Op.parse(circuit)
+        assert [op.text for op in ops] == str(circuit).splitlines()
+        assert ops[-1].depth == 0
+
+    def test_block_ops_and_inline_ifs_are_conditioned_and_nothing_else(self):
+        flags = [op.conditioned for op in Op.parse(km.Circuit(CONDITIONED))]
+        assert flags == [False, True, True, True, True, False]
+
+    def test_qubits_skip_bits_and_keywords(self):
+        assert [op.qubits for op in Op.parse(km.Circuit(CONDITIONED))][::2] == [(0,), (1, 2), (3,)]
+
+    @pytest.mark.parametrize(
+        ("line", "fine"),
+        [("Z_POW q0 0.125", True), ("Z_POW q0 0.75", False), ("Z_POW q0 0.5", False), ("CX q0 q1", False)],
+    )
+    def test_only_rotations_finer_than_t_are_fine(self, line, fine):
+        assert Op.parse(km.Circuit(line))[0].is_fine_rotation is fine
+
+    @pytest.mark.parametrize(
+        ("line", "written", "condition"),
+        [
+            ("HMR q0 b1", ("b1",), None),
+            ("HMR q0 b1 if b2", ("b1",), "b2"),
+            ("BIT_INVERT b3 if b4", ("b3",), "b4"),
+            ("CZ q0 q1 if b5", (), "b5"),
+        ],
+    )
+    def test_bits_written_and_condition_ignore_each_other(self, line, written, condition):
+        op = Op.parse(km.Circuit(f"HMR q0 b2\nHMR q0 b4\nHMR q0 b5\nBIT_STORE0 b3\n{line}"))[-1]
+        assert (op.bits_written, op.condition_bit) == (written, condition)
+
+    def test_condition_sources_trace_bits_back_to_their_measurements(self):
+        circuit = km.Circuit(
+            """
+            HMR q0 b1
+            HMR q1 b2
+            BIT_STORE0 b3
+            BIT_STORE1 b3 if b1
+            BIT_STORE1 b3 if b2
+            BIT_STORE0 b4
+            BIT_INVERT b4 if b1
+            HMR q2 b5
+            PUSH_CONDITION if b2
+            BIT_INVERT b5
+            POP_CONDITION
+            HMR q3 b6
+            PUSH_CONDITION if b3
+            X q0
+            POP_CONDITION
+            PUSH_CONDITION if b4
+            X q0
+            POP_CONDITION
+            PUSH_CONDITION if b5
+            X q0
+            POP_CONDITION
+            PUSH_CONDITION if b6
+            X q0
+            POP_CONDITION
+            """
+        )
+        ops = Op.parse(circuit)
+        found = Op.condition_sources(ops, len(ops))
+        by_bit = {ops[i].condition_bit: {ops[h].args[-1] for h in hs} for i, hs in found.items()}
+        assert by_bit == {"b2": {"b2"}, "b3": {"b1", "b2"}, "b4": {"b1"}, "b5": {"b5", "b2"}, "b6": {"b6"}}
+
+    def test_steps_keep_each_condition_block_whole(self):
+        ops = Op.parse(km.Circuit(CONDITIONED))
+        assert Op.steps(ops, 0, len(ops)) == [(0, 1), (1, 4), (4, 5), (5, 6)]
+
+    @pytest.mark.parametrize(("at", "cut"), [(0, 0), (1, 1), (2, 4), (3, 4), (4, 4), (5, 5)])
+    def test_cuts_move_past_open_blocks(self, at, cut):
+        assert Op.cut_after(Op.parse(km.Circuit(CONDITIONED)), at) == cut

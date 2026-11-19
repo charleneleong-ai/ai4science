@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,7 @@ from quantum_compilation.verify import (
     VERIFIER_SCRIPTS,
     Verification,
     VerificationRun,
+    load_verifier,
     parse_verifier_output,
     run_verifier,
     verifier_script,
@@ -145,6 +147,14 @@ class TestDriver:
     def test_a_missing_verifiers_tree_says_what_to_point_at(self, tmp_path):
         with pytest.raises(FileNotFoundError, match="verifiers"):
             verifier_script(tmp_path, "invsqrt")
+
+    def test_a_verifier_loads_as_a_module_from_its_tree(self, tmp_path, monkeypatch):
+        root = fake_verifiers(tmp_path / "verifiers", "dqi", "MAGIC = 41 + 1")
+        monkeypatch.setattr(sys, "path", list(sys.path))
+        try:
+            assert load_verifier(root, "dqi").MAGIC == 42
+        finally:
+            sys.modules.pop("verify_submission_dqi", None)
 
     def test_an_unknown_task_is_rejected(self, tmp_path):
         with pytest.raises(KeyError, match="unknown task"):

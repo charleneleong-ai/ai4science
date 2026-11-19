@@ -1,0 +1,99 @@
+# Provenance for a submission assembled from public Apache-2.0 circuits, fetched from a Kaggle
+# parts dataset and re-scored locally with the official verifiers before submitting. Generated
+# by scripts/build_parts_record.py from that dataset's manifest.csv and our own rows.jsonl;
+# do not hand-edit.
+#
+# We wrote none of these circuits. `author` published the part and `core_author` records the
+# lineage behind it. Only `our_measurement`, `constraint_margins` and `J` are ours -- every
+# other per-part field is copied from the dataset's manifest and is the part author's own
+# report. `J`, the angle-word register count, is the one shape field a manifest may omit, so
+# it is read from our own verifier report, which states it as `batch_size` and again as
+# `angles_persistent_qubits = J * brot`; a manifest that does state it must agree.
+#
+# In `constraint_margins`, `fraction_of_limit_used` is closeness-to-rejection in both
+# directions, so 1.0 means sitting exactly on the limit whether it is a cap or a floor.
+dataset: manwithacat/vqcc-apache-public-circuits
+submission_ref: '58252192'
+submitted: '2026-11-11T22:50:06Z'
+parts:
+  invsqrt:
+    submitted_file_sha256: 6c6a734dbcb693bb18950a4e4ab84e630854df90dbe6558ed3cef3ecc89b0666
+    author: manwithacat (Hedge Wizardry HW-25)
+    core_author: Gengsr (prefix) and maoxin123 (tail), on Syed Asad Ali's 62-qubit design (mrmeows / busyaprime / yoyobar lineage)
+    source_notebook_url: https://www.kaggle.com/code/manwithacat/vqcc-hedge-wizardry-notebook
+    notebook_title: VQCC Hedge Wizardry
+    source_notebook_version: '27'
+    release_date: 2026-11-11 01:50
+    licence: Apache-2.0
+    qubits: 62
+    change_summary: two free Clifford phase gates at the join (Z_POW q41 1.0, q47 1.5), found by our R research pathway; neither author's operations changed; 62 Q, cost 93,863.36, -0.066% vs a15b0d73f720
+    notes: Released by manwithacat as Hedge Wizardry HW-25 (dataset manwithacat/vqcc-hedge-wizardry v26, notebook v27, hosted official verifier PASS, 2026-11-11). Republished unchanged by alexchilton (v111), Heliosli, busyaprime, matousakura (best-of-public-portfolio v27) and ranjeet258; our scan first saw it in matousakura's dataset because our own datasets are not scanned
+    our_measurement:
+      status: PASS
+      cost: 93863.3572624325
+      seconds: 73.3
+      verifier_candidate_sha256: 6c6a734dbcb693bb18950a4e4ab84e630854df90dbe6558ed3cef3ecc89b0666
+  dqi:
+    submitted_file_sha256: bb4287e77eb66d7abeb12cf8eac5ac1f4aceaf0cea4d8ad69dedc390ca6efb5b
+    author: Atakan Aldemir
+    core_author: team i want to run gemma 9b (cd71 joint-chart rewrites, prefix fusion, b4dc000c conditional reverse phase), on the public continued-fraction DQI decoder line (Heliosli, Syed Asad Ali, SomeJoint)
+    source_notebook_url: https://www.kaggle.com/code/atakanaldemir/qcc-shared-products-and-controlled-refits
+    notebook_title: 'QCC: Shared Products and Controlled Refits'
+    source_notebook_version: '1'
+    release_date: 2026-11-11 11:40
+    licence: Apache-2.0
+    qubits: 892
+    change_summary: Atakan Aldemir's five-Toffoli GF(64) inverse-character phase (four shared products plus one CCZ) in place of the six-Toffoli source at all 28 call sites, about 27.6 mean Toffolis less per shot (per the author's notebook); 892 Q; 48-draw expected cost 3.7393e11, -0.065% vs cd71c4822aa0 (local prescreen; 96-draw paired check pending)
+    notes: The author proves the phase component exhaustively over 4,096 input/mask assignments with symbolic HMR outcomes and runs the stock verifiers on the whole portfolio. Also shipped by prvsiyan (verifier-guided-quantum-circuit-optimization v39) and alexchilton (v139). The b4dc000c parent is not in our scanned sources
+    our_measurement:
+      status: PASS
+      cost: 373606711683.7646
+      seconds: 52.1
+      verifier_candidate_sha256: bb4287e77eb66d7abeb12cf8eac5ac1f4aceaf0cea4d8ad69dedc390ca6efb5b
+  dfthcsos:
+    submitted_file_sha256: f21b8a8725c342eb04c37fad269a431003a304d1ac9ad6bf5c56f1d075fde2eb
+    author: prvsiyan
+    source_notebook_url: https://www.kaggle.com/code/prvsiyan/verifier-guided-quantum-circuit-optimization
+    notebook_title: Verifier-Guided Quantum Circuit Optimization
+    source_notebook_version: '39'
+    release_date: 2026-11-11 16:27
+    licence: Apache-2.0
+    qubits: 427
+    R: 8
+    B: 143
+    C: 44
+    J: 5
+    brot: 8
+    KEEP_BITS: 10
+    Lambda: 282.9740418751389
+    E_gap: 3.9148980200006918
+    lambda_eff: 46.90738327801011
+    T_total: 14856.0
+    T_angles: 8194.0
+    Q_total: 427
+    our_measurement:
+      status: PASS
+      cost: 297557548.71265644
+      seconds: 5.8
+      verifier_candidate_sha256: 478fae1c151118700284bb6412d1fc7971a0b5fbe6943a3520fc073bd7cedd64
+    constraint_margins:
+      hamiltonian_error_ha:
+        value: 0.01999998000000501
+        limit: 0.02
+        sense: at_or_below
+        fraction_of_limit_used: 0.9999990000002505
+      angle_qubits:
+        value: 128
+        limit: 128
+        sense: at_or_below
+        fraction_of_limit_used: 1.0
+      e_gap_ha:
+        value: 3.9148980200006918
+        limit: 3.914898
+        sense: strictly_above
+        fraction_of_limit_used: 0.9999999948911333
+      lcu_lambda:
+        value: 282.9740418751389
+        limit: 49.0
+        sense: strictly_above
+        fraction_of_limit_used: 0.17316075946507153
