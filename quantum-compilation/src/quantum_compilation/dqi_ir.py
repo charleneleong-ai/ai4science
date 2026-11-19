@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
 
+import kickmix as km
 import numpy as np
 
 from quantum_compilation.submission import Op
@@ -94,6 +95,18 @@ class CircuitColumns:
     @classmethod
     def from_text(cls, text: str) -> CircuitColumns:
         return cls.from_lines(iter(text.splitlines()))
+
+    @staticmethod
+    def text_dump(circuit_path: Path, work_dir: Path) -> Path:
+        """`work_dir/<stem>.kmx`, kickmix's text form of a `.kmb`, written on first use.
+
+        It is 1 GB for dqi, so it goes in a working directory, never beside the circuit.
+        """
+        text_path = work_dir / f"{circuit_path.stem}.kmx"
+        if not text_path.exists():
+            work_dir.mkdir(parents=True, exist_ok=True)
+            km.Circuit.from_file(str(circuit_path)).to_file(str(text_path))
+        return text_path
 
     @classmethod
     def load(cls, text_path: Path) -> CircuitColumns:

@@ -499,8 +499,13 @@ experiments:
       18 Toffolis in our part. Of 330 CCX that recompute a product with unchanged controls, only
       18 have a clean wire idle across the gap (all q889); 575b043f has none of its 145. That is
       0.005% of dqi cost, about +0.0005 on the blend, so no rewrite was built. The other lever,
-      a guard for the lost shots, is capped at the measured +0.179%: all 19 are value errors at
-      weights 15-35 with no zero syndrome word, so the zero word arises inside the forward
-      extractor and a guard needs that step decoded first. Record in e208d350-draws.yaml.
+      a guard for the lost shots, is closed too. Re-running every lost shot stage by stage
+      (scripts/dqi_flags.py) reproduces all 19, and in 13 a decoder word that no passing shot ever
+      zeroes is zero at the start of a forward step (11 of them a 24-qubit word in raw_query_prefix),
+      before the step that then fails to uncompute: GrantPrater's zero-word class, located. A guard
+      could recover those 13, 0.12% of dqi cost or about 448 Toffolis, but the words are qubits, so
+      its zero test runs coherently on every shot: about 11 Toffolis a step on a held subfield norm,
+      x 35 steps = 385, before any fallback. Net at best +0.0016 on the blend. Record in
+      e208d350-draws.yaml.
     verdict: DISCARD
     pr: 105

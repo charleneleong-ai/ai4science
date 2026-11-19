@@ -46,6 +46,15 @@ class FailedShot:
 
 
 @dataclass
+class Batch:
+    sim: km.Simulator
+    syndromes: np.ndarray
+    mbuc: np.ndarray
+    phases: np.ndarray
+    inputs: np.ndarray  # the syndromes as the bits written to the S registers
+
+
+@dataclass
 class DrawRunner:
     """One circuit, one verifier, any number of salts."""
 
@@ -103,8 +112,9 @@ class DrawRunner:
             ))
         return out
 
-    def run_batch(self, task: tuple[int, int, int]) -> tuple[int, list[FailedShot]]:
-        start, rng_seed, sim_seed = task
+    def start_batch(self, task: tuple[int, int, int]) -> Batch:
+        """A simulator loaded with one batch's inputs, before any instruction runs."""
+        _, rng_seed, sim_seed = task
         batch = self.dqi.DEFAULT_BATCH_SIZE
         rng = np.random.default_rng(rng_seed)
         syndromes, mbuc, phases = self.dqi.sample_shots(self.spec, self.tables, rng, batch, self.weight_probs)
@@ -113,25 +123,37 @@ class DrawRunner:
         inputs = self.dqi.to_bits(syndromes, self.spec.degree)
         sim.write_across_shots(self.syndrome_array, inputs)
         sim.write_across_shots(self.mbuc_array, self.dqi.to_bits(mbuc, self.spec.degree))
-        sim.do(self.circuit)
-        junk = sim.read_across_shots(self.ancillas) if len(self.ancillas) else np.zeros((0, batch), bool)
-        val_err = (sim.read_across_shots(self.syndrome_array) ^ inputs).any(axis=0) | junk.any(axis=0)
-        phase_err = (sim.read_phase_flipped_across_shots() ^ phases) & ~val_err
-        toffolis = int(sim.operation_statistics().num_toffoli_like)
-        return toffolis, self.failures(start, rng_seed, syndromes, mbuc, val_err, phase_err)
+        return Batch(sim, syndromes, mbuc, phases, inputs)
 
-    def draw(self, salt: str) -> dict[str, Any]:
-        num_shots, batch = self.spec.num_shots, self.dqi.DEFAULT_BATCH_SIZE
+    def errors(self, b: Batch) -> tuple[np.ndarray, np.ndarray]:
+        """`(value error, phase error)` per shot, by the verifier's rule, once the circuit has run."""
+        batch = b.sim.batch_size
+        junk = b.sim.read_across_shots(self.ancillas) if len(self.ancillas) else np.zeros((0, batch), bool)
+        val_err = (b.sim.read_across_shots(self.syndrome_array) ^ b.inputs).any(axis=0) | junk.any(axis=0)
+        return val_err, (b.sim.read_phase_flipped_across_shots() ^ b.phases) & ~val_err
+
+    def run_batch(self, task: tuple[int, int, int]) -> tuple[int, list[FailedShot]]:
+        b = self.start_batch(task)
+        b.sim.do(self.circuit)
+        val_err, phase_err = self.errors(b)
+        toffolis = int(b.sim.operation_statistics().num_toffoli_like)
+        return toffolis, self.failures(task[0], task[1], b.syndromes, b.mbuc, val_err, phase_err)
+
+    def tasks(self, salt: str) -> list[tuple[int, int, int]]:
+        """`(first shot, rng seed, simulator seed)` per batch, as `verify()` derives them."""
+        starts = range(0, self.spec.num_shots, self.dqi.DEFAULT_BATCH_SIZE)
         base_seed = self.dqi._initial_seed(self.circuit_hash, salt)
-        starts = range(0, num_shots, batch)
         seeds = np.random.SeedSequence(base_seed, pool_size=8).generate_state(
             8 * len(starts), dtype=np.uint64
         ).reshape(-1, 2, 4)
-        tasks = [
+        return [
             (s, int.from_bytes(seeds[i, 0], "little"), int.from_bytes(seeds[i, 1], "little"))
             for i, s in enumerate(starts)
         ]
-        results = self.dqi._run_parallel(self.run_batch, tasks, self.max_workers)
+
+    def draw(self, salt: str) -> dict[str, Any]:
+        num_shots = self.spec.num_shots
+        results = self.dqi._run_parallel(self.run_batch, self.tasks(salt), self.max_workers)
         failed = [f for _, batch_failures in results for f in batch_failures]
         eps_plus = self.dqi.clopper_pearson_upper_bound(len(failed), num_shots,
                                                         log2_delta=self.dqi.DEFAULT_LOG2_DELTA)

@@ -22,3 +22,25 @@ closing_patch:
   for_comparison_575b043f: {recomputed_products: 145, holdable_on_a_spare_wire: 0}
   reach: 18 of 366,216 Toffolis (0.005% of dqi cost, about +0.0005 on the blend)
   verdict: not submitted; below the +0.017 that moves a single rank band
+lost_shot_anatomy:
+  # `uv run python scripts/dqi_flags.py <dqi.kmb> <work-dir> <regions.json> draws.jsonl flags.jsonl`:
+  # each batch that lost a shot re-run one stage at a time (stages from manwithacat's
+  # vqcc-regions-sidecar map of e208d350), against the 255 passing shots of the same batch.
+  reproduced: 19 of 19  # every recorded lost shot fails again, and no other shot does
+  # innermost prefix/return pair that every passing shot restores and the lost one does not
+  innermost_unrestored_step:
+    a 24-qubit word, block 24k..24k+23 of synthesis_prefix:k or of a raw_query_prefix step: 14
+    one helper qubit (q889 in raw_query_prefix 20-24, q873 once): 5
+  word_zero_that_no_passing_shot_has:
+    at the start of a raw_query_prefix step (11 as an aligned 24-qubit pair): 12
+    at the start of a synthesis_prefix step: 1
+    first in a middle stage (odd_full_preimage, raw_boundary): 2
+    none on 12-qubit alignment: 4
+  guard_price:
+    reachable: 13 of 19 lost shots, 0.12% of dqi cost (about 448 Toffolis)
+    zero_test: >-
+      the words are qubits, so the test and its fallback are coherent and run on every shot: about
+      11 Toffolis a step on a 12-bit subfield norm the step already holds, x 35 forward steps = 385
+      (805 for a full 24-qubit OR), before the fallback itself
+    net: at best +63 Toffolis, about +0.0016 on the blend
+  verdict: not built; the guard cannot pay for itself
