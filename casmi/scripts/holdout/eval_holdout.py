@@ -4,7 +4,8 @@ Usage:
   eval_holdout.py lists                       build runs/lists.parquet (same-formula pool candidates)
   eval_holdout.py score <name> ...            score every list with runs/<name>/model via the kit's inference.Scorer
   eval_holdout.py compare <base> <cand> ...   paired MRR@25; a candidate "a+b" is a per-molecule z-blend
-  eval_holdout.py gate                        the calibration gate: kit beats long, and kit beats kit+s1+s2+s3
+  eval_holdout.py gate [library]              the calibration gate: kit beats long, and kit beats kit+s1+s2+s3,
+                                              on every eval molecule or on one library's
 
 Each list is the true structure plus up to 255 same-formula structures from pool_popularity.csv, most popular first;
 the pipeline draws its candidates from the same pool. Ranks use pessimistic ties, as the kit's train.validate does.
@@ -134,25 +135,27 @@ def reciprocal_ranks(spec: str) -> pd.Series:
     return (1 / rank).where(rank <= 25, 0.0)
 
 
-def compare(base: str, cands: list[str]) -> dict[str, dict[str, object]]:
+def compare(base: str, cands: list[str], library: str | None = None) -> dict[str, dict[str, object]]:
     lib = pd.read_parquet(WORK / "molecules.parquet", columns=["key", "library"]).set_index("key").library
     b = reciprocal_ranks(base)
+    if library:
+        b = b[lib.reindex(b.index).eq(library).to_numpy()]
     out = {}
     for c in cands:
         r = reciprocal_ranks(c).reindex(b.index)
         row = paired(r.to_numpy(), b.to_numpy())
         row["by_library"] = {k: paired(r[g.index].to_numpy(), g.to_numpy())["delta"] for k, g in b.groupby(lib)}
         out[c] = row
-        log(f"{c} vs {base}", json.dumps(row))
+        log(f"{c} vs {base}", library or "all", len(b), "molecules", json.dumps(row))
     return out
 
 
-def gate() -> None:
-    rows = compare("kit", ["long", "kit+s1+s2+s3"])
+def gate(library: str | None = None) -> None:
+    rows = compare("kit", ["long", "kit+s1+s2+s3"], library)
     checks = {"kit beats long": rows["long"]["delta"] < 0, "kit beats kit+s1+s2+s3": rows["kit+s1+s2+s3"]["delta"] < 0}
-    verdict = dict(checks=checks, passed=all(checks.values()), rows=rows)
+    verdict = dict(library=library, checks=checks, passed=all(checks.values()), rows=rows)
     (ROOT / "calibration_gate.json").write_text(json.dumps(verdict, indent=2))
-    log("GATE", "PASS" if verdict["passed"] else "FAIL", json.dumps(checks))
+    log("GATE", library or "all", "PASS" if verdict["passed"] else "FAIL", json.dumps(checks))
     sys.exit(0 if verdict["passed"] else 1)
 
 
@@ -165,4 +168,4 @@ if __name__ == "__main__":
     elif cmd == "compare":
         compare(args[0], args[1:])
     else:
-        gate()
+        gate(args[0] if args else None)

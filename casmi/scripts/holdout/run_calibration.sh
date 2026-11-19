@@ -5,6 +5,7 @@
 #   long    40 x 2000 steps (public LB: lower than kit, 0.453 against 0.472)
 #   s1..s3  the kit schedule with three new seeds; kit+s1+s2+s3 is the seed blend (public LB: -0.016)
 # Gate (fixed before any result): kit beats long, and kit beats kit+s1+s2+s3 (eval_holdout.py gate).
+# GATE_LIBRARY=enveda-np-examples judges it on the natural-product eval molecules only (the 2026-11-19 post-hoc rerun).
 set -euo pipefail
 cd "${CASMI_HOLDOUT_ROOT:-$HOME/casmi_holdout}"
 PY=${PY:-$HOME/casmi_seeds/.venv/bin/python}
@@ -23,4 +24,4 @@ done
 for p in "${pids[@]}"; do wait "$p"; done
 $PY -u eval_holdout.py score "${names[@]}"
 $PY -u eval_holdout.py compare kit long kit+s1+s2+s3 s1 s2 s3
-$PY -u eval_holdout.py gate
+$PY -u eval_holdout.py gate ${GATE_LIBRARY:-}

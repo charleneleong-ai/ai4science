@@ -141,9 +141,23 @@ What the disagreement does and does not say:
 - Most likely, the scorer's standalone ranking is not what the pipeline's score depends on. The neural term enters
   only on ranks 2–25 behind library matches and leader rules. And/or the hidden test is not Enveda-180-like: the
   host describes it as natural products.
-- **Bug:** the natural-product group never reached eval. `build_holdout.py` takes each molecule's first
-  `ingest_lib`, and the 250 `enveda-np-examples` structures probably also appear under `enveda-180` (not checked). A natural-product-only
-  holdout is the obvious follow-up, but it would be chosen *after* this failure, so it is not pre-registered.
+- **Bug:** the natural-product group never reached eval. `build_holdout.py` labelled each molecule by its first
+  `ingest_lib`. The 250 `enveda-np-examples` molecules are listed first under other libraries (145 `drug_plus`,
+  88 `gnps`, 17 others), and none of them appears under `enveda-180`. So none was labelled natural product, and all
+  250 stayed in training.
+
+### Natural-product rerun (2026-11-19, post-hoc, exploratory)
+
+The fix labels a molecule `enveda-np-examples` when any of its spectra comes from that library. The eval set becomes
+the originally intended one: the same 750 Enveda-180 molecules plus all 250 natural-product molecules, with their
+Tanimoto ≥ 0.7 neighbours removed from training. The five variants and the scorer stay unchanged.
+
+The gate is the same two checks, judged on the natural-product eval molecules only (`eval_holdout.py gate
+enveda-np-examples`): kit beats long, and kit beats kit + s1 + s2 + s3. It was fixed before this run, but this
+subset was chosen after the first gate failed, so a pass is exploratory evidence, not a pre-registered result.
+
+- **On a pass:** FLARE is tried on this holdout before any submission.
+- **On a fail:** scorer work is closed.
 
 ## Not established
 
