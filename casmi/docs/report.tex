@@ -46,7 +46,8 @@ neural ensemble and 324{,}884 external library spectra for rank-1 promotion), re
 $+0.008$ over 0.479 is inside the $\pm0.016$ between submissions. A learned isomer reranker on top of it scored 0.487 at weights 0.20 and 0.15. An eleventh, alex chilton's public
 0.492 notebook, adds a test-set molecular-network rerank (network weight 0.35) to the 0.487 pipeline and reproduced 0.492:
 the new base and final pick A, though $+0.005$ is about one molecule and inside the noise. Heliosli's public notebook ran
-cleanly but could not be submitted, because its datasets are not versioned. 36 submissions were made and all were
+cleanly but could not be submitted, because its datasets are not versioned. MIST \texttt{msg\_aug} on its ranks 2--25
+scored 0.486 (not kept). 37 submissions were made and all were
 scored. No calibrated local estimate of the score exists.
 \end{abstract}
 
@@ -201,6 +202,7 @@ extlib-fork & the public 0.487 notebook, unchanged (inside the noise) & 0.487 \\
 isomer-rerank & + learned isomer reranker, weight 0.20 (not kept) & 0.487 \\
 rerank-alpha015 & + learned isomer reranker, weight 0.15 (not kept) & 0.487 \\
 network-fork & the public 0.492 notebook, unchanged (inside the noise) & \textbf{0.492} \\
+mist-blend & + MIST \texttt{msg\_aug} cosine on ranks 2--25, weight 0.5 (not kept) & 0.486 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -310,6 +312,14 @@ reproducing the source. That is $+0.005$ over 0.487, about one molecule, not str
 pick A, not a measured gain. Upstream, the network weight scored 0.487, 0.487, 0.488, 0.492 and 0.484 at 0, 0.15, 0.25,
 0.35 and 0.50, so 0.35 is the best of five on the same public split.
 
+\textbf{MIST on ranks 2--25 (mist-blend, 19 November).} The network fork plus one cell: MIST \texttt{msg\_aug}
+(coleygroup/MIST \texttt{48e339b}, Zenodo 23303289) predicts a 4,096-bit fingerprint from each molecule's positive-mode
+spectra, and ranks 2--25 are reordered by $0.5\,z(-\log\text{rank}) + 0.5\,z(\text{cosine})$ with rank 1 fixed. Under
+the Kaggle torch version it reproduced the earlier probe's FRIGID-50 Tanimoto (0.385). On the natural-product holdout
+lists it reordered 813 of 953 and moved the true structure in 266 (228 up), $+0.042$ offline. That holdout had failed
+its calibration gate twice, so this was a reach check, not a prediction. The gate passed (11 smoke lists scored,
+no nulls, no rank 1 changed), and it scored 0.486 (submission 58539986), $-0.006$: not kept.
+
 \textbf{Heliosli's notebook (fork495h, 17 November, not submitted).} A byte-identical fork of the public ``0.495''
 notebook, the 0.477 pipeline with de novo candidates, an isomer reranker and a joint ranker on top. Its commit run
 passed, but Kaggle refused the submission: code submissions cannot use datasets whose owner has disabled versioning,
@@ -386,7 +396,7 @@ its fingerprints reach Tanimoto 0.245 in its own 10{,}226-bit space and 0.180 ma
     $[\mathrm{M{+}H}]^+$ only (v16), popularity weight 0.15 (v8): inside the noise or below it.
 \end{itemize}
 
-\textbf{Next.} The base is now the 0.492 network fork; the extlib fork's isomer reranker at weights 0.20 and 0.15 scored 0.487 (no change), and that line is closed. Final picks (two, by 14
+\textbf{Next.} The base is now the 0.492 network fork; the extlib fork's isomer reranker at weights 0.20 and 0.15 scored 0.487 (no change), and that line is closed. MIST on ranks 2--25 scored 0.486, and a same-formula holdout failed to predict the board twice, so a further scorer family is judged by one gated submission only. Final picks (two, by 14
 December 23:59 UTC): pick A is the network fork (0.492, submission 58506761); pick B is the 0.479 dedup fork
 (fork479 v1, submission 57867559), a different line. Both still need ticking on Kaggle's Submissions page. No leader has published a method; the seed blend closed the same-model
 ensemble route and the Gold Apex mass prior alone did not move the score. The ICEBERG PubChem atlas, allowed by the host on 28 October, was reviewed on 3 November and skipped.
@@ -407,6 +417,8 @@ forking any credible improvement that reproduces; it gave the 0.479, 0.487 and 0
   \item \textbf{Whether a de novo route could help with a better encoder.} FRIGID found nothing with
     MIST's fingerprints; an encoder fine-tuned on Enveda's spectra is untested. The 39--52\% of the test
     outside PubChem and COCONUT is the SOTA sweep's estimate, not a measurement on the hidden test.
+  \item \textbf{Why MIST lost on the board.} The negative-mode molecules it skips, the formula taken from rank 1 and
+    lower weights were not tested.
   \item \textbf{Whether the network rerank helps on the private split.} Its $+0.005$ is about one public molecule,
     and the weight 0.35 was picked upstream as the best of five scores on the same public split, so the reproduction is
     not independent of that selection.

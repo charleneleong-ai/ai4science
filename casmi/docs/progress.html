@@ -81,14 +81,14 @@ details[open] summary { margin-bottom: 12px; }
       <div class="fig"><b>0.415</b><span>first fork · fork-v1 of the 0.421 notebook</span></div>
       <div class="fig"><b>0.356</b><span>our own pipeline's best · v19</span></div>
       <div class="fig"><b>0.115</b><span>first submission · v1</span></div>
-      <div class="fig"><b>36 / 36</b><span>submissions scored, none omitted</span></div>
+      <div class="fig"><b>37 / 37</b><span>submissions scored, none omitted</span></div>
     </div>
   </header>
 
   <section aria-labelledby="spec-h">
     <h2 id="spec-h">Every submission, drawn as a spectrum</h2>
-    <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.549 leaderboard top (17 November); the e006-fork and pubchemlite-fork sticks reproduce their notebooks' public 0.446 and 0.456 exactly. The dotted rule is the rebase onto public notebooks; “spec” is spectra-fork, “pcl” pubchemlite-fork, “nrl” neural-fork, “mrg” merged-fork, “ana” analogue-fork, “ddp” dedup-fork, “sdb” seed-blend, “msp” mass-prior, “ext” extlib-fork, “iso” isomer-rerank and “net” network-fork; merged-fork set the last measured gain at 0.477, +0.012 over data-fork's 0.465, analogue-fork scored the same 0.477, dedup-fork scored 0.479, extlib-fork scored 0.487 and network-fork 0.492, our highest but inside the ±0.016 between submissions, and the two isomer-rerank sticks before the last scored the same 0.487.</p>
-    <div class="chart"><svg id="spectrum" viewBox="0 0 760 326" role="img" aria-label="Stick chart of 35 submission scores (36 submissions, the v19 re-run folded in) rising from 0.115 to a best of 0.492"></svg>
+    <p>Each stick is one scored submission, in order; its height is the public MRR@25. Kept versions are solid, versions that were not kept are grey. The dashed lines mark the 0.421 public notebook and the 0.549 leaderboard top (17 November); the e006-fork and pubchemlite-fork sticks reproduce their notebooks' public 0.446 and 0.456 exactly. The dotted rule is the rebase onto public notebooks; “spec” is spectra-fork, “pcl” pubchemlite-fork, “nrl” neural-fork, “mrg” merged-fork, “ana” analogue-fork, “ddp” dedup-fork, “sdb” seed-blend, “msp” mass-prior, “ext” extlib-fork, “iso” isomer-rerank, “net” network-fork and “mst” mist-blend; merged-fork set the last measured gain at 0.477, +0.012 over data-fork's 0.465, analogue-fork scored the same 0.477, dedup-fork scored 0.479, extlib-fork scored 0.487 and network-fork 0.492, our highest but inside the ±0.016 between submissions, and the two isomer-rerank sticks before the last scored the same 0.487.</p>
+    <div class="chart"><svg id="spectrum" viewBox="0 0 760 326" role="img" aria-label="Stick chart of 36 submission scores (37 submissions, the v19 re-run folded in) rising from 0.115 to a best of 0.492"></svg>
       <div class="legend"><span><i class="key" style="background:var(--peak)"></i>kept</span><span><i class="key" style="background:var(--dim)"></i>not kept</span><span><i class="key" style="background:var(--ref)"></i>reference scores</span></div>
     </div>
   </section>
@@ -181,10 +181,12 @@ flowchart TD
 
   <section aria-labelledby="nov18-h">
     <h2 id="nov18-h">What changed on 17–19 November</h2>
-    <p>The public 0.492 network-rerank notebook reproduced on our account at 0.492: the new base and final pick A, +0.005 over 0.487, about one molecule and inside the noise. Heliosli's public “0.495” notebook ran cleanly but Kaggle would not accept it as a submission.</p>
+    <p>The public 0.492 network-rerank notebook reproduced on our account at 0.492: the new base and final pick A, +0.005 over 0.487, about one molecule and inside the noise. Heliosli's public “0.495” notebook ran cleanly but Kaggle would not accept it as a submission. MIST on the new base's ranks 2–25 scored 0.486, and the scorer holdout failed its gate again on natural products.</p>
     <ul class="limits">
       <li><b>Network fork: PROMOTE, inside the noise.</b> alex chilton's “CASMI26 0.492 | What Moved the Board” as private kernel casmi-fork492, with one change: the commit run executes every stage on the 12 visible molecules (it was set to skip them). The gate required the rerank's own line at weight 0.35: 114 of 400 molecules had neighbours, 109 edges, 2 lists changed and no rank 1. Submission 58506761 scored 0.492 (19 November 03:43 AEDT). Upstream, weights 0 / 0.15 / 0.25 / 0.35 / 0.50 scored 0.487 / 0.487 / 0.488 / 0.492 / 0.484, so 0.35 is the best of five on the same public split.</li>
       <li><b>Heliosli's notebook: not submittable.</b> Forked byte-identical as casmi-fork495h; its commit run passed with every stage and overlay done, but Kaggle refused the submission because all seven of the author's datasets have versioning disabled, which only the owner can change. Its 0.495 appears only in the title. The run also showed that the chain's output download timed out on a notebook that leaves a package tree in its working directory; it now fetches top-level files only.</li>
+      <li><b>Natural-product holdout: gate FAIL again.</b> With the library label fixed, the holdout's 226 scored natural products gave longer training +0.100 [+0.059, +0.142] and the seed blend +0.017 [−0.007, +0.041] over the shipped scorer, both of which lost on the board. A same-formula holdout does not predict the leaderboard here, so scorer families are judged by one gated submission only.</li>
+      <li><b>MIST msg_aug on ranks 2–25: DISCARD.</b> Private kernel casmi-fork492m: the network fork plus MIST's predicted fingerprint (positive-mode spectra only), blended 0.5 into ranks 2–25 with rank 1 fixed. On the holdout lists it reordered 813 of 953 and moved the true structure up in 228; on the board, submission 58539986 scored 0.486 (19 November 19:59 AEDT), −0.006.</li>
       <li><b>Final picks</b> (two, by 14 December 23:59 UTC): pick A is the network fork (0.492, 58506761); pick B is the 0.479 dedup fork, fork479 v1 (57867559), a different line. Both still need ticking on Kaggle's Submissions page; the CLI cannot select them.</li>
     </ul>
   </section>
@@ -370,8 +372,9 @@ const SUBS = [
   ["isomer-rerank", "extlib fork + the learned isomer reranker (V8 BOTH, RR8_ALPHA 0.20; same-formula isomers on lists below library 0.9); no change", 0.487, "DISCARD"],
   ["rerank-alpha015", "isomer-rerank with RR8_ALPHA 0.15 instead of 0.20; no change, reranker line closed", 0.487, "DISCARD"],
   ["network-fork", "the public 0.492 notebook (alex chilton) unchanged except a smoke commit run: the extlib pipeline + a test-set molecular-network rerank at weight 0.35; inside the noise", 0.492, "PROMOTE"],
+  ["mist-blend", "network-fork + MIST msg_aug fingerprint cosine blended 0.5 into ranks 2–25, rank 1 fixed; −0.006", 0.486, "DISCARD"],
 ];
-const SHORT = { "spectra-fork": "spec-fork", "pubchemlite-fork": "pcl-fork", "neural-fork": "nrl-fork", "merged-fork": "mrg-fork", "analogue-fork": "ana-fork", "dedup-fork": "ddp-fork", "seed-blend": "sdb-fork", "mass-prior": "msp-fork", "extlib-fork": "ext-fork", "isomer-rerank": "iso-rr", "rerank-alpha015": "rr-015", "network-fork": "net-fork" };
+const SHORT = { "spectra-fork": "spec-fork", "pubchemlite-fork": "pcl-fork", "neural-fork": "nrl-fork", "merged-fork": "mrg-fork", "analogue-fork": "ana-fork", "dedup-fork": "ddp-fork", "seed-blend": "sdb-fork", "mass-prior": "msp-fork", "extlib-fork": "ext-fork", "isomer-rerank": "iso-rr", "rerank-alpha015": "rr-015", "network-fork": "net-fork", "mist-blend": "mst-bl" };
 const bestScore = Math.max(...SUBS.filter(s => s[3] !== "DISCARD").map(s => s[2]));
 const bestIdx = SUBS.findIndex(s => s[3] !== "DISCARD" && s[2] === bestScore);
 const firstFork = SUBS.findIndex(s => s[0].includes("fork"));

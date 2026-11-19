@@ -39,6 +39,17 @@ before it (0.446), an unchanged fork of the public E006 notebook,
 
 The settings were fixed by the notebook's authors before we ran it; we chose none of them.
 
+## Discarded — mist-blend, public MRR@25 0.486 (DISCARD)
+
+| | |
+|---|---|
+| kernel | `charyeezy/casmi-fork492m` (private), kernel version 1, submission 58539986 (2026-11-19 15:00 AEDT, scored by 19:59 AEDT), commit [`2f20d98`](https://github.com/charleneleong-ai/ai4science/commit/2f20d98); −0.006 against network-fork, inside the noise but lower |
+| method | network-fork plus one cell after the APEX overlay: MIST `msg_aug` predicts a 4,096-bit Morgan fingerprint from each molecule's positive-mode spectra (MIST's own preprocessing; subformulae at 20 ppm against the rank-1 candidate's formula), averaged over spectra; ranks 2–25 reordered by 0.5·z(−log rank) + 0.5·z(cosine); rank 1 fixed and asserted |
+| model | coleygroup/MIST `48e339b` with the Zenodo 23303289 checkpoint `mist_msg_aug.ckpt` (md5 `3e92179240e3043733627d720f4b7b86`), MIT, trained on MassSpecGym plus synthetic spectra; packaged in the private dataset `charyeezy/casmi-mist-msg-aug` |
+| checks before submitting | under torch 2.10 (the Kaggle image) the cell reproduced the 2026-11-01 probe's FRIGID-50 Tanimoto, 0.385; on the natural-product holdout lists ([`mist_reach.py`](../scripts/holdout/mist_reach.py)) it reordered 813 / 953 and moved the true structure in 266 (228 up, 38 down), +0.042 offline (Enveda-180 +0.022, natural products +0.105), a reach check only, since that holdout failed its calibration gate |
+| run evidence | gate `~/casmi-data/gates/gate_fork492m.py` (outside the repo) passed: fork492's gate, then `[mist] done: {"molecules": 400, "no_positive": 27, "short": 362, "scored": 11, "null": 0, "changed": 11, "top1_changed": 0}`; negative control (fork492-v1 outputs) fails it |
+| settings | weight 0.5 and the ranks 2–25 form, taken from the 2026-11-14 scorer-options plan before the run; one change per submission |
+
 ## Kept — extlib-fork, public MRR@25 0.487 (PROMOTE, inside the noise)
 
 | | |
@@ -287,7 +298,7 @@ fragment check has none.
 
 ## Budget — every attempt in the denominator
 
-- **36 submissions, 36 scored, 0 rejected, plus one refused at submission** (fork495h, below). 19 from our own pipeline, one an identical re-run of v19
+- **37 submissions, 37 scored, 0 rejected, plus one refused at submission** (fork495h, below). 19 from our own pipeline, one an identical re-run of v19
   to measure noise (0.353 vs 0.356); every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including those not kept
   (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise), v19 (0.356, kept), v20 (0.354) and v21 (0.333) in
@@ -302,7 +313,8 @@ fragment check has none.
   Three from the 0.479 notebook: dedup-fork (0.479, 57867559, kernel version 1, kept within the noise), its kernel
   version 2, seed-blend (0.463, 58046573, discarded), and kernel version 3, mass-prior (0.479, 58107187, discarded). One from the 0.487 notebook: extlib-fork (0.487,
   58272211, kernel version 1, promoted) and isomer-rerank (0.487, 58292050, kernel version 2, discarded) and rerank-alpha015 (0.487, 58304138, kernel version 3, discarded). One from the 0.492 notebook: network-fork (0.492,
-  58506761, kernel version 1, promoted, final pick A).
+  58506761, kernel version 1, promoted, final pick A). One from the network fork plus MIST: mist-blend (0.486, 58539986,
+  `charyeezy/casmi-fork492m` kernel version 1, discarded).
 - **One commit run Kaggle refused to accept as a submission:** fork495h, Heliosli's public "0.495" notebook
   unchanged (kernel version 1, 2026-11-17). Its commit run passed, with every base stage and overlay done, but
   `CreateCodeSubmission` returned `FAILED_PRECONDITION`: "Your Notebook uses non-versioned datasets", naming all seven
@@ -358,6 +370,7 @@ fragment check has none.
 | fork495h gate: base checked on this notebook's own stage lines | **after** its commit run (2026-11-17) | the first gate's needles were the older log's wording; not scored, so no score depends on it |
 | isomer reranker for v2: `V8 = 'BOTH'`, `RR8_ALPHA = 0.20` | **before** its run (2026-11-13) | one change per submission; small weight chosen so it can only reorder same-formula isomers; 0.487, no change; v3 lowers it to 0.15 (fixed before its run): 0.487, no change; closed |
 | MIST `msg_aug` gate: mean Tanimoto ≥ 0.40 on the 50 FRIGID molecules | **before** the run (2026-11-01) | pre-registered; 0.385 fails it, so no FRIGID decode was run |
+| MIST `msg_aug` ranks 2–25 blend: weight 0.5, rank 1 fixed, positive mode only | **before** the run (2026-11-19, from the 2026-11-14 plan) | one change per submission; reach checked first (813 / 953 holdout lists); 0.486, discarded |
 | external-library reach: cosine ≥ 0.5, 20 ppm, same ion mode, structures absent from train | **before** the count | a reach check; 0 / 400, so no submission |
 | analogue propagation (fork477 v3: anchor ≥ 0.87, cosine ≥ 0.70, λ 0.10, rank 1 frozen) | **before** it was submitted | its reach (113 / 400) checked first; no offline panel can score it; scored 0.477, no change, discarded |
 | FRIGID go bar: top-10 exact ≥ 5 / 50 with the true formula | **before** the run (2026-10-18) | pre-registered; MIST-MSG over CANOPUS also fixed before |
@@ -384,6 +397,9 @@ of identical runs — were treated as no change.
   layer's effect on its own (documentation prior, leader pin, dedup) is not measured by us.
 - **Why the seed blend lost.** Untested: the seeds agree closely with the public scorer and two of three validate
   lower, so equal weights may just dilute it; other weights, or seeds from a different recipe, were not run.
+- **Why MIST lost on the board.** Untested: the negative-mode molecules it skips, the formula taken from rank 1, and
+  whether a lower weight would hold were not run. Its offline +0.042 came from a holdout that already ran opposite to
+  the board twice.
 - **Whether the network rerank helps on the private split.** +0.005 is about one public molecule, and LAM 0.35 was
   picked upstream as the best of five public scores. It reproduced, but that is the same public split, so the
   selection is not independent of the score. The commit run changed 2 of the 12 smoke lists and no rank 1; its reach

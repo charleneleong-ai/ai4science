@@ -21,6 +21,12 @@ Heliosli's public notebook, forked as [`fork495h`](notebooks/fork495h), ran clea
 refuses code submissions that use non-versioned datasets, and all seven of its own datasets are. Its title's 0.495
 is unverified.
 
+Scorer work on top of it is closed for now:
+- **Holdout:** a structure-disjoint holdout, rerun on natural products on 2026-11-19, failed its calibration gate
+  twice. Longer training and seed blends gain offline but lost on the board.
+- **MIST:** `msg_aug` fingerprint cosine on ranks 2–25 ([`fork492m`](notebooks/fork492m)) scored **0.486**
+  (2026-11-19, −0.006, discarded), although it moved the true structure up in 228 of 953 holdout lists.
+
 Before it, **0.487** (2026-11-12: Hongbin Gu's public 0.487 notebook *casmi26-v589-alex0484-extlib* run as our private
 kernel [`casmi-fork487`](notebooks/fork487), unchanged except for a smoke commit run). It is popwenman's Gold Apex V22
 with an 80-epoch retrained spectrum model ensembled with the public one, the timsTOF mass prior, a documentation prior

@@ -35,4 +35,9 @@ unchanged, nulls at most 5% of molecules, and at least one list changed, and no 
 
 | kernel version | change | public MRR@25 |
 |---|---|---|
-| 1 | fork492 + MIST `msg_aug` on ranks 2–25 (weight 0.5) | running |
+| 1 | fork492 + MIST `msg_aug` on ranks 2–25 (weight 0.5) | **0.486** (58539986), −0.006: DISCARD |
+
+**Result (2026-11-19).** The commit run's gate passed:
+`[mist] done: {"molecules": 400, "no_positive": 27, "short": 362, "scored": 11, "null": 0, "changed": 11, "top1_changed": 0, "seconds": 10.3}`.
+Submission 58539986 scored 0.486 against fork492's 0.492, inside the ±0.016 noise but lower, so it is discarded.
+Lower weights, negative-mode coverage and a per-candidate formula were not tried.
