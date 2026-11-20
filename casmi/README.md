@@ -26,6 +26,10 @@ Scorer work on top of it is closed for now:
   twice. Longer training and seed blends gain offline but lost on the board.
 - **MIST:** `msg_aug` fingerprint cosine on ranks 2–25 ([`fork492m`](notebooks/fork492m)) scored **0.486**
   (2026-11-19, −0.006, discarded), although it moved the true structure up in 228 of 953 holdout lists.
+- **DreaMS:** the frozen official embedding model with a molecule tower trained on `train.parquet`, on ranks 2–25
+  ([`fork492d`](notebooks/fork492d)), also scored **0.486** (2026-11-19, −0.006, discarded). Offline it had added
+  +0.019. That is three neural scorers on ranks 2–25 that gained offline and lost on the board, so that line is
+  closed.
 
 Before it, **0.487** (2026-11-12: Hongbin Gu's public 0.487 notebook *casmi26-v589-alex0484-extlib* run as our private
 kernel [`casmi-fork487`](notebooks/fork487), unchanged except for a smoke commit run). It is popwenman's Gold Apex V22

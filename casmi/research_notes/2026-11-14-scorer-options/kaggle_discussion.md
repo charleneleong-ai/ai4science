@@ -21,7 +21,7 @@ time guards). None verified by us.
 
 | Ruling | Thread | Consequence for scorer options |
 |---|---|---|
-| "Officially released DreaMS checkpoints are fine to use" (David Healey, 11-05). Follow-up asking whether this covers `ssl_model.ckpt` (Zenodo 10997887, CC BY 4.0) as a frozen encoder + head trained on comp data is **unanswered** | [754610](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra/discussion/754610) | DreaMS fine-tune is allowed |
+| "Officially released DreaMS checkpoints are fine to use" (David Healey, 11-05). Follow-up asking whether this covers `ssl_model.ckpt` (Zenodo 10997887, CC BY 4.0) as a frozen encoder + head trained on comp data was answered yes on 11-17: it counts as an official checkpoint | [754610](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra/discussion/754610) | DreaMS fine-tune is allowed |
 | "Must a final submission be reproducible end-to-end from the competition data and openly documented resources? Yes." | 754610 | Any new scorer needs its training code published or packaged |
 | "MassSpecGym and MIST models are fine" (11-11), answering whether MSG (NIST used only for cleaning) and MIST `msg_noaug` are allowed. The GNPS-NIST14-MATCHES follow-up is unanswered | [757307](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra/discussion/757307) | **MassSpecGym is cleared as training data**, so MSG-trained checkpoints (JESTR, MVP, FLARE, GLACIER/ICEBERG-MSG, MIST) are usable if their data is MSG-only |
 | EnvedaDark: "IIRC it was not in fact published"; would follow normal external-data rules | [754732](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra/discussion/754732) | No timsTOF NP training set from Enveda |

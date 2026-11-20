@@ -174,6 +174,21 @@ the board. **A same-formula holdout does not predict the leaderboard for this sc
 work is closed on holdout evidence.** Any further scorer family (MIST, DreaMS) can only be judged by one gated
 submission against the current best.
 
+## Steps 2 and 3 result (2026-11-19, both DISCARD)
+
+With the holdout ruled out, MIST and DreaMS were each judged by one gated submission on ranks 2–25 of the 0.492
+network fork. The blend was 0.5·z(−log rank) + 0.5·z(cosine), rank 1 fixed, positive mode only.
+
+| Scorer | Holdout reach (953 lists) | Offline Δ MRR@25 | Public LB | Δ vs 0.492 |
+|---|---|---|---|---|
+| MIST `msg_aug` ([`fork492m`](../notebooks/fork492m)) | 813 reordered, true moved 266 (228 up) | +0.042 | 0.486 | −0.006 |
+| DreaMS, frozen, plus a trained molecule tower ([`fork492d`](../notebooks/fork492d)) | 839 reordered, true moved 259 (198 up) | +0.019 | 0.486 | −0.006 |
+
+On 17 Nov the host confirmed that DreaMS used frozen, with a head trained only on competition data, is allowed
+([754610](https://www.kaggle.com/competitions/enveda-CASMI26-molecule-id-mass-spectra/discussion/754610)). Both lost
+inside the noise. With the seed blend (0.463) and the isomer reranker (0.487), every neural change to ranks 2–25 has
+lost or done nothing on the board, so this line is closed. FLARE (Step 1) was not run.
+
 ## Not established
 
 - Whether any offline holdout tracks this leaderboard; Step 0 tests it.
@@ -182,7 +197,8 @@ submission against the current best.
 - How FLARE fine-tunes on timsTOF spectra, and whether it fits a T4 within the notebook's time limit. All T4 runtimes
   here are estimates.
 - MIST `msg_aug` as a ranker: only fingerprint Tanimoto has been measured.
-- Whether the host allows fine-tuning DreaMS `ssl_model.ckpt`, and how much timsTOF its pretraining data contains.
+- Whether fine-tuning the DreaMS encoder itself (rather than a frozen encoder plus tower) would help, and how much
+  timsTOF its pretraining data contains.
 - New papers since 10-30: the arXiv API rate-limited the sweep (HTTP 429), so one may be missing. The HF Hub showed
   no new MassSpecGym checkpoints.
 - What the 0.540 leaders do. None has published.

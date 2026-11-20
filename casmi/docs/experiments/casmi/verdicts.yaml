@@ -97,4 +97,7 @@ submissions:
   - {version: 1, label: mist-blend, outputs: fork492m-v1, ref: 58539986, date: 2026-11-19, family: fusion, commit: 2f20d98,
      score: 0.486, verdict: DISCARD,
      change: "fork492 + MIST msg_aug (coleygroup/MIST 48e339b, Zenodo 23303289) on ranks 2-25: fingerprint predicted from each molecule's positive-mode spectra, ranks 2-25 reordered by 0.5 z(-log rank) + 0.5 z(cosine), rank 1 fixed; commit run scored 11 smoke lists, 0 nulls, top1 changed 0; reach on the natural-product holdout lists 813 / 953 reordered, true structure moved in 266 (228 up), +0.042 offline; -0.006 on the board, inside the noise but lower"}
+  - {version: 1, label: dreams-blend, outputs: fork492d-v1, ref: 58580239, date: 2026-11-19, family: fusion, commit: e806e94,
+     score: 0.486, verdict: DISCARD,
+     change: "fork492 + the frozen official DreaMS embedding model (HF roman-bushuiev/DreaMS, MIT) and a molecule tower (Morgan r2 4096 -> DreaMS space, symmetric InfoNCE, trained on train.parquet only; val MRR 0.571) on ranks 2-25: ranks 2-25 reordered by 0.5 z(-log rank) + 0.5 z(cosine between the molecule's mean spectrum embedding and each candidate's tower embedding), rank 1 fixed; commit run scored 11 smoke lists, 0 nulls, top1 changed 0; reach on the natural-product holdout lists 839 / 953 reordered, true structure moved in 259 (198 up), +0.019 offline; -0.006 on the board, inside the noise but lower, the same score as MIST"}
 report_url: https://wandb.ai/chaleong/casmi26/reports/CASMI-2026-—-molecule-identification-from-tandem-mass-spectra--VmlldzoxODA5MTIwOQ==

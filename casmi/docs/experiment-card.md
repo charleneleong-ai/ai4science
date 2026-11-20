@@ -39,6 +39,17 @@ before it (0.446), an unchanged fork of the public E006 notebook,
 
 The settings were fixed by the notebook's authors before we ran it; we chose none of them.
 
+## Discarded — dreams-blend, public MRR@25 0.486 (DISCARD)
+
+| | |
+|---|---|
+| kernel | `charyeezy/casmi-fork492d` (private), kernel version 1, submission 58580239 (2026-11-20 08:31 AEDT, scored by 13:18 AEDT), commit [`e806e94`](https://github.com/charleneleong-ai/ai4science/commit/e806e94); −0.006 against network-fork, inside the noise but lower |
+| method | network-fork plus one cell after the APEX overlay: the frozen DreaMS model embeds each positive-mode test spectrum (DreaMS's own preprocessing: top 100 peaks, base-peak relative, precursor first at 1.1), averaged per molecule; a molecule tower embeds each candidate's 4,096-bit Morgan r2 fingerprint in the same space; ranks 2–25 reordered by 0.5·z(−log rank) + 0.5·z(cosine); rank 1 fixed and asserted |
+| model | `DreaMS_embedding_model_torchscript.pt` from HF roman-bushuiev/DreaMS (MIT), frozen; tower: MLP 4,096 → 2,048 → 2,048 → 1,024, symmetric InfoNCE, 30 epochs, trained by [`dreams_tower.py`](../scripts/dreams/dreams_tower.py) on the natural-product holdout's train split (250,339 molecules from `train.parquet`), early-stopped on its validation split (957, best retrieval MRR 0.571); both in the private versioned dataset `charyeezy/casmi-dreams-frozen`; the host ruled official DreaMS checkpoints allowed (5 Nov) and confirmed frozen weights plus a head trained on competition data (17 Nov, discussion 754610) |
+| checks before submitting | on the natural-product holdout lists ([`dreams_tower.py reach`](../scripts/dreams/dreams_tower.py)) it reordered 839 / 953 and moved the true structure in 259 (198 up, 61 down), +0.019 offline (SE 0.002; Enveda-180 +0.013, natural products +0.038), a reach check only, since that holdout failed its calibration gate |
+| run evidence | gate `~/casmi-data/gates/gate_fork492d.py` (outside the repo) passed: fork492's gate, then `[dreams] done: {"molecules": 400, "spectra": 987, "no_positive": 27, "short": 362, "scored": 11, "null": 0, "changed": 11, "top1_changed": 0}` |
+| settings | weight 0.5, the ranks 2–25 form and the tower recipe fixed before the run, as for MIST; one change per submission |
+
 ## Discarded — mist-blend, public MRR@25 0.486 (DISCARD)
 
 | | |
@@ -298,7 +309,7 @@ fragment check has none.
 
 ## Budget — every attempt in the denominator
 
-- **37 submissions, 37 scored, 0 rejected, plus one refused at submission** (fork495h, below). 19 from our own pipeline, one an identical re-run of v19
+- **38 submissions, 38 scored, 0 rejected, plus one refused at submission** (fork495h, below). 19 from our own pipeline, one an identical re-run of v19
   to measure noise (0.353 vs 0.356); every one is in the
   [score table](https://github.com/charleneleong-ai/ai4science/pull/80), including those not kept
   (0.049, 0.254, 0.345, 0.346), plus v18 (0.353, within noise), v19 (0.356, kept), v20 (0.354) and v21 (0.333) in
@@ -314,7 +325,8 @@ fragment check has none.
   version 2, seed-blend (0.463, 58046573, discarded), and kernel version 3, mass-prior (0.479, 58107187, discarded). One from the 0.487 notebook: extlib-fork (0.487,
   58272211, kernel version 1, promoted) and isomer-rerank (0.487, 58292050, kernel version 2, discarded) and rerank-alpha015 (0.487, 58304138, kernel version 3, discarded). One from the 0.492 notebook: network-fork (0.492,
   58506761, kernel version 1, promoted, final pick A). One from the network fork plus MIST: mist-blend (0.486, 58539986,
-  `charyeezy/casmi-fork492m` kernel version 1, discarded).
+  `charyeezy/casmi-fork492m` kernel version 1, discarded). One from the network fork plus DreaMS: dreams-blend (0.486,
+  58580239, `charyeezy/casmi-fork492d` kernel version 1, discarded).
 - **One commit run Kaggle refused to accept as a submission:** fork495h, Heliosli's public "0.495" notebook
   unchanged (kernel version 1, 2026-11-17). Its commit run passed, with every base stage and overlay done, but
   `CreateCodeSubmission` returned `FAILED_PRECONDITION`: "Your Notebook uses non-versioned datasets", naming all seven
@@ -371,6 +383,7 @@ fragment check has none.
 | isomer reranker for v2: `V8 = 'BOTH'`, `RR8_ALPHA = 0.20` | **before** its run (2026-11-13) | one change per submission; small weight chosen so it can only reorder same-formula isomers; 0.487, no change; v3 lowers it to 0.15 (fixed before its run): 0.487, no change; closed |
 | MIST `msg_aug` gate: mean Tanimoto ≥ 0.40 on the 50 FRIGID molecules | **before** the run (2026-11-01) | pre-registered; 0.385 fails it, so no FRIGID decode was run |
 | MIST `msg_aug` ranks 2–25 blend: weight 0.5, rank 1 fixed, positive mode only | **before** the run (2026-11-19, from the 2026-11-14 plan) | one change per submission; reach checked first (813 / 953 holdout lists); 0.486, discarded |
+| DreaMS ranks 2–25 blend: weight 0.5, rank 1 fixed, positive mode only, tower trained on the holdout's train split | **before** the run (2026-11-19) | one change per submission; reach checked first (839 / 953 holdout lists); 0.486, discarded |
 | external-library reach: cosine ≥ 0.5, 20 ppm, same ion mode, structures absent from train | **before** the count | a reach check; 0 / 400, so no submission |
 | analogue propagation (fork477 v3: anchor ≥ 0.87, cosine ≥ 0.70, λ 0.10, rank 1 frozen) | **before** it was submitted | its reach (113 / 400) checked first; no offline panel can score it; scored 0.477, no change, discarded |
 | FRIGID go bar: top-10 exact ≥ 5 / 50 with the true formula | **before** the run (2026-10-18) | pre-registered; MIST-MSG over CANOPUS also fixed before |
@@ -400,6 +413,8 @@ of identical runs — were treated as no change.
 - **Why MIST lost on the board.** Untested: the negative-mode molecules it skips, the formula taken from rank 1, and
   whether a lower weight would hold were not run. Its offline +0.042 came from a holdout that already ran opposite to
   the board twice.
+- **Why DreaMS lost on the board.** Untested: lower weights, negative-mode spectra and fine-tuning the encoder
+  were not run. Its offline +0.019 came from the same holdout.
 - **Whether the network rerank helps on the private split.** +0.005 is about one public molecule, and LAM 0.35 was
   picked upstream as the best of five public scores. It reproduced, but that is the same public split, so the
   selection is not independent of the score. The commit run changed 2 of the 12 smoke lists and no rank 1; its reach

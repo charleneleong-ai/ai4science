@@ -47,7 +47,7 @@ $+0.008$ over 0.479 is inside the $\pm0.016$ between submissions. A learned isom
 0.492 notebook, adds a test-set molecular-network rerank (network weight 0.35) to the 0.487 pipeline and reproduced 0.492:
 the new base and final pick A, though $+0.005$ is about one molecule and inside the noise. Heliosli's public notebook ran
 cleanly but could not be submitted, because its datasets are not versioned. MIST \texttt{msg\_aug} on its ranks 2--25
-scored 0.486 (not kept). 37 submissions were made and all were
+scored 0.486 (not kept), and so did DreaMS in the same slot. 38 submissions were made and all were
 scored. No calibrated local estimate of the score exists.
 \end{abstract}
 
@@ -203,6 +203,7 @@ isomer-rerank & + learned isomer reranker, weight 0.20 (not kept) & 0.487 \\
 rerank-alpha015 & + learned isomer reranker, weight 0.15 (not kept) & 0.487 \\
 network-fork & the public 0.492 notebook, unchanged (inside the noise) & \textbf{0.492} \\
 mist-blend & + MIST \texttt{msg\_aug} cosine on ranks 2--25, weight 0.5 (not kept) & 0.486 \\
+dreams-blend & + DreaMS spectrum--tower cosine on ranks 2--25, weight 0.5 (not kept) & 0.486 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -320,6 +321,15 @@ lists it reordered 813 of 953 and moved the true structure in 266 (228 up), $+0.
 its calibration gate twice, so this was a reach check, not a prediction. The gate passed (11 smoke lists scored,
 no nulls, no rank 1 changed), and it scored 0.486 (submission 58539986), $-0.006$: not kept.
 
+\textbf{DreaMS on ranks 2--25 (dreams-blend, 19 November).} The network fork plus one cell: the frozen official DreaMS
+embedding model (HF roman-bushuiev/DreaMS, MIT) embeds each molecule's positive-mode spectra, and a molecule tower (an MLP
+from 4,096-bit Morgan fingerprints, trained with symmetric InfoNCE on 250{,}339 \texttt{train.parquet} molecules, validation
+retrieval MRR 0.571) embeds each candidate in the same space. Ranks 2--25 are reordered by
+$0.5\,z(-\log\text{rank}) + 0.5\,z(\text{cosine})$ with rank 1 fixed. The host allows official DreaMS checkpoints used frozen
+with a head trained on competition data. On the natural-product holdout lists it reordered 839 of 953 and moved the true
+structure in 259 (198 up), $+0.019$ offline. The gate passed, and it scored 0.486 (submission 58580239), $-0.006$, the same
+as MIST: not kept.
+
 \textbf{Heliosli's notebook (fork495h, 17 November, not submitted).} A byte-identical fork of the public ``0.495''
 notebook, the 0.477 pipeline with de novo candidates, an isomer reranker and a joint ranker on top. Its commit run
 passed, but Kaggle refused the submission: code submissions cannot use datasets whose owner has disabled versioning,
@@ -396,7 +406,7 @@ its fingerprints reach Tanimoto 0.245 in its own 10{,}226-bit space and 0.180 ma
     $[\mathrm{M{+}H}]^+$ only (v16), popularity weight 0.15 (v8): inside the noise or below it.
 \end{itemize}
 
-\textbf{Next.} The base is now the 0.492 network fork; the extlib fork's isomer reranker at weights 0.20 and 0.15 scored 0.487 (no change), and that line is closed. MIST on ranks 2--25 scored 0.486, and a same-formula holdout failed to predict the board twice, so a further scorer family is judged by one gated submission only. Final picks (two, by 14
+\textbf{Next.} The base is now the 0.492 network fork; the extlib fork's isomer reranker at weights 0.20 and 0.15 scored 0.487 (no change), and that line is closed. MIST on ranks 2--25 scored 0.486, and a same-formula holdout failed to predict the board twice, so a further scorer family is judged by one gated submission only; DreaMS then scored 0.486 too, which closes neural scorers on ranks 2--25. Final picks (two, by 14
 December 23:59 UTC): pick A is the network fork (0.492, submission 58506761); pick B is the 0.479 dedup fork
 (fork479 v1, submission 57867559), a different line. Both still need ticking on Kaggle's Submissions page. No leader has published a method; the seed blend closed the same-model
 ensemble route and the Gold Apex mass prior alone did not move the score. The ICEBERG PubChem atlas, allowed by the host on 28 October, was reviewed on 3 November and skipped.
@@ -419,6 +429,8 @@ forking any credible improvement that reproduces; it gave the 0.479, 0.487 and 0
     outside PubChem and COCONUT is the SOTA sweep's estimate, not a measurement on the hidden test.
   \item \textbf{Why MIST lost on the board.} The negative-mode molecules it skips, the formula taken from rank 1 and
     lower weights were not tested.
+  \item \textbf{Why DreaMS lost on the board.} Lower weights, negative-mode spectra and fine-tuning the encoder were
+    not tested.
   \item \textbf{Whether the network rerank helps on the private split.} Its $+0.005$ is about one public molecule,
     and the weight 0.35 was picked upstream as the best of five scores on the same public split, so the reproduction is
     not independent of that selection.
